@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
@@ -118,6 +120,22 @@ class CrmSyncPage extends StatelessWidget {
                       label: const Text('全量同步'),
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: logic.reconciling.value
+                          ? null
+                          : logic.reconcile,
+                      icon: logic.reconciling.value
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.rule_rounded),
+                      label: const Text('对账'),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -125,8 +143,12 @@ class CrmSyncPage extends StatelessWidget {
             Obx(() {
               final result = logic.connectionResult.value;
               final sync = logic.syncResult.value;
+              final reconcile = logic.reconcileResult.value;
               final stats = logic.stats.value;
-              if (result != null || sync != null || stats.isNotEmpty) {
+              if (result != null ||
+                  sync != null ||
+                  reconcile != null ||
+                  stats.isNotEmpty) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -141,6 +163,14 @@ class CrmSyncPage extends StatelessWidget {
                       ),
                     if (sync != null)
                       Text('上次全量拉取：${sync.totalPulled} 条 ${sync.pulledByObject}'),
+                    if (reconcile != null)
+                      Text(
+                        reconcile.totalDiff == 0
+                            ? '✅ 对账完成：本地与远端一致'
+                            : '⚠️ 对账差异 ${reconcile.totalDiff} 项'
+                                  '（缺失 ${reconcile.missingLocal}，'
+                                  '过期 ${reconcile.staleLocal}）',
+                      ),
                     if (stats.isNotEmpty)
                       Text('本地缓存：${stats.entries.map((e) => "${e.key}:${e.value}").join(" / ")}'),
                   ],
@@ -223,6 +253,7 @@ class CrmSyncPage extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      onTap: () => _showEntityDetail(context, item),
                     ),
                 ],
               );
@@ -318,6 +349,41 @@ class CrmSyncPage extends StatelessWidget {
     };
     return labels[type] ?? type;
   }
+
+  void _showEntityDetail(BuildContext context, CrmEntityCache item) {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(item.name),
+          content: SingleChildScrollView(
+            child: Text(
+              '类型：${item.entityType}\n'
+              'Twenty ID：${item.twentyId}\n'
+              '本地版本：${item.localVersion}\n'
+              '最近同步：${item.lastSyncedAt.toLocal()}\n\n'
+              '快照：\n${_prettyJson(item.dataJson)}',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('关闭'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _prettyJson(String dataJson) {
+    try {
+      final decoded = jsonDecode(dataJson);
+      return const JsonEncoder.withIndent('  ').convert(decoded);
+    } catch (_) {
+      return dataJson;
+    }
+  }
 }
 
 class CrmSyncController extends GetxController {
@@ -342,8 +408,10 @@ class CrmSyncController extends GetxController {
   final tokenVisible = false.obs;
   final testing = false.obs;
   final syncing = false.obs;
+  final reconciling = false.obs;
   final connectionResult = Rx<ConnectionResult?>(null);
   final syncResult = Rx<CrmSyncResult?>(null);
+  final reconcileResult = Rx<ReconcileResult?>(null);
   final stats = <String, int>{}.obs;
   final cacheItems = <CrmEntityCache>[].obs;
   final logEntries = <SyncLogEntry>[].obs;
@@ -417,6 +485,18 @@ class CrmSyncController extends GetxController {
       toast.error(message: '同步失败：$e');
     } finally {
       syncing.value = false;
+    }
+  }
+
+  Future<void> reconcile() async {
+    reconciling.value = true;
+    try {
+      reconcileResult.value = await service.reconcile();
+      refreshLog();
+    } catch (e) {
+      toast.error(message: '对账失败：$e');
+    } finally {
+      reconciling.value = false;
     }
   }
 

@@ -51,6 +51,11 @@ void main() {
     final companies = await IsarUtil.getCrmEntitiesByType('company');
     expect(companies, isNotEmpty);
 
+    // 对账：全量拉取后本地与远端应基本一致
+    final reconcile = await service.reconcile();
+    expect(reconcile.totalDiff, lessThanOrEqualTo(2),
+        reason: '全量拉取后对账差异应很小：$reconcile');
+
     // 创建 → 搜索 → 删除 闭环
     final name =
         'Moodiary集成测试-${DateTime.now().millisecondsSinceEpoch}';

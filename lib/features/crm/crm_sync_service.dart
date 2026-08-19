@@ -35,6 +35,32 @@ class CrmSyncResult {
       'byObject: $pulledByObject)';
 }
 
+/// 同步对账结果（架构文档"五、设置模块-同步对账"）
+class ReconcileResult {
+  final DateTime checkedAt;
+
+  /// 远端有但本地缺失的实体（按对象）
+  final Map<String, List<String>> missingLocal;
+
+  /// 本地有但远端已删除的实体（按对象）
+  final Map<String, List<String>> staleLocal;
+
+  const ReconcileResult({
+    required this.checkedAt,
+    required this.missingLocal,
+    required this.staleLocal,
+  });
+
+  int get totalDiff =>
+      missingLocal.values.fold(0, (s, v) => s + v.length) +
+      staleLocal.values.fold(0, (s, v) => s + v.length);
+
+  @override
+  String toString() =>
+      'ReconcileResult(checkedAt: $checkedAt, missing: $missingLocal, '
+      'stale: $staleLocal)';
+}
+
 /// CRM 同步服务：Twenty 增量/全量同步 + 本地缓存（架构文档 P1.8）
 class CrmSyncService {
   final TwentyApiClient client;
@@ -213,5 +239,41 @@ class CrmSyncService {
       stats[object] = await IsarUtil.countCrmEntitiesByType(object);
     }
     return stats;
+  }
+
+  /// 全量对账：对比远端与本地缓存，找出缺失/过期实体（不自动修复）
+  Future<ReconcileResult> reconcile({
+    Set<String> objects = defaultObjects,
+  }) async {
+    final missing = <String, List<String>>{};
+    final stale = <String, List<String>>{};
+
+    for (final object in objects) {
+      final remote = await client.listAll(object: object);
+      final remoteIds = remote.map((e) => e.id).toSet();
+      final local = await IsarUtil.getCrmEntitiesByType(
+        object,
+        includeDeleted: true,
+      );
+      final localIds = local.map((e) => e.twentyId).toSet();
+
+      final missingIds = remoteIds.difference(localIds).toList()..sort();
+      final staleIds = localIds.difference(remoteIds).toList()..sort();
+      if (missingIds.isNotEmpty) missing[object] = missingIds;
+      if (staleIds.isNotEmpty) stale[object] = staleIds;
+    }
+
+    final result = ReconcileResult(
+      checkedAt: DateTime.now(),
+      missingLocal: missing,
+      staleLocal: stale,
+    );
+    await log.write(
+      level: result.totalDiff == 0 ? SyncLogLevel.info : SyncLogLevel.warn,
+      operation: 'reconcile',
+      target: 'crm',
+      detail: '对账完成：差异 ${result.totalDiff} 项',
+    );
+    return result;
   }
 }

@@ -187,3 +187,58 @@ flutter run
 | *人*                                  | 20 CNY   | *人*                                             | 18.88 CNY |
 | Lucci                                 | 9.9 CNY  | *人*                                             | 5 CNY     |
 | 宋**                                  | 5 CNY    | 翰**                                             | 5 CNY     |
+# Moodiary（轻智能终端二次开发）
+
+> 本仓库在开源 Moodiary 基础上进行"轻智能终端"二次开发，完整设计见
+> [docs/轻智能终端-完整架构设计执行指导文档.md](docs/轻智能终端-完整架构设计执行指导文档.md)，
+> 开发计划与分工见 [docs/二次开发计划.md](docs/二次开发计划.md)。
+
+## 已实现功能
+
+- **Block 协议**：文本/Todo/智能实体/图表/AI 流式/图片/代码七类块，独立 Isar 表 + 软删除 + 流式断点字段
+- **数据迁移 v1→v2**：启动自动把旧版日记内容包装为 Block，幂等 + 迁移历史
+- **快速收集面板**：首页 FAB → 底部半屏速记（富文本入口预留 + 图片/文档附件 + 麦克风预留），保存即写 Diary + Block
+- **日历热力图**：按字数/Block 数/心情综合活跃度着色（P2.1）
+- **记录块视图**：日记列表第三种视图，Block 卡片流（P1.6）
+- **CRM 同步（Twenty）**：
+  - 客户端：GraphQL 分页/增删改 + 429/5xx 指数退避
+  - 本地缓存：CrmEntityCache（twentyId 索引/快照/软删）
+  - 连接测试 / 全量同步 / 同步对账 / 跨对象本地搜索
+  - 自定义业务对象：合同、回款、发票、提成
+  - 设置 → CRM 同步页面（配置存 secure storage）
+  - 服务端 Ktor 反向代理：`/api/twenty/*`（令牌经 `TWENTY_API_TOKEN` 注入）
+- **模块开关**：设置页可独立启用/关闭 CRM/知识库/日历（P2.8）
+- **附件管线**：Attachments/YYYY/MM + metadata.json 索引 + 孤立附件扫描清理（P1.9）
+- **同步日志**：结构化 JSONL（INFO/WARN/ERROR，最近 500 条环形）
+- **跨模块搜索**：日记/Block/CRM 统一检索服务（P1.7）
+- **Rust 同步引擎骨架**：SyncEngine/Pull/Push/File/Conflict(LWW)/AI/VectorIndex(Mock) + FFI 契约（P1.3/P1.4）
+
+## Twenty 连接与验证
+
+```powershell
+# 1. 本地配置（不入 git）：config\twenty.local.json（参考 twenty.example.json）
+# 2. CLI 自检
+dart run tool/twenty_sync_check.dart
+# 3. 真实环境集成测试（会创建并删除一条测试公司）
+flutter test --tags integration test/integration/twenty_integration_test.dart
+# 4. 服务端代理
+cd server
+$env:TWENTY_BASE_URL='http://10.200.245.54:3000'
+$env:TWENTY_API_TOKEN='<你的API Key>'
+.\gradlew.bat run
+```
+
+## 测试与验证
+
+- `flutter analyze`：0 问题
+- `flutter test --exclude-tags integration`：36/36 全绿
+- `flutter test --tags integration`：真实 Twenty 环境（连接/拉取/对账/建删闭环）
+- `cargo test`：37/37
+- `server gradlew test`：8/8
+
+## 文档索引
+
+- 架构设计：[轻智能终端-完整架构设计执行指导文档.md](docs/轻智能终端-完整架构设计执行指导文档.md)
+- 开发计划与 WBS：[二次开发计划.md](docs/二次开发计划.md)
+- 多 Agent 岗位配置：[开发岗位配置.md](docs/开发岗位配置.md)
+- 进度跟踪：[开发进度.md](docs/开发进度.md)
