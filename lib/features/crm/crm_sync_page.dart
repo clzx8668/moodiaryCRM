@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
+import 'package:moodiary/features/crm/business_objects_page.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
 import 'package:moodiary/features/sync_log/sync_log.dart';
@@ -18,7 +19,18 @@ class CrmSyncPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final logic = Get.put(CrmSyncController());
     return Scaffold(
-      appBar: AppBar(title: const Text('CRM 同步（Twenty）')),
+      appBar: AppBar(
+        title: const Text('CRM 同步（Twenty）'),
+        actions: [
+          IconButton(
+            tooltip: '业务对象',
+            icon: const Icon(Icons.grid_view_rounded),
+            onPressed: () {
+              Get.to(() => const BusinessObjectsPage());
+            },
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

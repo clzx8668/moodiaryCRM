@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/components/dashboard/dashboard_logic.dart';
 import 'package:moodiary/features/attachments/attachment_manager.dart';
+import 'package:moodiary/features/sync_log/sync_log_page.dart';
 import 'package:moodiary/pages/home/diary/diary_logic.dart';
 import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/persistence/pref.dart';
@@ -58,6 +59,10 @@ class SettingLogic extends GetxController {
     toast.success(
       message: count > 0 ? '已清理 $count 个孤立附件' : '无孤立附件',
     );
+  }
+
+  void toSyncLogPage() {
+    Get.to(() => const SyncLogPage());
   }
 
   //本地化

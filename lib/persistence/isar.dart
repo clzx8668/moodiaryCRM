@@ -872,4 +872,13 @@ class IsarUtil {
       isar.crmEntityCaches.clear();
     });
   }
+
+  /// 全部可见 CRM 缓存实体（时间轴用），按更新时间降序
+  static Future<List<crm_model.CrmEntityCache>> getAllCrmEntities() async {
+    return _db.crmEntityCaches
+        .where()
+        .isDeletedEqualTo(false)
+        .sortByUpdatedAtDesc()
+        .findAllAsync();
+  }
 }

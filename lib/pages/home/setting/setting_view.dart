@@ -174,10 +174,19 @@ class SettingPage extends StatelessWidget {
                   title: const Text('清理孤立附件'),
                   subtitle: const Text('扫描并删除未被任何记录引用的附件'),
                   leading: const Icon(Icons.attachment_rounded),
-                  isLast: true,
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () {
                     logic.cleanOrphanAttachments();
+                  },
+                ),
+                AdaptiveListTile(
+                  title: const Text('同步日志'),
+                  subtitle: const Text('查看最近 500 条同步记录（可筛选/清空）'),
+                  leading: const Icon(Icons.receipt_long_rounded),
+                  isLast: true,
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    logic.toSyncLogPage();
                   },
                 ),
               ],
