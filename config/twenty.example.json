@@ -1,0 +1,6 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "apiToken": "替换为 Twenty API Key（Settings → APIs → Create API key）",
+  "workspaceId": "替换为 workspace 标识（可选）",
+  "timeoutSeconds": 15
+}

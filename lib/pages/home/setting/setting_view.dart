@@ -17,6 +17,7 @@ import 'package:moodiary/components/language_dialog/language_dialog_view.dart';
 import 'package:moodiary/components/remove_password/remove_password_view.dart';
 import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
+import 'package:moodiary/features/crm/crm_sync_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -168,6 +169,33 @@ class SettingPage extends StatelessWidget {
                   ),
                   onTap: () {
                     logic.deleteCache();
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    Widget buildCrm() {
+      return Column(
+        children: [
+          const AdaptiveTitleTile(title: 'CRM 同步'),
+          Card.filled(
+            color: context.theme.colorScheme.surfaceContainerLow,
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                AdaptiveListTile(
+                  title: const Text('Twenty CRM 同步'),
+                  subtitle: const Text('客户/联系人/商机双向增量同步'),
+                  leading: const Icon(Icons.business_rounded),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  isFirst: true,
+                  isLast: true,
+                  onTap: () {
+                    Get.to(() => const CrmSyncPage());
                   },
                 ),
               ],
@@ -488,6 +516,7 @@ class SettingPage extends StatelessWidget {
             children: [
               buildDashboard(),
               buildFeature(),
+              buildCrm(),
               buildData(),
               buildDisplay(),
               buildPrivacy(),

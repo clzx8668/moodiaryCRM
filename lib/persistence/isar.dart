@@ -18,6 +18,8 @@ import 'package:moodiary/components/quill_embed/image_embed.dart';
 import 'package:moodiary/components/quill_embed/video_embed.dart';
 import 'package:moodiary/features/block/models/app_metadata.dart' as app_meta;
 import 'package:moodiary/features/block/models/block.dart' as block_model;
+import 'package:moodiary/features/crm/models/crm_entity_cache.dart'
+    as crm_model;
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/persistence/migration.dart';
 import 'package:moodiary/src/rust/api/jieba.dart';
@@ -29,12 +31,28 @@ import 'package:uuid/uuid.dart';
 class IsarUtil {
   static late final Isar _isar;
 
+  /// 测试接缝：集成测试可注入临时库
+  static Isar? _testIsar;
+
+  static Isar get _db => _testIsar ?? _isar;
+
+  @visibleForTesting
+  static void overrideIsarForTest(Isar isar) {
+    _testIsar = isar;
+  }
+
+  @visibleForTesting
+  static void restoreIsarForTest() {
+    _testIsar = null;
+  }
+
   static final _schemas = [
     DiarySchema,
     CategorySchema,
     FontSchema,
     block_model.BlockSchema,
     app_meta.AppMetadataSchema,
+    crm_model.CrmEntityCacheSchema,
   ];
 
   static Future<void> initIsar() async {
@@ -724,5 +742,88 @@ class IsarUtil {
   /// 获取 Block 总数（不含已删除）
   static Future<int> getBlockCount() async {
     return _isar.blocks.where().isDeletedEqualTo(false).countAsync();
+  }
+
+  // ==================== CRM 实体缓存 ====================
+
+  /// 按 Twenty ID 查询缓存实体
+  static Future<crm_model.CrmEntityCache?> getCrmEntityByTwentyId(
+    String twentyId,
+  ) async {
+    return _db.crmEntityCaches
+        .where()
+        .twentyIdEqualTo(twentyId)
+        .findFirstAsync();
+  }
+
+  /// 批量 upsert 缓存实体
+  static Future<void> upsertCrmEntities(
+    List<crm_model.CrmEntityCache> entities,
+  ) async {
+    await _db.writeAsync((isar) {
+      isar.crmEntityCaches.putAll(entities);
+    });
+  }
+
+  /// 按类型获取缓存实体
+  static Future<List<crm_model.CrmEntityCache>> getCrmEntitiesByType(
+    String entityType, {
+    bool includeDeleted = false,
+  }) async {
+    if (includeDeleted) {
+      return _db.crmEntityCaches
+          .where()
+          .entityTypeEqualTo(entityType)
+          .sortByUpdatedAtDesc()
+          .findAllAsync();
+    }
+    return _db.crmEntityCaches
+        .where()
+        .entityTypeEqualTo(entityType)
+        .isDeletedEqualTo(false)
+        .sortByUpdatedAtDesc()
+        .findAllAsync();
+  }
+
+  /// 按名称模糊搜索缓存实体（跨对象）
+  static Future<List<crm_model.CrmEntityCache>> searchCrmByName(
+    String keyword,
+  ) async {
+    if (keyword.trim().isEmpty) return [];
+    return _db.crmEntityCaches
+        .where()
+        .isDeletedEqualTo(false)
+        .nameContains(keyword, caseSensitive: false)
+        .sortByUpdatedAtDesc()
+        .findAllAsync();
+  }
+
+  /// 按 Twenty ID 删除缓存实体
+  static Future<void> removeCrmEntityByTwentyId(String twentyId) async {
+    await _db.writeAsync((isar) {
+      final found = isar.crmEntityCaches
+          .where()
+          .twentyIdEqualTo(twentyId)
+          .findFirst();
+      if (found != null) {
+        isar.crmEntityCaches.delete(found.isarId);
+      }
+    });
+  }
+
+  /// 某类型缓存数量
+  static Future<int> countCrmEntitiesByType(String entityType) async {
+    return _db.crmEntityCaches
+        .where()
+        .entityTypeEqualTo(entityType)
+        .isDeletedEqualTo(false)
+        .countAsync();
+  }
+
+  /// 清空 CRM 缓存
+  static Future<void> clearCrmCache() async {
+    await _db.writeAsync((isar) {
+      isar.crmEntityCaches.clear();
+    });
   }
 }
