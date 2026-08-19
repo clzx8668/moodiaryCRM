@@ -7,6 +7,7 @@ import 'package:moodiary/components/base/modal.dart';
 import 'package:moodiary/components/desktop_wrapper/background.dart';
 import 'package:moodiary/components/home_fab/home_fab_view.dart';
 import 'package:moodiary/components/home_nativatorbar/navigatorbar.dart';
+import 'package:moodiary/features/quick_capture/quick_capture_view.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/pages/home/calendar/calendar_view.dart';
 import 'package:moodiary/pages/home/diary/diary_view.dart';
@@ -89,10 +90,13 @@ class HomePage extends StatelessWidget {
                                 context.theme.colorScheme.surfaceContainer,
                             labelType: NavigationRailLabelType.all,
                             padding: EdgeInsets.zero,
-                            trailing: Expanded(
-                              child: DesktopHomeFabComponent(
-                                isToTopShow: logic.isToTopShow,
-                                toTop: logic.toTop,
+                              trailing: Expanded(
+                                child: DesktopHomeFabComponent(
+                                  toQuickCapture: () async {
+                                    await QuickCaptureSheet.show(context);
+                                  },
+                                  isToTopShow: logic.isToTopShow,
+                                  toTop: logic.toTop,
                                 toMarkdown: () async {
                                   await logic.toEditPage(
                                     type: DiaryType.markdown,
@@ -155,6 +159,16 @@ class HomePage extends StatelessWidget {
         isToTopShow: logic.isToTopShow,
         isExpanded: logic.isFabExpanded,
         showShadow: true,
+        openFab: () async {
+          await QuickCaptureSheet.show(
+            context,
+            onCreate: (type) async {
+              if (Get.isBottomSheetOpen == true) Get.back();
+              await logic.toEditPage(type: type);
+            },
+          );
+        },
+        onLongPressOpen: logic.openFab,
         toTop: logic.toTop,
         toMarkdown: () async {
           await logic.toEditPage(type: DiaryType.markdown);
@@ -166,7 +180,6 @@ class HomePage extends StatelessWidget {
           await logic.toEditPage(type: DiaryType.richText);
         },
         closeFab: logic.closeFab,
-        openFab: logic.openFab,
       ),
     );
   }

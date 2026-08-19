@@ -23,6 +23,9 @@ class HomeFabComponent extends StatelessWidget {
   final Function() toPlainText;
   final Function() toRichText;
 
+  /// 长按主按钮时展开菜单（点击主按钮默认打开快速收集）
+  final Function()? onLongPressOpen;
+
   final bool showShadow;
 
   const HomeFabComponent({
@@ -37,6 +40,7 @@ class HomeFabComponent extends StatelessWidget {
     required this.toRichText,
     required this.closeFab,
     required this.openFab,
+    this.onLongPressOpen,
     required this.showShadow,
   });
 
@@ -191,6 +195,7 @@ class HomeFabComponent extends StatelessWidget {
         builder: (context, child) {
           return GestureDetector(
             onTap: isExpanded.value ? closeFab : openFab,
+            onLongPress: onLongPressOpen,
             child: Container(
               width: 56.0,
               height: 56.0,
@@ -286,6 +291,8 @@ class HomeFabComponent extends StatelessWidget {
 }
 
 class DesktopHomeFabComponent extends StatelessWidget {
+  final Function()? toQuickCapture;
+
   final RxBool isToTopShow;
 
   final Function() toTop;
@@ -295,6 +302,7 @@ class DesktopHomeFabComponent extends StatelessWidget {
 
   const DesktopHomeFabComponent({
     super.key,
+    this.toQuickCapture,
     required this.isToTopShow,
     required this.toTop,
     required this.toMarkdown,
@@ -310,6 +318,15 @@ class DesktopHomeFabComponent extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         spacing: 16.0,
         children: [
+          if (toQuickCapture != null)
+            IconButton.filled(
+              onPressed: toQuickCapture,
+              icon: const FaIcon(FontAwesomeIcons.bolt, size: 16),
+              style: const ButtonStyle(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              tooltip: '快速收集',
+            ),
           Obx(() {
             return Visibility(
               visible: isToTopShow.value,

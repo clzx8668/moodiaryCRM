@@ -16,7 +16,10 @@ import 'package:moodiary/components/base/text.dart';
 import 'package:moodiary/components/quill_embed/audio_embed.dart';
 import 'package:moodiary/components/quill_embed/image_embed.dart';
 import 'package:moodiary/components/quill_embed/video_embed.dart';
+import 'package:moodiary/features/block/models/app_metadata.dart' as app_meta;
+import 'package:moodiary/features/block/models/block.dart' as block_model;
 import 'package:moodiary/persistence/pref.dart';
+import 'package:moodiary/persistence/migration.dart';
 import 'package:moodiary/src/rust/api/jieba.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/webdav_util.dart';
@@ -26,13 +29,21 @@ import 'package:uuid/uuid.dart';
 class IsarUtil {
   static late final Isar _isar;
 
-  static final _schemas = [DiarySchema, CategorySchema, FontSchema];
+  static final _schemas = [
+    DiarySchema,
+    CategorySchema,
+    FontSchema,
+    block_model.BlockSchema,
+    app_meta.AppMetadataSchema,
+  ];
 
   static Future<void> initIsar() async {
     _isar = await Isar.openAsync(
       schemas: _schemas,
       directory: FileUtil.getRealPath('database', ''),
     );
+    // 启动时自动执行数据迁移（v1 → v2 等）
+    await MigrationService.run(_isar);
   }
 
   static Future<void> dataMigration(String path) async {
@@ -627,5 +638,91 @@ class IsarUtil {
     return await _isar.writeAsync((isar) {
       return isar.fonts.delete(id);
     });
+  }
+
+  // ==================== Block CRUD（架构文档 Block 协议） ====================
+
+  /// 插入一个 Block
+  static Future<void> insertBlock(block_model.Block block) async {
+    block.updatedAt = DateTime.now();
+    await _isar.writeAsync((isar) {
+      isar.blocks.put(block);
+    });
+  }
+
+  /// 批量插入 Block
+  static Future<void> insertBlocks(List<block_model.Block> blocks) async {
+    final now = DateTime.now();
+    for (final block in blocks) {
+      block.updatedAt = now;
+    }
+    await _isar.writeAsync((isar) {
+      isar.blocks.putAll(blocks);
+    });
+  }
+
+  /// 更新 Block（覆盖式）
+  static Future<void> updateBlock(block_model.Block block) async {
+    block.updatedAt = DateTime.now();
+    await _isar.writeAsync((isar) {
+      isar.blocks.put(block);
+    });
+  }
+
+  /// 按日记获取 Block 列表（默认不含已删除），按 sortOrder 升序
+  static Future<List<block_model.Block>> getBlocksByDiary(
+    String diaryId, {
+    bool includeDeleted = false,
+  }) async {
+    if (includeDeleted) {
+      return _isar.blocks
+          .where()
+          .diaryIdEqualTo(diaryId)
+          .sortBySortOrder()
+          .findAllAsync();
+    }
+    return _isar.blocks
+        .where()
+        .diaryIdEqualTo(diaryId)
+        .isDeletedEqualTo(false)
+        .sortBySortOrder()
+        .findAllAsync();
+  }
+
+  /// 软删除一个 Block
+  static Future<void> softDeleteBlock(String blockId) async {
+    await _isar.writeAsync((isar) {
+      final block = isar.blocks.get(block_model.fastHash(blockId));
+      if (block != null) {
+        block.isDeleted = true;
+        block.updatedAt = DateTime.now();
+        isar.blocks.put(block);
+      }
+    });
+  }
+
+  /// 按类型获取全部 Block
+  static Future<List<block_model.Block>> getBlocksByType(
+    block_model.BlockType type, {
+    bool includeDeleted = false,
+  }) async {
+    if (includeDeleted) {
+      return _isar.blocks
+          .where()
+          .blockTypeEqualTo(type)
+          .sortBySortOrder()
+          .findAllAsync();
+    }
+    return _isar.blocks
+        .where()
+        .blockTypeEqualTo(type)
+        .isDeletedEqualTo(false)
+        .sortBySortOrder()
+        .findAllAsync();
+  }
+
+  /// 获取 Block 总数（不含已删除）
+  static Future<int> getBlockCount() async {
+    return _isar.blocks.where().isDeletedEqualTo(false).countAsync();
   }
 }
