@@ -19,9 +19,7 @@ class HomeFabComponent extends StatelessWidget {
   final Function() openFab;
 
   final Function() toTop;
-  final Function() toMarkdown;
-  final Function() toPlainText;
-  final Function() toRichText;
+  final Function() toNewDiary;
 
   /// 长按主按钮时展开菜单（点击主按钮默认打开快速收集）
   final Function()? onLongPressOpen;
@@ -35,9 +33,7 @@ class HomeFabComponent extends StatelessWidget {
     required this.isToTopShow,
     required this.isExpanded,
     required this.toTop,
-    required this.toMarkdown,
-    required this.toPlainText,
-    required this.toRichText,
+    required this.toNewDiary,
     required this.closeFab,
     required this.openFab,
     this.onLongPressOpen,
@@ -254,20 +250,8 @@ class HomeFabComponent extends StatelessWidget {
           children: [
             buildToTopButton(),
             buildAnimatedActionButton(
-              label: context.l10n.homeNewDiaryMarkdown,
-              onTap: toMarkdown,
-              iconData: FontAwesomeIcons.markdown,
-              index: 3,
-            ),
-            buildAnimatedActionButton(
-              label: context.l10n.homeNewDiaryPlainText,
-              onTap: toPlainText,
-              iconData: FontAwesomeIcons.font,
-              index: 2,
-            ),
-            buildAnimatedActionButton(
-              label: context.l10n.homeNewDiaryRichText,
-              onTap: toRichText,
+              label: '新建日记',
+              onTap: toNewDiary,
               iconData: FontAwesomeIcons.feather,
               index: 1,
             ),
@@ -296,18 +280,14 @@ class DesktopHomeFabComponent extends StatelessWidget {
   final RxBool isToTopShow;
 
   final Function() toTop;
-  final Function() toMarkdown;
-  final Function() toPlainText;
-  final Function() toRichText;
+  final Function() toNewDiary;
 
   const DesktopHomeFabComponent({
     super.key,
     this.toQuickCapture,
     required this.isToTopShow,
     required this.toTop,
-    required this.toMarkdown,
-    required this.toPlainText,
-    required this.toRichText,
+    required this.toNewDiary,
   });
 
   @override
@@ -337,28 +317,12 @@ class DesktopHomeFabComponent extends StatelessWidget {
             );
           }),
           IconButton.filled(
-            onPressed: toMarkdown,
-            icon: const FaIcon(FontAwesomeIcons.markdown, size: 16),
-            style: const ButtonStyle(
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            tooltip: context.l10n.homeNewDiaryMarkdown,
-          ),
-          IconButton.filled(
-            onPressed: toPlainText,
-            icon: const FaIcon(FontAwesomeIcons.font, size: 16),
-            style: const ButtonStyle(
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            tooltip: context.l10n.homeNewDiaryPlainText,
-          ),
-          IconButton.filled(
-            onPressed: toRichText,
+            onPressed: toNewDiary,
             icon: const FaIcon(FontAwesomeIcons.feather, size: 16),
             style: const ButtonStyle(
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            tooltip: context.l10n.homeNewDiaryRichText,
+            tooltip: '新建日记',
           ),
           Text(
             context.l10n.appName,

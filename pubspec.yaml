@@ -28,7 +28,6 @@ dependencies:
   device_info_plus: 11.4.0
   package_info_plus: 8.3.0
   uuid: 4.5.1
-  flutter_quill: 11.4.1
   share_plus: 11.0.0
   url_launcher: 6.3.1
   archive: 4.0.7
@@ -73,7 +72,6 @@ dependencies:
   faker: 2.2.0
   flutter_rust_bridge: 2.9.0
   syncfusion_flutter_sliders: 29.2.4
-  flutter_quill_extensions: 11.0.0
   connectivity_plus: 6.1.4
   image_picker_android: 0.8.12+23
   fvp: 0.31.2

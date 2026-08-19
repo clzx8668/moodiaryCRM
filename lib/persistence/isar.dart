@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
 import 'package:isar/isar.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:moodiary/common/models/isar/category.dart';
@@ -11,11 +9,7 @@ import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/common/models/isar/font.dart';
 import 'package:moodiary/common/models/isar/sync_record.dart';
 import 'package:moodiary/common/models/map.dart';
-import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/components/base/text.dart';
-import 'package:moodiary/components/quill_embed/audio_embed.dart';
-import 'package:moodiary/components/quill_embed/image_embed.dart';
-import 'package:moodiary/components/quill_embed/video_embed.dart';
 import 'package:moodiary/features/block/models/app_metadata.dart' as app_meta;
 import 'package:moodiary/features/block/models/block.dart' as block_model;
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart'
@@ -441,52 +435,6 @@ class IsarUtil {
   /// 变更
   /// 1.将时间字段修改为最后修改时间
   /// 2.将类型字段修改为富文本
-  static void mergeToV2_6_0(String dir) {
-    final isar = Isar.open(schemas: _schemas, directory: dir);
-    final countDiary = isar.diarys.where().count();
-
-    for (var i = 0; i < countDiary; i += 50) {
-      final diaries = isar.diarys.where().findAll(offset: i, limit: 50);
-
-      isar.write((isar) {
-        // 公共quillController
-        final quillController = QuillController.basic();
-
-        for (final diary in diaries) {
-          // 更新字段类型和修改时间
-          diary.type = DiaryType.richText.value;
-          diary.lastModified = diary.time; // 设置最后修改时间
-          // 遍历资源文件，将资源文件插入到富文本中
-          quillController.document = Document.fromJson(
-            jsonDecode(diary.content),
-          );
-
-          for (final image in diary.imageName) {
-            insertNewImage(imageName: image, quillController: quillController);
-          }
-          for (final video in diary.videoName) {
-            insertNewVideo(videoName: video, quillController: quillController);
-          }
-          for (final audio in diary.audioName) {
-            insertAudio(audioName: audio, quillController: quillController);
-          }
-
-          // 更新富文本内容
-          diary.content = jsonEncode(
-            quillController.document.toDelta().toJson(),
-          );
-
-          // 保存更新后的日记
-          isar.diarys.put(diary);
-
-          // 清理quillController
-          quillController.clear();
-        }
-      });
-    }
-
-    isar.close();
-  }
 
   /// 2.7.4 版本变更
   /// 新增字段
@@ -544,50 +492,6 @@ class IsarUtil {
     isar.close();
   }
 
-  static void insertNewImage({
-    required String imageName,
-    required QuillController quillController,
-  }) {
-    final imageBlock = ImageBlockEmbed.fromName(imageName);
-    final index = quillController.selection.baseOffset;
-    final length = quillController.selection.extentOffset - index;
-    quillController.replaceText(
-      index,
-      length,
-      imageBlock,
-      TextSelection.collapsed(offset: index + 1),
-    );
-  }
-
-  static void insertNewVideo({
-    required String videoName,
-    required QuillController quillController,
-  }) {
-    final videoBlock = VideoBlockEmbed.fromName(videoName);
-    final index = quillController.selection.baseOffset;
-    final length = quillController.selection.extentOffset - index;
-    quillController.replaceText(
-      index,
-      length,
-      videoBlock,
-      TextSelection.collapsed(offset: index + 1),
-    );
-  }
-
-  static void insertAudio({
-    required String audioName,
-    required QuillController quillController,
-  }) {
-    final audioBlock = AudioBlockEmbed.fromName(audioName);
-    final index = quillController.selection.baseOffset;
-    final length = quillController.selection.extentOffset - index;
-    quillController.replaceText(
-      index,
-      length,
-      audioBlock,
-      TextSelection.collapsed(offset: index + 1),
-    );
-  }
 
   // 获取用于地图显示的对象
   static Future<List<DiaryMapItem>> getAllMapItem() async {
@@ -788,6 +692,32 @@ class IsarUtil {
         .isDeletedEqualTo(false)
         .sortByUpdatedAtDesc()
         .findAllAsync();
+  }
+
+  /// 同步日记的首个 text Block 内容（智能块结构：保存日记时调用）
+  static Future<void> upsertDiaryTextBlock(Diary diary) async {
+    final blocks = await getBlocksByDiary(diary.id);
+    final textBlocks = blocks
+        .where((b) => b.blockType == block_model.BlockType.text)
+        .toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final now = DateTime.now();
+    if (textBlocks.isNotEmpty) {
+      final block = textBlocks.first
+        ..content = diary.content
+        ..updatedAt = now;
+      await updateBlock(block);
+    } else {
+      await insertBlock(
+        block_model.Block()
+          ..diaryId = diary.id
+          ..blockType = block_model.BlockType.text
+          ..content = diary.content
+          ..sortOrder = 0
+          ..createdAt = now
+          ..updatedAt = now,
+      );
+    }
   }
 
   // ==================== CRM 实体缓存 ====================

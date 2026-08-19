@@ -2,50 +2,28 @@ import 'dart:io';
 
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:auto_size_text_field/auto_size_text_field.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/themes/a11y-dark.dart';
 import 'package:flutter_highlight/themes/a11y-light.dart';
-import 'package:flutter_quill/flutter_quill.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:moodiary/common/values/border.dart';
 import 'package:moodiary/common/values/colors.dart';
-import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/components/base/button.dart';
 import 'package:moodiary/components/base/sheet.dart';
 import 'package:moodiary/components/base/tile/setting_tile.dart';
 import 'package:moodiary/components/category_add/category_add_view.dart';
-import 'package:moodiary/components/expand_button/expand_button_view.dart';
 import 'package:moodiary/components/lottie_modal/lottie_modal.dart';
 import 'package:moodiary/components/markdown_bar/markdown_bar.dart';
 import 'package:moodiary/components/markdown_embed/image_embed.dart';
 import 'package:moodiary/components/mood_icon/mood_icon_view.dart';
-import 'package:moodiary/components/quill_embed/audio_embed.dart';
-import 'package:moodiary/components/quill_embed/image_embed.dart';
-import 'package:moodiary/components/quill_embed/text_indent.dart';
-import 'package:moodiary/components/quill_embed/video_embed.dart';
-import 'package:moodiary/components/record_sheet/record_sheet_view.dart';
 import 'package:moodiary/l10n/l10n.dart';
-import 'package:moodiary/utils/theme_util.dart';
 
 import 'edit_logic.dart';
 
 class EditPage extends StatelessWidget {
   const EditPage({super.key});
-
-  _buildToolBarButton({
-    required IconData iconData,
-    required String tooltip,
-    required Function() onPressed,
-  }) {
-    return IconButton(
-      icon: Icon(iconData, size: 24),
-      tooltip: tooltip,
-      onPressed: onPressed,
-    );
-  }
 
   Widget _buildMarkdownWidget({
     required Brightness brightness,
@@ -508,77 +486,6 @@ class EditPage extends StatelessWidget {
       );
     }
 
-    Widget buildPickVideo() {
-      return SimpleDialog(
-        title: Text(context.l10n.editPickVideo),
-        children: [
-          SimpleDialogOption(
-            child: Row(
-              spacing: 8.0,
-              children: [
-                const Icon(Icons.photo_library_outlined),
-                Text(context.l10n.editPickVideoFromGallery),
-              ],
-            ),
-            onPressed: () async {
-              await logic.pickVideo(ImageSource.gallery, context);
-            },
-          ),
-          if (Platform.isAndroid || Platform.isIOS)
-            SimpleDialogOption(
-              child: Row(
-                spacing: 8.0,
-                children: [
-                  const Icon(Icons.camera_alt_outlined),
-                  Text(context.l10n.editPickVideoFromCamera),
-                ],
-              ),
-              onPressed: () async {
-                await logic.pickVideo(ImageSource.camera, context);
-              },
-            ),
-        ],
-      );
-    }
-
-    Widget buildPickAudio() {
-      return SimpleDialog(
-        title: Text(context.l10n.editPickAudio),
-        children: [
-          SimpleDialogOption(
-            child: Row(
-              spacing: 8.0,
-              children: [
-                const Icon(Icons.audio_file_rounded),
-                Text(context.l10n.editPickAudioFromFile),
-              ],
-            ),
-            onPressed: () async {
-              await logic.pickAudio(context);
-            },
-          ),
-          SimpleDialogOption(
-            child: Row(
-              spacing: 8.0,
-              children: [
-                const Icon(Icons.mic_rounded),
-                Text(context.l10n.editPickAudioFromRecord),
-              ],
-            ),
-            onPressed: () async {
-              Navigator.pop(context);
-              await showFloatingModalBottomSheet(
-                context: context,
-                builder: (context) {
-                  return const RecordSheetComponent();
-                },
-              );
-            },
-          ),
-        ],
-      );
-    }
-
     Widget buildDetail() {
       return ListView(
         padding: EdgeInsets.zero,
@@ -733,11 +640,7 @@ class EditPage extends StatelessWidget {
             style: context.textTheme.labelSmall,
             children: [
               TextSpan(
-                text: switch (state.type) {
-                  DiaryType.text => context.l10n.homeNewDiaryPlainText,
-                  DiaryType.markdown => context.l10n.homeNewDiaryMarkdown,
-                  DiaryType.richText => context.l10n.homeNewDiaryRichText,
-                },
+                text: context.l10n.homeNewDiaryMarkdown,
                 style: context.textTheme.labelSmall?.copyWith(
                   color: context.theme.colorScheme.primary,
                 ),
@@ -824,117 +727,6 @@ class EditPage extends StatelessWidget {
       );
     }
 
-    Widget buildToolBar() {
-      return ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-        child: TooltipTheme(
-          data: const TooltipThemeData(preferBelow: false),
-          child: QuillSimpleToolbar(
-            controller: logic.quillController!,
-            config: QuillSimpleToolbarConfig(
-              showFontFamily: false,
-              showFontSize: false,
-              showBackgroundColorButton: true,
-              showAlignmentButtons: true,
-              showClipboardPaste: false,
-              showClipboardCut: false,
-              showClipboardCopy: false,
-              showIndent: false,
-              showDividers: false,
-              multiRowsDisplay: false,
-              headerStyleType: HeaderStyleType.buttons,
-              buttonOptions: QuillSimpleToolbarButtonOptions(
-                selectHeaderStyleButtons:
-                    QuillToolbarSelectHeaderStyleButtonsOptions(
-                      iconTheme: QuillIconTheme(
-                        iconButtonSelectedData: IconButtonData(
-                          color: context.theme.colorScheme.onPrimary,
-                        ),
-                      ),
-                    ),
-              ),
-              showLink: false,
-              embedButtons: [
-                (context, embedContext) {
-                  return _buildToolBarButton(
-                    iconData: Icons.format_indent_increase,
-                    tooltip: context.l10n.editIndent,
-                    onPressed: logic.insertNewLine,
-                  );
-                },
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    Widget richTextToolBar() {
-      return Row(
-        children: [
-          ExpandButtonComponent(
-            operatorMap: {
-              Icons.keyboard_command_key: () {
-                showFloatingModalBottomSheet(
-                  context: context,
-                  builder: (context) {
-                    return buildDetail();
-                  },
-                );
-              },
-              Icons.image_rounded: () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return buildPickImage(allowMulti: true);
-                  },
-                );
-              },
-              Icons.movie_rounded: () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return buildPickVideo();
-                  },
-                );
-              },
-              Icons.audiotrack_rounded: () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return buildPickAudio();
-                  },
-                );
-              },
-            },
-          ),
-          Expanded(child: buildToolBar()),
-        ],
-      );
-    }
-
-    Widget textToolBar() {
-      return Row(
-        children: [
-          IconButton.filled(
-            icon: const Icon(Icons.keyboard_command_key),
-            style: const ButtonStyle(
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            onPressed: () {
-              showFloatingModalBottomSheet(
-                context: context,
-                builder: (context) {
-                  return buildDetail();
-                },
-              );
-            },
-          ),
-          Expanded(child: buildToolBar()),
-        ],
-      );
-    }
-
     Widget markdownToolBar() {
       return Row(
         spacing: 8.0,
@@ -1009,75 +801,48 @@ class EditPage extends StatelessWidget {
     }
 
     Widget buildContent() {
-      if (state.type == DiaryType.markdown) {
-        return Positioned.fill(
-          child: Obx(() {
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child:
-                  !state.renderMarkdown.value
-                      ? GestureDetector(
-                        onTap: logic.focusContent,
-                        behavior: HitTestBehavior.translucent,
-                        child: Align(
-                          alignment: Alignment.topCenter,
-                          child: TextField(
-                            controller: logic.markdownTextEditingController,
-                            focusNode: logic.contentFocusNode,
-                            maxLength: null,
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              hintText: context.l10n.editContent,
-                              contentPadding: const EdgeInsets.fromLTRB(
-                                16,
-                                20,
-                                16,
-                                20,
-                              ),
-                              hintStyle: context.textTheme.bodyLarge?.copyWith(
-                                fontSize: 20,
-                                height: 1.5,
-                                color: Colors.grey.withValues(alpha: 0.6),
-                              ),
+      // 架构决策（2026-08-19）：统一 Markdown 编辑器
+      return Positioned.fill(
+        child: Obx(() {
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child:
+                !state.renderMarkdown.value
+                    ? GestureDetector(
+                      onTap: logic.focusContent,
+                      behavior: HitTestBehavior.translucent,
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: TextField(
+                          controller: logic.markdownTextEditingController,
+                          focusNode: logic.contentFocusNode,
+                          maxLength: null,
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: context.l10n.editContent,
+                            contentPadding: const EdgeInsets.fromLTRB(
+                              16,
+                              20,
+                              16,
+                              20,
                             ),
-                            maxLines: null,
+                            hintStyle: context.textTheme.bodyLarge?.copyWith(
+                              fontSize: 20,
+                              height: 1.5,
+                              color: Colors.grey.withValues(alpha: 0.6),
+                            ),
                           ),
+                          maxLines: null,
                         ),
-                      )
-                      : _buildMarkdownWidget(
-                        brightness: context.theme.colorScheme.brightness,
-                        data: logic.markdownTextEditingController!.text,
                       ),
-            );
-          }),
-        );
-      } else {
-        return QuillEditor.basic(
-          focusNode: logic.contentFocusNode,
-          controller: logic.quillController!,
-          config: QuillEditorConfig(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-            placeholder: context.l10n.editContent,
-            expands: true,
-            paintCursorAboveText: true,
-            keyboardAppearance:
-                CupertinoTheme.maybeBrightnessOf(context) ??
-                context.theme.brightness,
-            customStyles: ThemeUtil.getInstance(
-              context,
-              customColorScheme: context.theme.colorScheme,
-            ),
-            embedBuilders: [
-              if (state.type == DiaryType.richText) ...[
-                ImageEmbedBuilder(isEdit: true),
-                VideoEmbedBuilder(isEdit: true),
-                AudioEmbedBuilder(isEdit: true),
-              ],
-              TextIndentEmbedBuilder(isEdit: true),
-            ],
-          ),
-        );
-      }
+                    )
+                    : _buildMarkdownWidget(
+                      brightness: context.theme.colorScheme.brightness,
+                      data: logic.markdownTextEditingController!.text,
+                    ),
+          );
+        }),
+      );
     }
 
     Widget buildWriting() {
@@ -1110,11 +875,7 @@ class EditPage extends StatelessWidget {
               right: 16.0,
               bottom: 16.0,
             ),
-            child: switch (state.type) {
-              DiaryType.text => textToolBar(),
-              DiaryType.richText => richTextToolBar(),
-              DiaryType.markdown => markdownToolBar(),
-            },
+            child: markdownToolBar(),
           ),
         ],
       );

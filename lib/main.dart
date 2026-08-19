@@ -6,7 +6,6 @@ import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:fvp/fvp.dart' as fvp;
 import 'package:get/get.dart';
@@ -157,7 +156,6 @@ class Moodiary extends StatelessWidget {
       getPages: AppPages.routes,
       localizationsDelegates: const [
         ...AppLocalizations.localizationsDelegates,
-        FlutterQuillLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
     );

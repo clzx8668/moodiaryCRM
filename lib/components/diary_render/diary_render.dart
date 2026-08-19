@@ -1,18 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/themes/a11y-dark.dart';
 import 'package:flutter_highlight/themes/a11y-light.dart';
-import 'package:flutter_quill/flutter_quill.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
-import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/components/markdown_embed/image_embed.dart';
-import 'package:moodiary/components/quill_embed/audio_embed.dart';
-import 'package:moodiary/components/quill_embed/image_embed.dart';
-import 'package:moodiary/components/quill_embed/text_indent.dart';
-import 'package:moodiary/components/quill_embed/video_embed.dart';
-import 'package:moodiary/utils/theme_util.dart';
 
 class DiaryRender extends StatefulWidget {
   final Diary diary;
@@ -42,43 +33,10 @@ class DiaryRender extends StatefulWidget {
 }
 
 class _DiaryRenderState extends State<DiaryRender> {
-  late final QuillController? _quillController;
-
   Diary get diary => widget.diary;
 
   ColorScheme get colorScheme =>
       widget.customColorScheme ?? Theme.of(context).colorScheme;
-
-  @override
-  void initState() {
-    if (diary.type != DiaryType.markdown.value) {
-      _quillController = QuillController(
-        document: Document.fromJson(jsonDecode(diary.content)),
-        readOnly: true,
-        selection: const TextSelection.collapsed(offset: 0),
-      );
-    }
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _quillController?.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didUpdateWidget(covariant DiaryRender oldWidget) {
-    if (oldWidget.diary != diary ||
-        oldWidget.customColorScheme != widget.customColorScheme) {
-      if (diary.type != DiaryType.markdown.value) {
-        _quillController?.document = Document.fromJson(
-          jsonDecode(diary.content),
-        );
-      }
-    }
-    super.didUpdateWidget(oldWidget);
-  }
 
   Widget _buildMarkdownWidget({
     required Brightness brightness,
@@ -107,30 +65,13 @@ class _DiaryRenderState extends State<DiaryRender> {
 
   @override
   Widget build(BuildContext context) {
-    return diary.type == DiaryType.markdown.value
-        ? Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: _buildMarkdownWidget(
-            brightness: colorScheme.brightness,
-            data: diary.content,
-          ),
-        )
-        : QuillEditor.basic(
-          controller: _quillController!,
-          config: QuillEditorConfig(
-            showCursor: false,
-            padding: const EdgeInsets.all(8.0),
-            customStyles: ThemeUtil.getInstance(
-              context,
-              customColorScheme: colorScheme,
-            ),
-            embedBuilders: [
-              ImageEmbedBuilder(isEdit: false),
-              VideoEmbedBuilder(isEdit: false),
-              AudioEmbedBuilder(isEdit: false),
-              TextIndentEmbedBuilder(isEdit: false),
-            ],
-          ),
-        );
+    // 架构决策（2026-08-19）：内容统一 Markdown 渲染
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: _buildMarkdownWidget(
+        brightness: colorScheme.brightness,
+        data: diary.content,
+      ),
+    );
   }
 }

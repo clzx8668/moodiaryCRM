@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:isar/isar.dart';
 import 'package:moodiary/features/block/models/app_metadata.dart' as meta;
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/block/delta_to_markdown.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 
 /// 数据库迁移服务（对齐架构文档 3.4）。
@@ -16,7 +17,8 @@ class MigrationService {
   static const String migrationHistoryKey = 'migration_history';
 
   /// 当前代码期望的数据库版本
-  static const int currentDbVersion = 2;
+  /// v3（2026-08-19）：放弃 Quill 富文本，内容统一 Markdown
+  static const int currentDbVersion = 3;
 
   static Future<int> getDbVersion(Isar isar) async {
     final metadata = isar.appMetadatas.get(meta.fastHash(dbVersionKey));
@@ -63,24 +65,41 @@ class MigrationService {
     if (version >= currentDbVersion) {
       return const MigrationResult(noop: true);
     }
-    final stopwatch = Stopwatch()..start();
+    var migrated = 0;
+    var current = version;
 
-    if (version < 2) {
+    if (current < 2) {
+      final stopwatch = Stopwatch()..start();
       final result = await migrateV1ToV2(isar);
       stopwatch.stop();
+      migrated += result.migratedDiaries;
+      current = 2;
       await _appendMigrationHistory(isar, {
         'from': version,
-        'to': currentDbVersion,
+        'to': 2,
         'time': DateTime.now().toIso8601String(),
         'durationMs': stopwatch.elapsedMilliseconds,
         'migratedDiaries': result.migratedDiaries,
       });
-      await setDbVersion(isar, currentDbVersion);
-      return result;
+    }
+
+    if (current < 3) {
+      final stopwatch = Stopwatch()..start();
+      final result = await migrateV2ToV3(isar);
+      stopwatch.stop();
+      migrated += result.migratedDiaries;
+      current = 3;
+      await _appendMigrationHistory(isar, {
+        'from': 2,
+        'to': 3,
+        'time': DateTime.now().toIso8601String(),
+        'durationMs': stopwatch.elapsedMilliseconds,
+        'migratedDiaries': result.migratedDiaries,
+      });
     }
 
     await setDbVersion(isar, currentDbVersion);
-    return const MigrationResult();
+    return MigrationResult(migratedDiaries: migrated);
   }
 
   /// v1 → v2：把旧版 content 包装为 text Block。
@@ -112,6 +131,43 @@ class MigrationService {
       await isar.writeAsync((isar) {
         isar.blocks.put(block);
       });
+      migrated++;
+    }
+
+    return MigrationResult(migratedDiaries: migrated);
+  }
+
+  /// v2 → v3：Quill Delta 内容统一转换为 Markdown（架构决策 2026-08-19）
+  static Future<MigrationResult> migrateV2ToV3(Isar isar) async {
+    final diaries = await isar.diarys.where().findAllAsync();
+    var migrated = 0;
+
+    for (final diary in diaries) {
+      if (diary.type == 'markdown') continue;
+      final newContent = DeltaToMarkdown.convertIfDelta(diary.content);
+      if (newContent == diary.content) continue; // 非 Delta，跳过
+
+      diary
+        ..content = newContent
+        ..type = 'markdown';
+      await isar.writeAsync((isar) {
+        isar.diarys.put(diary);
+      });
+
+      // 同步更新该日记的第一个 text Block（智能块结构）
+      final blocks = await isar.blocks.where().diaryIdEqualTo(diary.id).findAllAsync();
+      final textBlocks = blocks
+          .where((b) => b.blockType == BlockType.text && !b.isDeleted)
+          .toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      if (textBlocks.isNotEmpty) {
+        final block = textBlocks.first
+          ..content = newContent
+          ..updatedAt = DateTime.now();
+        await isar.writeAsync((isar) {
+          isar.blocks.put(block);
+        });
+      }
       migrated++;
     }
 

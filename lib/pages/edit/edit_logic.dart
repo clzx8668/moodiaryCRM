@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:dartx/dartx.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
@@ -16,10 +14,7 @@ import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/common/values/keyboard_state.dart';
 import 'package:moodiary/components/base/text.dart';
 import 'package:moodiary/components/keyboard_listener/keyboard_listener.dart';
-import 'package:moodiary/components/quill_embed/audio_embed.dart';
-import 'package:moodiary/components/quill_embed/image_embed.dart';
-import 'package:moodiary/components/quill_embed/text_indent.dart';
-import 'package:moodiary/components/quill_embed/video_embed.dart';
+import 'package:moodiary/features/block/delta_to_markdown.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
@@ -41,9 +36,6 @@ class EditLogic extends GetxController {
   //标题
   late final TextEditingController titleTextEditingController =
       TextEditingController();
-
-  //编辑器控制器
-  QuillController? quillController;
 
   // markdown控制器
   TextEditingController? markdownTextEditingController;
@@ -81,17 +73,7 @@ class EditLogic extends GetxController {
   @override
   void onReady() async {
     await _initEdit();
-    quillController?.addListener(_listenCount);
     markdownTextEditingController?.addListener(_listenCount);
-    if (state.firstLineIndent) {
-      quillController?.document.changes.listen((change) {
-        final operations = change.change.operations;
-        final lastOperation = operations.last;
-        if (lastOperation.key == 'insert' && lastOperation.value == '\n') {
-          insertNewLine();
-        }
-      });
-    }
     super.onReady();
   }
 
@@ -101,7 +83,6 @@ class EditLogic extends GetxController {
     titleTextEditingController.dispose();
     titleFocusNode.dispose();
     contentFocusNode.dispose();
-    quillController?.dispose();
     markdownTextEditingController?.dispose();
     _timer?.cancel();
     _timer = null;
@@ -112,16 +93,10 @@ class EditLogic extends GetxController {
     //如果是新增，更具不同的分类展示不同的操作
     if (Get.arguments.runtimeType == List<Object?>) {
       // 配置日记类型
-      state.type = Get.arguments[0] as DiaryType;
-      switch (state.type) {
-        case DiaryType.text:
-        case DiaryType.richText:
-          quillController = QuillController.basic();
-        case DiaryType.markdown:
-          markdownTextEditingController = TextEditingController();
-      }
+      // 架构决策（2026-08-19）：统一 Markdown，放弃 Quill 富文本
+      state.type = DiaryType.markdown;
+      markdownTextEditingController = TextEditingController();
       state.currentDiary = Diary();
-      if (state.firstLineIndent) insertNewLine();
       if (state.autoWeather) {
         unawaited(getPositionAndWeather(context: Get.context!));
       }
@@ -166,28 +141,18 @@ class EditLogic extends GetxController {
         replaceMap[name] = videoXFile.path;
         state.videoFileList.add(videoXFile);
       }
-      switch (state.type) {
-        case DiaryType.text:
-        case DiaryType.richText:
-          quillController = QuillController(
-            document: Document.fromJson(
-              jsonDecode(
-                await Kmp.replaceWithKmp(
-                  text: state.originalDiary!.content,
-                  replacements: replaceMap,
-                ),
-              ),
-            ),
-            selection: const TextSelection.collapsed(offset: 0),
-          );
-        case DiaryType.markdown:
-          markdownTextEditingController = TextEditingController(
-            text: await Kmp.replaceWithKmp(
-              text: state.originalDiary!.content,
-              replacements: replaceMap,
-            ),
-          );
-      }
+      // 旧版 Delta 内容统一转换为 Markdown
+      final markdown =
+          state.originalDiary!.type == DiaryType.markdown.value
+          ? state.originalDiary!.content
+          : DeltaToMarkdown.convertIfDelta(state.originalDiary!.content);
+      markdownTextEditingController = TextEditingController(
+        text: await Kmp.replaceWithKmp(
+          text: markdown,
+          replacements: replaceMap,
+        ),
+      );
+      state.type = DiaryType.markdown;
       state.totalCount.value = _toPlainText().length;
     }
     state.isInit = true;
@@ -207,14 +172,7 @@ class EditLogic extends GetxController {
   }
 
   String _toPlainText() {
-    return state.type == DiaryType.markdown
-        ? _markdownToPlainText(markdownTextEditingController!.text)
-        : quillController!.document.toPlainText([
-          ImageEmbedBuilder(isEdit: true),
-          VideoEmbedBuilder(isEdit: true),
-          AudioEmbedBuilder(isEdit: true),
-          TextIndentEmbedBuilder(isEdit: true),
-        ]).trim();
+    return _markdownToPlainText(markdownTextEditingController!.text);
   }
 
   String _markdownToPlainText(String markdown) {
@@ -224,48 +182,44 @@ class EditLogic extends GetxController {
   }
 
   void _listenCount() {
-    state.totalCount.value =
-        markdownTextEditingController?.text.length ??
-        quillController?.selection.baseOffset ??
-        0;
+    state.totalCount.value = markdownTextEditingController?.text.length ?? 0;
   }
 
-  // 插入换行时自动首行缩进
-  void insertNewLine() {
-    if (quillController == null) return;
-    final index = quillController!.selection.baseOffset;
-    final length = quillController!.selection.extentOffset - index;
-    quillController?.replaceText(
-      index,
-      length,
-      const TextIndentEmbed('2'),
-      null,
+  // 在 Markdown 光标处插入图片语法
+  void insertMarkdownImage({required String imagePath}) {
+    final controller = markdownTextEditingController;
+    if (controller == null) return;
+    final selection = controller.selection;
+    final text = '![]($imagePath)';
+    controller.text = controller.text.replaceRange(
+      selection.start,
+      selection.end,
+      text,
     );
-    quillController?.moveCursorToPosition(index + 1);
+    controller.selection = TextSelection.collapsed(
+      offset: selection.start + text.length,
+    );
   }
 
-  void insertNewImage({required String imagePath}) {
-    if (quillController == null) return;
-    final imageBlock = ImageBlockEmbed.fromName(imagePath);
-    final index = quillController!.selection.baseOffset;
-    final length = quillController!.selection.extentOffset - index;
-    quillController?.replaceText(index, length, imageBlock, null);
-    quillController?.moveCursorToPosition(index + 1);
-  }
-
-  void insertNewVideo({required String videoPath}) {
-    if (quillController == null) return;
-    final videoBlock = VideoBlockEmbed.fromName(videoPath);
-    final index = quillController!.selection.baseOffset;
-    final length = quillController!.selection.extentOffset - index;
-    quillController?.replaceText(index, length, videoBlock, null);
-    //插入一个换行
-    quillController?.moveCursorToPosition(index + 1);
+  // 在 Markdown 光标处插入媒体链接
+  void insertMarkdownMedia({required String path, required String label}) {
+    final controller = markdownTextEditingController;
+    if (controller == null) return;
+    final selection = controller.selection;
+    final text = '[$label]($path)';
+    controller.text = controller.text.replaceRange(
+      selection.start,
+      selection.end,
+      text,
+    );
+    controller.selection = TextSelection.collapsed(
+      offset: selection.start + text.length,
+    );
   }
 
   Future<void> addNewImage(XFile xFile, {bool isMarkdown = false}) async {
     state.imageFileList.add(xFile);
-    if (!isMarkdown) insertNewImage(imagePath: xFile.path);
+    insertMarkdownImage(imagePath: xFile.path);
     update(['Image']);
   }
 
@@ -328,9 +282,8 @@ class EditLogic extends GetxController {
   }
 
   Future<void> addNewVideo(XFile xFile) async {
-    //视频list中新增一个
     state.videoFileList.add(xFile);
-    insertNewVideo(videoPath: xFile.path);
+    insertMarkdownMedia(path: xFile.path, label: '视频');
     update(['Video']);
   }
 
@@ -405,10 +358,7 @@ class EditLogic extends GetxController {
     state.isSaving = true;
     update(['modal']);
     // 根据文本中的实际内容移除不需要的资源
-    final originContent =
-        state.type == DiaryType.markdown
-            ? markdownTextEditingController!.text.trim()
-            : jsonEncode(quillController!.document.toDelta().toJson());
+    final originContent = markdownTextEditingController!.text.trim();
     final needImage = await Kmp.findMatches(
       text: originContent,
       patterns: state.imagePathList,
@@ -450,7 +400,7 @@ class EditLogic extends GetxController {
     state.currentDiary
       ..title = titleTextEditingController.text
       ..content = content
-      ..type = state.type.value
+      ..type = DiaryType.markdown.value
       ..contentText = contentText
       ..audioName = state.audioNameList
       ..imageName = imageNameMap.values.toList()
@@ -464,6 +414,8 @@ class EditLogic extends GetxController {
       oldDiary: state.originalDiary,
       newDiary: state.currentDiary,
     );
+    // 智能块结构：同步该日记的首个 text Block
+    await IsarUtil.upsertDiaryTextBlock(state.currentDiary);
     state.isNew
         ? Get.back(result: state.currentDiary.categoryId ?? '')
         : Get.back(result: 'changed');
@@ -623,14 +575,8 @@ class EditLogic extends GetxController {
 
   //获取音频名称
   void setAudioName(String name) {
-    if (quillController == null) return;
     state.audioNameList.add(name);
-    final audioBlock = AudioBlockEmbed.fromName(name);
-    final index = quillController!.selection.baseOffset;
-    final length = quillController!.selection.extentOffset - index;
-    // 插入音频 Embed
-    quillController?.replaceText(index, length, audioBlock, null);
-    quillController?.moveCursorToPosition(index + 1);
+    insertMarkdownMedia(path: name, label: '音频');
     update(['Audio']);
   }
 

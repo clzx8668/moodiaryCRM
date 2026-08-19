@@ -97,17 +97,9 @@ class HomePage extends StatelessWidget {
                                   },
                                   isToTopShow: logic.isToTopShow,
                                   toTop: logic.toTop,
-                                toMarkdown: () async {
+                                toNewDiary: () async {
                                   await logic.toEditPage(
                                     type: DiaryType.markdown,
-                                  );
-                                },
-                                toPlainText: () async {
-                                  await logic.toEditPage(type: DiaryType.text);
-                                },
-                                toRichText: () async {
-                                  await logic.toEditPage(
-                                    type: DiaryType.richText,
                                   );
                                 },
                               ),
@@ -170,14 +162,8 @@ class HomePage extends StatelessWidget {
         },
         onLongPressOpen: logic.openFab,
         toTop: logic.toTop,
-        toMarkdown: () async {
+        toNewDiary: () async {
           await logic.toEditPage(type: DiaryType.markdown);
-        },
-        toPlainText: () async {
-          await logic.toEditPage(type: DiaryType.text);
-        },
-        toRichText: () async {
-          await logic.toEditPage(type: DiaryType.richText);
         },
         closeFab: logic.closeFab,
       ),

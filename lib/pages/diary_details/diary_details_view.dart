@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/common/values/icons.dart';
 import 'package:moodiary/components/base/button.dart';
-import 'package:moodiary/components/diary_render/diary_render.dart';
+import 'package:moodiary/features/block/block_renderer.dart';
 import 'package:moodiary/components/image_view/images_view.dart';
 import 'package:moodiary/components/mood_icon/mood_icon_view.dart';
 import 'package:moodiary/l10n/l10n.dart';
@@ -250,7 +250,7 @@ class DiaryDetailsPage extends StatelessWidget {
                           ),
                           Card.filled(
                             color: customColorScheme.surfaceContainerLow,
-                            child: DiaryRender(
+                            child: SmartBlockView(
                               diary: state.diary,
                               customColorScheme: customColorScheme,
                             ),

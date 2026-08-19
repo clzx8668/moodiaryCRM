@@ -21,7 +21,7 @@ class QuickCaptureSaver {
       ..id = const Uuid().v7()
       ..title = _deriveTitle(text)
       ..contentText = text
-      ..type = DiaryType.text.value
+      ..type = DiaryType.markdown.value
       ..time = now
       ..lastModified = now
       ..show = true
