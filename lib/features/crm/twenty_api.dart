@@ -345,6 +345,10 @@ mutation Delete$className(\$id: ID!) {
       'person': 'people',
       'company': 'companies',
       'opportunity': 'opportunities',
+      'contractsHeTongGuanLi': 'contractsHeTongGuanLi',
+      'paymentsHuiKuanJiLu': 'paymentsHuiKuanJiLu',
+      'invoiceFaPiao': 'invoiceFaPiao',
+      'commissionsTiChengJieSuan': 'commissionsTiChengJieSuan',
     };
     return irregular[object] ?? '${object}s';
   }

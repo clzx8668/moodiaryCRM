@@ -47,6 +47,14 @@ class CrmSyncService {
     'task',
   };
 
+  /// 自定义业务对象（Twenty 工作区内置扩展；GraphQL 字段名为对象名本身）
+  static const Set<String> customObjects = {
+    'contractsHeTongGuanLi',
+    'paymentsHuiKuanJiLu',
+    'invoiceFaPiao',
+    'commissionsTiChengJieSuan',
+  };
+
   CrmSyncService({required this.client, SyncLogService? log})
     : log = log ?? SyncLogService.instance;
 
@@ -105,11 +113,12 @@ class CrmSyncService {
 
   /// 全量拉取指定对象到本地缓存
   Future<CrmSyncResult> fullPull({
-    Set<String> objects = defaultObjects,
+    Set<String>? objects,
   }) async {
+    final targets = objects ?? {...defaultObjects, ...customObjects};
     final pulledByObject = <String, int>{};
     var total = 0;
-    for (final object in objects) {
+    for (final object in targets) {
       final count = await pullObject(object);
       pulledByObject[object] = count;
       total += count;
@@ -140,6 +149,8 @@ class CrmSyncService {
         ..entityType = object
         ..name = entity.data['name']?.toString() ??
             entity.data['title']?.toString() ??
+            entity.data['contractName']?.toString() ??
+            entity.data['amount']?.toString() ??
             entity.id
         ..setData(entity.data)
         ..isDeleted = false
@@ -198,7 +209,7 @@ class CrmSyncService {
   /// 本地缓存统计
   Future<Map<String, int>> localStats() async {
     final stats = <String, int>{};
-    for (final object in defaultObjects) {
+    for (final object in {...defaultObjects, ...customObjects}) {
       stats[object] = await IsarUtil.countCrmEntitiesByType(object);
     }
     return stats;

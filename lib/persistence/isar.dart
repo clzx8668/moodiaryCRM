@@ -249,11 +249,11 @@ class IsarUtil {
     );
 
     for (final word in queryList) {
-      final matches =
-          await _isar.diarys
-              .where()
-              .showEqualTo(true)
-              .tokenizerElementMatches(word, caseSensitive: false)
+    final matches =
+        await _db.diarys
+            .where()
+            .showEqualTo(true)
+            .tokenizerElementMatches(word, caseSensitive: false)
               .or()
               .titleContains(word, caseSensitive: false)
               .findAllAsync();
@@ -265,6 +265,17 @@ class IsarUtil {
         results.toList()..sort((a, b) => b.time.compareTo(a.time));
 
     return sortedResults;
+  }
+
+  /// 纯文本包含搜索（全局搜索用，不依赖 tokenizer）
+  static Future<List<Diary>> searchDiariesByText(String keyword) async {
+    if (keyword.trim().isEmpty) return [];
+    return _db.diarys
+        .where()
+        .showEqualTo(true)
+        .contentTextContains(keyword, caseSensitive: false)
+        .sortByTimeDesc()
+        .findAllAsync();
   }
 
   static Future<List<Diary>> searchDiariesByTag(String value) async {
@@ -736,6 +747,19 @@ class IsarUtil {
         .blockTypeEqualTo(type)
         .isDeletedEqualTo(false)
         .sortBySortOrder()
+        .findAllAsync();
+  }
+
+  /// 按内容模糊搜索 Block（全局搜索用）
+  static Future<List<block_model.Block>> searchBlocksByContent(
+    String keyword,
+  ) async {
+    if (keyword.trim().isEmpty) return [];
+    return _db.blocks
+        .where()
+        .isDeletedEqualTo(false)
+        .contentContains(keyword, caseSensitive: false)
+        .sortByUpdatedAtDesc()
         .findAllAsync();
   }
 
