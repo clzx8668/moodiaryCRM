@@ -781,6 +781,15 @@ class IsarUtil {
     return counts;
   }
 
+  /// 全部可见 Block（块视图用），按更新时间降序
+  static Future<List<block_model.Block>> getAllVisibleBlocks() async {
+    return _db.blocks
+        .where()
+        .isDeletedEqualTo(false)
+        .sortByUpdatedAtDesc()
+        .findAllAsync();
+  }
+
   // ==================== CRM 实体缓存 ====================
 
   /// 按 Twenty ID 查询缓存实体
