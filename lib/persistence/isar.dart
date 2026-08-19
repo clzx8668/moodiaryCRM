@@ -768,6 +768,19 @@ class IsarUtil {
     return _isar.blocks.where().isDeletedEqualTo(false).countAsync();
   }
 
+  /// 统计每篇日记的非删除 Block 数量（日历热力图/统计用）
+  static Future<Map<String, int>> getBlockCountsByDiary() async {
+    final blocks = await _db.blocks
+        .where()
+        .isDeletedEqualTo(false)
+        .findAllAsync();
+    final counts = <String, int>{};
+    for (final block in blocks) {
+      counts[block.diaryId] = (counts[block.diaryId] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   // ==================== CRM 实体缓存 ====================
 
   /// 按 Twenty ID 查询缓存实体

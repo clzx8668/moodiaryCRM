@@ -7,27 +7,12 @@ import 'package:moodiary/common/values/colors.dart';
 import 'package:moodiary/components/base/loading.dart';
 import 'package:moodiary/components/diary_card/calendar_diary_card_view.dart';
 import 'package:moodiary/components/time_line/time_line_view.dart';
-import 'package:moodiary/utils/array_util.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import 'calendar_logic.dart';
 
 class CalendarPage extends StatelessWidget {
   const CalendarPage({super.key});
-
-  /// 根据当天日记的数量配置颜色的范围，从0到1
-  /// 0为最小值，1为最大值
-  /// 当天日记篇数为0时，返回0
-  /// 当前日记篇数为5时，返回1，即最大值，保留两位小数
-  double getDayColor({required int count}) {
-    if (count == 0) {
-      return 0;
-    }
-    if (count >= 5) {
-      return 1;
-    }
-    return count / 5;
-  }
 
   Widget _buildActiveInfo({
     required Color lessColor,
@@ -79,8 +64,6 @@ class CalendarPage extends StatelessWidget {
           dateWithDiaryList.add(DateTime(time.year, time.month, time.day));
         }
       }
-      final dateCountMap = ArrayUtil.countList(allDate);
-
       return Stack(
         children: [
           Card.filled(
@@ -105,12 +88,13 @@ class CalendarPage extends StatelessWidget {
                     bool? isToday,
                   }) {
                     final contains = dateWithDiaryList.contains(date);
+                    final activity = state.dailyActivity[date] ?? 0.0;
                     final bgColor =
                         contains
                             ? Color.lerp(
                               context.theme.colorScheme.surfaceContainer,
                               context.theme.colorScheme.primary,
-                              getDayColor(count: dateCountMap[date] ?? 0),
+                              activity,
                             )
                             : null;
                     return Padding(

@@ -1,12 +1,10 @@
-import 'dart:io';
-
 import 'package:cross_file/cross_file.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/common/values/diary_type.dart';
+import 'package:moodiary/features/attachments/attachment_manager.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
 import 'package:moodiary/persistence/isar.dart';
-import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/media_util.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -18,12 +16,10 @@ class QuickCaptureSaver {
     required List<QuickAttachment> attachments,
   }) async {
     final now = DateTime.now();
-    final content = _buildContent(text, attachments);
 
     final diary = Diary()
       ..id = const Uuid().v7()
       ..title = _deriveTitle(text)
-      ..content = content
       ..contentText = text
       ..type = DiaryType.text.value
       ..time = now
@@ -40,31 +36,40 @@ class QuickCaptureSaver {
       diary.imageName = imageNameMap.values.toList();
     }
 
-    // 文档附件：复制到 document 目录（Obsidian 模式，P1.9 将接入统一附件管理）
+    // 文档附件：走 Obsidian 模式附件管线（Attachments/Documents/YYYY/MM）
     final documents = attachments.where((a) => !a.isImage).toList();
+    final docRefs = <String>[];
     if (documents.isNotEmpty) {
-      final docDir = Directory(FileUtil.getRealPath('document', ''));
-      if (!docDir.existsSync()) {
-        await docDir.create(recursive: true);
-      }
       for (final doc in documents) {
-        final name = 'doc-${const Uuid().v7()}-${doc.name}';
-        await File(doc.path).copy(FileUtil.getRealPath('document', name));
+        final rel = await AttachmentManager.saveFile(
+          sourcePath: doc.path,
+          category: 'documents',
+        );
+        docRefs.add(rel);
       }
     }
 
+    diary.content = _buildContent(text, attachments, docRefs);
     await IsarUtil.insertADiary(diary);
 
     // Block 协议：每条速记生成一个 text Block（数据层 P1.1 提供）
-    await IsarUtil.insertBlock(
-      Block()
-        ..diaryId = diary.id
-        ..blockType = BlockType.text
-        ..content = content
-        ..sortOrder = 0
-        ..createdAt = now
-        ..updatedAt = now,
-    );
+    final block = Block()
+      ..diaryId = diary.id
+      ..blockType = BlockType.text
+      ..content = diary.content
+      ..sortOrder = 0
+      ..createdAt = now
+      ..updatedAt = now;
+    await IsarUtil.insertBlock(block);
+
+    // 登记附件引用（metadata.json）
+    for (final rel in docRefs) {
+      await AttachmentManager.addReference(
+        rel,
+        diaryId: diary.id,
+        blockId: block.id,
+      );
+    }
 
     return diary;
   }
@@ -76,14 +81,21 @@ class QuickCaptureSaver {
     return '${trimmed.substring(0, 20)}…';
   }
 
-  static String _buildContent(String text, List<QuickAttachment> attachments) {
+  static String _buildContent(
+    String text,
+    List<QuickAttachment> attachments,
+    List<String> docRefs,
+  ) {
     final buffer = StringBuffer(text.trim());
+    var docIndex = 0;
     for (final attachment in attachments) {
       if (buffer.isNotEmpty) buffer.writeln();
       if (attachment.isImage) {
         buffer.write('![](${p.basename(attachment.path)})');
       } else {
-        buffer.write('- 📎 ${attachment.name}');
+        final rel = docIndex < docRefs.length ? docRefs[docIndex] : '';
+        docIndex++;
+        buffer.write('- 📎 [${attachment.name}]($rel)');
       }
     }
     return buffer.toString();

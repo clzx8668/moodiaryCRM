@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/features/activity/calendar_activity.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -29,6 +30,12 @@ class CalendarLogic extends GetxController {
     // state.currentMonthDiaryList.value =
     //     await IsarUtil.getDiaryByMonth(value.year, value.month);
     state.currentMonthDiaryList.value = await IsarUtil.getAllDiariesSorted();
+    // 计算每日活跃度（字数 + Block 数 + 心情）
+    final blockCounts = await IsarUtil.getBlockCountsByDiary();
+    state.dailyActivity.value = CalendarActivity.calculate(
+      state.currentMonthDiaryList,
+      blockCounts,
+    );
     state.isFetching.value = false;
   }
 

@@ -176,11 +176,26 @@ class CrmSyncPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
+            Obx(() {
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final type in CrmSyncController.browseTypes)
+                    ChoiceChip(
+                      label: Text(_typeLabel(type)),
+                      selected: logic.selectedType.value == type,
+                      onSelected: (_) => logic.selectType(type),
+                    ),
+                ],
+              );
+            }),
+            const SizedBox(height: 8),
             TextField(
               controller: logic.searchController,
               onChanged: (_) => logic.search(),
               decoration: const InputDecoration(
-                hintText: '搜索客户/联系人/商机…',
+                hintText: '搜索客户/合同/回款/发票…',
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
                 isDense: true,
@@ -289,11 +304,36 @@ class CrmSyncPage extends StatelessWidget {
         return Icons.folder_rounded;
     }
   }
+
+  String _typeLabel(String type) {
+    const labels = {
+      'company': '客户',
+      'person': '联系人',
+      'opportunity': '商机',
+      'task': '任务',
+      'contractsHeTongGuanLi': '合同',
+      'paymentsHuiKuanJiLu': '回款',
+      'invoiceFaPiao': '发票',
+      'commissionsTiChengJieSuan': '提成',
+    };
+    return labels[type] ?? type;
+  }
 }
 
 class CrmSyncController extends GetxController {
   static const _kBaseUrl = 'twentyBaseUrl';
   static const _kApiToken = 'twentyApiToken';
+
+  static const browseTypes = [
+    'company',
+    'person',
+    'opportunity',
+    'task',
+    'contractsHeTongGuanLi',
+    'paymentsHuiKuanJiLu',
+    'invoiceFaPiao',
+    'commissionsTiChengJieSuan',
+  ];
 
   final baseUrlController = TextEditingController();
   final tokenController = TextEditingController();
@@ -307,6 +347,7 @@ class CrmSyncController extends GetxController {
   final stats = <String, int>{}.obs;
   final cacheItems = <CrmEntityCache>[].obs;
   final logEntries = <SyncLogEntry>[].obs;
+  final selectedType = 'company'.obs;
 
   CrmSyncService? _service;
 
@@ -389,8 +430,14 @@ class CrmSyncController extends GetxController {
   Future<void> search() async {
     final keyword = searchController.text.trim();
     cacheItems.value = keyword.isEmpty
-        ? await IsarUtil.getCrmEntitiesByType('company')
+        ? await IsarUtil.getCrmEntitiesByType(selectedType.value)
         : await service.searchLocal(keyword);
+  }
+
+  Future<void> selectType(String type) async {
+    selectedType.value = type;
+    searchController.clear();
+    await search();
   }
 
   Future<void> clearCache() async {

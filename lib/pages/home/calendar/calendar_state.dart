@@ -7,6 +7,9 @@ class CalendarState {
   //当前月份的日记
   late RxList<Diary> currentMonthDiaryList = <Diary>[].obs;
 
+  // 每日活跃度（date -> 0~1，日历热力图着色用）
+  late RxMap<DateTime, double> dailyActivity = <DateTime, double>{}.obs;
+
   late RxBool isFetching = true.obs;
 
   late RxBool isControllerScrolling = false.obs;

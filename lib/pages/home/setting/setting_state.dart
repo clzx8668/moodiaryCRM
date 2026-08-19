@@ -22,6 +22,15 @@ class SettingState {
 
   RxBool backendPrivacy = PrefUtil.getValue<bool>('backendPrivacy')!.obs;
 
+  // 模块开关（架构文档"一、5. 模块化开关"）
+  RxBool moduleCrm = (PrefUtil.getValue<bool>('moduleCrm') ?? true).obs;
+
+  RxBool moduleKnowledgeBase =
+      (PrefUtil.getValue<bool>('moduleKnowledgeBase') ?? true).obs;
+
+  RxBool moduleCalendar =
+      (PrefUtil.getValue<bool>('moduleCalendar') ?? true).obs;
+
   RxString userKey = ''.obs;
 
   Rx<Language> language =

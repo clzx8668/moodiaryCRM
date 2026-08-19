@@ -155,7 +155,6 @@ class SettingPage extends StatelessWidget {
                 AdaptiveListTile(
                   title: Text(context.l10n.settingClean),
                   leading: const Icon(Icons.cleaning_services_rounded),
-                  isLast: true,
                   trailing: GetBuilder<SettingLogic>(
                     id: 'DataUsage',
                     builder: (_) {
@@ -171,6 +170,16 @@ class SettingPage extends StatelessWidget {
                     logic.deleteCache();
                   },
                 ),
+                AdaptiveListTile(
+                  title: const Text('清理孤立附件'),
+                  subtitle: const Text('扫描并删除未被任何记录引用的附件'),
+                  leading: const Icon(Icons.attachment_rounded),
+                  isLast: true,
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    logic.cleanOrphanAttachments();
+                  },
+                ),
               ],
             ),
           ),
@@ -179,6 +188,9 @@ class SettingPage extends StatelessWidget {
     }
 
     Widget buildCrm() {
+      if (!state.moduleCrm.value) {
+        return const SizedBox.shrink();
+      }
       return Column(
         children: [
           const AdaptiveTitleTile(title: 'CRM 同步'),
@@ -197,6 +209,45 @@ class SettingPage extends StatelessWidget {
                   onTap: () {
                     Get.to(() => const CrmSyncPage());
                   },
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    Widget buildModuleSwitches() {
+      return Column(
+        children: [
+          const AdaptiveTitleTile(title: '模块开关'),
+          Card.filled(
+            color: context.theme.colorScheme.surfaceContainerLow,
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                AdaptiveSwitchListTile(
+                  value: state.moduleCrm.value,
+                  onChanged: logic.changeModuleCrm,
+                  title: const Text('CRM 模块'),
+                  subtitle: const Text('关闭后隐藏 CRM 同步入口'),
+                  secondary: const Icon(Icons.business_rounded),
+                  isFirst: true,
+                ),
+                AdaptiveSwitchListTile(
+                  value: state.moduleKnowledgeBase.value,
+                  onChanged: logic.changeModuleKnowledgeBase,
+                  title: const Text('知识库模块'),
+                  subtitle: const Text('知识库/RAG 能力（Phase 3 建设中）'),
+                  secondary: const Icon(Icons.menu_book_rounded),
+                ),
+                AdaptiveSwitchListTile(
+                  value: state.moduleCalendar.value,
+                  onChanged: logic.changeModuleCalendar,
+                  title: const Text('日历模块'),
+                  subtitle: const Text('日历热力图与待办聚合'),
+                  secondary: const Icon(Icons.calendar_month_rounded),
+                  isLast: true,
                 ),
               ],
             ),
@@ -516,7 +567,15 @@ class SettingPage extends StatelessWidget {
             children: [
               buildDashboard(),
               buildFeature(),
-              buildCrm(),
+              GetBuilder<SettingLogic>(
+                id: 'ModuleSwitch',
+                builder: (_) => Column(
+                  children: [
+                    buildModuleSwitches(),
+                    buildCrm(),
+                  ],
+                ),
+              ),
               buildData(),
               buildDisplay(),
               buildPrivacy(),
