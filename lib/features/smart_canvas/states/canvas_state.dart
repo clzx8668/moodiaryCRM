@@ -14,9 +14,13 @@ class CanvasState {
   /// 是否正在滚动（AppBar 折叠联动）
   RxBool isScrolling = false.obs;
 
+  /// 可观察标题（AppBar Obx 依赖；整篇编辑返回后刷新）
+  RxString diaryTitle = ''.obs;
+
   CanvasState() {
     final args = Get.arguments;
     diary = args[0] as Diary;
     showAction = args[1] as bool? ?? true;
+    diaryTitle.value = diary.title;
   }
 }

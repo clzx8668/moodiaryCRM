@@ -188,7 +188,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
 
   Widget _buildCardList(BuildContext context) {
     return Obx(() {
-      final blocks = logic.blockList.blocks;
+      final blocks = logic.blockList.blocks.value;
       if (blocks.isEmpty) {
         if (logic.blockList.loading.value) {
           return const Padding(
@@ -263,7 +263,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                 SliverAppBar(
                   title: Obx(
                     () => Text(
-                      logic.canvasState.diary.title,
+                      logic.canvasState.diaryTitle.value,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),

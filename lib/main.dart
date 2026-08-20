@@ -35,8 +35,7 @@ Future<void> _initSystem() async {
   await PrefUtil.initPref();
   await IsarUtil.initIsar();
   await HiveUtil().init();
-  unawaited(RustLib.init());
-  unawaited(SyncEventService.instance.start());
+  unawaited(_initRustAndEventStream());
   unawaited(_platFormOption());
   WebDavUtil().initWebDav();
   await ThemeUtil().buildTheme();
@@ -48,6 +47,19 @@ Future<void> _initSystem() async {
       systemNavigationBarContrastEnforced: false,
     ),
   );
+}
+
+/// 串行初始化 Rust 运行时与 FFI 事件流订阅。
+///
+/// frb 的 `RustLib.instance.api` 在 `init()` 完成前会抛 StateError，
+/// 因此事件流订阅必须等 RustLib 初始化完成后再执行（遗留项 3）。
+Future<void> _initRustAndEventStream() async {
+  try {
+    await RustLib.init();
+    await SyncEventService.instance.start();
+  } catch (e) {
+    logger.e('Rust 初始化或事件流订阅失败', error: e);
+  }
 }
 
 Future<Locale> _findLanguage() async {

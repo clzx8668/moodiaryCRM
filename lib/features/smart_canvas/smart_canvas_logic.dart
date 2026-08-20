@@ -73,7 +73,10 @@ class SmartCanvasLogic extends GetxController {
     blockList.loading.value = true;
     try {
       final fresh = await datasource.loadDiary(canvasState.diary.id);
-      if (fresh != null) canvasState.diary = fresh;
+      if (fresh != null) {
+        canvasState.diary = fresh;
+        canvasState.diaryTitle.value = fresh.title;
+      }
       await datasource.ensureInitialBlock(canvasState.diary);
       await reloadBlocks();
       blockList.initialized.value = true;
@@ -232,7 +235,10 @@ class SmartCanvasLogic extends GetxController {
       blockList.replace(block);
     }
     final fresh = await datasource.loadDiary(canvasState.diary.id);
-    if (fresh != null) canvasState.diary = fresh;
+    if (fresh != null) {
+      canvasState.diary = fresh;
+      canvasState.diaryTitle.value = fresh.title;
+    }
   }
 
   /// AI 卡片"保留为对话卡"（不再转正，streamComplete 标记完成）
