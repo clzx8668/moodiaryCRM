@@ -451,15 +451,20 @@ class CrmSyncController extends GetxController {
   }
 
   Future<void> _loadSavedConfig() async {
-    final baseUrl = await SecureStorageUtil.getValue(_kBaseUrl);
-    final token = await SecureStorageUtil.getValue(_kApiToken);
-    if (baseUrl != null && baseUrl.isNotEmpty) {
-      baseUrlController.text = baseUrl;
-    } else {
+    try {
+      final baseUrl = await SecureStorageUtil.getValue(_kBaseUrl);
+      final token = await SecureStorageUtil.getValue(_kApiToken);
+      if (baseUrl != null && baseUrl.isNotEmpty) {
+        baseUrlController.text = baseUrl;
+      } else {
+        baseUrlController.text = 'http://10.200.245.54:3000';
+      }
+      if (token != null) {
+        tokenController.text = token;
+      }
+    } catch (_) {
+      // 安全存储不可用时使用默认地址，页面仍可渲染
       baseUrlController.text = 'http://10.200.245.54:3000';
-    }
-    if (token != null) {
-      tokenController.text = token;
     }
     _service = null;
   }

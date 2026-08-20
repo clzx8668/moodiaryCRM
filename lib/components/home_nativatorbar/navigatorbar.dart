@@ -73,6 +73,11 @@ class HomeNavigatorBar extends StatelessWidget {
                         label: context.l10n.homeNavigatorMedia,
                         selectedIcon: const Icon(UniconsSolid.image_v),
                       ),
+                      const NavigationDestination(
+                        icon: Icon(Icons.business_outlined),
+                        label: 'CRM',
+                        selectedIcon: Icon(Icons.business_rounded),
+                      ),
                       NavigationDestination(
                         icon: const Icon(UniconsLine.layer_group),
                         label: context.l10n.homeNavigatorSetting,

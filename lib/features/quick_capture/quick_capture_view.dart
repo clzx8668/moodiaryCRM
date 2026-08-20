@@ -167,7 +167,7 @@ class QuickCaptureSheet extends StatelessWidget {
                       return FilledButton.icon(
                         onPressed: state.saving.value ? null : () async {
                           final saved = await logic.save();
-                          if (saved && Get.isBottomSheetOpen == true) {
+                          if (saved) {
                             Get.back();
                           }
                         },

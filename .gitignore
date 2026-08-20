@@ -54,3 +54,4 @@ config/*.local.yaml
 server/.env
 .env
 *.local.dart
+.tools/
