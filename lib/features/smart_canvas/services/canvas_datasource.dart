@@ -16,7 +16,10 @@ class CanvasDatasource {
   Future<void> saveBlock(Block block) => IsarUtil.updateBlock(block);
 
   Future<void> softDeleteBlock(String blockId) =>
-      IsarUtil.softDeleteBlock(blockId);
+      IsarUtil.softDeleteBlock(blockId).then((_) {
+        // 同步清除过期向量索引（P3.3 增量策略：改删后重建）
+        return IsarUtil.deleteBlockEmbeddings(blockId);
+      });
 
   /// 双模态聚合投影刷新：Blocks → diary.content/contentText
   Future<String> refreshDiaryProjection(Diary diary) =>
@@ -79,6 +82,7 @@ class CanvasDatasource {
       ..updatedAt = DateTime.now();
     _markPending(block);
     await saveBlock(block);
+    await IsarUtil.deleteBlockEmbeddings(block.id);
     final diary = await loadDiary(block.diaryId);
     if (diary != null) {
       await refreshDiaryProjection(diary);
@@ -94,6 +98,7 @@ class CanvasDatasource {
       ..updatedAt = DateTime.now();
     _markPending(block);
     await saveBlock(block);
+    await IsarUtil.deleteBlockEmbeddings(block.id);
     final diary = await loadDiary(block.diaryId);
     if (diary != null) {
       await refreshDiaryProjection(diary);
@@ -124,6 +129,7 @@ class CanvasDatasource {
         syncStatus: BlockMeta.syncPending,
         aiTemplate: template,
         title: template,
+        sourceContent: sourceContent,
       );
     await IsarUtil.insertBlock(block);
     await refreshDiaryProjection(diary);
@@ -154,6 +160,7 @@ class CanvasDatasource {
       ..updatedAt = DateTime.now();
     _markPending(block);
     await saveBlock(block);
+    await IsarUtil.deleteBlockEmbeddings(block.id);
     final diary = await loadDiary(block.diaryId);
     if (diary != null) {
       await refreshDiaryProjection(diary);

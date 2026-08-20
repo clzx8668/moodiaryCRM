@@ -22,6 +22,9 @@ pub mod models;
 pub mod serializer;
 pub mod traits;
 
+#[cfg(feature = "vector-db")]
+pub mod local_vector_index;
+
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// 当前 Unix 毫秒时间戳（日志/冲突记录/事件统一时钟）

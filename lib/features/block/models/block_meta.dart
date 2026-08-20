@@ -31,12 +31,16 @@ class BlockMeta {
   /// 卡片标题（折叠态展示，可选）
   String title;
 
+  /// AI 处理源内容快照（aiStream 断点恢复用，P2.9）
+  String sourceContent;
+
   BlockMeta({
     this.source = sourceInitial,
     this.syncStatus = syncSynced,
     this.aiTemplate = '',
     this.entityType = '',
     this.title = '',
+    this.sourceContent = '',
   });
 
   bool get isAi => source == sourceAi;
@@ -56,6 +60,7 @@ class BlockMeta {
       aiTemplate: aiTemplate,
       entityType: entityType,
       title: title,
+      sourceContent: sourceContent,
     );
   }
 
@@ -66,6 +71,7 @@ class BlockMeta {
       'aiTemplate': aiTemplate,
       'entityType': entityType,
       'title': title,
+      'sourceContent': sourceContent,
     };
   }
 
@@ -76,6 +82,7 @@ class BlockMeta {
       aiTemplate: json['aiTemplate'] as String? ?? '',
       entityType: json['entityType'] as String? ?? '',
       title: json['title'] as String? ?? '',
+      sourceContent: json['sourceContent'] as String? ?? '',
     );
   }
 
@@ -101,9 +108,17 @@ class BlockMeta {
           syncStatus == other.syncStatus &&
           aiTemplate == other.aiTemplate &&
           entityType == other.entityType &&
-          title == other.title;
+          title == other.title &&
+          sourceContent == other.sourceContent;
 
   @override
   int get hashCode =>
-      Object.hash(source, syncStatus, aiTemplate, entityType, title);
+      Object.hash(
+        source,
+        syncStatus,
+        aiTemplate,
+        entityType,
+        title,
+        sourceContent,
+      );
 }

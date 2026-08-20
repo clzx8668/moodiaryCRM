@@ -73,6 +73,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     final baseUrl = TextEditingController(text: config.baseUrl);
     final apiKey = TextEditingController(text: config.apiKey);
     final model = TextEditingController(text: config.model);
+    final embeddingModel = TextEditingController(text: config.embeddingModel);
 
     final saved = await showDialog<bool>(
       context: context,
@@ -101,6 +102,13 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                   hintText: 'deepseek-chat',
                 ),
               ),
+              TextField(
+                controller: embeddingModel,
+                decoration: const InputDecoration(
+                  labelText: 'Embedding 模型（RAG 用）',
+                  hintText: 'text-embedding-3-small',
+                ),
+              ),
             ],
           ),
         ),
@@ -115,6 +123,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                 baseUrl: baseUrl.text.trim(),
                 apiKey: apiKey.text.trim(),
                 model: model.text.trim(),
+                embeddingModel: embeddingModel.text.trim(),
               );
               if (dialogContext.mounted) Navigator.pop(dialogContext, true);
             },
@@ -248,6 +257,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
       onKeepAsChat: block.streamComplete
           ? () => logic.keepAsChatCard(block)
           : null,
+      onResume: () => logic.resumeAiBlock(block),
       onDelete: () => _confirmDelete(block),
     );
   }

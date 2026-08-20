@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
-import 'package:moodiary/features/ai/ai_config.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/block/models/block.dart';
@@ -48,8 +47,7 @@ class SmartCanvasLogic extends GetxController {
   /// 异步初始化真实 Provider（避免构造期读安全存储）
   Future<void> loadAiProvider() async {
     if (aiProvider is UnconfiguredAiProvider) {
-      final config = await AiConfig.load();
-      aiProvider = OpenAiCompatibleProvider(config: config);
+      aiProvider = await AiProviderFactory.load();
     }
   }
 
@@ -80,6 +78,17 @@ class SmartCanvasLogic extends GetxController {
       await datasource.ensureInitialBlock(canvasState.diary);
       await reloadBlocks();
       blockList.initialized.value = true;
+      final incomplete = blockList.blocks
+          .where(
+            (b) =>
+                b.blockType == BlockType.aiStream &&
+                !b.streamComplete &&
+                b.streamBuffer.isNotEmpty,
+          )
+          .length;
+      if (incomplete > 0) {
+        toast.info(message: '存在 $incomplete 张未完成的 AI 卡片，可点击「继续生成」');
+      }
     } catch (e) {
       toast.error(message: '详情页加载失败：$e');
     } finally {
@@ -113,17 +122,53 @@ class SmartCanvasLogic extends GetxController {
 
   /// AI 模板处理完整生命周期：创建流式卡 → 流式渲染 → 转正。
   Future<void> runAiTemplate(Block source, String template) async {
-    await loadAiProvider();
-    if (!aiProvider.isConfigured) {
-      toast.info(message: 'AI 未配置，请在设置中填写 API Key');
-      return;
-    }
     final aiBlock = await datasource.createAiStreamBlock(
       diary: canvasState.diary,
       template: template,
       sourceContent: source.content,
     );
     blockList.blocks.add(aiBlock);
+    await _streamIntoBlock(
+      aiBlock,
+      sourceContent: source.content,
+      template: template,
+    );
+  }
+
+  /// 断点恢复（P2.9）：复用未完成的 aiStream 卡片继续生成。
+  ///
+  /// 源内容来自 meta.sourceContent（创建时快照）；缺失时回退 streamBuffer。
+  Future<void> resumeAiBlock(Block block) async {
+    if (block.blockType != BlockType.aiStream || block.streamComplete) return;
+    final meta = block.meta;
+    final source = meta.sourceContent.isNotEmpty
+        ? meta.sourceContent
+        : block.streamBuffer.isNotEmpty
+        ? block.streamBuffer
+        : '';
+    if (source.isEmpty) {
+      toast.info(message: '缺少源内容，无法继续生成');
+      return;
+    }
+    final template = meta.aiTemplate.isEmpty ? AiTemplates.summary : meta.aiTemplate;
+    await _streamIntoBlock(
+      block,
+      sourceContent: source,
+      template: template,
+    );
+  }
+
+  /// 流式核心：把 AI 输出灌入指定 aiStream 卡片，完成后按模板转正。
+  Future<void> _streamIntoBlock(
+    Block aiBlock, {
+    required String sourceContent,
+    required String template,
+  }) async {
+    await loadAiProvider();
+    if (!aiProvider.isConfigured) {
+      toast.info(message: 'AI 未配置，请在设置中填写 API Key');
+      return;
+    }
     streaming.start(aiBlock.id);
     await SyncLogService.instance.write(
       level: SyncLogLevel.info,
@@ -133,7 +178,7 @@ class SmartCanvasLogic extends GetxController {
     );
 
     await for (final chunk in aiProvider.streamTemplate(
-      content: source.content,
+      content: sourceContent,
       template: template,
     )) {
       if (_streamCancelRequested) break;
@@ -293,5 +338,15 @@ class UnconfiguredAiProvider implements AiProvider {
     required String template,
   }) {
     return Stream.value(AiChunk.error('AI Provider 未初始化'));
+  }
+
+  @override
+  Stream<AiChunk> streamChat(List<AiChatMessage> messages) {
+    return Stream.value(AiChunk.error('AI Provider 未初始化'));
+  }
+
+  @override
+  Future<List<double>> embed(String text) async {
+    throw StateError('AI Provider 未初始化');
   }
 }

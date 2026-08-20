@@ -25,6 +25,7 @@ serde_json = "1"
 
 [features]
 sync-engine = []
+vector-db = []
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

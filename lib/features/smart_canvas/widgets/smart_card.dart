@@ -28,6 +28,7 @@ class SmartCard extends StatelessWidget {
   final VoidCallback? onCopy;
   final VoidCallback? onStop;
   final VoidCallback? onKeepAsChat;
+  final VoidCallback? onResume;
   final VoidCallback? onDelete;
 
   const SmartCard({
@@ -44,6 +45,7 @@ class SmartCard extends StatelessWidget {
     this.onCopy,
     this.onStop,
     this.onKeepAsChat,
+    this.onResume,
     this.onDelete,
   });
 
@@ -82,6 +84,7 @@ class SmartCard extends StatelessWidget {
                 onCopy: onCopy,
                 onStop: onStop,
                 onKeepAsChat: onKeepAsChat,
+                onResume: onResume,
                 onDelete: onDelete,
               ),
             ],

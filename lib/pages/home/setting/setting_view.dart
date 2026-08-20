@@ -18,6 +18,8 @@ import 'package:moodiary/components/remove_password/remove_password_view.dart';
 import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
 import 'package:moodiary/features/crm/crm_sync_page.dart';
+import 'package:moodiary/features/rag/knowledge_base_page.dart';
+import 'package:moodiary/features/rag/rag_chat_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -226,6 +228,45 @@ class SettingPage extends StatelessWidget {
       );
     }
 
+    Widget buildKnowledgeBase() {
+      if (!state.moduleKnowledgeBase.value) {
+        return const SizedBox.shrink();
+      }
+      return Column(
+        children: [
+          const AdaptiveTitleTile(title: '知识库 / RAG'),
+          Card.filled(
+            color: context.theme.colorScheme.surfaceContainerLow,
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                AdaptiveListTile(
+                  title: const Text('知识库管理'),
+                  subtitle: const Text('多知识空间 CRUD 与向量索引'),
+                  leading: const Icon(Icons.menu_book_rounded),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  isFirst: true,
+                  onTap: () {
+                    Get.to(() => const KnowledgeBasePage());
+                  },
+                ),
+                AdaptiveListTile(
+                  title: const Text('AI 对话工作台'),
+                  subtitle: const Text('基于知识库提问，流式回答 + 引用溯源'),
+                  leading: const Icon(Icons.chat_rounded),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  isLast: true,
+                  onTap: () {
+                    Get.to(() => const RagChatPage());
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     Widget buildModuleSwitches() {
       return Column(
         children: [
@@ -247,7 +288,7 @@ class SettingPage extends StatelessWidget {
                   value: state.moduleKnowledgeBase.value,
                   onChanged: logic.changeModuleKnowledgeBase,
                   title: const Text('知识库模块'),
-                  subtitle: const Text('知识库/RAG 能力（Phase 3 建设中）'),
+                  subtitle: const Text('关闭后隐藏知识库管理与对话入口'),
                   secondary: const Icon(Icons.menu_book_rounded),
                 ),
                 AdaptiveSwitchListTile(
@@ -582,6 +623,7 @@ class SettingPage extends StatelessWidget {
                   children: [
                     buildModuleSwitches(),
                     buildCrm(),
+                    buildKnowledgeBase(),
                   ],
                 ),
               ),

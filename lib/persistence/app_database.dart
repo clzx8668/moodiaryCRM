@@ -151,6 +151,36 @@ class SyncRecords extends Table {
   Set<Column> get primaryKey => {syncId};
 }
 
+/// 知识库表（P3.2：多知识空间）
+@DataClassName('KnowledgeBaseRow')
+class KnowledgeBases extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 块向量表（P3.3：Text Block → Embedding → 本地向量库）
+@DataClassName('BlockEmbeddingRow')
+class BlockEmbeddings extends Table {
+  TextColumn get blockId => text()();
+  TextColumn get diaryId => text()();
+  TextColumn get knowledgeBaseId => text()();
+  /// 文本快照（用于重新生成向量与检索摘要）
+  TextColumn get textContent => text()();
+  /// f32 小端字节的 base64（避免 drift_dev 2.31 blob 代码生成路径的内部错误）
+  TextColumn get embedding => text()();
+  IntColumn get dimension => integer()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {blockId, knowledgeBaseId};
+}
+
 @DriftDatabase(
   tables: [
     Diaries,
@@ -160,13 +190,15 @@ class SyncRecords extends Table {
     AppMetadata,
     CrmEntityCaches,
     SyncRecords,
+    KnowledgeBases,
+    BlockEmbeddings,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -176,6 +208,12 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         final db = m.database as AppDatabase;
         await m.addColumn(db.blocks, db.blocks.metaJson);
+      }
+      // v4 → v5：新增知识库表与块向量表
+      if (from < 5) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.knowledgeBases);
+        await m.createTable(db.blockEmbeddings);
       }
     },
     beforeOpen: (details) async {

@@ -12,6 +12,10 @@ import 'package:moodiary/features/block/models/block.dart' as block_model;
 import 'package:moodiary/features/block/markdown_projection.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart'
     as crm_model;
+import 'package:moodiary/features/rag/models/block_embedding.dart'
+    as rag_model;
+import 'package:moodiary/features/rag/models/knowledge_base.dart'
+    as kb_model;
 import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/persistence/migration.dart';
 import 'package:moodiary/persistence/pref.dart';
@@ -221,6 +225,49 @@ class IsarUtil {
       ..diaryJson = row.diaryJson
       ..time = row.time
       ..syncType = SyncType.values[row.syncType];
+  }
+
+  static KnowledgeBasesCompanion _kbCompanion(kb_model.KnowledgeBase kb) {
+    return KnowledgeBasesCompanion.insert(
+      id: kb.id,
+      name: kb.name,
+      description: Value(kb.description),
+      createdAt: kb.createdAt,
+      updatedAt: kb.updatedAt,
+    );
+  }
+
+  static kb_model.KnowledgeBase _kbFromRow(KnowledgeBaseRow row) {
+    return kb_model.KnowledgeBase()
+      ..id = row.id
+      ..name = row.name
+      ..description = row.description
+      ..createdAt = row.createdAt
+      ..updatedAt = row.updatedAt;
+  }
+
+  static BlockEmbeddingsCompanion _embeddingCompanion(
+    rag_model.BlockEmbedding e,
+  ) {
+    return BlockEmbeddingsCompanion.insert(
+      blockId: e.blockId,
+      diaryId: e.diaryId,
+      knowledgeBaseId: e.knowledgeBaseId,
+      textContent: e.text,
+      embedding: e.encode(),
+      dimension: e.dimension,
+      updatedAt: e.updatedAt,
+    );
+  }
+
+  static rag_model.BlockEmbedding _embeddingFromRow(BlockEmbeddingRow row) {
+    return rag_model.BlockEmbedding()
+      ..blockId = row.blockId
+      ..diaryId = row.diaryId
+      ..knowledgeBaseId = row.knowledgeBaseId
+      ..text = row.textContent
+      ..embedding = rag_model.BlockEmbedding.decode(row.embedding, row.dimension)
+      ..updatedAt = row.updatedAt;
   }
 
   // ==================== 基础操作 ====================
@@ -655,6 +702,103 @@ class IsarUtil {
   static Future<List<SyncRecord>> getSyncRecords() async {
     final rows = await _database.select(_database.syncRecords).get();
     return rows.map(_syncFromRow).toList();
+  }
+
+  // ==================== 知识库（P3.2） ====================
+
+  static Future<void> upsertKnowledgeBase(kb_model.KnowledgeBase kb) async {
+    kb.updatedAt = DateTime.now();
+    await _database.into(_database.knowledgeBases).insertOnConflictUpdate(
+      _kbCompanion(kb),
+    );
+  }
+
+  static Future<List<kb_model.KnowledgeBase>> getAllKnowledgeBases() async {
+    final rows = await (_database.select(_database.knowledgeBases)
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .get();
+    return rows.map(_kbFromRow).toList();
+  }
+
+  static Future<kb_model.KnowledgeBase?> getKnowledgeBaseById(String id) async {
+    final row = await (_database.select(_database.knowledgeBases)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _kbFromRow(row);
+  }
+
+  static Future<void> deleteKnowledgeBase(String id) async {
+    await _database.transaction(() async {
+      await (_database.delete(_database.knowledgeBases)
+            ..where((t) => t.id.equals(id)))
+          .go();
+      await (_database.delete(_database.blockEmbeddings)
+            ..where((t) => t.knowledgeBaseId.equals(id)))
+          .go();
+    });
+  }
+
+  static Future<int> countEmbeddingsByKnowledgeBase(String kbId) async {
+    return (await (_database.select(_database.blockEmbeddings)
+              ..where((t) => t.knowledgeBaseId.equals(kbId)))
+            .get())
+        .length;
+  }
+
+  // ==================== 块向量（P3.3） ====================
+
+  static Future<void> upsertBlockEmbedding(rag_model.BlockEmbedding e) async {
+    e.updatedAt = DateTime.now();
+    await _database.into(_database.blockEmbeddings).insertOnConflictUpdate(
+      _embeddingCompanion(e),
+    );
+  }
+
+  static Future<void> deleteBlockEmbeddings(String blockId) async {
+    await (_database.delete(_database.blockEmbeddings)
+          ..where((t) => t.blockId.equals(blockId)))
+        .go();
+  }
+
+  static Future<void> deleteBlockEmbedding(
+    String blockId,
+    String knowledgeBaseId,
+  ) async {
+    await (_database.delete(_database.blockEmbeddings)
+          ..where(
+            (t) =>
+                t.blockId.equals(blockId) &
+                t.knowledgeBaseId.equals(knowledgeBaseId),
+          ))
+        .go();
+  }
+
+  static Future<List<rag_model.BlockEmbedding>> getEmbeddingsByKnowledgeBase(
+    String kbId,
+  ) async {
+    final rows = await (_database.select(_database.blockEmbeddings)
+          ..where((t) => t.knowledgeBaseId.equals(kbId)))
+        .get();
+    return rows.map(_embeddingFromRow).toList();
+  }
+
+  static Future<List<rag_model.BlockEmbedding>> getAllBlockEmbeddings() async {
+    final rows = await _database.select(_database.blockEmbeddings).get();
+    return rows.map(_embeddingFromRow).toList();
+  }
+
+  static Future<rag_model.BlockEmbedding?> getEmbeddingByBlockAndKb(
+    String blockId,
+    String kbId,
+  ) async {
+    final row = await (_database.select(_database.blockEmbeddings)
+          ..where(
+            (t) =>
+                t.blockId.equals(blockId) &
+                t.knowledgeBaseId.equals(kbId),
+          ))
+        .getSingleOrNull();
+    return row == null ? null : _embeddingFromRow(row);
   }
 
   static Future<void> deleteSyncRecord(int id) async {

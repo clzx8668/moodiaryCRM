@@ -29,6 +29,32 @@ abstract class AiProvider {
     required String content,
     required String template,
   });
+
+  /// 多轮对话（RAG 工作台，P3.4）
+  Stream<AiChunk> streamChat(List<AiChatMessage> messages);
+
+  /// 生成文本向量（P3.3）
+  Future<List<double>> embed(String text);
+}
+
+/// 对话消息
+class AiChatMessage {
+  final String role; // system / user / assistant
+  final String content;
+
+  const AiChatMessage({required this.role, required this.content});
+
+  Map<String, dynamic> toJson() => {'role': role, 'content': content};
+}
+
+/// 按安全存储配置创建真实 Provider
+class AiProviderFactory {
+  AiProviderFactory._();
+
+  static Future<AiProvider> load() async {
+    final config = await AiConfig.load();
+    return OpenAiCompatibleProvider(config: config);
+  }
 }
 
 /// OpenAI 兼容实现（`/chat/completions` + SSE 流式）。
@@ -135,6 +161,76 @@ class OpenAiCompatibleProvider implements AiProvider {
       }
     }
     yield const AiChunk(done: true);
+  }
+
+  @override
+  Stream<AiChunk> streamChat(List<AiChatMessage> messages) async* {
+    if (!isConfigured) {
+      yield AiChunk.error('AI 未配置：请先在设置中填写 API Key');
+      return;
+    }
+    try {
+      final response = await dio.post<ResponseBody>(
+        config.chatCompletionsUrl,
+        options: Options(
+          responseType: ResponseType.stream,
+          headers: {
+            'Authorization': 'Bearer ${config.apiKey}',
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream',
+          },
+        ),
+        data: {
+          'model': config.model,
+          'messages': messages.map((m) => m.toJson()).toList(),
+          'stream': true,
+        },
+      );
+      final body = response.data;
+      if (body == null) {
+        yield AiChunk.error('AI 响应为空');
+        return;
+      }
+      await for (final chunk in _decodeSse(body.stream)) {
+        yield chunk;
+      }
+    } on DioException catch (e) {
+      final detail = e.response?.statusCode == 401
+          ? 'API Key 无效（401）'
+          : e.response?.statusCode == 429
+          ? '请求过于频繁（429）'
+          : '网络错误：${e.message}';
+      yield AiChunk.error(detail);
+    } catch (e) {
+      yield AiChunk.error('AI 对话失败：$e');
+    }
+  }
+
+  @override
+  Future<List<double>> embed(String text) async {
+    if (!isConfigured) {
+      throw StateError('AI 未配置：请先在设置中填写 API Key');
+    }
+    final response = await dio.post<Map<String, dynamic>>(
+      config.embeddingsUrl,
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer ${config.apiKey}',
+          'Content-Type': 'application/json',
+        },
+      ),
+      data: {
+        'model': config.embeddingModel,
+        'input': text,
+      },
+    );
+    final data = response.data;
+    final list = data?['data'] as List?;
+    if (list == null || list.isEmpty) {
+      throw StateError('Embedding 响应为空');
+    }
+    final embedding = (list.first as Map<String, dynamic>)['embedding'] as List;
+    return embedding.cast<num>().map((e) => e.toDouble()).toList();
   }
 
   String? _extractDelta(String data) {

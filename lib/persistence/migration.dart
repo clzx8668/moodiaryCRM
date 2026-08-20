@@ -16,7 +16,7 @@ class MigrationService {
   static const String migrationHistoryKey = 'migration_history';
 
   /// 当前代码期望的数据库版本
-  static const int currentDbVersion = 4;
+  static const int currentDbVersion = 5;
 
   static Future<String?> _getMeta(AppDatabase db, String key) async {
     final row = await (db.select(db.appMetadata)
@@ -111,6 +111,19 @@ class MigrationService {
         'time': DateTime.now().toIso8601String(),
         'durationMs': stopwatch.elapsedMilliseconds,
         'migratedBlocks': migrated,
+      });
+    }
+
+    if (current < 5) {
+      // v4 → v5：新增知识库/向量表由 Drift schema 迁移处理，此处仅推进版本号
+      final stopwatch = Stopwatch()..start();
+      current = 5;
+      await _appendMigrationHistory(db, {
+        'from': 4,
+        'to': 5,
+        'time': DateTime.now().toIso8601String(),
+        'durationMs': stopwatch.elapsedMilliseconds,
+        'note': 'knowledge_bases + block_embeddings 表',
       });
     }
 

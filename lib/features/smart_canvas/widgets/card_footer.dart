@@ -9,6 +9,7 @@ class CardFooter extends StatelessWidget {
   final VoidCallback? onCopy;
   final VoidCallback? onStop;
   final VoidCallback? onKeepAsChat;
+  final VoidCallback? onResume;
   final VoidCallback? onDelete;
 
   const CardFooter({
@@ -19,6 +20,7 @@ class CardFooter extends StatelessWidget {
     this.onCopy,
     this.onStop,
     this.onKeepAsChat,
+    this.onResume,
     this.onDelete,
   });
 
@@ -55,6 +57,14 @@ class CardFooter extends StatelessWidget {
             icon: Icons.auto_awesome_rounded,
             label: 'AI 处理',
             onTap: onAi,
+          ),
+        if (!isStreaming &&
+            block.blockType == BlockType.aiStream &&
+            !block.streamComplete)
+          _FooterButton(
+            icon: Icons.play_circle_outline_rounded,
+            label: '继续生成',
+            onTap: onResume,
           ),
         if (block.blockType != BlockType.todo &&
             block.blockType != BlockType.aiStream)
