@@ -95,7 +95,10 @@ class CargoKitPlugin implements Plugin<Project> {
     private Plugin _findFlutterPlugin(Map projects) {
         for (project in projects) {
             for (plugin in project.value.getPlugins()) {
-                if (plugin.class.name == "FlutterPlugin") {
+                // Flutter 3.41 起插件类迁移到 com.flutter.gradle 包（旧版为默认包）
+                if (plugin.class.name == "FlutterPlugin" ||
+                    plugin.class.name == "com.flutter.gradle.FlutterPlugin" ||
+                    plugin.class.name == "dev.flutter.gradle.FlutterPlugin") {
                     return plugin;
                 }
             }
@@ -132,12 +135,26 @@ class CargoKitPlugin implements Plugin<Project> {
             def jniLibs = project.android.sourceSets.maybeCreate(buildType).jniLibs;
             jniLibs.srcDir(new File(cargoOutputDir))
 
-            def platforms = plugin.getTargetPlatforms().collect()
-
-            // Same thing addFlutterDependencies does in flutter.gradle
-            if (buildType == "debug") {
-                platforms.add("android-x86")
-                platforms.add("android-x64")
+            // Flutter 3.41 移除了 FlutterPlugin.getTargetPlatforms()（internal 工具函数），
+            // 改为按 app 的 abiFilters 推导目标平台；无过滤时回退默认 arm/arm64（debug 加 x86/x64）
+            def abiFilters = plugin.project.android.defaultConfig.ndk.abiFilters
+            def abiMap = [
+                "arm64-v8a": "android-arm64",
+                "armeabi-v7a": "android-arm",
+                "x86_64": "android-x64",
+                "x86": "android-x86",
+            ]
+            def platforms = []
+            if (abiFilters != null && !abiFilters.isEmpty()) {
+                platforms = abiFilters.collect { abiMap[it] }.findAll { it != null }
+            }
+            if (platforms.isEmpty()) {
+                platforms = ["android-arm", "android-arm64"]
+                // Same thing addFlutterDependencies does in flutter.gradle
+                if (buildType == "debug") {
+                    platforms.add("android-x86")
+                    platforms.add("android-x64")
+                }
             }
 
             // The task name depends on plugin properties, which are not available
