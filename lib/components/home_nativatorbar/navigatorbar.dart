@@ -78,6 +78,11 @@ class HomeNavigatorBar extends StatelessWidget {
                         label: 'CRM',
                         selectedIcon: Icon(Icons.business_rounded),
                       ),
+                      const NavigationDestination(
+                        icon: Icon(Icons.auto_awesome_outlined),
+                        label: 'AI',
+                        selectedIcon: Icon(Icons.auto_awesome_rounded),
+                      ),
                       NavigationDestination(
                         icon: const Icon(UniconsLine.layer_group),
                         label: context.l10n.homeNavigatorSetting,

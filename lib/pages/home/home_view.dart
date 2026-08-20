@@ -7,8 +7,9 @@ import 'package:moodiary/components/base/modal.dart';
 import 'package:moodiary/components/desktop_wrapper/background.dart';
 import 'package:moodiary/components/home_fab/home_fab_view.dart';
 import 'package:moodiary/components/home_nativatorbar/navigatorbar.dart';
-import 'package:moodiary/features/quick_capture/quick_capture_view.dart';
+import 'package:moodiary/features/ai/ai_home_page.dart';
 import 'package:moodiary/features/crm/crm_home_page.dart';
+import 'package:moodiary/features/quick_capture/quick_capture_view.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/pages/home/calendar/calendar_view.dart';
 import 'package:moodiary/pages/home/diary/diary_view.dart';
@@ -73,6 +74,13 @@ class HomePage extends StatelessWidget {
                                         label: 'CRM',
                                         selectedIcon: Icon(Icons.business_rounded),
                                       ),
+                                      const NavigationDestination(
+                                        icon: Icon(Icons.auto_awesome_outlined),
+                                        label: 'AI',
+                                        selectedIcon: Icon(
+                                          Icons.auto_awesome_rounded,
+                                        ),
+                                      ),
                                       NavigationDestination(
                                         icon: const Icon(
                                           UniconsLine.layer_group,
@@ -136,6 +144,7 @@ class HomePage extends StatelessWidget {
                           CalendarPage(),
                           MediaPage(),
                           CrmHomePage(),
+                          AiHomePage(),
                           SettingPage(),
                         ],
                       ),

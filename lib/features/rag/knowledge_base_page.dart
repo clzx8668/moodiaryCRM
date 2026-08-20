@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:moodiary/features/ai/ai_home_page.dart';
 import 'package:moodiary/features/rag/models/knowledge_base.dart';
-import 'package:moodiary/features/rag/rag_chat_page.dart';
 import 'package:moodiary/features/rag/rag_service.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -122,7 +122,7 @@ class _KnowledgeBasePageState extends State<KnowledgeBasePage> {
   }
 
   void _openChat(KnowledgeBase kb) {
-    Get.to(() => RagChatPage(knowledgeBase: kb))?.then((_) => _load());
+    Get.to(() => AiHomePage(initialKnowledgeBase: kb))?.then((_) => _load());
   }
 
   @override

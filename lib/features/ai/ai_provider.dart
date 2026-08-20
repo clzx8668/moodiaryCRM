@@ -57,6 +57,105 @@ class AiProviderFactory {
   }
 }
 
+/// AI 连接测试结果
+class AiConnectionResult {
+  final bool ok;
+  final String message;
+
+  const AiConnectionResult({required this.ok, required this.message});
+}
+
+/// 连接测试：优先探测 `/models` 接口，不支持时回退最小 chat 请求。
+class AiConnectionTester {
+  AiConnectionTester._();
+
+  static Future<AiConnectionResult> test(
+    AiConfig config, {
+    Dio? dio,
+  }) async {
+    final client =
+        dio ??
+        Dio(
+          BaseOptions(
+            connectTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 20),
+          ),
+        );
+    final headers = {
+      'Authorization': 'Bearer ${config.apiKey}',
+      'Content-Type': 'application/json',
+    };
+
+    // 1) /models 探测（OpenAI 兼容标准）
+    try {
+      final resp = await client.get<Map<String, dynamic>>(
+        '${config.baseUrl.replaceAll(RegExp(r'/+$'), '')}/models',
+        options: Options(headers: headers),
+      );
+      final data = resp.data;
+      final models = data?['data'] as List?;
+      if (models != null) {
+        final names = models
+            .map((m) => (m as Map<String, dynamic>)['id']?.toString())
+            .whereType<String>()
+            .take(5)
+            .join(', ');
+        return AiConnectionResult(
+          ok: true,
+          message: '连接成功，模型列表：${names.isEmpty ? '（空）' : names}',
+        );
+      }
+      return const AiConnectionResult(ok: true, message: '连接成功');
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        return const AiConnectionResult(ok: false, message: 'API Key 无效（401）');
+      }
+      if (e.response?.statusCode == 404) {
+        // 部分服务商不支持 /models，回退最小 chat 请求
+        return _pingChat(client, config, headers);
+      }
+      final code = e.response?.statusCode;
+      if (code != null) {
+        return AiConnectionResult(
+          ok: false,
+          message: '接口返回 $code：${e.message}',
+        );
+      }
+      return AiConnectionResult(ok: false, message: '网络错误：${e.message}');
+    }
+  }
+
+  static Future<AiConnectionResult> _pingChat(
+    Dio client,
+    AiConfig config,
+    Map<String, String> headers,
+  ) async {
+    try {
+      await client.post<Map<String, dynamic>>(
+        config.chatCompletionsUrl,
+        options: Options(headers: headers),
+        data: {
+          'model': config.model,
+          'messages': [
+            {'role': 'user', 'content': 'ping'},
+          ],
+          'max_tokens': 1,
+          'stream': false,
+        },
+      );
+      return const AiConnectionResult(ok: true, message: '连接成功（chat 接口可用）');
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      final detail = code == 401
+          ? 'API Key 无效（401）'
+          : code == 404
+          ? '接口路径不存在（404），请检查 Base URL'
+          : '${e.message}';
+      return AiConnectionResult(ok: false, message: '连接失败：$detail');
+    }
+  }
+}
+
 /// OpenAI 兼容实现（`/chat/completions` + SSE 流式）。
 class OpenAiCompatibleProvider implements AiProvider {
   final AiConfig config;

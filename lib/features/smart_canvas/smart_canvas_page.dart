@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/components/base/button.dart';
 import 'package:moodiary/components/mood_icon/mood_icon_view.dart';
-import 'package:moodiary/features/ai/ai_config.dart';
 import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/smart_canvas/services/append_input_bar.dart';
@@ -64,76 +63,6 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     );
     if (template != null && mounted) {
       await logic.runAiTemplate(block, template);
-    }
-  }
-
-  Future<void> _showAiSettings() async {
-    final config = await AiConfig.load();
-    if (!mounted) return;
-    final baseUrl = TextEditingController(text: config.baseUrl);
-    final apiKey = TextEditingController(text: config.apiKey);
-    final model = TextEditingController(text: config.model);
-    final embeddingModel = TextEditingController(text: config.embeddingModel);
-
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('AI 设置（OpenAI 兼容）'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: baseUrl,
-                decoration: const InputDecoration(
-                  labelText: 'Base URL',
-                  hintText: 'https://api.deepseek.com/v1',
-                ),
-              ),
-              TextField(
-                controller: apiKey,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'API Key'),
-              ),
-              TextField(
-                controller: model,
-                decoration: const InputDecoration(
-                  labelText: '模型',
-                  hintText: 'deepseek-chat',
-                ),
-              ),
-              TextField(
-                controller: embeddingModel,
-                decoration: const InputDecoration(
-                  labelText: 'Embedding 模型（RAG 用）',
-                  hintText: 'text-embedding-3-small',
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              await AiConfig.save(
-                baseUrl: baseUrl.text.trim(),
-                apiKey: apiKey.text.trim(),
-                model: model.text.trim(),
-                embeddingModel: embeddingModel.text.trim(),
-              );
-              if (dialogContext.mounted) Navigator.pop(dialogContext, true);
-            },
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-    if (saved == true) {
-      toast.success(message: 'AI 设置已保存');
     }
   }
 
@@ -300,10 +229,6 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                       tooltip: '更多',
                       itemBuilder: (_) => [
                         const PopupMenuItem(
-                          value: 'ai_settings',
-                          child: Text('AI 设置'),
-                        ),
-                        const PopupMenuItem(
                           value: 'edit_diary',
                           child: Text('编辑整篇日记'),
                         ),
@@ -313,9 +238,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                         ),
                       ],
                       onSelected: (v) {
-                        if (v == 'ai_settings') {
-                          _showAiSettings();
-                        } else if (v == 'edit_diary') {
+                        if (v == 'edit_diary') {
                           _openWholeDiaryEditor();
                         } else if (v == 'demo_sync') {
                           _runDemoSyncEvents();
