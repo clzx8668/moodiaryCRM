@@ -11,6 +11,22 @@ import 'package:path/path.dart' as p;
 class QuickCaptureLogic extends GetxController {
   final state = QuickCaptureState();
 
+  /// 重置输入面板状态（每次打开面板时调用，确保不残留上次内容）
+  void reset() {
+    state.text.value = '';
+    state.attachments.clear();
+    state.selectedTemplate.value = '';
+    state.voiceMode.value = false;
+    state.recording.value = false;
+    state.saving.value = false;
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    reset();
+  }
+
   /// 从相册选择多张图片
   Future<void> pickImages() async {
     try {

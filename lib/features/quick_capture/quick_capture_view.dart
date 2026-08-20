@@ -9,11 +9,14 @@ import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 快速收集面板（仿 ima AI 交流提交框：扁平化、单一圆角框）。
-class QuickCaptureSheet extends StatelessWidget {
+class QuickCaptureSheet extends StatefulWidget {
   /// 快速新建入口（Markdown/纯文本/富文本），由调用方注入
   final Future<void> Function(DiaryType type)? onCreate;
 
   const QuickCaptureSheet({super.key, this.onCreate});
+
+  @override
+  State<QuickCaptureSheet> createState() => _QuickCaptureSheetState();
 
   /// 唤起底部收集面板
   static Future<void> show(
@@ -28,9 +31,15 @@ class QuickCaptureSheet extends StatelessWidget {
       builder: (_) => QuickCaptureSheet(onCreate: onCreate),
     );
   }
+}
 
+class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
   @override
   Widget build(BuildContext context) {
+    // 面板每次打开都确保全新控制器（打开前清理旧实例）
+    if (Get.isRegistered<QuickCaptureLogic>()) {
+      Get.delete<QuickCaptureLogic>(force: true);
+    }
     final logic = Get.put(QuickCaptureLogic());
     final state = logic.state;
 
@@ -63,12 +72,12 @@ class QuickCaptureSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (onCreate != null)
+                if (widget.onCreate != null)
                   PopupMenuButton<DiaryType>(
                     tooltip: '更多新建方式',
                     icon: const Icon(Icons.more_horiz, size: 20),
                     onSelected: (type) async {
-                      await onCreate!(type);
+                      await widget.onCreate!(type);
                     },
                     itemBuilder: (context) => [
                       const PopupMenuItem(
@@ -124,6 +133,16 @@ class QuickCaptureSheet extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    // 面板关闭（提交保存 / 失焦 / 手势关闭）即销毁控制器，
+    // 下次打开恢复初始输入状态
+    if (Get.isRegistered<QuickCaptureLogic>()) {
+      Get.delete<QuickCaptureLogic>(force: true);
+    }
+    super.dispose();
   }
 
   Widget _buildInputField(
