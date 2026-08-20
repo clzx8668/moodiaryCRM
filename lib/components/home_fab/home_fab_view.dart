@@ -47,7 +47,7 @@ class HomeFabComponent extends StatelessWidget {
         return Visibility(
           visible: isToTopShow.value && !isExpanded.value,
           child: Transform(
-            transform: Matrix4.identity()..translate(.0, -(56.0 + 8.0)),
+            transform: Matrix4.translationValues(0, -(56.0 + 8.0), 0),
             alignment: FractionalOffset.center,
             child: GestureDetector(
               onTap: toTop,

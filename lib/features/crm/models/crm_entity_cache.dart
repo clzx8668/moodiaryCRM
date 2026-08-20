@@ -1,29 +1,19 @@
 import 'dart:convert';
 
-import 'package:isar/isar.dart';
 import 'package:uuid/uuid.dart';
-
-part 'crm_entity_cache.g.dart';
 
 /// CRM 实体本地缓存（架构文档 3.1 CrmContactCache 的通用化版本）
 ///
 /// 支持 company / person / opportunity / task / custom 等对象，
 /// 以 twentyId 关联远端，dataJson 保存全量快照，UI 优先读本地缓存。
-@collection
 class CrmEntityCache {
   /// 业务主键（UUID）
   String id = const Uuid().v7();
 
-  /// 数据库主键
-  @Id()
-  int get isarId => fastHash(id);
-
   /// Twenty 远端对象 ID
-  @Index()
   String twentyId = '';
 
   /// 对象类型：company/person/opportunity/task/custom
-  @Index()
   String entityType = '';
 
   /// 展示名称

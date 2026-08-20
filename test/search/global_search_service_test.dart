@@ -1,32 +1,22 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/search/global_search_service.dart';
+import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/persistence/isar.dart';
 
-void main() {
-  late Isar isar;
-  late Directory tempDir;
+import '../helpers/db_test_helper.dart';
 
-  setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('global_search');
-    isar = Isar.open(
-      schemas: [DiarySchema, BlockSchema, CrmEntityCacheSchema],
-      directory: tempDir.path,
-    );
-    IsarUtil.overrideIsarForTest(isar);
+void main() {
+  late AppDatabase db;
+
+  setUp(() {
+    db = openTestDb();
   });
 
-  tearDown(() async {
-    IsarUtil.restoreIsarForTest();
-    isar.close(deleteFromDisk: true);
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+  tearDown(() {
+    closeTestDb(db);
   });
 
   test('跨模块搜索：日记 + Block + CRM', () async {
@@ -54,11 +44,9 @@ void main() {
       ..setData({'id': 't1', 'name': 'Twenty 测试客户'})
       ..updatedAt = DateTime(2026, 8, 19);
 
-    isar.write((isar) {
-      isar.diarys.put(diary);
-      isar.blocks.put(block);
-      isar.crmEntityCaches.put(crm);
-    });
+    await IsarUtil.insertADiary(diary);
+    await IsarUtil.insertBlock(block);
+    await IsarUtil.upsertCrmEntities([crm]);
 
     final results = await GlobalSearchService.search('Twenty');
 

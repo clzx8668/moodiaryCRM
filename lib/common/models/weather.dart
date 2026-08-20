@@ -1,48 +1,78 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'weather.freezed.dart';
 part 'weather.g.dart';
 
-@freezed
-abstract class WeatherResponse with _$WeatherResponse {
-  const factory WeatherResponse({
-    String? code,
-    String? updateTime,
-    String? fxLink,
-    Now? now,
-    Refer? refer,
-  }) = _WeatherResponse;
+@JsonSerializable()
+class WeatherResponse {
+  final String? code;
+  final String? updateTime;
+  final String? fxLink;
+  final Now? now;
+  final Refer? refer;
+
+  WeatherResponse({
+    this.code,
+    this.updateTime,
+    this.fxLink,
+    this.now,
+    this.refer,
+  });
 
   factory WeatherResponse.fromJson(Map<String, dynamic> json) =>
       _$WeatherResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$WeatherResponseToJson(this);
 }
 
-@freezed
-abstract class Refer with _$Refer {
-  const factory Refer({List<String>? sources, List<String>? license}) = _Refer;
+@JsonSerializable()
+class Refer {
+  final List<String>? sources;
+  final List<String>? license;
+
+  Refer({this.sources, this.license});
 
   factory Refer.fromJson(Map<String, dynamic> json) => _$ReferFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ReferToJson(this);
 }
 
-@freezed
-abstract class Now with _$Now {
-  const factory Now({
-    String? obsTime,
-    String? temp,
-    String? feelsLike,
-    String? icon,
-    String? text,
-    String? wind360,
-    String? windDir,
-    String? windScale,
-    String? windSpeed,
-    String? humidity,
-    String? precip,
-    String? pressure,
-    String? vis,
-    String? cloud,
-    String? dew,
-  }) = _Now;
+@JsonSerializable()
+class Now {
+  final String? obsTime;
+  final String? temp;
+  final String? feelsLike;
+  final String? icon;
+  final String? text;
+  final String? wind360;
+  final String? windDir;
+  final String? windScale;
+  final String? windSpeed;
+  final String? humidity;
+  final String? precip;
+  final String? pressure;
+  final String? vis;
+  final String? cloud;
+  final String? dew;
+
+  Now({
+    this.obsTime,
+    this.temp,
+    this.feelsLike,
+    this.icon,
+    this.text,
+    this.wind360,
+    this.windDir,
+    this.windScale,
+    this.windSpeed,
+    this.humidity,
+    this.precip,
+    this.pressure,
+    this.vis,
+    this.cloud,
+    this.dew,
+  });
 
   factory Now.fromJson(Map<String, dynamic> json) => _$NowFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NowToJson(this);
 }

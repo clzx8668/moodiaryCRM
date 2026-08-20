@@ -1,214 +1,383 @@
 import 'dart:async';
-import 'dart:collection';
-
+import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:moodiary/common/models/isar/category.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
-import 'package:moodiary/common/models/isar/font.dart';
-import 'package:moodiary/common/models/isar/sync_record.dart';
+import 'package:moodiary/common/models/isar/font.dart' hide fastHash;
+import 'package:moodiary/common/models/isar/sync_record.dart' hide fastHash;
 import 'package:moodiary/common/models/map.dart';
 import 'package:moodiary/components/base/text.dart';
-import 'package:moodiary/features/block/models/app_metadata.dart' as app_meta;
 import 'package:moodiary/features/block/models/block.dart' as block_model;
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart'
     as crm_model;
-import 'package:moodiary/persistence/pref.dart';
+import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/persistence/migration.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/src/rust/api/jieba.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/webdav_util.dart';
-import 'package:path/path.dart';
+import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+/// 数据访问层（Drift/SQLite 实现）。
+///
+/// 保持原 IsarUtil 的全部公开接口，内部由 Isar 切换为 Drift，
+/// 业务调用方无需改动（架构决策 2026-08-20：Isar → Drift）。
 class IsarUtil {
-  static late final Isar _isar;
+  static AppDatabase? _db;
 
-  /// 测试接缝：集成测试可注入临时库
-  static Isar? _testIsar;
+  /// 测试接缝：可注入内存数据库
+  static AppDatabase? _testDb;
 
-  static Isar get _db => _testIsar ?? _isar;
+  static AppDatabase get _database => _testDb ?? _db!;
 
   @visibleForTesting
-  static void overrideIsarForTest(Isar isar) {
-    _testIsar = isar;
+  static void overrideDbForTest(AppDatabase db) {
+    _testDb = db;
   }
 
   @visibleForTesting
-  static void restoreIsarForTest() {
-    _testIsar = null;
+  static void restoreDbForTest() {
+    _testDb = null;
   }
-
-  static final _schemas = [
-    DiarySchema,
-    CategorySchema,
-    FontSchema,
-    block_model.BlockSchema,
-    app_meta.AppMetadataSchema,
-    crm_model.CrmEntityCacheSchema,
-  ];
 
   static Future<void> initIsar() async {
-    _isar = await Isar.openAsync(
-      schemas: _schemas,
-      directory: FileUtil.getRealPath('database', ''),
-    );
-    // 启动时自动执行数据迁移（v1 → v2 等）
-    await MigrationService.run(_isar);
+    _db = await AppDatabase.open();
+    // 启动时自动执行数据迁移（v1 → v2 → v3）
+    await MigrationService.run(_database);
+    await _refreshCaches();
   }
 
-  static Future<void> dataMigration(String path) async {
-    final oldIsar = await Isar.openAsync(
-      schemas: _schemas,
-      directory: path,
-      name: 'old',
-    );
-    final List<Diary> oldDiaryList =
-        await oldIsar.diarys.where().findAllAsync();
-    final List<Category> oldCategoryList =
-        await oldIsar.categorys.where().findAllAsync();
-    final List<Font> oldFontList = await oldIsar.fonts.where().findAllAsync();
+  // 同步查询用的内存缓存（Drift 无同步 API，仅用于少量同步调用点）
+  static List<Category> _categoryCache = [];
+  static int _diaryCountCache = 0;
 
-    await _isar.writeAsync((isar) {
-      isar.clear();
-      isar.diarys.putAll(oldDiaryList);
-      isar.categorys.putAll(oldCategoryList);
-      isar.fonts.putAll(oldFontList);
-    });
-    oldIsar.close(deleteFromDisk: true);
+  static Future<void> _refreshCaches() async {
+    _categoryCache = await getAllCategoryAsync();
+    _diaryCountCache = (await getAllDiaries()).length;
   }
+
+  static Future<void> _refreshCategoryCache() async {
+    _categoryCache = await getAllCategoryAsync();
+  }
+
+  static Future<void> _refreshDiaryCount() async {
+    _diaryCountCache = (await getAllDiaries()).length;
+  }
+
+  // ==================== 行 ↔ 模型映射 ====================
+
+  static DiariesCompanion _diaryCompanion(Diary d) {
+    return DiariesCompanion.insert(
+      id: d.id,
+      categoryId: Value(d.categoryId),
+      title: Value(d.title),
+      content: Value(d.content),
+      contentText: Value(d.contentText),
+      yM: Value(d.yM),
+      yMd: Value(d.yMd),
+      time: d.time,
+      lastModified: d.lastModified,
+      show: Value(d.show),
+      mood: Value(d.mood),
+      weather: Value(d.weather),
+      imageName: Value(d.imageName),
+      audioName: Value(d.audioName),
+      videoName: Value(d.videoName),
+      tags: Value(d.tags),
+      position: Value(d.position),
+      keywords: Value(d.keywords),
+      tokenizer: Value(d.tokenizer),
+      type: Value(d.type),
+      imageColor: Value(d.imageColor),
+      aspect: Value(d.aspect),
+    );
+  }
+
+  static Diary _diaryFromRow(DiaryRow row) {
+    return Diary()
+      ..id = row.id
+      ..categoryId = row.categoryId
+      ..title = row.title
+      ..content = row.content
+      ..contentText = row.contentText
+      ..time = row.time
+      ..lastModified = row.lastModified
+      ..show = row.show
+      ..mood = row.mood
+      ..weather = row.weather
+      ..imageName = row.imageName
+      ..audioName = row.audioName
+      ..videoName = row.videoName
+      ..tags = row.tags
+      ..position = row.position
+      ..keywords = row.keywords
+      ..tokenizer = row.tokenizer
+      ..type = row.type
+      ..imageColor = row.imageColor
+      ..aspect = row.aspect;
+  }
+
+  static CategoriesCompanion _categoryCompanion(Category c) {
+    return CategoriesCompanion.insert(
+      id: c.id,
+      categoryName: c.categoryName,
+      parentId: Value(c.parentId),
+    );
+  }
+
+  static Category _categoryFromRow(CategoryRow row) {
+    return Category()
+      ..id = row.id
+      ..categoryName = row.categoryName
+      ..parentId = row.parentId;
+  }
+
+  static FontsCompanion _fontCompanion(Font f) {
+    return FontsCompanion.insert(
+      fontFileName: f.fontFileName,
+      fontWghtAxisMap: Value(f.fontWghtAxisMap),
+    );
+  }
+
+  static Font _fontFromRow(FontRow row) {
+    return Font(fontFileName: row.fontFileName, fontWghtAxisMap: row.fontWghtAxisMap);
+  }
+
+  static BlocksCompanion _blockCompanion(block_model.Block b) {
+    return BlocksCompanion.insert(
+      id: b.id,
+      diaryId: b.diaryId,
+      blockType: b.blockType.value,
+      content: Value(b.content),
+      sortOrder: Value(b.sortOrder),
+      isDeleted: Value(b.isDeleted),
+      streamBuffer: Value(b.streamBuffer),
+      streamComplete: Value(b.streamComplete),
+      createdAt: b.createdAt,
+      updatedAt: b.updatedAt,
+    );
+  }
+
+  static block_model.Block _blockFromRow(BlockRow row) {
+    return block_model.Block()
+      ..id = row.id
+      ..diaryId = row.diaryId
+      ..blockType = block_model.BlockType.fromValue(row.blockType)
+      ..content = row.content
+      ..sortOrder = row.sortOrder
+      ..isDeleted = row.isDeleted
+      ..streamBuffer = row.streamBuffer
+      ..streamComplete = row.streamComplete
+      ..createdAt = row.createdAt
+      ..updatedAt = row.updatedAt;
+  }
+
+  static CrmEntityCachesCompanion _crmCompanion(crm_model.CrmEntityCache c) {
+    return CrmEntityCachesCompanion.insert(
+      id: c.id,
+      twentyId: c.twentyId,
+      entityType: c.entityType,
+      name: Value(c.name),
+      dataJson: Value(c.dataJson),
+      isDeleted: Value(c.isDeleted),
+      localVersion: Value(c.localVersion),
+      lastSyncedAt: c.lastSyncedAt,
+      updatedAt: c.updatedAt,
+    );
+  }
+
+  static crm_model.CrmEntityCache _crmFromRow(CrmEntityCacheRow row) {
+    return crm_model.CrmEntityCache()
+      ..id = row.id
+      ..twentyId = row.twentyId
+      ..entityType = row.entityType
+      ..name = row.name
+      ..dataJson = row.dataJson
+      ..isDeleted = row.isDeleted
+      ..localVersion = row.localVersion
+      ..lastSyncedAt = row.lastSyncedAt
+      ..updatedAt = row.updatedAt;
+  }
+
+  static SyncRecordsCompanion _syncCompanion(SyncRecord r) {
+    return SyncRecordsCompanion.insert(
+      syncId: r.syncId,
+      diaryId: r.diaryId,
+      diaryJson: r.diaryJson,
+      time: r.time,
+      syncType: r.syncType.index,
+    );
+  }
+
+  static SyncRecord _syncFromRow(SyncRecordRow row) {
+    return SyncRecord()
+      ..syncId = row.syncId
+      ..diaryId = row.diaryId
+      ..diaryJson = row.diaryJson
+      ..time = row.time
+      ..syncType = SyncType.values[row.syncType];
+  }
+
+  // ==================== 基础操作 ====================
+
+  /// 旧 Isar 数据文件迁移不再适用（Drift 全新库），保留签名以兼容调用方
+  static Future<void> dataMigration(String path) async {}
 
   //清空数据
   static Future<void> clearIsar() async {
-    await _isar.writeAsync((isar) {
-      isar.clear();
+    final db = _database;
+    await db.transaction(() async {
+      await db.delete(db.diaries).go();
+      await db.delete(db.categories).go();
+      await db.delete(db.blocks).go();
+      await db.delete(db.crmEntityCaches).go();
+      await db.delete(db.fonts).go();
+      await db.delete(db.appMetadata).go();
+      await db.delete(db.syncRecords).go();
     });
   }
 
-  static Map<String, dynamic> getSize() {
-    return FileUtil.bytesToUnits(_isar.diarys.getSize(includeIndexes: true));
+  static Future<Map<String, dynamic>> getSize() async {
+    final db = _database;
+    final pageCount = (await db.customSelect('PRAGMA page_count').get()).first
+        .data['page_count'] as int? ?? 0;
+    final pageSize = (await db.customSelect('PRAGMA page_size').get()).first
+        .data['page_size'] as int? ?? 4096;
+    return FileUtil.bytesToUnits(pageCount * pageSize);
   }
 
-  //导出数据
+  /// 导出数据库文件（SQLite VACUUM INTO）
   static Future<void> exportIsar(
     String dir,
     String path,
     String fileName,
   ) async {
-    final isar = Isar.open(schemas: _schemas, directory: join(dir, 'database'));
-    isar.copyToFile(join(path, fileName));
-    isar.close();
+    final target = p.join(path, fileName);
+    final safe = target.replaceAll("'", "''");
+    await _database.customStatement("VACUUM INTO '$safe'");
   }
 
-  //插入一条日记
+  // ==================== Diary ====================
+
   static Future<void> insertADiary(Diary diary) async {
-    await _isar.writeAsync((isar) {
-      isar.diarys.put(diary);
-    });
+    diary.lastModified = DateTime.now();
+    await _database.into(_database.diaries).insertOnConflictUpdate(
+      _diaryCompanion(diary),
+    );
+    await _refreshDiaryCount();
   }
 
-  //根据月份获取日记
   static Future<List<Diary>> getDiaryByMonth(int year, int month) async {
-    return await _isar.diarys
-        .where()
-        .showEqualTo(true)
-        .yMEqualTo('${year.toString()}/${month.toString()}')
-        .sortByTimeDesc()
-        .findAllAsync();
+    final rows = await (_database.select(_database.diaries)
+          ..where(
+            (t) => t.show.equals(true) & t.yM.equals('$year/$month'),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.time)]))
+        .get();
+    return rows.map(_diaryFromRow).toList();
   }
 
-  //根据id获取日记
+  /// 按历史 isarId（业务主键哈希）查找日记
   static Future<Diary?> getDiaryByID(int isarId) async {
-    return await _isar.diarys.getAsync(isarId);
+    final rows = await _database.select(_database.diaries).get();
+    for (final row in rows) {
+      if (fastHash(row.id) == isarId) return _diaryFromRow(row);
+    }
+    return null;
   }
 
-  //根据日期范围获取日记
   static Future<List<Diary>> getDiariesByDateRange(
     DateTime start,
     DateTime end, {
     bool all = true,
   }) async {
-    return await _isar.diarys
-        .where()
-        .timeBetween(start, end)
-        .showEqualTo(all)
-        .findAllAsync();
+    final rows = await (_database.select(_database.diaries)
+          ..where(
+            (t) =>
+                t.time.isBetweenValues(start, end) &
+                t.show.equals(all),
+          ))
+        .get();
+    return rows.map(_diaryFromRow).toList();
   }
 
-  //获取全部日记
   static Future<List<Diary>> getAllDiaries() async {
-    return await _isar.diarys.where().findAllAsync();
+    final rows = await _database.select(_database.diaries).get();
+    return rows.map(_diaryFromRow).toList();
   }
 
-  /// 获取全部日记
   static Future<List<Diary>> getAllDiariesSorted() async {
-    return _isar.diarys
-        .where()
-        .showEqualTo(true)
-        .sortByTimeDesc()
-        .findAllAsync();
+    final rows = await (_database.select(_database.diaries)
+          ..where((t) => t.show.equals(true))
+          ..orderBy([(t) => OrderingTerm.desc(t.time)]))
+        .get();
+    return rows.map(_diaryFromRow).toList();
   }
 
-  //获取指定范围内的天气
   static Future<List<List<String>>> getWeatherByDateRange(
     DateTime start,
     DateTime end,
   ) async {
-    return (await _isar.diarys
-            .where()
-            .showEqualTo(true)
-            .timeBetween(start, end)
-            .distinctByYMd()
-            .weatherProperty()
-            .findAllAsync())
-        .cast<List<String>>();
+    final rows = await (_database.select(_database.diaries)
+          ..where(
+            (t) =>
+                t.show.equals(true) &
+                t.time.isBetweenValues(start, end),
+          ))
+        .get();
+    final seen = <String>{};
+    return rows
+        .where((r) => seen.add(r.yMd))
+        .map((r) => r.weather)
+        .toList();
   }
 
-  //获取指定范围的心情指数
   static Future<List<double>> getMoodByDateRange(
     DateTime start,
     DateTime end,
   ) async {
-    return (await _isar.diarys
-            .where()
-            .showEqualTo(true)
-            .timeBetween(start, end)
-            .distinctByYMd()
-            .moodProperty()
-            .findAllAsync())
-        .cast<double>();
+    final rows = await (_database.select(_database.diaries)
+          ..where(
+            (t) =>
+                t.show.equals(true) &
+                t.time.isBetweenValues(start, end),
+          ))
+        .get();
+    final seen = <String>{};
+    return rows.where((r) => seen.add(r.yMd)).map((r) => r.mood).toList();
   }
 
-  //删除某篇日记
+  /// 按历史 isarId 删除
   static Future<bool> deleteADiary(int isarId) async {
-    return await _isar.writeAsync((isar) {
-      return isar.diarys.delete(isarId);
-    });
+    final diary = await getDiaryByID(isarId);
+    if (diary == null) return false;
+    final count = await (_database.delete(_database.diaries)
+          ..where((t) => t.id.equals(diary.id)))
+        .go();
+    await _refreshDiaryCount();
+    return count > 0;
   }
 
-  //回收站日记
   static Future<List<Diary>> getRecycleBinDiaries() async {
-    return await _isar.diarys
-        .where()
-        .showEqualTo(false)
-        .sortByTimeDesc()
-        .findAllAsync();
+    final rows = await (_database.select(_database.diaries)
+          ..where((t) => t.show.equals(false))
+          ..orderBy([(t) => OrderingTerm.desc(t.time)]))
+        .get();
+    return rows.map(_diaryFromRow).toList();
   }
 
-  //更新日记
   static Future<void> updateADiary({
     Diary? oldDiary,
     required Diary newDiary,
   }) async {
-    // 如果没有旧日记，说明是新增日记
     newDiary.lastModified = DateTime.now();
-    await _isar.writeAsync((isar) {
-      isar.diarys.put(newDiary);
-    });
-    // 更新日记, 旧日记不为空，说明是更新日记, 需要清理旧日记的媒体文件
+    await _database.into(_database.diaries).insertOnConflictUpdate(
+      _diaryCompanion(newDiary),
+    );
+    await _refreshDiaryCount();
     if (oldDiary != null) {
-      // 清理本地媒体文件
       await FileUtil.cleanUpOldMediaFiles(oldDiary, newDiary);
       if (WebDavUtil().hasOption &&
           PrefUtil.getValue<bool>('autoSyncAfterChange') == true) {
@@ -231,470 +400,416 @@ class IsarUtil {
     required List<String> queryList,
   }) async {
     if (queryList.isEmpty) return [];
-
-    // 收集所有匹配关键词的内容结果
-    final HashSet<Diary> results = HashSet(
-      equals: (a, b) {
-        return a.isarId == b.isarId;
-      },
-      hashCode: (e) {
-        return e.isarId;
-      },
-    );
-
+    final results = <Diary>[];
     for (final word in queryList) {
-    final matches =
-        await _db.diarys
-            .where()
-            .showEqualTo(true)
-            .tokenizerElementMatches(word, caseSensitive: false)
-              .or()
-              .titleContains(word, caseSensitive: false)
-              .findAllAsync();
-      results.addAll(matches);
+      final rows = await (_database.select(_database.diaries)
+            ..where(
+              (t) =>
+                  t.show.equals(true) &
+                  (t.title.contains(word) |
+                      t.contentText.contains(word) |
+                      t.tokenizer.contains(word)),
+            )
+            ..orderBy([(t) => OrderingTerm.desc(t.time)]))
+          .get();
+      results.addAll(rows.map(_diaryFromRow));
     }
-
-    // 按时间降序排序
-    final List<Diary> sortedResults =
-        results.toList()..sort((a, b) => b.time.compareTo(a.time));
-
-    return sortedResults;
+    final unique = <String, Diary>{};
+    for (final d in results) {
+      unique[d.id] = d;
+    }
+    return unique.values.toList()
+      ..sort((a, b) => b.time.compareTo(a.time));
   }
 
-  /// 纯文本包含搜索（全局搜索用，不依赖 tokenizer）
   static Future<List<Diary>> searchDiariesByText(String keyword) async {
     if (keyword.trim().isEmpty) return [];
-    return _db.diarys
-        .where()
-        .showEqualTo(true)
-        .contentTextContains(keyword, caseSensitive: false)
-        .sortByTimeDesc()
-        .findAllAsync();
+    final rows = await (_database.select(_database.diaries)
+          ..where(
+            (t) =>
+                t.show.equals(true) &
+                t.contentText.contains(keyword.trim()),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.time)]))
+        .get();
+    return rows.map(_diaryFromRow).toList();
   }
 
   static Future<List<Diary>> searchDiariesByTag(String value) async {
-    return await _isar.diarys
-        .where()
-        .showEqualTo(true)
-        .tagsElementContains(value)
-        .findAllAsync();
+    final rows = await (_database.select(_database.diaries)
+          ..where(
+            (t) => t.show.equals(true) & t.tags.contains(value),
+          ))
+        .get();
+    return rows.map(_diaryFromRow).toList();
   }
 
-  //获取不在回收站的日记总数
   static Future<int> countShowDiary() async {
-    return await _isar.diarys.where().showEqualTo(true).countAsync();
+    return (await (_database.select(_database.diaries)
+              ..where((t) => t.show.equals(true)))
+            .get())
+        .length;
   }
 
   static int countAllDiary() {
-    return _isar.diarys.count();
+    return _diaryCountCache;
   }
 
-  //获取分类总数
+  // ==================== Category ====================
+
   static int countCategories() {
-    return _isar.categorys.count();
+    return _categoryCache.length;
   }
 
-  //获取分类名称
   static Category? getCategoryName(String id) {
-    return _isar.categorys.get(id);
+    for (final category in _categoryCache) {
+      if (category.id == id) return category;
+    }
+    return null;
   }
 
-  // 插入一个分类
   static Future<bool> insertACategory(Category category) async {
-    return await _isar.writeAsync((isar) {
-      // 查询数据库中是否有同名但 ID 不同的分类
-      final existingCategory =
-          isar.categorys
-              .where()
-              .categoryNameEqualTo(category.categoryName)
-              .findFirst();
-      if (existingCategory != null && existingCategory.id != category.id) {
-        // 如果同名但 ID 不同，则修改分类名称并添加随机后缀
-        category.categoryName =
-            '${category.categoryName}_${const Uuid().v4().substring(0, 4)}';
-      }
-      // 为分类分配新的唯一 ID
-      category.id = const Uuid().v7();
-      // 将分类保存到数据库中
-      isar.categorys.put(category);
-      // 返回是否是新名称（true 表示没有冲突）
-      return existingCategory == null;
-    });
+    final existing = await (_database.select(_database.categories)
+          ..where((t) => t.categoryName.equals(category.categoryName)))
+        .getSingleOrNull();
+    if (existing != null && existing.id != category.id) {
+      category.categoryName =
+          '${category.categoryName}_${category.id.substring(0, 4)}';
+    }
+    category.id = const Uuid().v7();
+    await _database.into(_database.categories).insertOnConflictUpdate(
+      _categoryCompanion(category),
+    );
+    await _refreshCategoryCache();
+    return existing == null;
   }
 
-  // 更新一个分类
   static Future<bool> updateACategory(Category category) async {
-    return await _isar.writeAsync((isar) {
-      // 查询数据库中是否有同名但 ID 不同的分类
-      final existingCategory =
-          isar.categorys
-              .where()
-              .categoryNameEqualTo(category.categoryName)
-              .findFirst();
-      if (existingCategory != null && existingCategory.id != category.id) {
-        // 如果同名但 ID 不同，则修改分类名称并添加随机后缀
-        category.categoryName =
-            '${category.categoryName}_${const Uuid().v4().substring(0, 4)}';
-      }
-      // 将分类保存到数据库中
-      isar.categorys.put(category);
-      // 返回是否是新名称（true 表示没有冲突）
-      return existingCategory == null;
-    });
+    final existing = await (_database.select(_database.categories)
+          ..where((t) => t.categoryName.equals(category.categoryName)))
+        .getSingleOrNull();
+    if (existing != null && existing.id != category.id) {
+      category.categoryName =
+          '${category.categoryName}_${category.id.substring(0, 4)}';
+    }
+    await _database.into(_database.categories).insertOnConflictUpdate(
+      _categoryCompanion(category),
+    );
+    await _refreshCategoryCache();
+    return existing == null;
   }
 
   static Future<bool> deleteACategory(String id) async {
-    return await _isar.writeAsync((isar) {
-      if (isar.diarys.where().categoryIdEqualTo(id).isEmpty()) {
-        return isar.categorys.delete(id);
-      } else {
-        return false;
-      }
-    });
+    final used = await (_database.select(_database.diaries)
+          ..where((t) => t.categoryId.equals(id)))
+        .get();
+    if (used.isNotEmpty) return false;
+    final count = await (_database.delete(_database.categories)
+          ..where((t) => t.id.equals(id)))
+        .go();
+    await _refreshCategoryCache();
+    return count > 0;
   }
 
-  // 获取所有日记内容
   static Future<List<String>> getContentList() async {
-    return (await _isar.diarys
-            .where()
-            .showEqualTo(true)
-            .contentTextProperty()
-            .findAllAsync())
-        .cast<String>();
+    final rows = await (_database.select(_database.diaries)
+          ..where((t) => t.show.equals(true)))
+        .get();
+    return rows.map((r) => r.contentText).toList();
   }
 
-  //获取所有分类，这是个同步方法，用于第一次初始化，要怪就怪 TabBar
   static List<Category> getAllCategory() {
-    return _isar.categorys.where().sortById().findAll();
+    return List.unmodifiable(_categoryCache);
   }
 
   static Future<List<Category>> getAllCategoryAsync() async {
-    return _isar.categorys.where().sortById().findAllAsync();
+    final rows = await _database.select(_database.categories).get();
+    return rows.map(_categoryFromRow).toList();
   }
 
-  //获取对应分类的日记,如果为空，返回全部日记
   static Future<List<Diary>> getDiaryByCategory(
     String? categoryId,
     int offset,
     int limit,
   ) async {
-    if (categoryId == null) {
-      return await _isar.diarys
-          .where()
-          .showEqualTo(true)
-          .sortByTimeDesc()
-          .findAllAsync(offset: offset, limit: limit);
-    } else {
-      return await _isar.diarys
-          .where()
-          .showEqualTo(true)
-          .categoryIdEqualTo(categoryId)
-          .sortByTimeDesc()
-          .findAllAsync(offset: offset, limit: limit);
-    }
+    final query = _database.select(_database.diaries)
+      ..where(
+        (t) =>
+            t.show.equals(true) &
+            (categoryId == null
+                ? const Constant(true)
+                : t.categoryId.equals(categoryId)),
+      )
+      ..orderBy([(t) => OrderingTerm.desc(t.time)])
+      ..limit(limit, offset: offset);
+    final rows = await query.get();
+    return rows.map(_diaryFromRow).toList();
   }
 
-  //获取某一天的日记
   static Future<List<Diary>> getDiaryByDay(DateTime time) async {
-    return await _isar.diarys
-        .where()
-        .showEqualTo(true)
-        .yMdEqualTo(
-          '${time.year.toString()}/${time.month.toString()}/${time.day.toString()}',
-        )
-        .sortByTimeDesc()
-        .findAllAsync();
+    final rows = await (_database.select(_database.diaries)
+          ..where(
+            (t) =>
+                t.show.equals(true) &
+                t.yMd.equals(
+                  '${time.year}/${time.month}/${time.day}',
+                ),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.time)]))
+        .get();
+    return rows.map(_diaryFromRow).toList();
   }
 
   static Future<List<Diary>> getDiary(int offset, int limit) async {
-    return await _isar.diarys.where().findAllAsync(
-      offset: offset,
-      limit: limit,
+    final rows = await (_database.select(_database.diaries)
+          ..orderBy([(t) => OrderingTerm.desc(t.time)])
+          ..limit(limit, offset: offset))
+        .get();
+    return rows.map(_diaryFromRow).toList();
+  }
+
+  // ==================== 旧版迁移（Drift 下为兼容保留） ====================
+
+  static void mergeToV2_4_8(String dir) {
+    // Drift schema 已是最新结构，无需迁移
+  }
+
+  static Future<void> mergeToV2_7_4(String dir) async {
+    final diaries = await getAllDiaries();
+    for (final diary in diaries) {
+      final newContent = diary.contentText.removeLineBreaks();
+      diary.tokenizer = await JiebaRs.cutAll(text: newContent);
+      final keywords = await JiebaRs.extractKeywordsTfidf(
+        text: newContent,
+        topK: BigInt.from(5),
+        allowedPos: [],
+      );
+      final sortByWeight =
+          keywords..sort((a, b) => b.weight.compareTo(a.weight));
+      diary.keywords = sortByWeight.map((e) => e.keyword).toList();
+      diary.contentText = newContent;
+      await _database.into(_database.diaries).insertOnConflictUpdate(
+        _diaryCompanion(diary),
+      );
+    }
+  }
+
+  static Future<void> fixV2_6_3(String dir) async {
+    final diaries = await _database.select(_database.diaries).get();
+    final categories = await _database.select(_database.categories).get();
+    final categoryIds = categories.map((c) => c.id).toSet();
+    for (final diary in diaries) {
+      final id = diary.categoryId;
+      if (id != null && !categoryIds.contains(id)) {
+        await _database.into(_database.categories).insertOnConflictUpdate(
+          CategoriesCompanion.insert(
+            id: id,
+            categoryName: '已修复${id.substring(0, 4)}',
+          ),
+        );
+      }
+    }
+    await _refreshCategoryCache();
+  }
+
+  static Future<List<DiaryMapItem>> getAllMapItem() async {
+    final rows = await (_database.select(_database.diaries)
+          ..where((t) => t.show.equals(true)))
+        .get();
+    final items = <DiaryMapItem>[];
+    for (final row in rows) {
+      if (row.position.isEmpty) continue;
+      items.add(
+        DiaryMapItem(
+          LatLng(
+            double.parse(row.position[0]),
+            double.parse(row.position[1]),
+          ),
+          fastHash(row.id),
+          row.imageName.isEmpty ? '' : row.imageName.first,
+        ),
+      );
+    }
+    return items;
+  }
+
+  // ==================== SyncRecord ====================
+
+  static Future<void> addSyncRecord(SyncRecord record) async {
+    await _database.into(_database.syncRecords).insertOnConflictUpdate(
+      _syncCompanion(record),
     );
   }
 
-  /// 2.4.8 版本变更
-  /// 新增字段
-  /// 1.position 用于记录位置
-  static void mergeToV2_4_8(String dir) {
-    final isar = Isar.open(schemas: _schemas, directory: dir);
-    final countDiary = isar.diarys.where().count();
-    for (var i = 0; i < countDiary; i += 50) {
-      final diaries = isar.diarys.where().findAll(offset: i, limit: 50);
-      isar.write((isar) {
-        isar.diarys.putAll(diaries);
-      });
-    }
-    isar.close();
+  static Future<List<SyncRecord>> getSyncRecords() async {
+    final rows = await _database.select(_database.syncRecords).get();
+    return rows.map(_syncFromRow).toList();
   }
 
-  /// 2.6.0 版本变更
-  /// 新增字段
-  /// 1.type 类型字段，用于表示是纯文本还是富文本
-  /// 2.lastModified 最后修改时间
-  /// 变更
-  /// 1.将时间字段修改为最后修改时间
-  /// 2.将类型字段修改为富文本
-
-  /// 2.7.4 版本变更
-  /// 新增字段
-  /// 1. keywords 关键词
-  /// 2. tokenizer 分词器
-  static Future<void> mergeToV2_7_4(String dir) async {
-    final countDiary = _isar.diarys.where().count();
-    for (var i = 0; i < countDiary; i += 50) {
-      final diaries = await _isar.diarys.where().findAllAsync(
-        offset: i,
-        limit: 50,
-      );
-      for (final diary in diaries) {
-        final newContent = diary.contentText.removeLineBreaks();
-        diary.tokenizer = await JiebaRs.cutAll(text: newContent);
-        final keywords = await JiebaRs.extractKeywordsTfidf(
-          text: newContent,
-          topK: BigInt.from(5),
-          allowedPos: [],
-        );
-        final sortByWeight =
-            keywords..sort((a, b) => b.weight.compareTo(a.weight));
-        final sortedKeywords = sortByWeight.map((e) => e.keyword).toList();
-        diary.keywords = sortedKeywords;
-        diary.contentText = newContent;
-        await _isar.writeAsync((isar) {
-          isar.diarys.put(diary);
-        });
+  static Future<void> deleteSyncRecord(int id) async {
+    final rows = await _database.select(_database.syncRecords).get();
+    for (final row in rows) {
+      if (fastHash(row.syncId) == id) {
+        await (_database.delete(_database.syncRecords)
+              ..where((t) => t.syncId.equals(row.syncId)))
+            .go();
+        return;
       }
     }
   }
 
-  /// 2.6.3 修复
-  /// 修复之前webdav同步时，没有同步分类的问题
-  /// 遍历所有日记，如果本地没有日记的分类，就创建一个分类，名称为分类名
-  static void fixV2_6_3(String dir) {
-    final isar = Isar.open(schemas: _schemas, directory: dir);
-    final countDiary = isar.diarys.where().count();
-    for (var i = 0; i < countDiary; i += 50) {
-      final diaries = isar.diarys.where().findAll(offset: i, limit: 50);
-      isar.write((isar) {
-        for (final diary in diaries) {
-          // 如果日记有分类，但是本地没有这个分类，就创建一个分类，名称为“修复分类+数字”
-          final id = diary.categoryId;
-          if (id != null && isar.categorys.where().idEqualTo(id).isEmpty()) {
-            isar.categorys.put(
-              Category()
-                ..id = id
-                ..categoryName = '已修复${const Uuid().v4().substring(0, 4)}',
-            );
-          }
-        }
-      });
-    }
-    isar.close();
-  }
-
-
-  // 获取用于地图显示的对象
-  static Future<List<DiaryMapItem>> getAllMapItem() async {
-    final List<DiaryMapItem> res = [];
-
-    /// 所有的日记
-    /// 要满足以下条件
-    /// 1. 有定位坐标
-    /// 2. show
-    final diaries =
-        await _isar.diarys
-            .where()
-            .showEqualTo(true)
-            .positionIsNotEmpty()
-            .findAllAsync();
-    for (final diary in diaries) {
-      res.add(
-        DiaryMapItem(
-          LatLng(
-            double.parse(diary.position[0]),
-            double.parse(diary.position[1]),
-          ),
-          diary.isarId,
-          diary.imageName.isEmpty ? '' : diary.imageName.first,
-        ),
-      );
-    }
-    return res;
-  }
-
-  // 添加sync任务
-  static Future<void> addSyncRecord(SyncRecord record) async {
-    await _isar.writeAsync((isar) {
-      isar.syncRecords.put(record);
-    });
-  }
-
-  // 获取sync任务
-  static Future<List<SyncRecord>> getSyncRecords() async {
-    return await _isar.syncRecords.where().findAllAsync();
-  }
-
-  // 删除sync任务
-  static Future<void> deleteSyncRecord(int id) async {
-    await _isar.writeAsync((isar) {
-      isar.syncRecords.delete(id);
-    });
-  }
+  // ==================== Font ====================
 
   static Future<List<Font>> getAllFonts() async {
-    return await _isar.fonts.where().findAllAsync();
+    final rows = await _database.select(_database.fonts).get();
+    return rows.map(_fontFromRow).toList();
   }
 
   static Future<void> mergeToV2_7_3(Map<String, dynamic> parma) async {
-    final isar = Isar.open(schemas: _schemas, directory: parma['database']!);
-
-    await isar.writeAsync((isar) {
-      isar.fonts.clear();
-      isar.fonts.putAll(parma['fonts']);
+    final fonts = (parma['fonts'] as List).cast<Font>();
+    await _database.transaction(() async {
+      await _database.delete(_database.fonts).go();
+      for (final font in fonts) {
+        await _database.into(_database.fonts).insert(
+          _fontCompanion(font),
+        );
+      }
     });
   }
 
   static Future<void> insertAFont(Font font) async {
-    await _isar.writeAsync((isar) {
-      isar.fonts.put(font);
-    });
+    await _database.into(_database.fonts).insertOnConflictUpdate(
+      _fontCompanion(font),
+    );
   }
 
   static Future<Font?> getFontByFontFamily(String fontFamily) async {
-    return await _isar.fonts
-        .where()
-        .fontFamilyEqualTo(fontFamily)
-        .findFirstAsync();
+    final row = await (_database.select(_database.fonts)
+          ..where((t) => t.fontFileName.equals('$fontFamily.ttf')))
+        .getSingleOrNull();
+    return row == null ? null : _fontFromRow(row);
   }
 
   static Future<bool> deleteFont(int id) async {
-    return await _isar.writeAsync((isar) {
-      return isar.fonts.delete(id);
-    });
+    final rows = await _database.select(_database.fonts).get();
+    for (final row in rows) {
+      if (fastHash(row.fontFileName) == id) {
+        final count = await (_database.delete(_database.fonts)
+              ..where((t) => t.fontFileName.equals(row.fontFileName)))
+            .go();
+        return count > 0;
+      }
+    }
+    return false;
   }
 
-  // ==================== Block CRUD（架构文档 Block 协议） ====================
+  // ==================== Block CRUD ====================
 
-  /// 插入一个 Block
   static Future<void> insertBlock(block_model.Block block) async {
     block.updatedAt = DateTime.now();
-    await _isar.writeAsync((isar) {
-      isar.blocks.put(block);
-    });
+    await _database.into(_database.blocks).insertOnConflictUpdate(
+      _blockCompanion(block),
+    );
   }
 
-  /// 批量插入 Block
   static Future<void> insertBlocks(List<block_model.Block> blocks) async {
     final now = DateTime.now();
     for (final block in blocks) {
       block.updatedAt = now;
     }
-    await _isar.writeAsync((isar) {
-      isar.blocks.putAll(blocks);
-    });
-  }
-
-  /// 更新 Block（覆盖式）
-  static Future<void> updateBlock(block_model.Block block) async {
-    block.updatedAt = DateTime.now();
-    await _isar.writeAsync((isar) {
-      isar.blocks.put(block);
-    });
-  }
-
-  /// 按日记获取 Block 列表（默认不含已删除），按 sortOrder 升序
-  static Future<List<block_model.Block>> getBlocksByDiary(
-    String diaryId, {
-    bool includeDeleted = false,
-  }) async {
-    if (includeDeleted) {
-      return _isar.blocks
-          .where()
-          .diaryIdEqualTo(diaryId)
-          .sortBySortOrder()
-          .findAllAsync();
-    }
-    return _isar.blocks
-        .where()
-        .diaryIdEqualTo(diaryId)
-        .isDeletedEqualTo(false)
-        .sortBySortOrder()
-        .findAllAsync();
-  }
-
-  /// 软删除一个 Block
-  static Future<void> softDeleteBlock(String blockId) async {
-    await _isar.writeAsync((isar) {
-      final block = isar.blocks.get(block_model.fastHash(blockId));
-      if (block != null) {
-        block.isDeleted = true;
-        block.updatedAt = DateTime.now();
-        isar.blocks.put(block);
+    await _database.transaction(() async {
+      for (final block in blocks) {
+        await _database.into(_database.blocks).insertOnConflictUpdate(
+          _blockCompanion(block),
+        );
       }
     });
   }
 
-  /// 按类型获取全部 Block
+  static Future<void> updateBlock(block_model.Block block) async {
+    block.updatedAt = DateTime.now();
+    await _database.into(_database.blocks).insertOnConflictUpdate(
+      _blockCompanion(block),
+    );
+  }
+
+  static Future<List<block_model.Block>> getBlocksByDiary(
+    String diaryId, {
+    bool includeDeleted = false,
+  }) async {
+    final query = _database.select(_database.blocks)
+      ..where(
+        (t) =>
+            t.diaryId.equals(diaryId) &
+            (includeDeleted ? const Constant(true) : t.isDeleted.equals(false)),
+      )
+      ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]);
+    final rows = await query.get();
+    return rows.map(_blockFromRow).toList();
+  }
+
+  static Future<void> softDeleteBlock(String blockId) async {
+    await (_database.update(_database.blocks)
+          ..where((t) => t.id.equals(blockId)))
+        .write(const BlocksCompanion(isDeleted: Value(true)));
+  }
+
   static Future<List<block_model.Block>> getBlocksByType(
     block_model.BlockType type, {
     bool includeDeleted = false,
   }) async {
-    if (includeDeleted) {
-      return _isar.blocks
-          .where()
-          .blockTypeEqualTo(type)
-          .sortBySortOrder()
-          .findAllAsync();
-    }
-    return _isar.blocks
-        .where()
-        .blockTypeEqualTo(type)
-        .isDeletedEqualTo(false)
-        .sortBySortOrder()
-        .findAllAsync();
+    final query = _database.select(_database.blocks)
+      ..where(
+        (t) =>
+            t.blockType.equals(type.value) &
+            (includeDeleted ? const Constant(true) : t.isDeleted.equals(false)),
+      )
+      ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]);
+    final rows = await query.get();
+    return rows.map(_blockFromRow).toList();
   }
 
-  /// 按内容模糊搜索 Block（全局搜索用）
   static Future<List<block_model.Block>> searchBlocksByContent(
     String keyword,
   ) async {
     if (keyword.trim().isEmpty) return [];
-    return _db.blocks
-        .where()
-        .isDeletedEqualTo(false)
-        .contentContains(keyword, caseSensitive: false)
-        .sortByUpdatedAtDesc()
-        .findAllAsync();
+    final rows = await (_database.select(_database.blocks)
+          ..where(
+            (t) =>
+                t.isDeleted.equals(false) &
+                t.content.contains(keyword.trim()),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .get();
+    return rows.map(_blockFromRow).toList();
   }
 
-  /// 获取 Block 总数（不含已删除）
   static Future<int> getBlockCount() async {
-    return _isar.blocks.where().isDeletedEqualTo(false).countAsync();
+    return (await (_database.select(_database.blocks)
+              ..where((t) => t.isDeleted.equals(false)))
+            .get())
+        .length;
   }
 
-  /// 统计每篇日记的非删除 Block 数量（日历热力图/统计用）
   static Future<Map<String, int>> getBlockCountsByDiary() async {
-    final blocks = await _db.blocks
-        .where()
-        .isDeletedEqualTo(false)
-        .findAllAsync();
+    final rows = await (_database.select(_database.blocks)
+          ..where((t) => t.isDeleted.equals(false)))
+        .get();
     final counts = <String, int>{};
-    for (final block in blocks) {
-      counts[block.diaryId] = (counts[block.diaryId] ?? 0) + 1;
+    for (final row in rows) {
+      counts[row.diaryId] = (counts[row.diaryId] ?? 0) + 1;
     }
     return counts;
   }
 
-  /// 全部可见 Block（块视图用），按更新时间降序
   static Future<List<block_model.Block>> getAllVisibleBlocks() async {
-    return _db.blocks
-        .where()
-        .isDeletedEqualTo(false)
-        .sortByUpdatedAtDesc()
-        .findAllAsync();
+    final rows = await (_database.select(_database.blocks)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .get();
+    return rows.map(_blockFromRow).toList();
   }
 
-  /// 同步日记的首个 text Block 内容（智能块结构：保存日记时调用）
   static Future<void> upsertDiaryTextBlock(Diary diary) async {
     final blocks = await getBlocksByDiary(diary.id);
     final textBlocks = blocks
@@ -722,93 +837,83 @@ class IsarUtil {
 
   // ==================== CRM 实体缓存 ====================
 
-  /// 按 Twenty ID 查询缓存实体
   static Future<crm_model.CrmEntityCache?> getCrmEntityByTwentyId(
     String twentyId,
   ) async {
-    return _db.crmEntityCaches
-        .where()
-        .twentyIdEqualTo(twentyId)
-        .findFirstAsync();
+    final row = await (_database.select(_database.crmEntityCaches)
+          ..where((t) => t.twentyId.equals(twentyId)))
+        .getSingleOrNull();
+    return row == null ? null : _crmFromRow(row);
   }
 
-  /// 批量 upsert 缓存实体
   static Future<void> upsertCrmEntities(
     List<crm_model.CrmEntityCache> entities,
   ) async {
-    await _db.writeAsync((isar) {
-      isar.crmEntityCaches.putAll(entities);
-    });
-  }
-
-  /// 按类型获取缓存实体
-  static Future<List<crm_model.CrmEntityCache>> getCrmEntitiesByType(
-    String entityType, {
-    bool includeDeleted = false,
-  }) async {
-    if (includeDeleted) {
-      return _db.crmEntityCaches
-          .where()
-          .entityTypeEqualTo(entityType)
-          .sortByUpdatedAtDesc()
-          .findAllAsync();
-    }
-    return _db.crmEntityCaches
-        .where()
-        .entityTypeEqualTo(entityType)
-        .isDeletedEqualTo(false)
-        .sortByUpdatedAtDesc()
-        .findAllAsync();
-  }
-
-  /// 按名称模糊搜索缓存实体（跨对象）
-  static Future<List<crm_model.CrmEntityCache>> searchCrmByName(
-    String keyword,
-  ) async {
-    if (keyword.trim().isEmpty) return [];
-    return _db.crmEntityCaches
-        .where()
-        .isDeletedEqualTo(false)
-        .nameContains(keyword, caseSensitive: false)
-        .sortByUpdatedAtDesc()
-        .findAllAsync();
-  }
-
-  /// 按 Twenty ID 删除缓存实体
-  static Future<void> removeCrmEntityByTwentyId(String twentyId) async {
-    await _db.writeAsync((isar) {
-      final found = isar.crmEntityCaches
-          .where()
-          .twentyIdEqualTo(twentyId)
-          .findFirst();
-      if (found != null) {
-        isar.crmEntityCaches.delete(found.isarId);
+    await _database.transaction(() async {
+      for (final entity in entities) {
+        await _database
+            .into(_database.crmEntityCaches)
+            .insertOnConflictUpdate(_crmCompanion(entity));
       }
     });
   }
 
-  /// 某类型缓存数量
+  static Future<List<crm_model.CrmEntityCache>> getCrmEntitiesByType(
+    String entityType, {
+    bool includeDeleted = false,
+  }) async {
+    final query = _database.select(_database.crmEntityCaches)
+      ..where(
+        (t) =>
+            t.entityType.equals(entityType) &
+            (includeDeleted ? const Constant(true) : t.isDeleted.equals(false)),
+      )
+      ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
+    final rows = await query.get();
+    return rows.map(_crmFromRow).toList();
+  }
+
+  static Future<List<crm_model.CrmEntityCache>> searchCrmByName(
+    String keyword,
+  ) async {
+    if (keyword.trim().isEmpty) return [];
+    final rows = await (_database.select(_database.crmEntityCaches)
+          ..where(
+            (t) =>
+                t.isDeleted.equals(false) &
+                t.name.contains(keyword.trim()),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .get();
+    return rows.map(_crmFromRow).toList();
+  }
+
+  static Future<void> removeCrmEntityByTwentyId(String twentyId) async {
+    await (_database.delete(_database.crmEntityCaches)
+          ..where((t) => t.twentyId.equals(twentyId)))
+        .go();
+  }
+
   static Future<int> countCrmEntitiesByType(String entityType) async {
-    return _db.crmEntityCaches
-        .where()
-        .entityTypeEqualTo(entityType)
-        .isDeletedEqualTo(false)
-        .countAsync();
+    return (await (_database.select(_database.crmEntityCaches)
+              ..where(
+                (t) =>
+                    t.entityType.equals(entityType) &
+                    t.isDeleted.equals(false),
+              ))
+            .get())
+        .length;
   }
 
-  /// 清空 CRM 缓存
   static Future<void> clearCrmCache() async {
-    await _db.writeAsync((isar) {
-      isar.crmEntityCaches.clear();
-    });
+    await _database.delete(_database.crmEntityCaches).go();
   }
 
-  /// 全部可见 CRM 缓存实体（时间轴用），按更新时间降序
   static Future<List<crm_model.CrmEntityCache>> getAllCrmEntities() async {
-    return _db.crmEntityCaches
-        .where()
-        .isDeletedEqualTo(false)
-        .sortByUpdatedAtDesc()
-        .findAllAsync();
+    final rows = await (_database.select(_database.crmEntityCaches)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .get();
+    return rows.map(_crmFromRow).toList();
   }
 }

@@ -1,14 +1,10 @@
-import 'package:isar/isar.dart';
 import 'package:path/path.dart';
 
-part 'font.g.dart';
-
-@collection
 class Font {
-  @Id()
-  int get id => fastHash(fontFamily);
-
   final String fontFileName;
+
+  // 兼容旧接口：文件名哈希（Drift 主键为 fontFileName 字符串）
+  int get id => fastHash(fontFileName);
 
   String get fontFamily => basenameWithoutExtension(fontFileName);
 
@@ -21,7 +17,6 @@ class Font {
 
 int fastHash(String string) {
   var hash = 0xcbf29ce484222325;
-
   var i = 0;
   while (i < string.length) {
     final codeUnit = string.codeUnitAt(i++);

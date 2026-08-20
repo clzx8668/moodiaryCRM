@@ -1,9 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
 import 'package:moodiary/features/block/models/block.dart';
-import 'package:path/path.dart' as p;
+import 'package:moodiary/persistence/app_database.dart';
+import 'package:moodiary/persistence/isar.dart';
+
+import 'helpers/db_test_helper.dart';
 
 void main() {
   group('BlockType', () {
@@ -57,7 +57,6 @@ void main() {
       final noContent = Block()..diaryId = 'd1';
       expect(noContent.isValid(), isFalse);
 
-      // aiStream 允许空内容（流式未完成）
       final streaming = Block()
         ..diaryId = 'd1'
         ..blockType = BlockType.aiStream;
@@ -74,26 +73,18 @@ void main() {
     });
   });
 
-  group('Block Isar 往返', () {
-    late Isar isar;
-    late Directory tempDir;
+  group('Block Drift 往返', () {
+    late AppDatabase db;
 
-    setUp(() async {
-      tempDir = await Directory.systemTemp.createTemp('block_test');
-      isar = Isar.open(
-        schemas: [BlockSchema],
-        directory: tempDir.path,
-      );
+    setUp(() {
+      db = openTestDb();
     });
 
-    tearDown(() async {
-      isar.close(deleteFromDisk: true);
-      if (await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
-      }
+    tearDown(() {
+      closeTestDb(db);
     });
 
-    test('put/get/查询 diaryId', () async {
+    test('插入/查询 diaryId 排序', () async {
       final b1 = Block()
         ..id = 'b1'
         ..diaryId = 'd1'
@@ -104,45 +95,23 @@ void main() {
         ..diaryId = 'd1'
         ..content = '第二条'
         ..sortOrder = 0;
-      isar.write((isar) {
-        isar.blocks.putAll([b1, b2]);
-      });
+      await IsarUtil.insertBlocks([b1, b2]);
 
-      final list = await isar.blocks
-          .where()
-          .diaryIdEqualTo('d1')
-          .sortBySortOrder()
-          .findAllAsync();
+      final list = await IsarUtil.getBlocksByDiary('d1');
       expect(list.length, 2);
       expect(list.first.content, '第二条');
       expect(list.last.content, '第一条');
 
-      final other = await isar.blocks.where().diaryIdEqualTo('d2').countAsync();
-      expect(other, 0);
+      final other = await IsarUtil.getBlocksByDiary('d2');
+      expect(other, isEmpty);
     });
 
     test('软删除过滤', () async {
       final b = Block()..id = 'b-del'..diaryId = 'd1'..content = 'x';
-      isar.write((isar) {
-        isar.blocks.put(b);
-      });
-      isar.write((isar) {
-        final found = isar.blocks.get(fastHash('b-del'));
-        found!.isDeleted = true;
-        isar.blocks.put(found);
-      });
-      final visible = await isar.blocks
-          .where()
-          .diaryIdEqualTo('d1')
-          .isDeletedEqualTo(false)
-          .findAllAsync();
+      await IsarUtil.insertBlock(b);
+      await IsarUtil.softDeleteBlock('b-del');
+      final visible = await IsarUtil.getBlocksByDiary('d1');
       expect(visible, isEmpty);
     });
-  });
-
-  test('fastHash 稳定且不冲突于空串', () {
-    expect(fastHash(''), fastHash(''));
-    expect(fastHash('abc') == fastHash('abc'), isTrue);
-    expect(p.basename(Directory.current.path).isNotEmpty, isTrue);
   });
 }

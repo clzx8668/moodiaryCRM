@@ -1,7 +1,4 @@
-import 'package:isar/isar.dart';
 import 'package:uuid/uuid.dart';
-
-part 'block.g.dart';
 
 /// Block 类型（架构文档：Text/SmartEntity/Todo/Chart/AiStream/Image/Code）
 enum BlockType {
@@ -14,7 +11,6 @@ enum BlockType {
   code(6);
 
   /// 显式数值，保证序列化稳定（不受枚举声明顺序影响）
-  @enumValue
   final int value;
 
   const BlockType(this.value);
@@ -34,17 +30,11 @@ enum BlockType {
 /// - [isDeleted] 软删除标记；
 /// - [streamBuffer]/[streamComplete] 支持 AI 流式输出断点恢复；
 /// - [content] 为 Markdown 文本或结构化 JSON 字符串。
-@collection
 class Block {
   /// 业务主键（UUID）
   String id = const Uuid().v7();
 
-  /// 数据库主键（沿用项目 fastHash 惯例）
-  @Id()
-  int get isarId => fastHash(id);
-
   /// 关联日记 ID（外键）
-  @Index()
   String diaryId = '';
 
   /// 块类型

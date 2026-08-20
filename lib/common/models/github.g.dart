@@ -6,17 +6,16 @@ part of 'github.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_GithubRelease _$GithubReleaseFromJson(Map<String, dynamic> json) =>
-    _GithubRelease(
+GithubRelease _$GithubReleaseFromJson(Map<String, dynamic> json) =>
+    GithubRelease(
       url: json['url'] as String?,
       assetsUrl: json['assets_url'] as String?,
       uploadUrl: json['upload_url'] as String?,
       htmlUrl: json['html_url'] as String?,
       id: (json['id'] as num?)?.toInt(),
-      author:
-          json['author'] == null
-              ? null
-              : Author.fromJson(json['author'] as Map<String, dynamic>),
+      author: json['author'] == null
+          ? null
+          : Author.fromJson(json['author'] as Map<String, dynamic>),
       nodeId: json['node_id'] as String?,
       tagName: json['tag_name'] as String?,
       targetCommitish: json['target_commitish'] as String?,
@@ -25,47 +24,45 @@ _GithubRelease _$GithubReleaseFromJson(Map<String, dynamic> json) =>
       prerelease: json['prerelease'] as bool?,
       createdAt: json['created_at'] as String?,
       publishedAt: json['published_at'] as String?,
-      assets:
-          (json['assets'] as List<dynamic>?)
-              ?.map((e) => Assets.fromJson(e as Map<String, dynamic>))
-              .toList(),
+      assets: (json['assets'] as List<dynamic>?)
+          ?.map((e) => Assets.fromJson(e as Map<String, dynamic>))
+          .toList(),
       tarballUrl: json['tarball_url'] as String?,
       zipballUrl: json['zipball_url'] as String?,
       body: json['body'] as String?,
     );
 
-Map<String, dynamic> _$GithubReleaseToJson(_GithubRelease instance) =>
+Map<String, dynamic> _$GithubReleaseToJson(GithubRelease instance) =>
     <String, dynamic>{
-      if (instance.url case final value?) 'url': value,
-      if (instance.assetsUrl case final value?) 'assets_url': value,
-      if (instance.uploadUrl case final value?) 'upload_url': value,
-      if (instance.htmlUrl case final value?) 'html_url': value,
-      if (instance.id case final value?) 'id': value,
-      if (instance.author case final value?) 'author': value,
-      if (instance.nodeId case final value?) 'node_id': value,
-      if (instance.tagName case final value?) 'tag_name': value,
-      if (instance.targetCommitish case final value?) 'target_commitish': value,
-      if (instance.name case final value?) 'name': value,
-      if (instance.draft case final value?) 'draft': value,
-      if (instance.prerelease case final value?) 'prerelease': value,
-      if (instance.createdAt case final value?) 'created_at': value,
-      if (instance.publishedAt case final value?) 'published_at': value,
-      if (instance.assets case final value?) 'assets': value,
-      if (instance.tarballUrl case final value?) 'tarball_url': value,
-      if (instance.zipballUrl case final value?) 'zipball_url': value,
-      if (instance.body case final value?) 'body': value,
+      'url': ?instance.url,
+      'assets_url': ?instance.assetsUrl,
+      'upload_url': ?instance.uploadUrl,
+      'html_url': ?instance.htmlUrl,
+      'id': ?instance.id,
+      'author': ?instance.author,
+      'node_id': ?instance.nodeId,
+      'tag_name': ?instance.tagName,
+      'target_commitish': ?instance.targetCommitish,
+      'name': ?instance.name,
+      'draft': ?instance.draft,
+      'prerelease': ?instance.prerelease,
+      'created_at': ?instance.createdAt,
+      'published_at': ?instance.publishedAt,
+      'assets': ?instance.assets,
+      'tarball_url': ?instance.tarballUrl,
+      'zipball_url': ?instance.zipballUrl,
+      'body': ?instance.body,
     };
 
-_Assets _$AssetsFromJson(Map<String, dynamic> json) => _Assets(
+Assets _$AssetsFromJson(Map<String, dynamic> json) => Assets(
   url: json['url'] as String?,
   id: (json['id'] as num?)?.toInt(),
   nodeId: json['node_id'] as String?,
   name: json['name'] as String?,
   label: json['label'],
-  uploader:
-      json['uploader'] == null
-          ? null
-          : Uploader.fromJson(json['uploader'] as Map<String, dynamic>),
+  uploader: json['uploader'] == null
+      ? null
+      : Uploader.fromJson(json['uploader'] as Map<String, dynamic>),
   contentType: json['content_type'] as String?,
   state: json['state'] as String?,
   size: (json['size'] as num?)?.toInt(),
@@ -75,24 +72,23 @@ _Assets _$AssetsFromJson(Map<String, dynamic> json) => _Assets(
   browserDownloadUrl: json['browser_download_url'] as String?,
 );
 
-Map<String, dynamic> _$AssetsToJson(_Assets instance) => <String, dynamic>{
-  if (instance.url case final value?) 'url': value,
-  if (instance.id case final value?) 'id': value,
-  if (instance.nodeId case final value?) 'node_id': value,
-  if (instance.name case final value?) 'name': value,
-  if (instance.label case final value?) 'label': value,
-  if (instance.uploader case final value?) 'uploader': value,
-  if (instance.contentType case final value?) 'content_type': value,
-  if (instance.state case final value?) 'state': value,
-  if (instance.size case final value?) 'size': value,
-  if (instance.downloadCount case final value?) 'download_count': value,
-  if (instance.createdAt case final value?) 'created_at': value,
-  if (instance.updatedAt case final value?) 'updated_at': value,
-  if (instance.browserDownloadUrl case final value?)
-    'browser_download_url': value,
+Map<String, dynamic> _$AssetsToJson(Assets instance) => <String, dynamic>{
+  'url': ?instance.url,
+  'id': ?instance.id,
+  'node_id': ?instance.nodeId,
+  'name': ?instance.name,
+  'label': ?instance.label,
+  'uploader': ?instance.uploader,
+  'content_type': ?instance.contentType,
+  'state': ?instance.state,
+  'size': ?instance.size,
+  'download_count': ?instance.downloadCount,
+  'created_at': ?instance.createdAt,
+  'updated_at': ?instance.updatedAt,
+  'browser_download_url': ?instance.browserDownloadUrl,
 };
 
-_Uploader _$UploaderFromJson(Map<String, dynamic> json) => _Uploader(
+Uploader _$UploaderFromJson(Map<String, dynamic> json) => Uploader(
   login: json['login'] as String?,
   id: (json['id'] as num?)?.toInt(),
   nodeId: json['node_id'] as String?,
@@ -114,30 +110,29 @@ _Uploader _$UploaderFromJson(Map<String, dynamic> json) => _Uploader(
   siteAdmin: json['site_admin'] as bool?,
 );
 
-Map<String, dynamic> _$UploaderToJson(_Uploader instance) => <String, dynamic>{
-  if (instance.login case final value?) 'login': value,
-  if (instance.id case final value?) 'id': value,
-  if (instance.nodeId case final value?) 'node_id': value,
-  if (instance.avatarUrl case final value?) 'avatar_url': value,
-  if (instance.gravatarId case final value?) 'gravatar_id': value,
-  if (instance.url case final value?) 'url': value,
-  if (instance.htmlUrl case final value?) 'html_url': value,
-  if (instance.followersUrl case final value?) 'followers_url': value,
-  if (instance.followingUrl case final value?) 'following_url': value,
-  if (instance.gistsUrl case final value?) 'gists_url': value,
-  if (instance.starredUrl case final value?) 'starred_url': value,
-  if (instance.subscriptionsUrl case final value?) 'subscriptions_url': value,
-  if (instance.organizationsUrl case final value?) 'organizations_url': value,
-  if (instance.reposUrl case final value?) 'repos_url': value,
-  if (instance.eventsUrl case final value?) 'events_url': value,
-  if (instance.receivedEventsUrl case final value?)
-    'received_events_url': value,
-  if (instance.type case final value?) 'type': value,
-  if (instance.userViewType case final value?) 'user_view_type': value,
-  if (instance.siteAdmin case final value?) 'site_admin': value,
+Map<String, dynamic> _$UploaderToJson(Uploader instance) => <String, dynamic>{
+  'login': ?instance.login,
+  'id': ?instance.id,
+  'node_id': ?instance.nodeId,
+  'avatar_url': ?instance.avatarUrl,
+  'gravatar_id': ?instance.gravatarId,
+  'url': ?instance.url,
+  'html_url': ?instance.htmlUrl,
+  'followers_url': ?instance.followersUrl,
+  'following_url': ?instance.followingUrl,
+  'gists_url': ?instance.gistsUrl,
+  'starred_url': ?instance.starredUrl,
+  'subscriptions_url': ?instance.subscriptionsUrl,
+  'organizations_url': ?instance.organizationsUrl,
+  'repos_url': ?instance.reposUrl,
+  'events_url': ?instance.eventsUrl,
+  'received_events_url': ?instance.receivedEventsUrl,
+  'type': ?instance.type,
+  'user_view_type': ?instance.userViewType,
+  'site_admin': ?instance.siteAdmin,
 };
 
-_Author _$AuthorFromJson(Map<String, dynamic> json) => _Author(
+Author _$AuthorFromJson(Map<String, dynamic> json) => Author(
   login: json['login'] as String?,
   id: (json['id'] as num?)?.toInt(),
   nodeId: json['node_id'] as String?,
@@ -159,25 +154,24 @@ _Author _$AuthorFromJson(Map<String, dynamic> json) => _Author(
   siteAdmin: json['site_admin'] as bool?,
 );
 
-Map<String, dynamic> _$AuthorToJson(_Author instance) => <String, dynamic>{
-  if (instance.login case final value?) 'login': value,
-  if (instance.id case final value?) 'id': value,
-  if (instance.nodeId case final value?) 'node_id': value,
-  if (instance.avatarUrl case final value?) 'avatar_url': value,
-  if (instance.gravatarId case final value?) 'gravatar_id': value,
-  if (instance.url case final value?) 'url': value,
-  if (instance.htmlUrl case final value?) 'html_url': value,
-  if (instance.followersUrl case final value?) 'followers_url': value,
-  if (instance.followingUrl case final value?) 'following_url': value,
-  if (instance.gistsUrl case final value?) 'gists_url': value,
-  if (instance.starredUrl case final value?) 'starred_url': value,
-  if (instance.subscriptionsUrl case final value?) 'subscriptions_url': value,
-  if (instance.organizationsUrl case final value?) 'organizations_url': value,
-  if (instance.reposUrl case final value?) 'repos_url': value,
-  if (instance.eventsUrl case final value?) 'events_url': value,
-  if (instance.receivedEventsUrl case final value?)
-    'received_events_url': value,
-  if (instance.type case final value?) 'type': value,
-  if (instance.userViewType case final value?) 'user_view_type': value,
-  if (instance.siteAdmin case final value?) 'site_admin': value,
+Map<String, dynamic> _$AuthorToJson(Author instance) => <String, dynamic>{
+  'login': ?instance.login,
+  'id': ?instance.id,
+  'node_id': ?instance.nodeId,
+  'avatar_url': ?instance.avatarUrl,
+  'gravatar_id': ?instance.gravatarId,
+  'url': ?instance.url,
+  'html_url': ?instance.htmlUrl,
+  'followers_url': ?instance.followersUrl,
+  'following_url': ?instance.followingUrl,
+  'gists_url': ?instance.gistsUrl,
+  'starred_url': ?instance.starredUrl,
+  'subscriptions_url': ?instance.subscriptionsUrl,
+  'organizations_url': ?instance.organizationsUrl,
+  'repos_url': ?instance.reposUrl,
+  'events_url': ?instance.eventsUrl,
+  'received_events_url': ?instance.receivedEventsUrl,
+  'type': ?instance.type,
+  'user_view_type': ?instance.userViewType,
+  'site_admin': ?instance.siteAdmin,
 };

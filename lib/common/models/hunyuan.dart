@@ -1,74 +1,107 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:json_annotation/json_annotation.dart';
 
-part 'hunyuan.freezed.dart';
 part 'hunyuan.g.dart';
 
-@freezed
-abstract class PublicHeader with _$PublicHeader {
-  const factory PublicHeader({
-    @JsonKey(name: 'X-TC-Action') String? action,
-    @JsonKey(name: 'X-TC-Timestamp') int? timestamp,
-    @JsonKey(name: 'X-TC-Version') String? version,
-    @JsonKey(name: 'Authorization') String? authorization,
-  }) = _PublicHeader;
+@JsonSerializable()
+class PublicHeader {
+  @JsonKey(name: 'X-TC-Action')
+  final String? action;
+  @JsonKey(name: 'X-TC-Timestamp')
+  final int? timestamp;
+  @JsonKey(name: 'X-TC-Version')
+  final String? version;
+  @JsonKey(name: 'Authorization')
+  final String? authorization;
+
+  PublicHeader({this.action, this.timestamp, this.version, this.authorization});
 
   factory PublicHeader.fromJson(Map<String, dynamic> json) =>
       _$PublicHeaderFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PublicHeaderToJson(this);
 }
 
-@freezed
-abstract class Message with _$Message {
-  const factory Message({
-    @JsonKey(name: 'Role') required String role,
-    @JsonKey(name: 'Content') required String content,
-  }) = _Message;
+@JsonSerializable()
+class Message {
+  @JsonKey(name: 'Role')
+  final String role;
+  @JsonKey(name: 'Content')
+  final String content;
+
+  const Message({required this.role, required this.content});
+
+  Message copyWith({String? role, String? content}) {
+    return Message(role: role ?? this.role, content: content ?? this.content);
+  }
 
   factory Message.fromJson(Map<String, dynamic> json) =>
       _$MessageFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MessageToJson(this);
 }
 
-@freezed
-abstract class HunyuanResponse with _$HunyuanResponse {
-  const factory HunyuanResponse({
-    @JsonKey(name: 'Note') String? note,
-    @JsonKey(name: 'Choices') List<Choices>? choices,
-    @JsonKey(name: 'Created') int? created,
-    @JsonKey(name: 'Id') String? id,
-    @JsonKey(name: 'Usage') Usage? usage,
-  }) = _HunyuanResponse;
+@JsonSerializable()
+class HunyuanResponse {
+  @JsonKey(name: 'Note')
+  final String? note;
+  @JsonKey(name: 'Choices')
+  final List<Choices>? choices;
+  @JsonKey(name: 'Created')
+  final int? created;
+  @JsonKey(name: 'Id')
+  final String? id;
+  @JsonKey(name: 'Usage')
+  final Usage? usage;
+
+  HunyuanResponse({this.note, this.choices, this.created, this.id, this.usage});
 
   factory HunyuanResponse.fromJson(Map<String, dynamic> json) =>
       _$HunyuanResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$HunyuanResponseToJson(this);
 }
 
-@freezed
-abstract class Usage with _$Usage {
-  const factory Usage({
-    @JsonKey(name: 'PromptTokens') int? promptTokens,
-    @JsonKey(name: 'CompletionTokens') int? completionTokens,
-    @JsonKey(name: 'TotalTokens') int? totalTokens,
-  }) = _Usage;
+@JsonSerializable()
+class Usage {
+  @JsonKey(name: 'PromptTokens')
+  final int? promptTokens;
+  @JsonKey(name: 'CompletionTokens')
+  final int? completionTokens;
+  @JsonKey(name: 'TotalTokens')
+  final int? totalTokens;
+
+  Usage({this.promptTokens, this.completionTokens, this.totalTokens});
 
   factory Usage.fromJson(Map<String, dynamic> json) => _$UsageFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UsageToJson(this);
 }
 
-@freezed
-abstract class Choices with _$Choices {
-  const factory Choices({
-    @JsonKey(name: 'FinishReason') String? finishReason,
-    @JsonKey(name: 'Delta') Delta? delta,
-  }) = _Choices;
+@JsonSerializable()
+class Choices {
+  @JsonKey(name: 'FinishReason')
+  final String? finishReason;
+  @JsonKey(name: 'Delta')
+  final Delta? delta;
+
+  Choices({this.finishReason, this.delta});
 
   factory Choices.fromJson(Map<String, dynamic> json) =>
       _$ChoicesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ChoicesToJson(this);
 }
 
-@freezed
-abstract class Delta with _$Delta {
-  const factory Delta({
-    @JsonKey(name: 'Role') String? role,
-    @JsonKey(name: 'Content') String? content,
-  }) = _Delta;
+@JsonSerializable()
+class Delta {
+  @JsonKey(name: 'Role')
+  final String? role;
+  @JsonKey(name: 'Content')
+  final String? content;
+
+  Delta({this.role, this.content});
 
   factory Delta.fromJson(Map<String, dynamic> json) => _$DeltaFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DeltaToJson(this);
 }

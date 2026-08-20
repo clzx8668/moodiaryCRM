@@ -1,15 +1,10 @@
-import 'package:isar/isar.dart';
 import 'package:uuid/uuid.dart';
 
-part 'sync_record.g.dart';
-
-@collection
 class SyncRecord {
   // 业务主键，使用 uuid
   String syncId = const Uuid().v7();
 
-  // 数据库主键，使用 hash 业务主键
-  @Id()
+  // 兼容旧接口
   int get isarId => fastHash(syncId);
 
   // 日记id
@@ -20,7 +15,6 @@ class SyncRecord {
 
   late DateTime time = DateTime.now();
 
-  @enumValue
   late SyncType syncType;
 }
 
@@ -28,7 +22,6 @@ enum SyncType { upload, download, update, delete }
 
 int fastHash(String string) {
   var hash = 0xcbf29ce484222325;
-
   var i = 0;
   while (i < string.length) {
     final codeUnit = string.codeUnitAt(i++);

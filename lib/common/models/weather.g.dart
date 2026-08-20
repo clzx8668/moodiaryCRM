@@ -6,43 +6,43 @@ part of 'weather.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_WeatherResponse _$WeatherResponseFromJson(Map<String, dynamic> json) =>
-    _WeatherResponse(
+WeatherResponse _$WeatherResponseFromJson(Map<String, dynamic> json) =>
+    WeatherResponse(
       code: json['code'] as String?,
       updateTime: json['updateTime'] as String?,
       fxLink: json['fxLink'] as String?,
-      now:
-          json['now'] == null
-              ? null
-              : Now.fromJson(json['now'] as Map<String, dynamic>),
-      refer:
-          json['refer'] == null
-              ? null
-              : Refer.fromJson(json['refer'] as Map<String, dynamic>),
+      now: json['now'] == null
+          ? null
+          : Now.fromJson(json['now'] as Map<String, dynamic>),
+      refer: json['refer'] == null
+          ? null
+          : Refer.fromJson(json['refer'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$WeatherResponseToJson(_WeatherResponse instance) =>
+Map<String, dynamic> _$WeatherResponseToJson(WeatherResponse instance) =>
     <String, dynamic>{
-      if (instance.code case final value?) 'code': value,
-      if (instance.updateTime case final value?) 'updateTime': value,
-      if (instance.fxLink case final value?) 'fxLink': value,
-      if (instance.now case final value?) 'now': value,
-      if (instance.refer case final value?) 'refer': value,
+      'code': ?instance.code,
+      'updateTime': ?instance.updateTime,
+      'fxLink': ?instance.fxLink,
+      'now': ?instance.now,
+      'refer': ?instance.refer,
     };
 
-_Refer _$ReferFromJson(Map<String, dynamic> json) => _Refer(
-  sources:
-      (json['sources'] as List<dynamic>?)?.map((e) => e as String).toList(),
-  license:
-      (json['license'] as List<dynamic>?)?.map((e) => e as String).toList(),
+Refer _$ReferFromJson(Map<String, dynamic> json) => Refer(
+  sources: (json['sources'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+  license: (json['license'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
 );
 
-Map<String, dynamic> _$ReferToJson(_Refer instance) => <String, dynamic>{
-  if (instance.sources case final value?) 'sources': value,
-  if (instance.license case final value?) 'license': value,
+Map<String, dynamic> _$ReferToJson(Refer instance) => <String, dynamic>{
+  'sources': ?instance.sources,
+  'license': ?instance.license,
 };
 
-_Now _$NowFromJson(Map<String, dynamic> json) => _Now(
+Now _$NowFromJson(Map<String, dynamic> json) => Now(
   obsTime: json['obsTime'] as String?,
   temp: json['temp'] as String?,
   feelsLike: json['feelsLike'] as String?,
@@ -60,20 +60,20 @@ _Now _$NowFromJson(Map<String, dynamic> json) => _Now(
   dew: json['dew'] as String?,
 );
 
-Map<String, dynamic> _$NowToJson(_Now instance) => <String, dynamic>{
-  if (instance.obsTime case final value?) 'obsTime': value,
-  if (instance.temp case final value?) 'temp': value,
-  if (instance.feelsLike case final value?) 'feelsLike': value,
-  if (instance.icon case final value?) 'icon': value,
-  if (instance.text case final value?) 'text': value,
-  if (instance.wind360 case final value?) 'wind360': value,
-  if (instance.windDir case final value?) 'windDir': value,
-  if (instance.windScale case final value?) 'windScale': value,
-  if (instance.windSpeed case final value?) 'windSpeed': value,
-  if (instance.humidity case final value?) 'humidity': value,
-  if (instance.precip case final value?) 'precip': value,
-  if (instance.pressure case final value?) 'pressure': value,
-  if (instance.vis case final value?) 'vis': value,
-  if (instance.cloud case final value?) 'cloud': value,
-  if (instance.dew case final value?) 'dew': value,
+Map<String, dynamic> _$NowToJson(Now instance) => <String, dynamic>{
+  'obsTime': ?instance.obsTime,
+  'temp': ?instance.temp,
+  'feelsLike': ?instance.feelsLike,
+  'icon': ?instance.icon,
+  'text': ?instance.text,
+  'wind360': ?instance.wind360,
+  'windDir': ?instance.windDir,
+  'windScale': ?instance.windScale,
+  'windSpeed': ?instance.windSpeed,
+  'humidity': ?instance.humidity,
+  'precip': ?instance.precip,
+  'pressure': ?instance.pressure,
+  'vis': ?instance.vis,
+  'cloud': ?instance.cloud,
+  'dew': ?instance.dew,
 };

@@ -2,12 +2,10 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
-import 'package:moodiary/common/models/isar/category.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
+import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/common/values/media_type.dart';
 import 'package:moodiary/components/audio_player/audio_player_logic.dart';
-import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/src/rust/api/zip.dart';
 import 'package:path/path.dart';
@@ -285,10 +283,6 @@ class FileUtil {
   }
 
   static Future<void> cleanFile(String dir) async {
-    final isar = Isar.open(
-      schemas: [DiarySchema, CategorySchema],
-      directory: dir,
-    );
     // 获取各类型的所有文件路径并转换为Set以提高查找效率
     final imageFiles =
         (await FileUtil.getDirFileName(MediaType.image.value)).toSet();
@@ -302,24 +296,15 @@ class FileUtil {
     final usedAudios = <String>{};
     final usedVideos = <String>{};
 
-    // 获取日记总数
-    final count = isar.diarys.count();
-
-    // 分批获取日记并收集引用的文件名
-    const batchSize = 50;
-    for (int i = 0; i < count; i += batchSize) {
-      final diaryList = await isar.diarys.where().findAllAsync(
-        offset: i,
-        limit: batchSize,
-      );
-      for (final diary in diaryList) {
-        usedImages.addAll(diary.imageName);
-        usedAudios.addAll(diary.audioName);
-        usedVideos.addAll(diary.videoName);
-        for (final name in diary.videoName) {
-          final thumbnailName = 'thumbnail-${name.substring(6, 42)}.jpeg';
-          usedVideos.add(thumbnailName);
-        }
+    // 收集所有日记引用的文件名
+    final diaryList = await IsarUtil.getAllDiaries();
+    for (final diary in diaryList) {
+      usedImages.addAll(diary.imageName);
+      usedAudios.addAll(diary.audioName);
+      usedVideos.addAll(diary.videoName);
+      for (final name in diary.videoName) {
+        final thumbnailName = 'thumbnail-${name.substring(6, 42)}.jpeg';
+        usedVideos.add(thumbnailName);
       }
     }
 

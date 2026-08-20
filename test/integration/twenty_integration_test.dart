@@ -1,36 +1,25 @@
 @Tags(['integration'])
 library;
 
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
-import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
+import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/persistence/isar.dart';
+
+import '../helpers/db_test_helper.dart';
 
 /// 真实 Twenty 环境集成测试（需内网可达 + config/twenty.local.json）：
 ///   flutter test --tags integration test/integration/twenty_integration_test.dart
 void main() {
-  late Isar isar;
-  late Directory tempDir;
+  late AppDatabase db;
 
-  setUpAll(() async {
-    tempDir = await Directory.systemTemp.createTemp('twenty_integration');
-    isar = Isar.open(
-      schemas: [CrmEntityCacheSchema],
-      directory: tempDir.path,
-    );
-    IsarUtil.overrideIsarForTest(isar);
+  setUpAll(() {
+    db = openTestDb();
   });
 
-  tearDownAll(() async {
-    IsarUtil.restoreIsarForTest();
-    isar.close(deleteFromDisk: true);
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+  tearDownAll(() {
+    closeTestDb(db);
   });
 
   test('连接测试 + 全量拉取 + 本地搜索 + 建删闭环', () async {

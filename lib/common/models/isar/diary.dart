@@ -1,20 +1,14 @@
 import 'package:collection/collection.dart';
-import 'package:isar/isar.dart';
 import 'package:uuid/uuid.dart';
 
-part 'diary.g.dart';
-
-@collection
 class Diary {
   // 业务主键，使用 uuid
   String id = const Uuid().v7();
 
-  // 数据库主键，使用 hash 业务主键
-  @Id()
+  // 兼容旧接口：业务主键的稳定哈希（Drift 主键为字符串 id）
   int get isarId => fastHash(id);
 
   //分类id
-  @Index()
   String? categoryId;
 
   //标题
@@ -26,24 +20,20 @@ class Diary {
   //纯文本的内容，用于搜索以及字数统计
   String contentText = '';
 
-  //年月索引
-  @Index()
+  //年月
   String get yM => '${time.year.toString()}/${time.month.toString()}';
 
-  //年月日索引
-  @Index()
+  //年月日
   String get yMd =>
       '${time.year.toString()}/${time.month.toString()}/${time.day.toString()}';
 
   //日期
-  @Index()
   DateTime time = DateTime.now();
 
   //上次更新的时间，用于增量同步
   DateTime lastModified = DateTime.now();
 
   //是否显示，用于回收站
-  @Index()
   bool show = true;
 
   //心情指数

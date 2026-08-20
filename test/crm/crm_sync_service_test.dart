@@ -1,15 +1,16 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/twenty_api.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
+import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/persistence/isar.dart';
+
+import '../helpers/db_test_helper.dart';
 
 class MockAdapter implements HttpClientAdapter {
   @override
@@ -61,40 +62,28 @@ class MockAdapter implements HttpClientAdapter {
 }
 
 void main() {
-  late Isar isar;
-  late Directory tempDir;
+  late AppDatabase db;
 
-  setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('crm_sync_test');
-    isar = Isar.open(
-      schemas: [CrmEntityCacheSchema],
-      directory: tempDir.path,
-    );
-    IsarUtil.overrideIsarForTest(isar);
+  setUp(() {
+    db = openTestDb();
   });
 
-  tearDown(() async {
-    IsarUtil.restoreIsarForTest();
-    isar.close(deleteFromDisk: true);
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+  tearDown(() {
+    closeTestDb(db);
   });
 
   test('reconcile 找出远端缺失与本地过期实体', () async {
     // 本地缓存：c2 与远端一致，c3 为本地独有
-    isar.write((isar) {
-      isar.crmEntityCaches.putAll([
-        CrmEntityCache()
-          ..twentyId = 'c2'
-          ..entityType = 'company'
-          ..name = 'B',
-        CrmEntityCache()
-          ..twentyId = 'c3'
-          ..entityType = 'company'
-          ..name = 'Stale',
-      ]);
-    });
+    await IsarUtil.upsertCrmEntities([
+      CrmEntityCache()
+        ..twentyId = 'c2'
+        ..entityType = 'company'
+        ..name = 'B',
+      CrmEntityCache()
+        ..twentyId = 'c3'
+        ..entityType = 'company'
+        ..name = 'Stale',
+    ]);
 
     const config = TwentyConfig(baseUrl: 'http://test', apiToken: 't');
     final dio = Dio(BaseOptions(baseUrl: config.baseUrl))
@@ -115,18 +104,16 @@ void main() {
   });
 
   test('reconcile 一致时无差异', () async {
-    isar.write((isar) {
-      isar.crmEntityCaches.putAll([
-        CrmEntityCache()
-          ..twentyId = 'c1'
-          ..entityType = 'company'
-          ..name = 'A',
-        CrmEntityCache()
-          ..twentyId = 'c2'
-          ..entityType = 'company'
-          ..name = 'B',
-      ]);
-    });
+    await IsarUtil.upsertCrmEntities([
+      CrmEntityCache()
+        ..twentyId = 'c1'
+        ..entityType = 'company'
+        ..name = 'A',
+      CrmEntityCache()
+        ..twentyId = 'c2'
+        ..entityType = 'company'
+        ..name = 'B',
+    ]);
 
     const config = TwentyConfig(baseUrl: 'http://test', apiToken: 't');
     final dio = Dio(BaseOptions(baseUrl: config.baseUrl))
