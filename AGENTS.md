@@ -26,6 +26,11 @@ cd server; .\gradlew.bat build
 
 注意：flutter 需要提升权限运行（写入 SDK 缓存）；若报 lockfile 错误，先删除 `D:\flutter\3.32.0\bin\cache\lockfile`。
 
+注意 2：本机默认 pub 源为中国镜像（pub.flutter-io.cn），会把 `flutter_inappwebview`
+系列解析到不兼容新版导致 Windows 构建失败。已在 pubspec.yaml 用 dependency_overrides
+锁定兼容版本（js 0.6.7 / web 1.1.1 / inappwebview 全家 beta.2），两种源均可构建；
+仍建议统一 `$env:PUB_HOSTED_URL='https://pub.dev'` 保持 lockfile 稳定。
+
 ## 硬性规则
 
 1. 新功能代码放 `lib/features/`（Flutter）或 `rust/src/` 新模块（Rust），不散落进上游 `lib/pages/`。
