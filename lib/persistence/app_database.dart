@@ -101,6 +101,9 @@ class Blocks extends Table {
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   TextColumn get streamBuffer => text().withDefault(const Constant(''))();
   BoolColumn get streamComplete => boolean().withDefault(const Constant(false))();
+  /// 业务元数据（JSON 文本）：source/syncStatus/aiTemplate/entityType/title
+  /// （智能详情页-双模态架构设计 3.2，v3→v4 迁移新增）
+  TextColumn get metaJson => text().withDefault(const Constant('{}'))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -163,11 +166,18 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      // v3 → v4：Blocks 增加 metaJson 列（数据级回填由 MigrationService 处理）
+      if (from < 4) {
+        final db = m.database as AppDatabase;
+        await m.addColumn(db.blocks, db.blocks.metaJson);
+      }
+    },
     beforeOpen: (details) async {
       // 数据级迁移（v1→v2→v3）由 MigrationService 在打开后执行
     },

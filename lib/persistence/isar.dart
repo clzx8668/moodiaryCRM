@@ -155,6 +155,7 @@ class IsarUtil {
       isDeleted: Value(b.isDeleted),
       streamBuffer: Value(b.streamBuffer),
       streamComplete: Value(b.streamComplete),
+      metaJson: Value(b.metaJson),
       createdAt: b.createdAt,
       updatedAt: b.updatedAt,
     );
@@ -170,6 +171,7 @@ class IsarUtil {
       ..isDeleted = row.isDeleted
       ..streamBuffer = row.streamBuffer
       ..streamComplete = row.streamComplete
+      ..metaJson = row.metaJson
       ..createdAt = row.createdAt
       ..updatedAt = row.updatedAt;
   }

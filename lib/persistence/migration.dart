@@ -16,7 +16,7 @@ class MigrationService {
   static const String migrationHistoryKey = 'migration_history';
 
   /// 当前代码期望的数据库版本
-  static const int currentDbVersion = 3;
+  static const int currentDbVersion = 4;
 
   static Future<String?> _getMeta(AppDatabase db, String key) async {
     final row = await (db.select(db.appMetadata)
@@ -100,6 +100,20 @@ class MigrationService {
       });
     }
 
+    if (current < 4) {
+      final stopwatch = Stopwatch()..start();
+      final migrated = await migrateV3ToV4(db);
+      stopwatch.stop();
+      current = 4;
+      await _appendMigrationHistory(db, {
+        'from': 3,
+        'to': 4,
+        'time': DateTime.now().toIso8601String(),
+        'durationMs': stopwatch.elapsedMilliseconds,
+        'migratedBlocks': migrated,
+      });
+    }
+
     await setDbVersion(db, currentDbVersion);
     return MigrationResult(migratedDiaries: migrated);
   }
@@ -178,6 +192,31 @@ class MigrationService {
     }
 
     return MigrationResult(migratedDiaries: migrated);
+  }
+
+  /// v3 → v4：为历史 Block 回填 metaJson（source=initial）。
+  ///
+  /// 迁移前创建的 Block（v1→v2 包装的原始内容、快速收集生成的 text Block）
+  /// 语义上都是"原始记录卡"，统一标记为 initial；已带 meta 的 Block 跳过。
+  /// 幂等：版本门禁保证只执行一次，此处仍按"空 meta 才回填"做二次保护。
+  static Future<int> migrateV3ToV4(AppDatabase db) async {
+    final blocks = await db.select(db.blocks).get();
+    var migrated = 0;
+
+    for (final row in blocks) {
+      final raw = row.metaJson.trim();
+      final isEmpty = raw.isEmpty || raw == '{}';
+      if (!isEmpty) continue;
+      await (db.update(db.blocks)..where((t) => t.id.equals(row.id))).write(
+        BlocksCompanion(
+          metaJson: const Value('{"source":"initial"}'),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+      migrated++;
+    }
+
+    return migrated;
   }
 }
 

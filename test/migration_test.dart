@@ -60,11 +60,12 @@ void main() {
       MigrationService.currentDbVersion,
     );
     final history = await MigrationService.getMigrationHistory(db);
-    expect(history, hasLength(2));
+    expect(history, hasLength(3));
     expect(history.first['from'], 1);
     expect(history.first['to'], 2);
-    expect(history.last['from'], 2);
-    expect(history.last['to'], 3);
+    expect(history[1]['to'], 3);
+    expect(history.last['from'], 3);
+    expect(history.last['to'], 4);
   });
 
   test('迁移幂等：重复运行不产生重复 Block', () async {
@@ -153,5 +154,58 @@ void main() {
         .getSingle();
     expect(diary.content, '# 已迁移');
     expect(diary.type, 'markdown');
+  });
+
+  test('v3→v4：历史 Block 回填 source=initial', () async {
+    await MigrationService.setDbVersion(db, 3);
+    await insertDiary(id: 'd1', contentText: '内容', content: 'x', type: 'markdown');
+    await db.into(db.blocks).insert(
+      BlocksCompanion.insert(
+        id: 'blk-v3',
+        diaryId: 'd1',
+        blockType: block_model.BlockType.text.value,
+        content: const Value('旧内容'),
+        sortOrder: const Value(0),
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      ),
+    );
+
+    final result = await MigrationService.run(db);
+
+    expect(result.noop, isFalse);
+    final block = await (db.select(db.blocks)..where((t) => t.id.equals('blk-v3')))
+        .getSingle();
+    expect(block.metaJson, contains('initial'));
+    expect(
+      await MigrationService.getDbVersion(db),
+      MigrationService.currentDbVersion,
+    );
+    final history = await MigrationService.getMigrationHistory(db);
+    expect(history.last['from'], 3);
+    expect(history.last['to'], 4);
+  });
+
+  test('v3→v4：已带 meta 的 Block 不被覆盖', () async {
+    await MigrationService.setDbVersion(db, 3);
+    await insertDiary(id: 'd1', contentText: '内容', content: 'x', type: 'markdown');
+    await db.into(db.blocks).insert(
+      BlocksCompanion.insert(
+        id: 'blk-meta',
+        diaryId: 'd1',
+        blockType: block_model.BlockType.text.value,
+        content: const Value('内容'),
+        sortOrder: const Value(0),
+        metaJson: const Value('{"source":"appended"}'),
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      ),
+    );
+
+    await MigrationService.run(db);
+
+    final block = await (db.select(db.blocks)..where((t) => t.id.equals('blk-meta')))
+        .getSingle();
+    expect(block.metaJson, '{"source":"appended"}');
   });
 }

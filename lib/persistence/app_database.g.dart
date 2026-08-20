@@ -1773,6 +1773,18 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, BlockRow> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _metaJsonMeta = const VerificationMeta(
+    'metaJson',
+  );
+  @override
+  late final GeneratedColumn<String> metaJson = GeneratedColumn<String>(
+    'meta_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1805,6 +1817,7 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, BlockRow> {
     isDeleted,
     streamBuffer,
     streamComplete,
+    metaJson,
     createdAt,
     updatedAt,
   ];
@@ -1877,6 +1890,12 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, BlockRow> {
         ),
       );
     }
+    if (data.containsKey('meta_json')) {
+      context.handle(
+        _metaJsonMeta,
+        metaJson.isAcceptableOrUnknown(data['meta_json']!, _metaJsonMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1934,6 +1953,10 @@ class $BlocksTable extends Blocks with TableInfo<$BlocksTable, BlockRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}stream_complete'],
       )!,
+      metaJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}meta_json'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1960,6 +1983,10 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
   final bool isDeleted;
   final String streamBuffer;
   final bool streamComplete;
+
+  /// 业务元数据（JSON 文本）：source/syncStatus/aiTemplate/entityType/title
+  /// （智能详情页-双模态架构设计 3.2，v3→v4 迁移新增）
+  final String metaJson;
   final DateTime createdAt;
   final DateTime updatedAt;
   const BlockRow({
@@ -1971,6 +1998,7 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
     required this.isDeleted,
     required this.streamBuffer,
     required this.streamComplete,
+    required this.metaJson,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -1985,6 +2013,7 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['stream_buffer'] = Variable<String>(streamBuffer);
     map['stream_complete'] = Variable<bool>(streamComplete);
+    map['meta_json'] = Variable<String>(metaJson);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -2000,6 +2029,7 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
       isDeleted: Value(isDeleted),
       streamBuffer: Value(streamBuffer),
       streamComplete: Value(streamComplete),
+      metaJson: Value(metaJson),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -2019,6 +2049,7 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       streamBuffer: serializer.fromJson<String>(json['streamBuffer']),
       streamComplete: serializer.fromJson<bool>(json['streamComplete']),
+      metaJson: serializer.fromJson<String>(json['metaJson']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -2035,6 +2066,7 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'streamBuffer': serializer.toJson<String>(streamBuffer),
       'streamComplete': serializer.toJson<bool>(streamComplete),
+      'metaJson': serializer.toJson<String>(metaJson),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -2049,6 +2081,7 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
     bool? isDeleted,
     String? streamBuffer,
     bool? streamComplete,
+    String? metaJson,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => BlockRow(
@@ -2060,6 +2093,7 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
     isDeleted: isDeleted ?? this.isDeleted,
     streamBuffer: streamBuffer ?? this.streamBuffer,
     streamComplete: streamComplete ?? this.streamComplete,
+    metaJson: metaJson ?? this.metaJson,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -2077,6 +2111,7 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
       streamComplete: data.streamComplete.present
           ? data.streamComplete.value
           : this.streamComplete,
+      metaJson: data.metaJson.present ? data.metaJson.value : this.metaJson,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -2093,6 +2128,7 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
           ..write('isDeleted: $isDeleted, ')
           ..write('streamBuffer: $streamBuffer, ')
           ..write('streamComplete: $streamComplete, ')
+          ..write('metaJson: $metaJson, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2109,6 +2145,7 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
     isDeleted,
     streamBuffer,
     streamComplete,
+    metaJson,
     createdAt,
     updatedAt,
   );
@@ -2124,6 +2161,7 @@ class BlockRow extends DataClass implements Insertable<BlockRow> {
           other.isDeleted == this.isDeleted &&
           other.streamBuffer == this.streamBuffer &&
           other.streamComplete == this.streamComplete &&
+          other.metaJson == this.metaJson &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -2137,6 +2175,7 @@ class BlocksCompanion extends UpdateCompanion<BlockRow> {
   final Value<bool> isDeleted;
   final Value<String> streamBuffer;
   final Value<bool> streamComplete;
+  final Value<String> metaJson;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -2149,6 +2188,7 @@ class BlocksCompanion extends UpdateCompanion<BlockRow> {
     this.isDeleted = const Value.absent(),
     this.streamBuffer = const Value.absent(),
     this.streamComplete = const Value.absent(),
+    this.metaJson = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2162,6 +2202,7 @@ class BlocksCompanion extends UpdateCompanion<BlockRow> {
     this.isDeleted = const Value.absent(),
     this.streamBuffer = const Value.absent(),
     this.streamComplete = const Value.absent(),
+    this.metaJson = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -2179,6 +2220,7 @@ class BlocksCompanion extends UpdateCompanion<BlockRow> {
     Expression<bool>? isDeleted,
     Expression<String>? streamBuffer,
     Expression<bool>? streamComplete,
+    Expression<String>? metaJson,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -2192,6 +2234,7 @@ class BlocksCompanion extends UpdateCompanion<BlockRow> {
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (streamBuffer != null) 'stream_buffer': streamBuffer,
       if (streamComplete != null) 'stream_complete': streamComplete,
+      if (metaJson != null) 'meta_json': metaJson,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -2207,6 +2250,7 @@ class BlocksCompanion extends UpdateCompanion<BlockRow> {
     Value<bool>? isDeleted,
     Value<String>? streamBuffer,
     Value<bool>? streamComplete,
+    Value<String>? metaJson,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -2220,6 +2264,7 @@ class BlocksCompanion extends UpdateCompanion<BlockRow> {
       isDeleted: isDeleted ?? this.isDeleted,
       streamBuffer: streamBuffer ?? this.streamBuffer,
       streamComplete: streamComplete ?? this.streamComplete,
+      metaJson: metaJson ?? this.metaJson,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -2253,6 +2298,9 @@ class BlocksCompanion extends UpdateCompanion<BlockRow> {
     if (streamComplete.present) {
       map['stream_complete'] = Variable<bool>(streamComplete.value);
     }
+    if (metaJson.present) {
+      map['meta_json'] = Variable<String>(metaJson.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2276,6 +2324,7 @@ class BlocksCompanion extends UpdateCompanion<BlockRow> {
           ..write('isDeleted: $isDeleted, ')
           ..write('streamBuffer: $streamBuffer, ')
           ..write('streamComplete: $streamComplete, ')
+          ..write('metaJson: $metaJson, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -4303,6 +4352,7 @@ typedef $$BlocksTableCreateCompanionBuilder =
       Value<bool> isDeleted,
       Value<String> streamBuffer,
       Value<bool> streamComplete,
+      Value<String> metaJson,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -4317,6 +4367,7 @@ typedef $$BlocksTableUpdateCompanionBuilder =
       Value<bool> isDeleted,
       Value<String> streamBuffer,
       Value<bool> streamComplete,
+      Value<String> metaJson,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -4368,6 +4419,11 @@ class $$BlocksTableFilterComposer
 
   ColumnFilters<bool> get streamComplete => $composableBuilder(
     column: $table.streamComplete,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get metaJson => $composableBuilder(
+    column: $table.metaJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4431,6 +4487,11 @@ class $$BlocksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get metaJson => $composableBuilder(
+    column: $table.metaJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4479,6 +4540,9 @@ class $$BlocksTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get metaJson =>
+      $composableBuilder(column: $table.metaJson, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -4522,6 +4586,7 @@ class $$BlocksTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
                 Value<String> streamBuffer = const Value.absent(),
                 Value<bool> streamComplete = const Value.absent(),
+                Value<String> metaJson = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -4534,6 +4599,7 @@ class $$BlocksTableTableManager
                 isDeleted: isDeleted,
                 streamBuffer: streamBuffer,
                 streamComplete: streamComplete,
+                metaJson: metaJson,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -4548,6 +4614,7 @@ class $$BlocksTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
                 Value<String> streamBuffer = const Value.absent(),
                 Value<bool> streamComplete = const Value.absent(),
+                Value<String> metaJson = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -4560,6 +4627,7 @@ class $$BlocksTableTableManager
                 isDeleted: isDeleted,
                 streamBuffer: streamBuffer,
                 streamComplete: streamComplete,
+                metaJson: metaJson,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
