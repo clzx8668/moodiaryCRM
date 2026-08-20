@@ -35,11 +35,15 @@ class QuickCaptureSaver {
 
     // 图片附件走现有媒体管线（压缩保存到 image 目录）
     final images = attachments.where((a) => a.isImage).toList();
+    final imageNameMap = <String, String>{};
     if (images.isNotEmpty) {
-      final imageNameMap = await MediaUtil.saveImages(
+    imageNameMap.addAll(await MediaUtil.saveImages(
         imageFileList: images.map((a) => XFile(a.path)).toList(),
-      );
-      diary.imageName = imageNameMap.values.toList();
+      ));
+    // 内容中引用保存后的图片名（避免引用临时路径/编码名导致图片丢失）
+    imageNameMap.forEach((tempPath, name) {
+      diary.imageName.add(name);
+    });
     }
 
     // 音频附件：复制到 audio 目录
@@ -74,7 +78,13 @@ class QuickCaptureSaver {
       }
     }
 
-    diary.content = _buildContent(text, attachments, docRefs, audioNames);
+    diary.content = _buildContent(
+      text,
+      attachments,
+      docRefs,
+      audioNames,
+      imageNameMap,
+    );
     await IsarUtil.insertADiary(diary);
 
     // Block 协议：每条速记生成一个 text Block（数据层 P1.1 提供）
@@ -111,6 +121,7 @@ class QuickCaptureSaver {
     List<QuickAttachment> attachments,
     List<String> docRefs,
     List<String> audioNames,
+    Map<String, String> imageNameMap,
   ) {
     final buffer = StringBuffer(text.trim());
     var docIndex = 0;
@@ -118,7 +129,9 @@ class QuickCaptureSaver {
     for (final attachment in attachments) {
       if (buffer.isNotEmpty) buffer.writeln();
       if (attachment.isImage) {
-        buffer.write('![](${p.basename(attachment.path)})');
+        buffer.write(
+          '![](${imageNameMap[attachment.path] ?? p.basename(attachment.path)})',
+        );
       } else if (attachment.type == QuickAttachmentType.audio) {
         final name = audioIndex < audioNames.length ? audioNames[audioIndex] : '';
         audioIndex++;

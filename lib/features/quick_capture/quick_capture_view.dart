@@ -19,17 +19,18 @@ class QuickCaptureSheet extends StatefulWidget {
   State<QuickCaptureSheet> createState() => _QuickCaptureSheetState();
 
   /// 唤起底部收集面板
-  static Future<void> show(
+  static Future<bool> show(
     BuildContext context, {
     Future<void> Function(DiaryType type)? onCreate,
   }) async {
-    await showModalBottomSheet<void>(
+    final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black38,
       builder: (_) => QuickCaptureSheet(onCreate: onCreate),
     );
+    return saved ?? false;
   }
 }
 
@@ -297,7 +298,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                         ? null
                         : () async {
                             final saved = await logic.save();
-                            if (saved) Get.back();
+                            if (saved) Get.back(result: true);
                           },
                     icon: state.saving.value
                         ? const SizedBox(

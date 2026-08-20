@@ -75,6 +75,8 @@ class ImageCacheUtil {
     required int imageHeight,
     required double imageAspectRatio,
   }) async {
+    final resolved = _resolveExisting(imagePath);
+    if (resolved == null) return imagePath;
     final int minSize = min(imageWidth, imageHeight);
     final int rangeStart = (minSize ~/ 100) * 100;
     final int rangeEnd = rangeStart + 100;
@@ -87,7 +89,7 @@ class ImageCacheUtil {
         isWidthMin ? (baseMinSize / imageAspectRatio).round() : baseMinSize;
 
     final cachedImageName =
-        'resized_w${standardWidth}_h${standardHeight}_${basename(imagePath)}';
+        'resized_w${standardWidth}_h${standardHeight}_${basename(resolved)}';
     final cachedImagePath = FileUtil.getRealPath(
       'image_thumbnail',
       cachedImageName,
@@ -105,7 +107,7 @@ class ImageCacheUtil {
 
     try {
       final compressedImage = await MediaUtil.compressImageData(
-        imagePath: imagePath,
+        imagePath: resolved,
         size: baseMinSize,
         imageAspectRatio: imageAspectRatio,
       );
@@ -127,17 +129,34 @@ class ImageCacheUtil {
   Future<double> getImageAspectRatioWithCache({
     required String imagePath,
   }) async {
-    final cachedAspectRatio = await (_imageAspectBox.get(basename(imagePath)));
+    final resolved = _resolveExisting(imagePath);
+    // 文件不存在（孤立引用/编码文件名）：静默返回 1.0，避免日志刷屏
+    if (resolved == null) return 1.0;
+    final cachedAspectRatio = await (_imageAspectBox.get(basename(resolved)));
     if (cachedAspectRatio != null) return cachedAspectRatio;
     try {
       final aspectRatio = await MediaUtil.getImageAspectRatio(
-        FileImage(File(imagePath)),
+        FileImage(File(resolved)),
       );
-      await _imageAspectBox.put(basename(imagePath), aspectRatio);
+      await _imageAspectBox.put(basename(resolved), aspectRatio);
       return aspectRatio;
     } catch (e) {
       logger.d('Error getting image aspect ratio: $e');
       rethrow;
     }
+  }
+
+  /// 解析实际存在的图片路径：优先原路径，其次尝试 URL 解码文件名
+  /// （兼容 WebDAV/历史数据中的百分号编码文件名）。
+  String? _resolveExisting(String imagePath) {
+    if (File(imagePath).existsSync()) return imagePath;
+    try {
+      final decodedName = Uri.decodeComponent(basename(imagePath));
+      final altPath = join(dirname(imagePath), decodedName);
+      if (File(altPath).existsSync()) return altPath;
+    } catch (_) {
+      // 忽略解码失败
+    }
+    return null;
   }
 }

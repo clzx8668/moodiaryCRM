@@ -99,7 +99,12 @@ class HomePage extends StatelessWidget {
                               trailing: Expanded(
                                 child: DesktopHomeFabComponent(
                                   toQuickCapture: () async {
-                                    await QuickCaptureSheet.show(context);
+                                    final saved = await QuickCaptureSheet.show(
+                                      context,
+                                    );
+                                    if (saved) {
+                                      await logic.refreshDiaryLists();
+                                    }
                                   },
                                   isToTopShow: logic.isToTopShow,
                                   toTop: logic.toTop,
@@ -159,13 +164,16 @@ class HomePage extends StatelessWidget {
         isExpanded: logic.isFabExpanded,
         showShadow: true,
         openFab: () async {
-          await QuickCaptureSheet.show(
+          final saved = await QuickCaptureSheet.show(
             context,
             onCreate: (type) async {
               if (Get.isBottomSheetOpen == true) Get.back();
               await logic.toEditPage(type: type);
             },
           );
+          if (saved) {
+            await logic.refreshDiaryLists();
+          }
         },
         onLongPressOpen: logic.openFab,
         toTop: logic.toTop,
