@@ -84,11 +84,11 @@ class MarkdownProjection {
     if (json == null) return raw.trim();
     final chartType = (json['type'] as String?)?.trim() ?? 'chart';
     final data = json['data'];
-    final count = switch (data) {
-      List l => l.length,
-      Map m => m.length,
-      _ => 0,
-    };
+    final count = data is List
+        ? data.length
+        : data is Map
+        ? data.length
+        : 0;
     return '**图表**：$chartType $count 项';
   }
 

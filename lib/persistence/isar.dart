@@ -9,6 +9,7 @@ import 'package:moodiary/common/models/isar/sync_record.dart' hide fastHash;
 import 'package:moodiary/common/models/map.dart';
 import 'package:moodiary/components/base/text.dart';
 import 'package:moodiary/features/block/models/block.dart' as block_model;
+import 'package:moodiary/features/block/markdown_projection.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart'
     as crm_model;
 import 'package:moodiary/persistence/app_database.dart';
@@ -288,6 +289,14 @@ class IsarUtil {
       if (fastHash(row.id) == isarId) return _diaryFromRow(row);
     }
     return null;
+  }
+
+  /// 按业务主键（UUID）查找日记（SmartCanvasPage 等按 id 聚合的场景）
+  static Future<Diary?> getDiaryById(String id) async {
+    final row = await (_database.select(_database.diaries)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _diaryFromRow(row);
   }
 
   static Future<List<Diary>> getDiariesByDateRange(
@@ -810,6 +819,28 @@ class IsarUtil {
           ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
         .get();
     return rows.map(_blockFromRow).toList();
+  }
+
+  /// 按业务主键查询单个 Block
+  static Future<block_model.Block?> getBlockById(String id) async {
+    final row = await (_database.select(_database.blocks)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _blockFromRow(row);
+  }
+
+  /// 双模态聚合投影刷新：以 Blocks 为真相层，重算 diary.content/contentText
+  /// 并落库（智能详情页-双模态架构设计 3.1/3.3）。
+  ///
+  /// 返回聚合后的 Markdown（供调用方同步内存对象）。
+  static Future<String> refreshDiaryProjection(Diary diary) async {
+    final blocks = await getBlocksByDiary(diary.id);
+    final projection = MarkdownProjection.aggregate(blocks);
+    diary
+      ..content = projection
+      ..contentText = projection.removeLineBreaks();
+    await updateADiary(newDiary: diary);
+    return projection;
   }
 
   static Future<void> upsertDiaryTextBlock(Diary diary) async {
