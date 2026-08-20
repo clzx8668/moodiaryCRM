@@ -11,6 +11,7 @@ import 'package:moodiary/features/smart_canvas/states/canvas_state.dart';
 import 'package:moodiary/features/smart_canvas/states/edit_state.dart';
 import 'package:moodiary/features/smart_canvas/states/streaming_state.dart';
 import 'package:moodiary/features/smart_canvas/states/sync_state.dart';
+import 'package:moodiary/features/sync_events/sync_event_service.dart';
 import 'package:moodiary/features/sync_log/sync_log.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -55,7 +56,17 @@ class SmartCanvasLogic extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _subscribeSyncEvents();
     unawaited(init());
+  }
+
+  void _subscribeSyncEvents() {
+    SyncEventService.instance.syncEvents.listen((event) {
+      onSyncEvent(
+        phase: event.phase.name,
+        progress: event.progress,
+      );
+    });
   }
 
   Future<void> init() async {

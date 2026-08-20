@@ -16,6 +16,7 @@ import 'package:moodiary/components/env_badge/badge.dart';
 import 'package:moodiary/components/frosted_glass_overlay/frosted_glass_overlay_view.dart';
 import 'package:moodiary/components/window_buttons/window_buttons.dart';
 import 'package:moodiary/config/env.dart';
+import 'package:moodiary/features/sync_events/sync_event_service.dart';
 import 'package:moodiary/l10n/app_localizations.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/hive.dart';
@@ -35,6 +36,7 @@ Future<void> _initSystem() async {
   await IsarUtil.initIsar();
   await HiveUtil().init();
   unawaited(RustLib.init());
+  unawaited(SyncEventService.instance.start());
   unawaited(_platFormOption());
   WebDavUtil().initWebDav();
   await ThemeUtil().buildTheme();

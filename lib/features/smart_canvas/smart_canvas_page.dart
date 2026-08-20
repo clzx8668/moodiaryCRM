@@ -13,6 +13,7 @@ import 'package:moodiary/features/smart_canvas/services/card_action_router.dart'
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
 import 'package:moodiary/features/smart_canvas/widgets/smart_card.dart';
 import 'package:moodiary/router/app_routes.dart';
+import 'package:moodiary/src/rust/api/ffi_api.dart' as rust_ffi;
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 中间详情页（SmartCanvasPage）：智能卡片工作台。
@@ -150,6 +151,11 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     }
   }
 
+  Future<void> _runDemoSyncEvents() async {
+    toast.info(message: '正在发送演示同步事件…');
+    await rust_ffi.emitDemoSyncEvents();
+  }
+
   Widget _buildMetaChips(BuildContext context) {
     final diary = logic.canvasState.diary;
     final colorScheme = Theme.of(context).colorScheme;
@@ -264,6 +270,22 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                   leading: const PageBackButton(),
                   pinned: true,
                   actions: [
+                    Obx(() {
+                      final sync = logic.sync;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: sync.syncing.value
+                            ? Tooltip(
+                                message:
+                                    '同步中：${sync.phase.value} ${(sync.progress.value * 100).toStringAsFixed(0)}%',
+                                child: Icon(
+                                  Icons.cloud_sync_rounded,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      );
+                    }),
                     PopupMenuButton<String>(
                       tooltip: '更多',
                       itemBuilder: (_) => [
@@ -275,12 +297,18 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           value: 'edit_diary',
                           child: Text('编辑整篇日记'),
                         ),
+                        const PopupMenuItem(
+                          value: 'demo_sync',
+                          child: Text('测试同步事件流'),
+                        ),
                       ],
                       onSelected: (v) {
                         if (v == 'ai_settings') {
                           _showAiSettings();
                         } else if (v == 'edit_diary') {
                           _openWholeDiaryEditor();
+                        } else if (v == 'demo_sync') {
+                          _runDemoSyncEvents();
                         }
                       },
                     ),

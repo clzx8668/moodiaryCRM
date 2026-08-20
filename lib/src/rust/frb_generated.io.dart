@@ -7,10 +7,12 @@ import 'api/aes.dart';
 import 'api/argon2.dart';
 import 'api/compress.dart';
 import 'api/constants.dart';
+import 'api/event_bus.dart';
 import 'api/ffi_api.dart';
 import 'api/font.dart';
 import 'api/jieba.dart';
 import 'api/kmp.dart';
+import 'api/sync_events.dart';
 import 'api/zip.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -183,7 +185,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustStreamSink<AiStreamEvent> dco_decode_StreamSink_ai_stream_event_Sse(
+    dynamic raw,
+  );
+
+  @protected
+  RustStreamSink<FileSyncEvent> dco_decode_StreamSink_file_sync_event_Sse(
+    dynamic raw,
+  );
+
+  @protected
+  RustStreamSink<SyncProgressEvent>
+  dco_decode_StreamSink_sync_progress_event_Sse(dynamic raw);
+
+  @protected
   String dco_decode_String(dynamic raw);
+
+  @protected
+  AiStreamEvent dco_decode_ai_stream_event(dynamic raw);
 
   @protected
   bool dco_decode_bool(dynamic raw);
@@ -205,6 +224,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   double dco_decode_f_64(dynamic raw);
+
+  @protected
+  FileSyncEvent dco_decode_file_sync_event(dynamic raw);
+
+  @protected
+  FileSyncEventStatus dco_decode_file_sync_event_status(dynamic raw);
 
   @protected
   int dco_decode_i_32(dynamic raw);
@@ -256,6 +281,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   (String, String) dco_decode_record_string_string(dynamic raw);
+
+  @protected
+  SyncProgressEvent dco_decode_sync_progress_event(dynamic raw);
+
+  @protected
+  SyncProgressPhase dco_decode_sync_progress_phase(dynamic raw);
 
   @protected
   int dco_decode_u_32(dynamic raw);
@@ -400,7 +431,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustStreamSink<AiStreamEvent> sse_decode_StreamSink_ai_stream_event_Sse(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustStreamSink<FileSyncEvent> sse_decode_StreamSink_file_sync_event_Sse(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustStreamSink<SyncProgressEvent>
+  sse_decode_StreamSink_sync_progress_event_Sse(SseDeserializer deserializer);
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer);
+
+  @protected
+  AiStreamEvent sse_decode_ai_stream_event(SseDeserializer deserializer);
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
@@ -424,6 +472,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   double sse_decode_f_64(SseDeserializer deserializer);
+
+  @protected
+  FileSyncEvent sse_decode_file_sync_event(SseDeserializer deserializer);
+
+  @protected
+  FileSyncEventStatus sse_decode_file_sync_event_status(
+    SseDeserializer deserializer,
+  );
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
@@ -481,6 +537,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   (String, String) sse_decode_record_string_string(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SyncProgressEvent sse_decode_sync_progress_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  SyncProgressPhase sse_decode_sync_progress_phase(
     SseDeserializer deserializer,
   );
 
@@ -651,7 +717,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_StreamSink_ai_stream_event_Sse(
+    RustStreamSink<AiStreamEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_file_sync_event_Sse(
+    RustStreamSink<FileSyncEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_sync_progress_event_Sse(
+    RustStreamSink<SyncProgressEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_String(String self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_ai_stream_event(AiStreamEvent self, SseSerializer serializer);
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
@@ -679,6 +766,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_f_64(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_file_sync_event(FileSyncEvent self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_file_sync_event_status(
+    FileSyncEventStatus self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
@@ -750,6 +846,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_record_string_string(
     (String, String) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sync_progress_event(
+    SyncProgressEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sync_progress_phase(
+    SyncProgressPhase self,
     SseSerializer serializer,
   );
 

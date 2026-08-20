@@ -5,6 +5,7 @@
 
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'sync_events.dart';
 
 /// 返回当前 FFI 契约版本，Dart 端据此路由
 Future<int> apiVersion() => RustLib.instance.api.crateApiFfiApiApiVersion();
@@ -28,3 +29,26 @@ Future<List<String>> syncProgressEventsSince({
 }) => RustLib.instance.api.crateApiFfiApiSyncProgressEventsSince(
   sinceTimestamp: sinceTimestamp,
 );
+
+/// 订阅同步进度事件流（架构文档 5.3 EventStream）。
+///
+/// Dart 端调用后返回 `Stream<SyncProgressEvent>`；Rust 同步引擎通过
+/// `event_bus::emit_sync_progress` 发布事件。Dart 侧取消订阅时 sink 发送失败，
+/// 循环自动退出。
+Stream<SyncProgressEvent> syncProgressStream() =>
+    RustLib.instance.api.crateApiFfiApiSyncProgressStream();
+
+/// 订阅 AI 流式事件流（AiStreamEvent）。
+Stream<AiStreamEvent> aiStreamStream() =>
+    RustLib.instance.api.crateApiFfiApiAiStreamStream();
+
+/// 订阅文件同步事件流（FileSyncEvent）。
+Stream<FileSyncEvent> fileSyncStream() =>
+    RustLib.instance.api.crateApiFfiApiFileSyncStream();
+
+/// 演示事件流（联调/冒烟用）：发布一轮 started→pulling→pushing→done。
+///
+/// 真实同步引擎接入后，由 PullEngine/PushEngine 在各阶段调用
+/// `event_bus::emit_sync_progress`，此函数仅用于验证 FFI 链路。
+Future<void> emitDemoSyncEvents() =>
+    RustLib.instance.api.crateApiFfiApiEmitDemoSyncEvents();

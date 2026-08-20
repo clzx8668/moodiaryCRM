@@ -14,6 +14,10 @@
 
 use anyhow::Result;
 
+use crate::api::event_bus;
+use crate::api::sync_events::{FileSyncEvent, FileSyncEventStatus, SyncProgressEvent, SyncProgressPhase};
+use crate::frb_generated::StreamSink;
+
 /// FFI 契约版本（v1：同步引擎骨架）
 pub const FFI_API_VERSION: u32 = 1;
 
@@ -40,4 +44,64 @@ pub async fn trigger_full_sync() -> Result<()> {
 /// 的可见范围内；届时 Dart 侧用 `Stream` 订阅，无需轮询。
 pub async fn sync_progress_events_since(_since_timestamp: i64) -> Result<Vec<String>> {
     Ok(Vec::new())
+}
+
+/// 订阅同步进度事件流（架构文档 5.3 EventStream）。
+///
+/// Dart 端调用后返回 `Stream<SyncProgressEvent>`；Rust 同步引擎通过
+/// `event_bus::emit_sync_progress` 发布事件。Dart 侧取消订阅时 sink 发送失败，
+/// 循环自动退出。
+pub async fn sync_progress_stream(sink: StreamSink<SyncProgressEvent>) -> Result<()> {
+    let mut rx = event_bus::subscribe_sync();
+    flutter_rust_bridge::spawn(async move {
+        while let Ok(event) = rx.recv().await {
+            if sink.add(event).is_err() {
+                break;
+            }
+        }
+    });
+    Ok(())
+}
+
+/// 订阅 AI 流式事件流（AiStreamEvent）。
+pub async fn ai_stream_stream(sink: StreamSink<crate::api::sync_events::AiStreamEvent>) -> Result<()> {
+    let mut rx = event_bus::subscribe_ai();
+    flutter_rust_bridge::spawn(async move {
+        while let Ok(event) = rx.recv().await {
+            if sink.add(event).is_err() {
+                break;
+            }
+        }
+    });
+    Ok(())
+}
+
+/// 订阅文件同步事件流（FileSyncEvent）。
+pub async fn file_sync_stream(sink: StreamSink<FileSyncEvent>) -> Result<()> {
+    let mut rx = event_bus::subscribe_file();
+    flutter_rust_bridge::spawn(async move {
+        while let Ok(event) = rx.recv().await {
+            if sink.add(event).is_err() {
+                break;
+            }
+        }
+    });
+    Ok(())
+}
+
+/// 演示事件流（联调/冒烟用）：发布一轮 started→pulling→pushing→done。
+///
+/// 真实同步引擎接入后，由 PullEngine/PushEngine 在各阶段调用
+/// `event_bus::emit_sync_progress`，此函数仅用于验证 FFI 链路。
+pub async fn emit_demo_sync_events() -> Result<()> {
+    event_bus::emit_sync_progress(SyncProgressPhase::Started, 0.0, "同步开始".to_string());
+    event_bus::emit_sync_progress(SyncProgressPhase::Pulling, 0.3, "拉取变更".to_string());
+    event_bus::emit_sync_progress(SyncProgressPhase::Pushing, 0.7, "推送本地变更".to_string());
+    event_bus::emit_sync_progress(SyncProgressPhase::Done, 1.0, "同步完成".to_string());
+    event_bus::emit_file_sync(
+        "Attachments/Images/2026/08/demo.jpg".to_string(),
+        FileSyncEventStatus::Uploading,
+        0.5,
+    );
+    Ok(())
 }

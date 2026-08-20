@@ -6,4 +6,6 @@ pub mod aes;
 pub mod zip;
 pub mod jieba;
 pub mod argon2;
+pub mod event_bus;
 pub mod ffi_api;
+pub mod sync_events;
