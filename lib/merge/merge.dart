@@ -18,14 +18,6 @@ class MergeUtil {
       );
     }
 
-    /// v2.6.0
-    if (appVersionCode.compareTo('2.6.0') < 0) {
-      await compute(
-        IsarUtil.mergeToV2_6_0,
-        FileUtil.getRealPath('database', ''),
-      );
-    }
-
     /// 修复bug
     /// v2.6.2
     /// 修复部分视频缩略图无法生成的问题

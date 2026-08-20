@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/features/activity/calendar_activity.dart';
+import 'package:moodiary/features/timeline/timeline_item.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -29,15 +31,34 @@ class CalendarLogic extends GetxController {
     // state.currentMonthDiaryList.value =
     //     await IsarUtil.getDiaryByMonth(value.year, value.month);
     state.currentMonthDiaryList.value = await IsarUtil.getAllDiariesSorted();
+    // 计算每日活跃度（字数 + Block 数 + 心情）
+    final blockCounts = await IsarUtil.getBlockCountsByDiary();
+    state.dailyActivity.value = CalendarActivity.calculate(
+      state.currentMonthDiaryList,
+      blockCounts,
+    );
+    // 时间轴：日记 + CRM 记录按时间合并降序
+    final crmEntities = await IsarUtil.getAllCrmEntities();
+    final items = <TimelineItem>[
+      for (final diary in state.currentMonthDiaryList)
+        TimelineItem(time: diary.time, diary: diary),
+      for (final crm in crmEntities)
+        TimelineItem(time: crm.updatedAt, crm: crm),
+    ]..sort((a, b) => b.time.compareTo(a.time));
+    state.timelineItems.value = items;
     state.isFetching.value = false;
   }
 
   int _pendingScrollOperations = 0;
 
   Future<void> animateToSelectedDateWithLock(DateTime value) async {
-    final index = state.currentMonthDiaryList.indexWhere(
-      (element) => element.yMd == '${value.year}/${value.month}/${value.day}',
+    final index = state.timelineItems.indexWhere(
+      (element) =>
+          element.time.year == value.year &&
+          element.time.month == value.month &&
+          element.time.day == value.day,
     );
+    if (index < 0) return;
     _pendingScrollOperations++;
     state.isControllerScrolling.value = true;
     try {

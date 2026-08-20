@@ -7,27 +7,13 @@ import 'package:moodiary/common/values/colors.dart';
 import 'package:moodiary/components/base/loading.dart';
 import 'package:moodiary/components/diary_card/calendar_diary_card_view.dart';
 import 'package:moodiary/components/time_line/time_line_view.dart';
-import 'package:moodiary/utils/array_util.dart';
+import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import 'calendar_logic.dart';
 
 class CalendarPage extends StatelessWidget {
   const CalendarPage({super.key});
-
-  /// 根据当天日记的数量配置颜色的范围，从0到1
-  /// 0为最小值，1为最大值
-  /// 当天日记篇数为0时，返回0
-  /// 当前日记篇数为5时，返回1，即最大值，保留两位小数
-  double getDayColor({required int count}) {
-    if (count == 0) {
-      return 0;
-    }
-    if (count >= 5) {
-      return 1;
-    }
-    return count / 5;
-  }
 
   Widget _buildActiveInfo({
     required Color lessColor,
@@ -79,8 +65,6 @@ class CalendarPage extends StatelessWidget {
           dateWithDiaryList.add(DateTime(time.year, time.month, time.day));
         }
       }
-      final dateCountMap = ArrayUtil.countList(allDate);
-
       return Stack(
         children: [
           Card.filled(
@@ -105,12 +89,13 @@ class CalendarPage extends StatelessWidget {
                     bool? isToday,
                   }) {
                     final contains = dateWithDiaryList.contains(date);
+                    final activity = state.dailyActivity[date] ?? 0.0;
                     final bgColor =
                         contains
                             ? Color.lerp(
                               context.theme.colorScheme.surfaceContainer,
                               context.theme.colorScheme.primary,
-                              getDayColor(count: dateCountMap[date] ?? 0),
+                              activity,
                             )
                             : null;
                     return Padding(
@@ -179,24 +164,33 @@ class CalendarPage extends StatelessWidget {
 
     Widget buildCardList() {
       return Obx(() {
+        final items = state.timelineItems;
         return ScrollablePositionedList.builder(
           itemBuilder: (context, index) {
-            return TimeLineComponent(
-              actionColor:
+            final item = items[index];
+            final Widget child;
+            final Color actionColor;
+            if (item.isDiary) {
+              actionColor =
                   Color.lerp(
                     AppColor.emoColorList.first,
                     AppColor.emoColorList.last,
-                    state.currentMonthDiaryList[index].mood,
-                  )!,
+                    item.diary!.mood,
+                  )!;
+              child = CalendarDiaryCardComponent(diary: item.diary!);
+            } else {
+              actionColor = _crmColor(item.crm!.entityType);
+              child = _CrmTimelineCard(crm: item.crm!);
+            }
+            return TimeLineComponent(
+              actionColor: actionColor,
               child: Padding(
                 padding: EdgeInsets.only(
                   top: index == 0 ? 0 : 4.0,
                   bottom:
-                      index == state.currentMonthDiaryList.length - 1 ? 0 : 4.0,
+                      index == items.length - 1 ? 0 : 4.0,
                 ),
-                child: CalendarDiaryCardComponent(
-                  diary: state.currentMonthDiaryList[index],
-                ),
+                child: child,
               ),
             );
           },
@@ -204,7 +198,7 @@ class CalendarPage extends StatelessWidget {
           itemPositionsListener: logic.itemPositionsListener,
           scrollOffsetController: logic.scrollOffsetController,
           scrollOffsetListener: logic.scrollOffsetListener,
-          itemCount: state.currentMonthDiaryList.length,
+          itemCount: items.length,
         );
       });
     }
@@ -221,7 +215,7 @@ class CalendarPage extends StatelessWidget {
           child:
               state.isFetching.value
                   ? const MoodiaryLoading()
-                  : (state.currentMonthDiaryList.isNotEmpty
+                  : (state.timelineItems.isNotEmpty
                       ? buildCardList()
                       : Center(
                         key: const ValueKey('empty'),
@@ -262,4 +256,102 @@ class CalendarPage extends StatelessWidget {
       },
     );
   }
+
+}
+
+class _CrmTimelineCard extends StatelessWidget {
+  final CrmEntityCache crm;
+
+  const _CrmTimelineCard({required this.crm});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card.outlined(
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        leading: Icon(
+          _crmIcon(crm.entityType),
+          color: _crmColor(crm.entityType),
+        ),
+        title: Text(
+          crm.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          '${_typeLabel(crm.entityType)} · ${crm.twentyId}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Text(
+          '${crm.updatedAt.year}-'
+          '${crm.updatedAt.month.toString().padLeft(2, '0')}-'
+          '${crm.updatedAt.day.toString().padLeft(2, '0')}',
+          style: context.textTheme.labelSmall?.copyWith(
+            color: context.theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Color _crmColor(String type) {
+  switch (type) {
+    case 'company':
+      return Colors.blue.shade300;
+    case 'person':
+      return Colors.green.shade300;
+    case 'opportunity':
+      return Colors.orange.shade300;
+    case 'task':
+      return Colors.purple.shade300;
+    case 'contractsHeTongGuanLi':
+      return Colors.teal.shade300;
+    case 'paymentsHuiKuanJiLu':
+      return Colors.red.shade300;
+    case 'invoiceFaPiao':
+      return Colors.indigo.shade300;
+    case 'commissionsTiChengJieSuan':
+      return Colors.pink.shade300;
+    default:
+      return Colors.grey.shade400;
+  }
+}
+
+IconData _crmIcon(String type) {
+  switch (type) {
+    case 'company':
+      return Icons.business_rounded;
+    case 'person':
+      return Icons.person_rounded;
+    case 'opportunity':
+      return Icons.trending_up_rounded;
+    case 'task':
+      return Icons.task_alt_rounded;
+    case 'contractsHeTongGuanLi':
+      return Icons.description_rounded;
+    case 'paymentsHuiKuanJiLu':
+      return Icons.payments_rounded;
+    case 'invoiceFaPiao':
+      return Icons.receipt_rounded;
+    case 'commissionsTiChengJieSuan':
+      return Icons.savings_rounded;
+    default:
+      return Icons.folder_rounded;
+  }
+}
+
+String _typeLabel(String type) {
+  const labels = {
+    'company': '客户',
+    'person': '联系人',
+    'opportunity': '商机',
+    'task': '任务',
+    'contractsHeTongGuanLi': '合同',
+    'paymentsHuiKuanJiLu': '回款',
+    'invoiceFaPiao': '发票',
+    'commissionsTiChengJieSuan': '提成',
+  };
+  return labels[type] ?? type;
 }

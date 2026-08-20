@@ -1,0 +1,279 @@
+import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
+import 'package:moodiary/features/crm/twenty_api.dart';
+import 'package:moodiary/features/crm/twenty_config.dart';
+import 'package:moodiary/features/sync_log/sync_log.dart';
+import 'package:moodiary/persistence/isar.dart';
+
+/// 连接测试结果
+class ConnectionResult {
+  final bool ok;
+  final String? message;
+  final int companyCount;
+
+  const ConnectionResult({
+    required this.ok,
+    this.message,
+    this.companyCount = 0,
+  });
+}
+
+/// 全量拉取结果
+class CrmSyncResult {
+  final DateTime syncedAt;
+  final Map<String, int> pulledByObject;
+  final int totalPulled;
+
+  const CrmSyncResult({
+    required this.syncedAt,
+    required this.pulledByObject,
+    required this.totalPulled,
+  });
+
+  @override
+  String toString() =>
+      'CrmSyncResult(syncedAt: $syncedAt, totalPulled: $totalPulled, '
+      'byObject: $pulledByObject)';
+}
+
+/// 同步对账结果（架构文档"五、设置模块-同步对账"）
+class ReconcileResult {
+  final DateTime checkedAt;
+
+  /// 远端有但本地缺失的实体（按对象）
+  final Map<String, List<String>> missingLocal;
+
+  /// 本地有但远端已删除的实体（按对象）
+  final Map<String, List<String>> staleLocal;
+
+  const ReconcileResult({
+    required this.checkedAt,
+    required this.missingLocal,
+    required this.staleLocal,
+  });
+
+  int get totalDiff =>
+      missingLocal.values.fold(0, (s, v) => s + v.length) +
+      staleLocal.values.fold(0, (s, v) => s + v.length);
+
+  @override
+  String toString() =>
+      'ReconcileResult(checkedAt: $checkedAt, missing: $missingLocal, '
+      'stale: $staleLocal)';
+}
+
+/// CRM 同步服务：Twenty 增量/全量同步 + 本地缓存（架构文档 P1.8）
+class CrmSyncService {
+  final TwentyApiClient client;
+  final SyncLogService log;
+
+  static const Set<String> defaultObjects = {
+    'company',
+    'person',
+    'opportunity',
+    'task',
+  };
+
+  /// 自定义业务对象（Twenty 工作区内置扩展；GraphQL 字段名为对象名本身）
+  static const Set<String> customObjects = {
+    'contractsHeTongGuanLi',
+    'paymentsHuiKuanJiLu',
+    'invoiceFaPiao',
+    'commissionsTiChengJieSuan',
+  };
+
+  CrmSyncService({required this.client, SyncLogService? log})
+    : log = log ?? SyncLogService.instance;
+
+  factory CrmSyncService.fromConfig(TwentyConfig config) {
+    return CrmSyncService(client: TwentyApiClient(config: config));
+  }
+
+  /// 连接测试：ping + 拉取一页公司验证令牌
+  Future<ConnectionResult> testConnection() async {
+    try {
+      final ok = await client.ping();
+      if (!ok) {
+        await log.write(
+          level: SyncLogLevel.error,
+          operation: 'test',
+          target: 'server',
+          detail: '健康检查未通过',
+        );
+        return const ConnectionResult(
+          ok: false,
+          message: '服务健康检查未通过',
+        );
+      }
+      final companies = await client.listAll(object: 'company', pageSize: 1);
+      await log.write(
+        level: SyncLogLevel.info,
+        operation: 'test',
+        target: 'company',
+        detail: '连接成功，可访问公司数据',
+      );
+      return ConnectionResult(
+        ok: true,
+        message: '连接成功（Twenty 在线）',
+        companyCount: companies.length,
+      );
+    } on TwentyApiException catch (e) {
+      await log.write(
+        level: SyncLogLevel.error,
+        operation: 'test',
+        target: 'server',
+        detail: '连接失败',
+        error: e.toString(),
+      );
+      return ConnectionResult(ok: false, message: e.message);
+    } catch (e) {
+      await log.write(
+        level: SyncLogLevel.error,
+        operation: 'test',
+        target: 'server',
+        detail: '连接异常',
+        error: e.toString(),
+      );
+      return ConnectionResult(ok: false, message: e.toString());
+    }
+  }
+
+  /// 全量拉取指定对象到本地缓存
+  Future<CrmSyncResult> fullPull({
+    Set<String>? objects,
+  }) async {
+    final targets = objects ?? {...defaultObjects, ...customObjects};
+    final pulledByObject = <String, int>{};
+    var total = 0;
+    for (final object in targets) {
+      final count = await pullObject(object);
+      pulledByObject[object] = count;
+      total += count;
+    }
+    final result = CrmSyncResult(
+      syncedAt: DateTime.now(),
+      pulledByObject: pulledByObject,
+      totalPulled: total,
+    );
+    await log.write(
+      level: SyncLogLevel.info,
+      operation: 'pull',
+      target: 'crm',
+      detail: '全量拉取完成：$result',
+    );
+    return result;
+  }
+
+  /// 拉取单个对象并 upsert 本地缓存
+  Future<int> pullObject(String object) async {
+    final entities = await client.listAll(object: object);
+    final now = DateTime.now();
+    final caches = <CrmEntityCache>[];
+    for (final entity in entities) {
+      final existing = await IsarUtil.getCrmEntityByTwentyId(entity.id);
+      final cache = existing ?? CrmEntityCache()..twentyId = entity.id;
+      cache
+        ..entityType = object
+        ..name = entity.data['name']?.toString() ??
+            entity.data['title']?.toString() ??
+            entity.data['contractName']?.toString() ??
+            entity.data['amount']?.toString() ??
+            entity.id
+        ..setData(entity.data)
+        ..isDeleted = false
+        ..lastSyncedAt = now
+        ..updatedAt = now;
+      caches.add(cache);
+    }
+    await IsarUtil.upsertCrmEntities(caches);
+    return caches.length;
+  }
+
+  /// 创建公司并写入本地缓存（推送到 Twenty）
+  Future<TwentyEntity> createCompany({
+    required String name,
+    Map<String, dynamic>? extra,
+  }) async {
+    final created = await client.create(
+      object: 'company',
+      data: {'name': name, ...?extra},
+    );
+    final now = DateTime.now();
+    final cache = CrmEntityCache()
+      ..twentyId = created.id
+      ..entityType = 'company'
+      ..name = name
+      ..setData(created.data)
+      ..lastSyncedAt = now
+      ..updatedAt = now;
+    await IsarUtil.upsertCrmEntities([cache]);
+    await log.write(
+      level: SyncLogLevel.info,
+      operation: 'push',
+      target: 'company',
+      detail: '创建公司 $name（${created.id}）',
+    );
+    return created;
+  }
+
+  /// 删除远端公司并清理本地缓存
+  Future<void> deleteCompany(String id) async {
+    await client.delete(object: 'company', id: id);
+    await IsarUtil.removeCrmEntityByTwentyId(id);
+    await log.write(
+      level: SyncLogLevel.info,
+      operation: 'push',
+      target: 'company',
+      detail: '删除公司 $id',
+    );
+  }
+
+  /// 本地缓存搜索（跨对象）
+  Future<List<CrmEntityCache>> searchLocal(String keyword) {
+    return IsarUtil.searchCrmByName(keyword);
+  }
+
+  /// 本地缓存统计
+  Future<Map<String, int>> localStats() async {
+    final stats = <String, int>{};
+    for (final object in {...defaultObjects, ...customObjects}) {
+      stats[object] = await IsarUtil.countCrmEntitiesByType(object);
+    }
+    return stats;
+  }
+
+  /// 全量对账：对比远端与本地缓存，找出缺失/过期实体（不自动修复）
+  Future<ReconcileResult> reconcile({
+    Set<String> objects = defaultObjects,
+  }) async {
+    final missing = <String, List<String>>{};
+    final stale = <String, List<String>>{};
+
+    for (final object in objects) {
+      final remote = await client.listAll(object: object);
+      final remoteIds = remote.map((e) => e.id).toSet();
+      final local = await IsarUtil.getCrmEntitiesByType(
+        object,
+        includeDeleted: true,
+      );
+      final localIds = local.map((e) => e.twentyId).toSet();
+
+      final missingIds = remoteIds.difference(localIds).toList()..sort();
+      final staleIds = localIds.difference(remoteIds).toList()..sort();
+      if (missingIds.isNotEmpty) missing[object] = missingIds;
+      if (staleIds.isNotEmpty) stale[object] = staleIds;
+    }
+
+    final result = ReconcileResult(
+      checkedAt: DateTime.now(),
+      missingLocal: missing,
+      staleLocal: stale,
+    );
+    await log.write(
+      level: result.totalDiff == 0 ? SyncLogLevel.info : SyncLogLevel.warn,
+      operation: 'reconcile',
+      target: 'crm',
+      detail: '对账完成：差异 ${result.totalDiff} 项',
+    );
+    return result;
+  }
+}

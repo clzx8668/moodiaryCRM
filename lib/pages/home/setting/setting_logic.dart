@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/components/dashboard/dashboard_logic.dart';
+import 'package:moodiary/features/attachments/attachment_manager.dart';
+import 'package:moodiary/features/sync_log/sync_log_page.dart';
 import 'package:moodiary/pages/home/diary/diary_logic.dart';
 import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/persistence/pref.dart';
@@ -49,6 +51,18 @@ class SettingLogic extends GetxController {
     await FileUtil.clearCache();
     await getDataUsage();
     toast.success(message: '清理成功');
+  }
+
+  // 清理孤立附件（数据健康度检查，架构文档"五、设置模块"）
+  Future<void> cleanOrphanAttachments() async {
+    final count = await AttachmentManager.cleanOrphans();
+    toast.success(
+      message: count > 0 ? '已清理 $count 个孤立附件' : '无孤立附件',
+    );
+  }
+
+  void toSyncLogPage() {
+    Get.to(() => const SyncLogPage());
   }
 
   //本地化
@@ -98,6 +112,25 @@ class SettingLogic extends GetxController {
   Future<void> changeBackendPrivacy(bool value) async {
     await PrefUtil.setValue<bool>('backendPrivacy', value);
     state.backendPrivacy.value = value;
+  }
+
+  // 模块开关
+  Future<void> changeModuleCrm(bool value) async {
+    await PrefUtil.setValue<bool>('moduleCrm', value);
+    state.moduleCrm.value = value;
+    update(['ModuleSwitch']);
+  }
+
+  Future<void> changeModuleKnowledgeBase(bool value) async {
+    await PrefUtil.setValue<bool>('moduleKnowledgeBase', value);
+    state.moduleKnowledgeBase.value = value;
+    update(['ModuleSwitch']);
+  }
+
+  Future<void> changeModuleCalendar(bool value) async {
+    await PrefUtil.setValue<bool>('moduleCalendar', value);
+    state.moduleCalendar.value = value;
+    update(['ModuleSwitch']);
   }
 
   //进入回收站

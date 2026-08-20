@@ -57,6 +57,17 @@ add_subdirectory("runner")
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+# [gal 插件 WinRT 链接补丁]
+# gal 插件使用 C++/WinRT（RoGetActivationFactory/RoOriginateLanguageException
+# 等），构建链接时找不到 WINRT_IMPL_* 符号，需显式链接 WinRT 运行库。
+if(MSVC)
+  foreach(_gal_target gal_plugin gal_windows_plugin)
+    if(TARGET ${_gal_target})
+      target_link_libraries(${_gal_target} PRIVATE "windowsapp.lib" "runtimeobject.lib")
+    endif()
+  endforeach()
+endif()
+
 
 # === Installation ===
 # Support files are copied into place next to the executable, so that it can

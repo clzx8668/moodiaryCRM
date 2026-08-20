@@ -23,7 +23,6 @@ class DiaryDetailsLogic extends GetxController {
       //重新获取日记
       state.diary = (await IsarUtil.getDiaryByID(state.diary.isarId))!;
       // if (state.diary.type != DiaryType.markdown.value) {
-      //   quillController = QuillController(
       //     document: Document.fromJson(jsonDecode(state.diary.content)),
       //     readOnly: true,
       //     selection: const TextSelection.collapsed(offset: 0),

@@ -47,3 +47,11 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+
+# 本地敏感配置（Twenty API Key 等，勿提交）
+config/*.local.json
+config/*.local.yaml
+server/.env
+.env
+*.local.dart
+.tools/

@@ -7,6 +7,8 @@ import 'package:moodiary/components/base/modal.dart';
 import 'package:moodiary/components/desktop_wrapper/background.dart';
 import 'package:moodiary/components/home_fab/home_fab_view.dart';
 import 'package:moodiary/components/home_nativatorbar/navigatorbar.dart';
+import 'package:moodiary/features/quick_capture/quick_capture_view.dart';
+import 'package:moodiary/features/crm/crm_home_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/pages/home/calendar/calendar_view.dart';
 import 'package:moodiary/pages/home/diary/diary_view.dart';
@@ -66,6 +68,11 @@ class HomePage extends StatelessWidget {
                                           UniconsSolid.image_v,
                                         ),
                                       ),
+                                      const NavigationDestination(
+                                        icon: Icon(Icons.business_outlined),
+                                        label: 'CRM',
+                                        selectedIcon: Icon(Icons.business_rounded),
+                                      ),
                                       NavigationDestination(
                                         icon: const Icon(
                                           UniconsLine.layer_group,
@@ -89,21 +96,18 @@ class HomePage extends StatelessWidget {
                                 context.theme.colorScheme.surfaceContainer,
                             labelType: NavigationRailLabelType.all,
                             padding: EdgeInsets.zero,
-                            trailing: Expanded(
-                              child: DesktopHomeFabComponent(
-                                isToTopShow: logic.isToTopShow,
-                                toTop: logic.toTop,
-                                toMarkdown: () async {
+                              trailing: Expanded(
+                                child: DesktopHomeFabComponent(
+                                  toQuickCapture: () async {
+                                    await QuickCaptureSheet.show(context);
+                                    // 面板关闭（保存或失焦）后统一刷新首页各视图
+                                    await logic.refreshDiaryLists();
+                                  },
+                                  isToTopShow: logic.isToTopShow,
+                                  toTop: logic.toTop,
+                                toNewDiary: () async {
                                   await logic.toEditPage(
                                     type: DiaryType.markdown,
-                                  );
-                                },
-                                toPlainText: () async {
-                                  await logic.toEditPage(type: DiaryType.text);
-                                },
-                                toRichText: () async {
-                                  await logic.toEditPage(
-                                    type: DiaryType.richText,
                                   );
                                 },
                               ),
@@ -131,6 +135,7 @@ class HomePage extends StatelessWidget {
                           DiaryPage(),
                           CalendarPage(),
                           MediaPage(),
+                          CrmHomePage(),
                           SettingPage(),
                         ],
                       ),
@@ -155,18 +160,23 @@ class HomePage extends StatelessWidget {
         isToTopShow: logic.isToTopShow,
         isExpanded: logic.isFabExpanded,
         showShadow: true,
+        openFab: () async {
+          await QuickCaptureSheet.show(
+            context,
+            onCreate: (type) async {
+              if (Get.isBottomSheetOpen == true) Get.back();
+              await logic.toEditPage(type: type);
+            },
+          );
+          // 面板关闭（保存或失焦）后统一刷新首页各视图
+          await logic.refreshDiaryLists();
+        },
+        onLongPressOpen: logic.openFab,
         toTop: logic.toTop,
-        toMarkdown: () async {
+        toNewDiary: () async {
           await logic.toEditPage(type: DiaryType.markdown);
         },
-        toPlainText: () async {
-          await logic.toEditPage(type: DiaryType.text);
-        },
-        toRichText: () async {
-          await logic.toEditPage(type: DiaryType.richText);
-        },
         closeFab: logic.closeFab,
-        openFab: logic.openFab,
       ),
     );
   }

@@ -93,6 +93,10 @@ class PrefUtil {
     'language',
     // webdav加密
     'syncEncryption',
+    // 模块开关
+    'moduleCrm',
+    'moduleKnowledgeBase',
+    'moduleCalendar',
   };
 
   static Future<void> initPref() async {
@@ -209,6 +213,16 @@ class PrefUtil {
     await _prefs.setBool(
       'syncEncryption',
       _prefs.getBool('syncEncryption') ?? false,
+    );
+    // 模块开关默认全部开启
+    await _prefs.setBool('moduleCrm', _prefs.getBool('moduleCrm') ?? true);
+    await _prefs.setBool(
+      'moduleKnowledgeBase',
+      _prefs.getBool('moduleKnowledgeBase') ?? true,
+    );
+    await _prefs.setBool(
+      'moduleCalendar',
+      _prefs.getBool('moduleCalendar') ?? true,
     );
   }
 

@@ -1,17 +1,10 @@
-import 'package:isar/isar.dart';
-
-part 'category.g.dart';
-
-@collection
 class Category {
-  @Id()
-  late String id;
+  String id = '';
 
   late String categoryName;
 
   String? parentId;
 
-  @Index()
   String get level => parentId ?? 'root';
 
   Category();

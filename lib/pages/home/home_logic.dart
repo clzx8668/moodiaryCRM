@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/components/frosted_glass_overlay/frosted_glass_overlay_logic.dart';
+import 'package:moodiary/pages/home/calendar/calendar_logic.dart';
 import 'package:moodiary/pages/home/diary/diary_logic.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/router/app_routes.dart';
@@ -102,6 +103,24 @@ class HomeLogic extends GetxController with GetTickerProviderStateMixin {
 
   Future<void> toTop() async {
     await diaryLogic.toTop();
+  }
+
+  /// 快速收集保存后刷新首页各视图（列表/网格/日历；块视图由 FutureBuilder 自动刷新）
+  Future<void> refreshDiaryLists() async {
+    // 复用编辑保存后证明有效的刷新链路（默认列表 + 各分类列表）
+    try {
+      await diaryLogic.refreshAll();
+    } catch (_) {
+      // 日记页尚未挂载时跳过，日历仍刷新
+    }
+    try {
+      if (Bind.isRegistered<CalendarLogic>()) {
+        final calendar = Bind.find<CalendarLogic>();
+        await calendar.getMonthDiary(calendar.state.currentMonth.value);
+      }
+    } catch (_) {
+      // 忽略日历刷新失败
+    }
   }
 
   void changeNavigator(int index) {

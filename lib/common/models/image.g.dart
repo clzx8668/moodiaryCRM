@@ -6,24 +6,21 @@ part of 'image.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_BingImage _$BingImageFromJson(Map<String, dynamic> json) => _BingImage(
-  images:
-      (json['images'] as List<dynamic>?)
-          ?.map((e) => Images.fromJson(e as Map<String, dynamic>))
-          .toList(),
-  tooltips:
-      json['tooltips'] == null
-          ? null
-          : Tooltips.fromJson(json['tooltips'] as Map<String, dynamic>),
+BingImage _$BingImageFromJson(Map<String, dynamic> json) => BingImage(
+  images: (json['images'] as List<dynamic>?)
+      ?.map((e) => Images.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  tooltips: json['tooltips'] == null
+      ? null
+      : Tooltips.fromJson(json['tooltips'] as Map<String, dynamic>),
 );
 
-Map<String, dynamic> _$BingImageToJson(_BingImage instance) =>
-    <String, dynamic>{
-      if (instance.images case final value?) 'images': value,
-      if (instance.tooltips case final value?) 'tooltips': value,
-    };
+Map<String, dynamic> _$BingImageToJson(BingImage instance) => <String, dynamic>{
+  'images': ?instance.images,
+  'tooltips': ?instance.tooltips,
+};
 
-_Tooltips _$TooltipsFromJson(Map<String, dynamic> json) => _Tooltips(
+Tooltips _$TooltipsFromJson(Map<String, dynamic> json) => Tooltips(
   loading: json['loading'] as String?,
   previous: json['previous'] as String?,
   next: json['next'] as String?,
@@ -31,15 +28,15 @@ _Tooltips _$TooltipsFromJson(Map<String, dynamic> json) => _Tooltips(
   walls: json['walls'] as String?,
 );
 
-Map<String, dynamic> _$TooltipsToJson(_Tooltips instance) => <String, dynamic>{
-  if (instance.loading case final value?) 'loading': value,
-  if (instance.previous case final value?) 'previous': value,
-  if (instance.next case final value?) 'next': value,
-  if (instance.walle case final value?) 'walle': value,
-  if (instance.walls case final value?) 'walls': value,
+Map<String, dynamic> _$TooltipsToJson(Tooltips instance) => <String, dynamic>{
+  'loading': ?instance.loading,
+  'previous': ?instance.previous,
+  'next': ?instance.next,
+  'walle': ?instance.walle,
+  'walls': ?instance.walls,
 };
 
-_Images _$ImagesFromJson(Map<String, dynamic> json) => _Images(
+Images _$ImagesFromJson(Map<String, dynamic> json) => Images(
   startdate: json['startdate'] as String?,
   fullstartdate: json['fullstartdate'] as String?,
   enddate: json['enddate'] as String?,
@@ -57,20 +54,20 @@ _Images _$ImagesFromJson(Map<String, dynamic> json) => _Images(
   hs: json['hs'] as List<dynamic>?,
 );
 
-Map<String, dynamic> _$ImagesToJson(_Images instance) => <String, dynamic>{
-  if (instance.startdate case final value?) 'startdate': value,
-  if (instance.fullstartdate case final value?) 'fullstartdate': value,
-  if (instance.enddate case final value?) 'enddate': value,
-  if (instance.url case final value?) 'url': value,
-  if (instance.urlbase case final value?) 'urlbase': value,
-  if (instance.copyright case final value?) 'copyright': value,
-  if (instance.copyrightlink case final value?) 'copyrightlink': value,
-  if (instance.title case final value?) 'title': value,
-  if (instance.quiz case final value?) 'quiz': value,
-  if (instance.wp case final value?) 'wp': value,
-  if (instance.hsh case final value?) 'hsh': value,
-  if (instance.drk case final value?) 'drk': value,
-  if (instance.top case final value?) 'top': value,
-  if (instance.bot case final value?) 'bot': value,
-  if (instance.hs case final value?) 'hs': value,
+Map<String, dynamic> _$ImagesToJson(Images instance) => <String, dynamic>{
+  'startdate': ?instance.startdate,
+  'fullstartdate': ?instance.fullstartdate,
+  'enddate': ?instance.enddate,
+  'url': ?instance.url,
+  'urlbase': ?instance.urlbase,
+  'copyright': ?instance.copyright,
+  'copyrightlink': ?instance.copyrightlink,
+  'title': ?instance.title,
+  'quiz': ?instance.quiz,
+  'wp': ?instance.wp,
+  'hsh': ?instance.hsh,
+  'drk': ?instance.drk,
+  'top': ?instance.top,
+  'bot': ?instance.bot,
+  'hs': ?instance.hs,
 };

@@ -239,6 +239,15 @@ class DiaryPage extends StatelessWidget {
                             },
                             child: Text(context.l10n.diaryViewModeGrid),
                           ),
+                          const PopupMenuDivider(),
+                          CheckedPopupMenuItem(
+                            checked:
+                                state.viewModeType.value == ViewModeType.block,
+                            onTap: () async {
+                              await logic.changeViewMode(ViewModeType.block);
+                            },
+                            child: const Text('块视图'),
+                          ),
                         ];
                       },
                     ),

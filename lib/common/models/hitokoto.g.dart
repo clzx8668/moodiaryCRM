@@ -6,8 +6,8 @@ part of 'hitokoto.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_HitokotoResponse _$HitokotoResponseFromJson(Map<String, dynamic> json) =>
-    _HitokotoResponse(
+HitokotoResponse _$HitokotoResponseFromJson(Map<String, dynamic> json) =>
+    HitokotoResponse(
       id: (json['id'] as num?)?.toInt(),
       uuid: json['uuid'] as String?,
       hitokoto: json['hitokoto'] as String?,
@@ -22,18 +22,18 @@ _HitokotoResponse _$HitokotoResponseFromJson(Map<String, dynamic> json) =>
       length: (json['length'] as num?)?.toInt(),
     );
 
-Map<String, dynamic> _$HitokotoResponseToJson(_HitokotoResponse instance) =>
+Map<String, dynamic> _$HitokotoResponseToJson(HitokotoResponse instance) =>
     <String, dynamic>{
-      if (instance.id case final value?) 'id': value,
-      if (instance.uuid case final value?) 'uuid': value,
-      if (instance.hitokoto case final value?) 'hitokoto': value,
-      if (instance.type case final value?) 'type': value,
-      if (instance.from case final value?) 'from': value,
-      if (instance.fromWho case final value?) 'from_who': value,
-      if (instance.creator case final value?) 'creator': value,
-      if (instance.creatorUid case final value?) 'creator_uid': value,
-      if (instance.reviewer case final value?) 'reviewer': value,
-      if (instance.commitFrom case final value?) 'commit_from': value,
-      if (instance.createdAt case final value?) 'created_at': value,
-      if (instance.length case final value?) 'length': value,
+      'id': ?instance.id,
+      'uuid': ?instance.uuid,
+      'hitokoto': ?instance.hitokoto,
+      'type': ?instance.type,
+      'from': ?instance.from,
+      'from_who': ?instance.fromWho,
+      'creator': ?instance.creator,
+      'creator_uid': ?instance.creatorUid,
+      'reviewer': ?instance.reviewer,
+      'commit_from': ?instance.commitFrom,
+      'created_at': ?instance.createdAt,
+      'length': ?instance.length,
     };
