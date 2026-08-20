@@ -1,10 +1,12 @@
 import 'package:cross_file/cross_file.dart';
+import 'dart:io';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/attachments/attachment_manager.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
 import 'package:moodiary/persistence/isar.dart';
+import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/media_util.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -14,6 +16,7 @@ class QuickCaptureSaver {
   static Future<Diary> save({
     required String text,
     required List<QuickAttachment> attachments,
+    String template = '',
   }) async {
     final now = DateTime.now();
 
@@ -26,6 +29,9 @@ class QuickCaptureSaver {
       ..lastModified = now
       ..show = true
       ..mood = 0.5;
+    if (template.isNotEmpty) {
+      diary.tags.add(template);
+    }
 
     // 图片附件走现有媒体管线（压缩保存到 image 目录）
     final images = attachments.where((a) => a.isImage).toList();
@@ -36,8 +42,27 @@ class QuickCaptureSaver {
       diary.imageName = imageNameMap.values.toList();
     }
 
-    // 文档附件：走 Obsidian 模式附件管线（Attachments/Documents/YYYY/MM）
-    final documents = attachments.where((a) => !a.isImage).toList();
+    // 音频附件：复制到 audio 目录
+    final audios = attachments
+        .where((a) => a.type == QuickAttachmentType.audio)
+        .toList();
+    final audioNames = <String>[];
+    for (final audio in audios) {
+      final ext = p.extension(audio.path).isEmpty ? '.m4a' : p.extension(audio.path);
+      final name = 'audio-${const Uuid().v7()}$ext';
+      await File(audio.path).copy(FileUtil.getRealPath('audio', name));
+      audioNames.add(name);
+    }
+    diary.audioName = audioNames;
+
+    // 文档/其他附件：走 Obsidian 模式附件管线（Attachments/Documents/YYYY/MM）
+    final documents = attachments
+        .where(
+          (a) =>
+              a.type == QuickAttachmentType.document ||
+              a.type == QuickAttachmentType.other,
+        )
+        .toList();
     final docRefs = <String>[];
     if (documents.isNotEmpty) {
       for (final doc in documents) {
@@ -49,7 +74,7 @@ class QuickCaptureSaver {
       }
     }
 
-    diary.content = _buildContent(text, attachments, docRefs);
+    diary.content = _buildContent(text, attachments, docRefs, audioNames);
     await IsarUtil.insertADiary(diary);
 
     // Block 协议：每条速记生成一个 text Block（数据层 P1.1 提供）
@@ -85,13 +110,19 @@ class QuickCaptureSaver {
     String text,
     List<QuickAttachment> attachments,
     List<String> docRefs,
+    List<String> audioNames,
   ) {
     final buffer = StringBuffer(text.trim());
     var docIndex = 0;
+    var audioIndex = 0;
     for (final attachment in attachments) {
       if (buffer.isNotEmpty) buffer.writeln();
       if (attachment.isImage) {
         buffer.write('![](${p.basename(attachment.path)})');
+      } else if (attachment.type == QuickAttachmentType.audio) {
+        final name = audioIndex < audioNames.length ? audioNames[audioIndex] : '';
+        audioIndex++;
+        buffer.write('🔊 [${attachment.name}]($name)');
       } else {
         final rel = docIndex < docRefs.length ? docRefs[docIndex] : '';
         docIndex++;

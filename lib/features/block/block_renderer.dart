@@ -54,10 +54,14 @@ class SmartBlockView extends StatelessWidget {
   final Diary diary;
   final ColorScheme? customColorScheme;
 
+  /// 点击块的回调（文本/Markdown 块点击进入编辑器）
+  final void Function(Block block)? onTapBlock;
+
   const SmartBlockView({
     super.key,
     required this.diary,
     this.customColorScheme,
+    this.onTapBlock,
   });
 
   @override
@@ -80,7 +84,14 @@ class SmartBlockView extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final block in blocks) _BlockItem(block: block, colorScheme: colorScheme),
+            for (final block in blocks)
+              _BlockItem(
+                block: block,
+                colorScheme: colorScheme,
+                onTap: onTapBlock == null
+                    ? null
+                    : () => onTapBlock!(block),
+              ),
           ],
         );
       },
@@ -91,19 +102,24 @@ class SmartBlockView extends StatelessWidget {
 class _BlockItem extends StatelessWidget {
   final Block block;
   final ColorScheme colorScheme;
+  final VoidCallback? onTap;
 
-  const _BlockItem({required this.block, required this.colorScheme});
+  const _BlockItem({required this.block, required this.colorScheme, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     switch (block.blockType) {
       case BlockType.text:
       case BlockType.aiStream:
-        return Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: MarkdownContentView(
-            data: block.content,
-            customColorScheme: colorScheme,
+        return InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: MarkdownContentView(
+              data: block.content,
+              customColorScheme: colorScheme,
+            ),
           ),
         );
       case BlockType.todo:

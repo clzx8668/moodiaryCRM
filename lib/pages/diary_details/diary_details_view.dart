@@ -253,6 +253,9 @@ class DiaryDetailsPage extends StatelessWidget {
                             child: SmartBlockView(
                               diary: state.diary,
                               customColorScheme: customColorScheme,
+                              onTapBlock: (_) {
+                                logic.toEditPage(state.diary);
+                              },
                             ),
                           ),
                         ],
