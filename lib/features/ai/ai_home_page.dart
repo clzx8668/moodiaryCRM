@@ -149,9 +149,16 @@ class _AiHomePageState extends State<AiHomePage> {
       // RAG 上下文（选择知识库时）
       String? ragContext;
       if (_kb != null) {
-        final ctx = await _rag.buildContext(_kb!.id, text, topK: 5);
-        _lastSources = ctx.hits;
-        ragContext = ctx.context;
+        try {
+          final ctx = await _rag.buildContext(_kb!.id, text, topK: 5);
+          _lastSources = ctx.hits;
+          ragContext = ctx.context;
+        } catch (e) {
+          // Embedding/检索失败时降级为普通对话，不让整次问答中断
+          ragContext = null;
+          _lastSources = [];
+          toast.info(message: '知识库检索失败，已切换为普通对话：${_shortError(e)}');
+        }
       }
       final system = [
         '你是用户的个人 AI 助手。回答使用 Markdown，简洁有条理。',
@@ -546,6 +553,15 @@ class _AiHomePageState extends State<AiHomePage> {
   void _copy(String text) {
     Clipboard.setData(ClipboardData(text: text));
     toast.success(message: '已复制');
+  }
+
+  /// 提取简短错误信息（避免把 dio 堆栈整段抛给用户）
+  String _shortError(Object e) {
+    final text = e.toString();
+    // StateError 的 message 即为友好提示
+    if (e is StateError) return e.message;
+    final trimmed = text.trim();
+    return trimmed.length <= 80 ? trimmed : '${trimmed.substring(0, 80)}…';
   }
 
   Widget _iconAction({

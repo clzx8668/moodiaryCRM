@@ -117,7 +117,14 @@ class _KnowledgeBasePageState extends State<KnowledgeBasePage> {
   Future<void> _indexAll(KnowledgeBase kb) async {
     toast.info(message: '正在索引全部文本卡片（可能需要几分钟）…');
     final count = await _service.indexBlocks(knowledgeBaseId: kb.id);
-    toast.success(message: '索引完成：$count 个卡片');
+    if (count == 0) {
+      toast.info(
+        message: '未能索引任何卡片：请检查 AI 设置中的 Embedding 模型。'
+            '（DeepSeek 暂未提供 embeddings 接口，需使用支持 embeddings 的 OpenAI 兼容服务）',
+      );
+    } else {
+      toast.success(message: '索引完成：$count 个卡片');
+    }
     await _load();
   }
 

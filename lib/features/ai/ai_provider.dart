@@ -110,7 +110,7 @@ class AiConnectionTester {
       if (e.response?.statusCode == 401) {
         return const AiConnectionResult(ok: false, message: 'API Key 无效（401）');
       }
-      if (e.response?.statusCode == 404) {
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 400) {
         // 部分服务商不支持 /models，回退最小 chat 请求
         return _pingChat(client, config, headers);
       }
@@ -310,26 +310,37 @@ class OpenAiCompatibleProvider implements AiProvider {
     if (!isConfigured) {
       throw StateError('AI 未配置：请先在设置中填写 API Key');
     }
-    final response = await dio.post<Map<String, dynamic>>(
-      config.embeddingsUrl,
-      options: Options(
-        headers: {
-          'Authorization': 'Bearer ${config.apiKey}',
-          'Content-Type': 'application/json',
+    try {
+      final response = await dio.post<Map<String, dynamic>>(
+        config.embeddingsUrl,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer ${config.apiKey}',
+            'Content-Type': 'application/json',
+          },
+        ),
+        data: {
+          'model': config.embeddingModel,
+          'input': text,
         },
-      ),
-      data: {
-        'model': config.embeddingModel,
-        'input': text,
-      },
-    );
-    final data = response.data;
-    final list = data?['data'] as List?;
-    if (list == null || list.isEmpty) {
-      throw StateError('Embedding 响应为空');
+      );
+      final data = response.data;
+      final list = data?['data'] as List?;
+      if (list == null || list.isEmpty) {
+        throw StateError('Embedding 响应为空');
+      }
+      final embedding =
+          (list.first as Map<String, dynamic>)['embedding'] as List;
+      return embedding.cast<num>().map((e) => e.toDouble()).toList();
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      throw StateError(
+        'Embedding 接口调用失败${code != null ? '（$code）' : ''}：'
+        '请确认服务商支持 embeddings 且模型名正确（如 text-embedding-3-small）。'
+        '注意：DeepSeek 暂未提供 embeddings 接口，知识库检索需使用支持 embeddings 的 OpenAI 兼容服务。'
+        '${e.response?.data is Map ? ' 服务端提示：${(e.response!.data as Map)["message"] ?? (e.response!.data as Map)["error"] ?? ""}' : ''}',
+      );
     }
-    final embedding = (list.first as Map<String, dynamic>)['embedding'] as List;
-    return embedding.cast<num>().map((e) => e.toDouble()).toList();
   }
 
   String? _extractDelta(String data) {

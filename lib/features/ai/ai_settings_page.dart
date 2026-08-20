@@ -148,6 +148,15 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               border: OutlineInputBorder(),
             ),
           ),
+          const SizedBox(height: 6),
+          Text(
+            '提示：DeepSeek 暂未提供 embeddings 接口；'
+            '知识库检索需搭配支持 embeddings 的 OpenAI 兼容服务（如 OpenAI 官方）。',
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: _testing ? null : _testConnection,

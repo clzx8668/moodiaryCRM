@@ -70,6 +70,14 @@ void main() {
     expect(result.message, contains('chat 接口可用'));
   });
 
+  test('/models 400 同样回退 chat 接口并成功', () async {
+    final dio = Dio()
+      ..httpClientAdapter = _FakeAdapter(modelsStatus: 400, modelsBody: {});
+    final result = await AiConnectionTester.test(_config(), dio: dio);
+    expect(result.ok, isTrue);
+    expect(result.message, contains('chat 接口可用'));
+  });
+
   test('500 返回失败信息', () async {
     final dio = Dio()
       ..httpClientAdapter = _FakeAdapter(
