@@ -25,16 +25,19 @@ class LocalSendClientComponent extends StatelessWidget {
           ),
         );
       } else if (state.serverIp == null) {
-        return AdaptiveListTile(
-          title: context.l10n.lanTransferCantFindServer,
-          leading: const FaIcon(FontAwesomeIcons.triangleExclamation),
-          trailing: FilledButton(
-            onPressed: () {
-              logic.restartFindServer();
-            },
-            child: const FaIcon(FontAwesomeIcons.repeat),
-          ),
-        );
+        return Obx(() {
+          return AdaptiveListTile(
+            title: context.l10n.lanTransferCantFindServer,
+            subtitle: state.findStatus.value,
+            leading: const FaIcon(FontAwesomeIcons.triangleExclamation),
+            trailing: FilledButton(
+              onPressed: () {
+                logic.restartFindServer();
+              },
+              child: const FaIcon(FontAwesomeIcons.repeat),
+            ),
+          );
+        });
       } else {
         return AdaptiveListTile(
           title: state.serverName!,

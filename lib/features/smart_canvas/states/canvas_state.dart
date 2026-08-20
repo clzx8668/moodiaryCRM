@@ -18,9 +18,16 @@ class CanvasState {
   RxString diaryTitle = ''.obs;
 
   CanvasState() {
-    final args = Get.arguments;
-    diary = args[0] as Diary;
-    showAction = args[1] as bool? ?? true;
+    try {
+      final args = Get.arguments;
+      diary = args is List && args.isNotEmpty ? args[0] as Diary : Diary();
+      showAction =
+          args is List && args.length > 1 ? args[1] as bool? ?? true : true;
+    } catch (_) {
+      // 组件树外直接构造（单元测试）时兜底
+      diary = Diary();
+      showAction = true;
+    }
     diaryTitle.value = diary.title;
   }
 }

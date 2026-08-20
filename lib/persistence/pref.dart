@@ -9,9 +9,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PrefUtil {
-  static late final SharedPreferencesWithCache _prefs;
+  static late SharedPreferencesWithCache _prefs;
 
-  static const allowList = {
+  /// 允许持久化的键（公开供测试注入同构实例）
+  static const Set<String> prefAllowList = {
     //应用版本
     'appVersion',
     //首次启动标识
@@ -102,7 +103,7 @@ class PrefUtil {
   static Future<void> initPref() async {
     _prefs = await SharedPreferencesWithCache.create(
       cacheOptions: const SharedPreferencesWithCacheOptions(
-        allowList: allowList,
+        allowList: prefAllowList,
       ),
     );
     // 首次启动
@@ -124,6 +125,12 @@ class PrefUtil {
       //初始化所需目录
       await FileUtil.initCreateDir();
     }
+  }
+
+  /// 测试接缝：注入内存 SharedPreferences（跳过平台插件初始化链）
+  @visibleForTesting
+  static void overridePrefsForTest(SharedPreferencesWithCache prefs) {
+    _prefs = prefs;
   }
 
   // 设置默认值的方法

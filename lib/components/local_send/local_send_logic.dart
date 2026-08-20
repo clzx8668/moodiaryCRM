@@ -9,26 +9,41 @@ import 'package:network_info_plus/network_info_plus.dart';
 import 'local_send_state.dart';
 
 Future<String?> getDeviceIP() async {
-  // 获取当前的连接状态
-  final connectivityResult = await Connectivity().checkConnectivity();
-
-  if (connectivityResult.isNotEmpty) {
-    // 如果当前连接到wifi
+  // 优先 WiFi IP；失败时枚举网卡兜底（不依赖 connectivity 判定，
+  // 避免探测异常导致服务端静默无法启动）
+  try {
+    final connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult.contains(ConnectivityResult.wifi)) {
-      final info = NetworkInfo();
-      return info.getWifiIP();
-    } else {
-      // 获取所有网络接口
-      for (final interface in await NetworkInterface.list()) {
-        // 检查接口是否有 IPv4 地址
-        for (final address in interface.addresses) {
-          if (address.type == InternetAddressType.IPv4) {
-            return address.address; // 返回第一个有效的 IPv4 地址
-          }
+      final wifiIp = await NetworkInfo().getWifiIP();
+      if (wifiIp != null && wifiIp.isNotEmpty) return wifiIp;
+    }
+  } catch (_) {
+    // 忽略 connectivity 探测失败，继续兜底
+  }
+
+  final private = RegExp(r'^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)');
+  try {
+    // 优先私网 IPv4（局域网同步需要）
+    for (final interface in await NetworkInterface.list()) {
+      for (final address in interface.addresses) {
+        if (address.type == InternetAddressType.IPv4 &&
+            !address.isLoopback &&
+            !address.isLinkLocal &&
+            private.hasMatch(address.address)) {
+          return address.address;
         }
       }
     }
-  }
+    // 最后兜底：任意非回环 IPv4
+    for (final interface in await NetworkInterface.list()) {
+      for (final address in interface.addresses) {
+        if (address.type == InternetAddressType.IPv4 &&
+            !address.isLoopback) {
+          return address.address;
+        }
+      }
+    }
+  } catch (_) {}
 
   return null; // 未连接网络或无法获取 IP 地址
 }

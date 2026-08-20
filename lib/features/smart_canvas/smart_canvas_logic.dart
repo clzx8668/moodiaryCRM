@@ -26,7 +26,7 @@ class SmartCanvasLogic extends GetxController {
   final SyncState sync = SyncState();
 
   late final CanvasDatasource datasource;
-  late final AiProvider aiProvider;
+  late AiProvider aiProvider;
 
   /// 展开的卡片 id 集合（折叠策略）
   final Set<String> expandedIds = <String>{};

@@ -1,10 +1,47 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moodiary/features/ai/prompts.dart';
+import 'package:moodiary/features/ai/ai_provider.dart';
+import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/smart_canvas/services/card_action_router.dart';
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
 import 'package:moodiary/features/smart_canvas/states/block_list_state.dart';
 import 'package:moodiary/features/smart_canvas/states/streaming_state.dart';
+import 'package:moodiary/persistence/isar.dart';
+import 'package:moodiary/persistence/pref.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../helpers/db_test_helper.dart';
+
+/// 测试流式 Provider：返回一段文本后完成
+class FakeStreamProvider implements AiProvider {
+  final String text;
+
+  const FakeStreamProvider({this.text = 'AI 处理结果'});
+
+  @override
+  bool get isConfigured => true;
+
+  @override
+  Stream<AiChunk> streamTemplate({
+    required String content,
+    required String template,
+  }) async* {
+    yield AiChunk(text: text);
+    yield const AiChunk(done: true);
+  }
+
+  @override
+  Stream<AiChunk> streamChat(List<AiChatMessage> messages) async* {
+    yield AiChunk(text: text);
+    yield const AiChunk(done: true);
+  }
+
+  @override
+  Future<List<double>> embed(String text) async => [1.0, 0.0];
+}
 
 void main() {
   group('BlockListState', () {
@@ -132,6 +169,52 @@ void main() {
         expect(AiTemplates.prompt(t), isNotEmpty, reason: '模板 $t');
         expect(AiTemplates.label(t), isNotEmpty, reason: '模板 $t');
       }
+    });
+  });
+
+  group('SmartCanvasLogic AI 生命周期', () {
+    test('aiProvider 可惰性替换（回归：构造后再初始化不再抛 LateInitializationError）', () {
+      final logic = SmartCanvasLogic();
+      expect(logic.aiProvider, isA<UnconfiguredAiProvider>());
+      logic.aiProvider = const FakeStreamProvider();
+      expect(logic.aiProvider, isA<FakeStreamProvider>());
+    });
+
+    test('runAiTemplate 完整生命周期：流式 → 转正（回归模板 AI 崩溃）', () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final prefs = await SharedPreferencesWithCache.create(
+        cacheOptions: const SharedPreferencesWithCacheOptions(
+          allowList: PrefUtil.prefAllowList,
+        ),
+      );
+      await prefs.setStringList('webDavOption', []);
+      await prefs.setBool('autoSyncAfterChange', false);
+      PrefUtil.overridePrefsForTest(prefs);
+      final db = openTestDb();
+      addTearDown(() => closeTestDb(db));
+      final diary = Diary()
+        ..id = 'd-ai'
+        ..title = '测试'
+        ..content = '源内容'
+        ..contentText = '源内容'
+        ..type = 'markdown'
+        ..time = DateTime(2026, 8, 20);
+      await IsarUtil.insertADiary(diary);
+
+      final logic = SmartCanvasLogic(aiProvider: const FakeStreamProvider());
+      logic.canvasState.diary = diary;
+      final source = Block()
+        ..diaryId = diary.id
+        ..content = '帮我总结一下';
+      await logic.runAiTemplate(source, AiTemplates.summary);
+
+      expect(logic.blockList.blocks, hasLength(1));
+      final promoted = logic.blockList.blocks.first;
+      expect(promoted.blockType, BlockType.text);
+      expect(promoted.content, 'AI 处理结果');
+      expect(promoted.streamComplete, isTrue);
     });
   });
 }

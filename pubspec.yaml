@@ -138,6 +138,7 @@ dev_dependencies:
   flutter_gen: 5.15.0
   flutter_gen_runner: 5.15.0
   json_serializable: 6.14.1
+  shared_preferences_platform_interface: ^2.4.1
 
 
 dependency_overrides:

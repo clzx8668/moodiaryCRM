@@ -86,6 +86,9 @@ class LocalSendClientLogic extends GetxController {
     Future.delayed(timeout, () {
       if (!completer.isCompleted) {
         timer?.cancel();
+        state.findStatus.value =
+            '未找到接收端：请确认另一台设备已打开「接收」标签、两台设备处于同一局域网，'
+            '且防火墙放行了 $scanPort（扫描）与 ${localSendLogic.state.transferPort.value}（传输）端口。';
         completer.complete(false);
       }
     });
@@ -107,6 +110,8 @@ class LocalSendClientLogic extends GetxController {
           state.serverIp = serverInfo[0];
           state.serverPort = int.parse(serverInfo[1]);
           state.serverName = serverInfo[2];
+          state.findStatus.value =
+              '已找到服务器：${state.serverName}（${state.serverIp}:${state.serverPort}）';
           state.isFindingServer = false;
           update();
 
@@ -122,6 +127,7 @@ class LocalSendClientLogic extends GetxController {
 
     // 初次发送广播
     _sendBroadcast();
+    state.findStatus.value = '正在查找服务器…';
 
     return completer.future;
   }
