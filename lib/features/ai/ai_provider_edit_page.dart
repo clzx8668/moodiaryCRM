@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:moodiary/features/ai/ai_config.dart';
+import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_provider_store.dart';
 import 'package:moodiary/features/ai/models/ai_provider_config.dart';
 import 'package:moodiary/utils/notice_util.dart';
@@ -22,6 +24,9 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
   late final TextEditingController _description;
   bool _obscureKey = true;
   bool _saving = false;
+  bool _fetching = false;
+  List<String> _fetchedModels = [];
+  String? _fetchError;
 
   @override
   void initState() {
@@ -62,6 +67,50 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
     await AiProviderStore.upsert(_config);
     toast.success(message: '已保存');
     if (mounted) Navigator.pop(context, true);
+  }
+
+  Future<void> _fetchModels() async {
+    if (_fetching) return;
+    if (_baseUrl.text.trim().isEmpty || _apiKey.text.trim().isEmpty) {
+      toast.info(message: '请先填写 Base URL 与 API Key');
+      return;
+    }
+    setState(() {
+      _fetching = true;
+      _fetchError = null;
+    });
+    try {
+      final models = await AiModelsFetcher.fetchModels(
+        AiConfig(
+          baseUrl: _baseUrl.text.trim(),
+          apiKey: _apiKey.text.trim(),
+          model: AiConfig.defaultModel,
+        ),
+      );
+      if (!mounted) return;
+      setState(() {
+        _fetchedModels = models;
+        _fetching = false;
+      });
+      toast.success(message: '共获取 ${models.length} 个模型，请勾选需要的模型');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _fetching = false;
+        _fetchError = '拉取失败：$e';
+      });
+      toast.error(message: '拉取模型列表失败，请检查 Base URL / API Key');
+    }
+  }
+
+  void _toggleModel(String model, bool selected) {
+    setState(() {
+      if (selected) {
+        if (!_config.models.contains(model)) _config.models.add(model);
+      } else {
+        _config.models.remove(model);
+      }
+    });
   }
 
   @override
@@ -128,6 +177,108 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
               border: OutlineInputBorder(),
             ),
           ),
+          const SizedBox(height: 8),
+          const Divider(),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '可用模型（从官方拉取后勾选）',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _fetching ? null : _fetchModels,
+                icon: _fetching
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.cloud_download_outlined, size: 16),
+                label: Text(_fetching ? '拉取中…' : '拉取模型列表'),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ],
+          ),
+          if (_fetchError != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                _fetchError!,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ),
+          if (_fetchedModels.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final model in _fetchedModels)
+                  FilterChip(
+                    label: Text(model, style: const TextStyle(fontSize: 12)),
+                    selected: _config.models.contains(model),
+                    visualDensity: VisualDensity.compact,
+                    onSelected: (v) => _toggleModel(model, v),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () => setState(() {
+                    _config.models
+                      ..clear()
+                      ..addAll(_fetchedModels);
+                  }),
+                  child: const Text('全选', style: TextStyle(fontSize: 12)),
+                ),
+                TextButton(
+                  onPressed: () => setState(() => _config.models.clear()),
+                  child: const Text('清空', style: TextStyle(fontSize: 12)),
+                ),
+                if (_config.models.isNotEmpty)
+                  Text(
+                    '已选 ${_config.models.length} 个',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ] else if (_config.models.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final model in _config.models)
+                  Chip(
+                    label: Text(model, style: const TextStyle(fontSize: 12)),
+                    visualDensity: VisualDensity.compact,
+                    onDeleted: () => _toggleModel(model, false),
+                  ),
+              ],
+            ),
+          ] else
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                '尚未选择模型，可点击右上按钮从官方 /models 拉取',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
           const SizedBox(height: 8),
           SwitchListTile(
             value: _config.enabled,

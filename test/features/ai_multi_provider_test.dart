@@ -92,6 +92,18 @@ void main() {
       expect(cfg.name, 'A');
       expect(copy.name, 'B');
     });
+
+    test('models 列表 JSON 往返', () {
+      final cfg = AiProviderConfig()
+        ..id = 'm1'
+        ..models.addAll(['deepseek-chat', 'deepseek-reasoner']);
+      final restored = AiProviderConfig.fromJson(cfg.toJson());
+      expect(restored.models, ['deepseek-chat', 'deepseek-reasoner']);
+      // clone 深拷贝
+      final cloned = cfg.clone()..models.remove('deepseek-chat');
+      expect(cfg.models, hasLength(2));
+      expect(cloned.models, ['deepseek-reasoner']);
+    });
   });
 
   group('AiProviderStore 纯函数', () {

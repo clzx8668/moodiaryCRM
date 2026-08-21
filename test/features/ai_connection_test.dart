@@ -88,4 +88,27 @@ void main() {
     final result = await AiConnectionTester.test(_config(), dio: dio);
     expect(result.ok, isFalse);
   });
+
+  group('AiModelsFetcher', () {
+    test('解析 /models 官方模型列表', () async {
+      final dio = Dio()
+        ..httpClientAdapter = _FakeAdapter(
+          modelsBody: {
+            'data': [
+              {'id': 'deepseek-chat'},
+              {'id': 'deepseek-reasoner'},
+            ],
+          },
+        );
+      final models = await AiModelsFetcher.fetchModels(_config(), dio: dio);
+      expect(models, ['deepseek-chat', 'deepseek-reasoner']);
+    });
+
+    test('空列表返回空', () async {
+      final dio = Dio()
+        ..httpClientAdapter = _FakeAdapter(modelsBody: {'data': []});
+      final models = await AiModelsFetcher.fetchModels(_config(), dio: dio);
+      expect(models, isEmpty);
+    });
+  });
 }

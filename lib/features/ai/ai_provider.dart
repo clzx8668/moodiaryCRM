@@ -65,6 +65,41 @@ class AiConnectionResult {
   const AiConnectionResult({required this.ok, required this.message});
 }
 
+/// 拉取服务商官方模型列表（OpenAI 兼容 `/models` 接口）。
+class AiModelsFetcher {
+  AiModelsFetcher._();
+
+  static Future<List<String>> fetchModels(
+    AiConfig config, {
+    Dio? dio,
+  }) async {
+    final client =
+        dio ??
+        Dio(
+          BaseOptions(
+            connectTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 30),
+          ),
+        );
+    final resp = await client.get<Map<String, dynamic>>(
+      '${config.baseUrl.replaceAll(RegExp(r'/+$'), '')}/models',
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer ${config.apiKey}',
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
+    final data = resp.data;
+    final list = data?['data'] as List?;
+    if (list == null) return [];
+    return list
+        .map((m) => m is Map ? m['id']?.toString() : null)
+        .whereType<String>()
+        .toList();
+  }
+}
+
 /// 连接测试：优先探测 `/models` 接口，不支持时回退最小 chat 请求。
 class AiConnectionTester {
   AiConnectionTester._();

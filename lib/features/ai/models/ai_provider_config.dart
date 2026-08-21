@@ -37,6 +37,9 @@ class AiProviderConfig {
   /// 主备优先级：0 为主，越大越靠后（备用）
   int priority = 0;
 
+  /// 从服务商 /models 拉取并勾选后的可用模型列表（功能模型从这里选）
+  List<String> models = [];
+
   String description = '';
 
   DateTime updatedAt = DateTime.now();
@@ -70,6 +73,7 @@ class AiProviderConfig {
       ..voiceModel = voiceModel
       ..enabled = enabled
       ..priority = priority
+      ..models = List<String>.from(models)
       ..description = description
       ..updatedAt = DateTime.fromMillisecondsSinceEpoch(
         updatedAt.millisecondsSinceEpoch,
@@ -88,6 +92,7 @@ class AiProviderConfig {
       'voiceModel': voiceModel,
       'enabled': enabled,
       'priority': priority,
+      'models': models,
       'description': description,
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -105,6 +110,8 @@ class AiProviderConfig {
       ..voiceModel = json['voiceModel'] as String? ?? ''
       ..enabled = json['enabled'] as bool? ?? true
       ..priority = (json['priority'] as num?)?.toInt() ?? 0
+      ..models =
+          (json['models'] as List?)?.cast<String>() ?? <String>[]
       ..description = json['description'] as String? ?? ''
       ..updatedAt = DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
           DateTime.now();

@@ -442,15 +442,16 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               ),
               if (showModelField) ...[
                 const SizedBox(height: 10),
-                TextFormField(
-                  initialValue: capability.modelName,
-                  decoration: const InputDecoration(
-                    labelText: '模型名',
-                    border: OutlineInputBorder(),
-                    isDense: true,
+                _ModelField(
+                  key: ValueKey(
+                    '${capability.id}-${capability.providerId}-${capability.modelName}',
                   ),
-                  onChanged: (v) => capability.modelName = v.trim(),
-                  onFieldSubmitted: (_) => _saveCaps(),
+                  models: selectedProvider?.models ?? const [],
+                  modelName: capability.modelName,
+                  onChanged: (v) {
+                    capability.modelName = v;
+                    _saveCaps();
+                  },
                 ),
               ],
             ],
@@ -468,6 +469,53 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       if (c.id == id) return c;
     }
     return null;
+  }
+}
+
+/// 模型名选择：优先下拉已选服务商的可用模型，空列表时回退手输。
+class _ModelField extends StatelessWidget {
+  final List<String> models;
+  final String modelName;
+  final ValueChanged<String> onChanged;
+
+  const _ModelField({
+    super.key,
+    required this.models,
+    required this.modelName,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (models.isEmpty) {
+      return TextFormField(
+        initialValue: modelName,
+        decoration: const InputDecoration(
+          labelText: '模型名',
+          helperText: '该服务商尚未选择模型，可先到「服务商」拉取官方模型列表',
+          border: OutlineInputBorder(),
+          isDense: true,
+        ),
+        onChanged: (v) => onChanged(v.trim()),
+      );
+    }
+
+    return DropdownButtonFormField<String>(
+      initialValue: modelName,
+      decoration: const InputDecoration(
+        labelText: '模型名',
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      items: [
+        for (final m in models) DropdownMenuItem(value: m, child: Text(m)),
+        if (!models.contains(modelName) && modelName.isNotEmpty)
+          DropdownMenuItem(value: modelName, child: Text('$modelName（自定义）')),
+      ],
+      onChanged: (v) {
+        if (v != null) onChanged(v);
+      },
+    );
   }
 }
 
