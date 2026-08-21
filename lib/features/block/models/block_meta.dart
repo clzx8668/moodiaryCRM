@@ -34,6 +34,9 @@ class BlockMeta {
   /// AI 处理源内容快照（aiStream 断点恢复用，P2.9）
   String sourceContent;
 
+  /// 到期时间（ISO 8601 文本，待办类 Block 用；空串表示无到期）
+  String dueDate;
+
   BlockMeta({
     this.source = sourceInitial,
     this.syncStatus = syncSynced,
@@ -41,6 +44,7 @@ class BlockMeta {
     this.entityType = '',
     this.title = '',
     this.sourceContent = '',
+    this.dueDate = '',
   });
 
   bool get isAi => source == sourceAi;
@@ -61,6 +65,7 @@ class BlockMeta {
       entityType: entityType,
       title: title,
       sourceContent: sourceContent,
+      dueDate: dueDate,
     );
   }
 
@@ -72,6 +77,7 @@ class BlockMeta {
       'entityType': entityType,
       'title': title,
       'sourceContent': sourceContent,
+      'dueDate': dueDate,
     };
   }
 
@@ -83,6 +89,7 @@ class BlockMeta {
       entityType: json['entityType'] as String? ?? '',
       title: json['title'] as String? ?? '',
       sourceContent: json['sourceContent'] as String? ?? '',
+      dueDate: json['dueDate'] as String? ?? '',
     );
   }
 
@@ -109,7 +116,8 @@ class BlockMeta {
           aiTemplate == other.aiTemplate &&
           entityType == other.entityType &&
           title == other.title &&
-          sourceContent == other.sourceContent;
+          sourceContent == other.sourceContent &&
+          dueDate == other.dueDate;
 
   @override
   int get hashCode =>
@@ -120,5 +128,6 @@ class BlockMeta {
         entityType,
         title,
         sourceContent,
+        dueDate,
       );
 }
