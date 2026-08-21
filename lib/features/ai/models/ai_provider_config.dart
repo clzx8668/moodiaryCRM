@@ -50,10 +50,16 @@ class AiProviderConfig {
 
   /// 转单配置（连接测试 / OpenAI 兼容实现使用）
   AiConfig toAiConfig({String embeddingModelOverride = ''}) {
+    // 对话模型 fallback：默认对话模型 → 勾选模型列表第一个 → 兜底
+    final model = chatModel.trim().isNotEmpty
+        ? chatModel
+        : models.isNotEmpty
+        ? models.first
+        : AiConfig.defaultModel;
     return AiConfig(
       baseUrl: baseUrl,
       apiKey: apiKey,
-      model: chatModel.trim().isEmpty ? AiConfig.defaultModel : chatModel,
+      model: model,
       embeddingModel: embeddingModel.trim().isEmpty
           ? AiConfig.defaultEmbeddingModel
           : embeddingModel,

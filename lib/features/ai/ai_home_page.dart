@@ -12,6 +12,7 @@ import 'package:moodiary/features/rag/rag_service.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/router/app_routes.dart';
+import 'package:moodiary/features/sync_log/sync_log.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// AI 综合交互页（主流 AI 界面范式）：
@@ -177,6 +178,12 @@ class _AiHomePageState extends State<AiHomePage> {
       await for (final chunk in provider.streamChat(messages)) {
         if (!mounted) return;
         if (chunk.error != null) {
+          await SyncLogService.instance.write(
+            level: SyncLogLevel.error,
+            operation: 'ai',
+            target: 'chat',
+            detail: 'AI 对话失败：${chunk.error}',
+          );
           toast.error(message: chunk.error!);
           break;
         }

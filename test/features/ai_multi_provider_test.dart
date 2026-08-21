@@ -86,6 +86,14 @@ void main() {
       expect(ai.embeddingModel, 'e1');
     });
 
+    test('toAiConfig 对话模型 fallback：勾选列表第一个', () {
+      final cfg = AiProviderConfig()
+        ..baseUrl = 'https://x/v1'
+        ..apiKey = 'k'
+        ..models.addAll(['gpt-4o', 'gpt-4']);
+      expect(cfg.toAiConfig().model, 'gpt-4o');
+    });
+
     test('clone 深拷贝互不影响', () {
       final cfg = AiProviderConfig()..name = 'A';
       final copy = cfg.clone()..name = 'B';

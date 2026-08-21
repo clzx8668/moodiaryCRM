@@ -111,4 +111,44 @@ void main() {
       expect(models, isEmpty);
     });
   });
+
+  group('OpenAiCompatibleProvider 错误详情', () {
+    test('serverMessage 提取服务端错误信息', () {
+      expect(
+        OpenAiCompatibleProvider.serverMessage({
+          'error': {'message': 'Model Not Exist'},
+        }),
+        'Model Not Exist',
+      );
+      expect(
+        OpenAiCompatibleProvider.serverMessage({'error': 'bad key'}),
+        'bad key',
+      );
+      expect(
+        OpenAiCompatibleProvider.serverMessage({'message': '限流'}),
+        '限流',
+      );
+      expect(OpenAiCompatibleProvider.serverMessage(null), isNull);
+      expect(
+        OpenAiCompatibleProvider.serverMessage({'data': []}),
+        isNull,
+      );
+    });
+
+    test('dioErrorDetail 带服务端原因', () {
+      final e = DioException(
+        requestOptions: RequestOptions(path: '/chat/completions'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/chat/completions'),
+          statusCode: 400,
+          data: {
+            'error': {'message': 'Invalid model: xxx'},
+          },
+        ),
+      );
+      final detail = OpenAiCompatibleProvider.dioErrorDetail(e);
+      expect(detail, contains('400'));
+      expect(detail, contains('Invalid model: xxx'));
+    });
+  });
 }

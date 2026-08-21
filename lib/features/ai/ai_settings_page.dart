@@ -453,6 +453,16 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                     _saveCaps();
                   },
                 ),
+              ] else if (capability.id == 'chat' && capability.providerId.isEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '使用全部服务商：各按其默认对话模型主备切换'
+                  '（默认对话模型在「服务商 → 编辑」中设置，勾选官方模型后自动填入）',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ],
           ],

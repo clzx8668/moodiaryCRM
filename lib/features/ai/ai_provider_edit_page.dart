@@ -107,6 +107,11 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
     setState(() {
       if (selected) {
         if (!_config.models.contains(model)) _config.models.add(model);
+        // 默认对话模型为空时，自动取勾选的第一个
+        if (_config.chatModel.isEmpty) {
+          _config.chatModel = model;
+          _chatModel.text = model;
+        }
       } else {
         _config.models.remove(model);
       }
@@ -237,6 +242,10 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
                     _config.models
                       ..clear()
                       ..addAll(_fetchedModels);
+                    if (_config.chatModel.isEmpty && _fetchedModels.isNotEmpty) {
+                      _config.chatModel = _fetchedModels.first;
+                      _chatModel.text = _fetchedModels.first;
+                    }
                   }),
                   child: const Text('全选', style: TextStyle(fontSize: 12)),
                 ),

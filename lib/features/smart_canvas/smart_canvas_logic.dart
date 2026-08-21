@@ -184,6 +184,12 @@ class SmartCanvasLogic extends GetxController {
       if (_streamCancelRequested) break;
       if (chunk.error != null) {
         streaming.stop();
+        await SyncLogService.instance.write(
+          level: SyncLogLevel.error,
+          operation: 'ai',
+          target: 'template',
+          detail: '模板【${AiTemplates.label(template)}】AI 处理失败：${chunk.error}',
+        );
         toast.error(message: chunk.error!);
         return;
       }

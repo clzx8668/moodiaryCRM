@@ -250,12 +250,7 @@ class OpenAiCompatibleProvider implements AiProvider {
         yield chunk;
       }
     } on DioException catch (e) {
-      final detail = e.response?.statusCode == 401
-          ? 'API Key 无效（401）'
-          : e.response?.statusCode == 429
-          ? '请求过于频繁（429）'
-          : '网络错误：${e.message}';
-      yield AiChunk.error(detail);
+      yield AiChunk.error(dioErrorDetail(e));
     } catch (e) {
       yield AiChunk.error('AI 处理失败：$e');
     }
@@ -329,12 +324,7 @@ class OpenAiCompatibleProvider implements AiProvider {
         yield chunk;
       }
     } on DioException catch (e) {
-      final detail = e.response?.statusCode == 401
-          ? 'API Key 无效（401）'
-          : e.response?.statusCode == 429
-          ? '请求过于频繁（429）'
-          : '网络错误：${e.message}';
-      yield AiChunk.error(detail);
+      yield AiChunk.error(dioErrorDetail(e));
     } catch (e) {
       yield AiChunk.error('AI 对话失败：$e');
     }
@@ -369,13 +359,39 @@ class OpenAiCompatibleProvider implements AiProvider {
       return embedding.cast<num>().map((e) => e.toDouble()).toList();
     } on DioException catch (e) {
       final code = e.response?.statusCode;
+      final server = serverMessage(e.response?.data);
       throw StateError(
         'Embedding 接口调用失败${code != null ? '（$code）' : ''}：'
         '请确认服务商支持 embeddings 且模型名正确（如 text-embedding-3-small）。'
         '注意：DeepSeek 暂未提供 embeddings 接口，知识库检索需使用支持 embeddings 的 OpenAI 兼容服务。'
-        '${e.response?.data is Map ? ' 服务端提示：${(e.response!.data as Map)["message"] ?? (e.response!.data as Map)["error"] ?? ""}' : ''}',
+        '${server != null ? ' 服务端提示：$server' : ''}',
       );
     }
+  }
+
+  /// 把 dio 异常转成可读错误：优先带服务端返回的具体原因
+  static String dioErrorDetail(DioException e) {
+    final code = e.response?.statusCode;
+    final server = serverMessage(e.response?.data);
+    final base = switch (code) {
+      401 => 'API Key 无效（401）',
+      429 => '请求过于频繁（429）',
+      _ => '接口错误${code != null ? '（$code）' : ''}',
+    };
+    return server != null && server.isNotEmpty ? '$base：$server' : base;
+  }
+
+  /// 从响应体中提取服务端错误信息（error.message / error / message）
+  static String? serverMessage(dynamic data) {
+    if (data is! Map) return null;
+    final error = data['error'];
+    if (error is Map) {
+      return error['message']?.toString() ?? error['type']?.toString();
+    }
+    if (error is String && error.isNotEmpty) return error;
+    final message = data['message'];
+    if (message is String && message.isNotEmpty) return message;
+    return null;
   }
 
   String? _extractDelta(String data) {
