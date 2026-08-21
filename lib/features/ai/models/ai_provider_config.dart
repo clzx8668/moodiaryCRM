@@ -46,7 +46,7 @@ class AiProviderConfig {
   bool get isConfigured => baseUrl.trim().isNotEmpty && apiKey.trim().isNotEmpty;
 
   /// 转单配置（连接测试 / OpenAI 兼容实现使用）
-  AiConfig toAiConfig() {
+  AiConfig toAiConfig({String embeddingModelOverride = ''}) {
     return AiConfig(
       baseUrl: baseUrl,
       apiKey: apiKey,
@@ -54,6 +54,7 @@ class AiProviderConfig {
       embeddingModel: embeddingModel.trim().isEmpty
           ? AiConfig.defaultEmbeddingModel
           : embeddingModel,
+      modelForEmbedding: embeddingModelOverride,
     );
   }
 

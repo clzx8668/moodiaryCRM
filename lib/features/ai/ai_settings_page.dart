@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/features/ai/ai_capability_store.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_provider_edit_page.dart';
 import 'package:moodiary/features/ai/ai_provider_store.dart';
+import 'package:moodiary/features/ai/models/ai_capability_config.dart';
 import 'package:moodiary/features/ai/models/ai_provider_config.dart';
 
-/// AI 模型管理页（CC Switch 样式）：多平台模型列表 + 开关 + 测试联通 + 主备排序。
+/// AI 模型管理页：服务商（账号）+ 功能模型（对话/向量/多模态/语音）独立配置。
 class AiSettingsPage extends StatefulWidget {
   const AiSettingsPage({super.key});
 
@@ -14,7 +16,8 @@ class AiSettingsPage extends StatefulWidget {
 }
 
 class _AiSettingsPageState extends State<AiSettingsPage> {
-  List<AiProviderConfig> _list = [];
+  List<AiProviderConfig> _providers = [];
+  AiCapabilitySet _caps = AiCapabilitySet();
   bool _loading = true;
   final Map<String, AiConnectionResult> _testResults = {};
   final Set<String> _testing = {};
@@ -26,26 +29,32 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   Future<void> _load() async {
-    final list = await AiProviderStore.loadAll();
+    final providers = await AiProviderStore.loadAll();
+    final caps = await AiCapabilityStore.load();
     if (mounted) {
       setState(() {
-        _list = AiProviderStore.sortByPriority(list);
+        _providers = AiProviderStore.sortByPriority(providers);
+        _caps = caps;
         _loading = false;
       });
     }
   }
 
-  Future<void> _add() async {
+  Future<void> _saveCaps() async {
+    await AiCapabilityStore.save(_caps);
+  }
+
+  Future<void> _addProvider() async {
     final changed = await Get.to(() => const AiProviderEditPage());
     if (changed == true) await _load();
   }
 
-  Future<void> _edit(AiProviderConfig config) async {
+  Future<void> _editProvider(AiProviderConfig config) async {
     final changed = await Get.to(() => AiProviderEditPage(initial: config));
     if (changed == true) await _load();
   }
 
-  Future<void> _test(AiProviderConfig config) async {
+  Future<void> _testProvider(AiProviderConfig config) async {
     setState(() => _testing.add(config.id));
     final result = await AiConnectionTester.test(config.toAiConfig());
     if (mounted) {
@@ -56,20 +65,20 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     }
   }
 
-  Future<void> _move(AiProviderConfig config, int delta) async {
-    final index = _list.indexWhere((c) => c.id == config.id);
+  Future<void> _moveProvider(AiProviderConfig config, int delta) async {
+    final index = _providers.indexWhere((c) => c.id == config.id);
     final target = index + delta;
-    if (index < 0 || target < 0 || target >= _list.length) return;
-    await AiProviderStore.swapPriority(_list[index].id, _list[target].id);
+    if (index < 0 || target < 0 || target >= _providers.length) return;
+    await AiProviderStore.swapPriority(_providers[index].id, _providers[target].id);
     await _load();
   }
 
-  Future<void> _delete(AiProviderConfig config) async {
+  Future<void> _deleteProvider(AiProviderConfig config) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('删除模型'),
-        content: Text('删除「${config.name}」？'),
+        title: const Text('删除服务商'),
+        content: Text('删除「${config.name}」？功能模型若引用了它将失效。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -96,50 +105,92 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
         title: const Text('模型管理'),
         actions: [
           IconButton(
-            onPressed: _add,
+            onPressed: _addProvider,
             icon: const Icon(Icons.add_rounded),
-            tooltip: '添加模型',
+            tooltip: '添加服务商',
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _add,
-        tooltip: '添加模型',
+        onPressed: _addProvider,
+        tooltip: '添加服务商',
         child: const Icon(Icons.add_rounded),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _list.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.auto_awesome_rounded,
-                    size: 56,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text('还没有模型配置，点击 + 添加服务商'),
-                ],
-              ),
-            )
-          : ListView.builder(
+          : ListView(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
-              itemCount: _list.length,
-              itemBuilder: (context, index) {
-                final config = _list[index];
-                return _buildCard(context, config, index);
-              },
+              children: [
+                const _SectionTitle(
+                  icon: Icons.dns_rounded,
+                  title: '服务商（账号）',
+                  subtitle: '管理 Base URL / API Key；对话按这里的主备顺序自动切换',
+                ),
+                if (_providers.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Center(
+                      child: Text(
+                        '还没有服务商，点击 + 添加',
+                        style: TextStyle(color: colorScheme.onSurfaceVariant),
+                      ),
+                    ),
+                  )
+                else
+                  for (var i = 0; i < _providers.length; i++)
+                    _buildProviderCard(context, _providers[i], i),
+                const SizedBox(height: 18),
+                const _SectionTitle(
+                  icon: Icons.tune_rounded,
+                  title: '功能模型',
+                  subtitle: '每项能力可独立选择服务商与模型（互不依赖）',
+                ),
+                _buildCapabilityCard(
+                  context,
+                  capability: _caps.chat,
+                  title: '对话（大语言模型）',
+                  subtitle: 'AI 对话与智能处理；使用全部启用服务商，主备自动切换',
+                  icon: Icons.chat_bubble_outline_rounded,
+                  showModelField: false,
+                ),
+                _buildCapabilityCard(
+                  context,
+                  capability: _caps.embedding,
+                  title: '向量模型',
+                  subtitle: '知识库 RAG 检索（专用，如 text-embedding-3-small）',
+                  icon: Icons.polyline_rounded,
+                  showModelField: true,
+                ),
+                _buildCapabilityCard(
+                  context,
+                  capability: _caps.vision,
+                  title: '多模态模型',
+                  subtitle: '图片理解（专用，如 gpt-4o）',
+                  icon: Icons.image_search_rounded,
+                  showModelField: true,
+                ),
+                _buildCapabilityCard(
+                  context,
+                  capability: _caps.voice,
+                  title: '语音识别模型',
+                  subtitle: '语音转文字（专用，如 whisper-1）',
+                  icon: Icons.mic_none_rounded,
+                  showModelField: true,
+                ),
+              ],
             ),
     );
   }
 
-  Widget _buildCard(BuildContext context, AiProviderConfig config, int index) {
+  Widget _buildProviderCard(
+    BuildContext context,
+    AiProviderConfig config,
+    int index,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     final result = _testResults[config.id];
     final testing = _testing.contains(config.id);
-    final anyEnabled = _list.any((c) => c.enabled);
+    final anyEnabled = _providers.any((c) => c.enabled);
     return Card.outlined(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
@@ -207,23 +258,16 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      Text(
-                        [
-                          if (config.chatModel.isNotEmpty) '对话 ${config.chatModel}',
-                          if (config.embeddingModel.isNotEmpty)
-                            '向量 ${config.embeddingModel}',
-                          if (config.visionModel.isNotEmpty)
-                            '多模态 ${config.visionModel}',
-                          if (config.voiceModel.isNotEmpty)
-                            '语音 ${config.voiceModel}',
-                        ].join(' · '),
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: colorScheme.onSurfaceVariant,
+                      if (config.chatModel.isNotEmpty)
+                        Text(
+                          '默认对话模型：${config.chatModel}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
                     ],
                   ),
                 ),
@@ -244,29 +288,29 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                 ActionChip(
                   label: Text(testing ? '测试中…' : '测试联通'),
                   visualDensity: VisualDensity.compact,
-                  onPressed: testing ? null : () => _test(config),
+                  onPressed: testing ? null : () => _testProvider(config),
                 ),
                 ActionChip(
                   label: const Text('编辑'),
                   visualDensity: VisualDensity.compact,
-                  onPressed: () => _edit(config),
+                  onPressed: () => _editProvider(config),
                 ),
                 ActionChip(
                   label: const Text('上移'),
                   visualDensity: VisualDensity.compact,
-                  onPressed: index == 0 ? null : () => _move(config, -1),
+                  onPressed: index == 0 ? null : () => _moveProvider(config, -1),
                 ),
                 ActionChip(
                   label: const Text('下移'),
                   visualDensity: VisualDensity.compact,
-                  onPressed: index >= _list.length - 1
+                  onPressed: index >= _providers.length - 1
                       ? null
-                      : () => _move(config, 1),
+                      : () => _moveProvider(config, 1),
                 ),
                 ActionChip(
                   label: const Text('删除'),
                   visualDensity: VisualDensity.compact,
-                  onPressed: () => _delete(config),
+                  onPressed: () => _deleteProvider(config),
                 ),
               ],
             ),
@@ -302,6 +346,170 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCapabilityCard(
+    BuildContext context, {
+    required AiCapabilityConfig capability,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool showModelField,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final providerOptions = _providers
+        .where((c) => c.isConfigured)
+        .toList();
+    final selectedProvider = _findProvider(
+      providerOptions,
+      capability.providerId,
+    );
+
+    return Card.outlined(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: capability.enabled,
+                  onChanged: (v) async {
+                    setState(() => capability.enabled = v);
+                    await _saveCaps();
+                  },
+                ),
+              ],
+            ),
+            if (capability.enabled) ...[
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: selectedProvider?.id,
+                decoration: const InputDecoration(
+                  labelText: '使用服务商',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: [
+                  if (capability.id == 'chat' && providerOptions.isNotEmpty)
+                    const DropdownMenuItem(
+                      value: '',
+                      child: Text('全部（主备自动切换）'),
+                    ),
+                  for (final p in providerOptions)
+                    DropdownMenuItem(value: p.id, child: Text(p.name)),
+                ],
+                onChanged: (v) async {
+                  setState(() {
+                    capability.providerId = v ?? '';
+                    // 选中服务商时，若模型名为空则取其默认模型建议
+                    if (capability.modelName.isEmpty && v != null) {
+                      final target = _findProvider(providerOptions, v);
+                      capability.modelName = switch (capability.id) {
+                        'embedding' => target?.embeddingModel ?? '',
+                        'vision' => target?.visionModel ?? '',
+                        'voice' => target?.voiceModel ?? '',
+                        _ => target?.chatModel ?? '',
+                      };
+                    }
+                  });
+                  await _saveCaps();
+                },
+              ),
+              if (showModelField) ...[
+                const SizedBox(height: 10),
+                TextFormField(
+                  initialValue: capability.modelName,
+                  decoration: const InputDecoration(
+                    labelText: '模型名',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (v) => capability.modelName = v.trim(),
+                  onFieldSubmitted: (_) => _saveCaps(),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  AiProviderConfig? _findProvider(
+    List<AiProviderConfig> list,
+    String id,
+  ) {
+    for (final c in list) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _SectionTitle({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: colorScheme.primary),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

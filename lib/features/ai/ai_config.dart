@@ -19,11 +19,15 @@ class AiConfig {
   final String embeddingModel;
   final int timeoutSeconds;
 
+  /// 嵌入请求使用的模型名（能力配置优先于服务商默认值）
+  final String modelForEmbedding;
+
   const AiConfig({
     required this.baseUrl,
     required this.apiKey,
     required this.model,
     this.embeddingModel = defaultEmbeddingModel,
+    this.modelForEmbedding = '',
     this.timeoutSeconds = 60,
   });
 
@@ -34,6 +38,12 @@ class AiConfig {
 
   String get embeddingsUrl =>
       '${baseUrl.replaceAll(RegExp(r'/+$'), '')}/embeddings';
+
+  /// 实际使用的向量模型：能力配置覆盖 > 服务商默认
+  String get effectiveEmbeddingModel =>
+      modelForEmbedding.trim().isNotEmpty
+      ? modelForEmbedding
+      : embeddingModel;
 
   static Future<AiConfig> load() async {
     final baseUrl = await SecureStorageUtil.getValue(keyBaseUrl);

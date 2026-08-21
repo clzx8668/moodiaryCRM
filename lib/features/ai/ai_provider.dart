@@ -4,8 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import 'ai_config.dart';
-import 'ai_provider_store.dart';
-import 'multi_provider.dart';
+import 'ai_composite_provider.dart';
 import 'prompts.dart';
 
 /// AI 处理结果分块
@@ -54,8 +53,7 @@ class AiProviderFactory {
   AiProviderFactory._();
 
   static Future<AiProvider> load() async {
-    final list = await AiProviderStore.loadAll();
-    return MultiProvider.fromConfigs(list);
+    return AiCompositeProvider.fromStore();
   }
 }
 
@@ -322,7 +320,7 @@ class OpenAiCompatibleProvider implements AiProvider {
           },
         ),
         data: {
-          'model': config.embeddingModel,
+          'model': config.effectiveEmbeddingModel,
           'input': text,
         },
       );

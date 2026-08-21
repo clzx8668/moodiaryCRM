@@ -19,9 +19,6 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
   late final TextEditingController _baseUrl;
   late final TextEditingController _apiKey;
   late final TextEditingController _chatModel;
-  late final TextEditingController _embeddingModel;
-  late final TextEditingController _visionModel;
-  late final TextEditingController _voiceModel;
   late final TextEditingController _description;
   bool _obscureKey = true;
   bool _saving = false;
@@ -34,9 +31,6 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
     _baseUrl = TextEditingController(text: _config.baseUrl);
     _apiKey = TextEditingController(text: _config.apiKey);
     _chatModel = TextEditingController(text: _config.chatModel);
-    _embeddingModel = TextEditingController(text: _config.embeddingModel);
-    _visionModel = TextEditingController(text: _config.visionModel);
-    _voiceModel = TextEditingController(text: _config.voiceModel);
     _description = TextEditingController(text: _config.description);
   }
 
@@ -46,9 +40,6 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
     _baseUrl.dispose();
     _apiKey.dispose();
     _chatModel.dispose();
-    _embeddingModel.dispose();
-    _visionModel.dispose();
-    _voiceModel.dispose();
     _description.dispose();
     super.dispose();
   }
@@ -67,9 +58,6 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
       ..baseUrl = _baseUrl.text.trim()
       ..apiKey = _apiKey.text.trim()
       ..chatModel = _chatModel.text.trim()
-      ..embeddingModel = _embeddingModel.text.trim()
-      ..visionModel = _visionModel.text.trim()
-      ..voiceModel = _voiceModel.text.trim()
       ..description = _description.text.trim();
     await AiProviderStore.upsert(_config);
     toast.success(message: '已保存');
@@ -127,35 +115,8 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
           TextField(
             controller: _chatModel,
             decoration: const InputDecoration(
-              labelText: '大语言模型',
+              labelText: '默认对话模型（建议值）',
               hintText: '如 deepseek-chat / gpt-4o / kimi-k2',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _embeddingModel,
-            decoration: const InputDecoration(
-              labelText: '向量模型（知识库用）',
-              hintText: '如 text-embedding-3-small（DeepSeek 无此接口）',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _visionModel,
-            decoration: const InputDecoration(
-              labelText: '多模态模型（预留）',
-              hintText: '如 gpt-4o（图片理解）',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _voiceModel,
-            decoration: const InputDecoration(
-              labelText: '语音识别模型（预留）',
-              hintText: '如 whisper-1',
               border: OutlineInputBorder(),
             ),
           ),
@@ -176,8 +137,8 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '模型存储于安全存储；可配置多个服务商，按优先级作为主/备，'
-            '主模型不可用时自动切换备用。',
+            '服务商仅管理账号（Base URL / API Key）。具体功能使用的模型请在'
+            '「模型管理 → 功能模型」中分别配置（对话/向量/多模态/语音可各自选择服务商）。',
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
