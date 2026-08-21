@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart' as dio;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/components/local_send/local_send_logic.dart';
+import 'package:moodiary/features/ai/ai_capability_store.dart';
+import 'package:moodiary/features/ai/ai_provider_store.dart';
+import 'package:moodiary/features/backup/backup_service.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/http_util.dart';
@@ -167,6 +169,14 @@ class LocalSendClientLogic extends GetxController {
     final dio.FormData formData = dio.FormData();
     // 添加 JSON 数据
     formData.fields.add(MapEntry('diary', jsonEncode(diary.toJson())));
+    // 双模态 Block（含待办/文本/实体卡），保证对端日历待办与详情页一致
+    final blocks = await IsarUtil.getBlocksByDiary(diary.id);
+    formData.fields.add(
+      MapEntry(
+        'blocks',
+        jsonEncode([for (final block in blocks) block.toJson()]),
+      ),
+    );
     // 如果有分类，把分类名字带过去
     if (diary.categoryId != null) {
       final categoryName =
@@ -248,42 +258,67 @@ class LocalSendClientLogic extends GetxController {
     }
   }
 
-  // 向服务器发送数据并监听进度
+  /// 全量同步：打包 日记+Block+CRM+知识库+向量+AI 会话/AI 配置 为 zip 发送。
   Future<void> sendAllData() async {
     state.isSending.value = true;
-    final dataPath = FileUtil.getRealPath('', '');
-    final zipPath = FileUtil.getCachePath('');
-    final isolateParams = {'zipPath': zipPath, 'dataPath': dataPath};
-    // 获取压缩文件路径
-    final filePath = await compute(FileUtil.zipFile, isolateParams);
+    try {
+      toast.info(message: '正在打包同步数据…');
+      final packet = await BackupService.export(
+        targetDirectory: FileUtil.getCachePath('lan_sync'),
+        extraJson: await _buildAiExtras(),
+      );
 
-    // 创建 FormData 并同步添加 JSON 和文件
-    final dio.FormData formData = dio.FormData();
-    // 添加 JSON 数据
-    formData.files.add(
-      MapEntry('file', await dio.MultipartFile.fromFile(filePath)),
-    );
+      final dio.FormData formData = dio.FormData();
+      formData.files.add(
+        MapEntry(
+          'file',
+          await dio.MultipartFile.fromFile(
+            packet.path,
+            filename: packet.path.split(Platform.pathSeparator).last,
+          ),
+        ),
+      );
 
-    final uploadSpeedCalculator = UploadSpeedCalculator();
-    // 发送请求并监听进度
-    final response = await HttpUtil().upload(
-      'http://${state.serverIp}:${state.serverPort}',
-      data: formData,
-      onSendProgress: (int sent, int total) {
-        uploadSpeedCalculator.updateSpeed(sent);
-        final speed = uploadSpeedCalculator.getSpeed();
-        state.speed.value = speed;
-        state.progress.value = sent / total;
-      },
-    );
-    state.isSending.value = false;
-    if (response.statusCode == 200 && response.data != null) {
-      if (response.data as String == 'Data and files received successfully') {
-        toast.success(message: '发送成功');
+      final uploadSpeedCalculator = UploadSpeedCalculator();
+      final response = await HttpUtil().upload(
+        'http://${state.serverIp}:${state.serverPort}',
+        data: formData,
+        onSendProgress: (int sent, int total) {
+          uploadSpeedCalculator.updateSpeed(sent);
+          final speed = uploadSpeedCalculator.getSpeed();
+          state.speed.value = speed;
+          state.progress.value = sent / total;
+        },
+      );
+      if (response.statusCode == 200 &&
+          response.data == 'Data and files received successfully') {
+        toast.success(message: '同步完成：多端数据已合并');
+      } else {
+        toast.error(message: '同步失败');
       }
-    } else {
-      toast.error(message: '发送失败');
+      await packet.delete();
+    } catch (e) {
+      toast.error(message: '同步失败：$e');
+    } finally {
+      state.isSending.value = false;
     }
+  }
+
+  /// AI 服务商 + 能力配置（安全存储）打包为同步附加 JSON
+  Future<Map<String, Object>> _buildAiExtras() async {
+    final extras = <String, Object>{};
+    try {
+      final providers = await AiProviderStore.loadAll();
+      extras['ai_providers.json'] = [
+        for (final provider in providers) provider.toJson(),
+      ];
+    } catch (_) {
+      // 安全存储不可用（如测试环境）时跳过配置同步
+    }
+    try {
+      extras['ai_capabilities.json'] = (await AiCapabilityStore.load()).toJson();
+    } catch (_) {}
+    return extras;
   }
 
   Future<void> setDiary(Duration duration, BuildContext context) async {

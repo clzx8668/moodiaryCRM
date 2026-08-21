@@ -39,15 +39,34 @@ class LocalSendClientComponent extends StatelessWidget {
           );
         });
       } else {
-        return AdaptiveListTile(
-          title: state.serverName!,
-          subtitle: state.serverIp!,
-          trailing: FilledButton(
-            onPressed: () async {
-              await logic.sendDiaryList();
-            },
-            child: const FaIcon(FontAwesomeIcons.solidPaperPlane),
-          ),
+        return Column(
+          children: [
+            AdaptiveListTile(
+              title: state.serverName!,
+              subtitle: state.serverIp!,
+              trailing: FilledButton(
+                onPressed: () async {
+                  await logic.sendDiaryList();
+                },
+                child: const FaIcon(FontAwesomeIcons.solidPaperPlane),
+              ),
+            ),
+            AdaptiveListTile(
+              title: const Text('同步全部数据'),
+              subtitle: const Text(
+                '日记/Block/待办/CRM/知识库/对话记录/AI 配置（多端合并）',
+              ),
+              leading: const Icon(Icons.sync_rounded),
+              trailing: FilledButton(
+                onPressed: state.isSending.value
+                    ? null
+                    : () async {
+                        await logic.sendAllData();
+                      },
+                child: const FaIcon(FontAwesomeIcons.fileZipper),
+              ),
+            ),
+          ],
         );
       }
     }
@@ -133,7 +152,7 @@ class LocalSendClientComponent extends StatelessWidget {
                           label: const Text('三个月'),
                           onPressed: () async {
                             await logic.setDiary(
-                              const Duration(days: 31),
+                              const Duration(days: 92),
                               context,
                             );
                           },

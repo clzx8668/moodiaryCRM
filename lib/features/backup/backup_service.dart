@@ -26,7 +26,13 @@ class BackupService {
   static const int schemaVersion = 1;
 
   /// 导出全部数据为 zip 备份包；[targetDirectory] 为空时写入缓存目录。
-  static Future<File> export({String? targetDirectory}) async {
+  ///
+  /// [extraJson]：附加 JSON 文件（key 为 zip 内文件名，value 可 JSON 编码），
+  /// 局域网全量同步用它携带 AI 服务商/能力配置等非数据库数据。
+  static Future<File> export({
+    String? targetDirectory,
+    Map<String, Object>? extraJson,
+  }) async {
     final diaries = await IsarUtil.getAllDiaries();
     final blocks = await IsarUtil.getAllBlocks();
     final categories = await IsarUtil.getAllCategoryAsync();
@@ -131,6 +137,9 @@ class BackupService {
         },
       );
     }
+    for (final entry in (extraJson ?? const <String, Object>{}).entries) {
+      addJson(entry.key, entry.value);
+    }
 
     final bytes = ZipEncoder().encode(archive);
     final timestamp =
@@ -175,6 +184,7 @@ class BackupService {
     var embeddings = 0;
     var sessions = 0;
     var messages = 0;
+    final extras = <String, dynamic>{};
 
     final categoryList = jsonDecode(readJson('categories.json')) as List;
     for (final raw in categoryList) {
@@ -250,6 +260,17 @@ class BackupService {
         message.setSourcesJson(data['sources'] as String? ?? '[]');
         await IsarUtil.insertChatMessage(message);
         messages++;
+      } else if (name.endsWith('.json') &&
+          name != 'manifest.json' &&
+          name != 'categories.json' &&
+          !name.startsWith('diaries/') &&
+          !name.startsWith('crm/') &&
+          !name.startsWith('knowledge/') &&
+          !name.startsWith('knowledge_embeddings/') &&
+          !name.startsWith('ai_sessions/') &&
+          !name.startsWith('ai_messages/')) {
+        // 附加 JSON（如 ai_providers.json / ai_capabilities.json），原样带回
+        extras[name] = jsonDecode(_contentToString(entry.value));
       }
     }
 
@@ -262,6 +283,7 @@ class BackupService {
       embeddings: embeddings,
       sessions: sessions,
       messages: messages,
+      extras: extras,
     );
   }
 
@@ -299,6 +321,7 @@ class BackupResult {
   final int embeddings;
   final int sessions;
   final int messages;
+  final Map<String, dynamic> extras;
 
   const BackupResult({
     this.categories = 0,
@@ -309,6 +332,7 @@ class BackupResult {
     this.embeddings = 0,
     this.sessions = 0,
     this.messages = 0,
+    this.extras = const {},
   });
 
   int get total =>

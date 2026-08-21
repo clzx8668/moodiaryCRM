@@ -7,11 +7,18 @@ import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/category.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/components/local_send/local_send_logic.dart';
+import 'package:moodiary/features/ai/ai_capability_store.dart';
+import 'package:moodiary/features/ai/ai_provider_store.dart';
+import 'package:moodiary/features/ai/models/ai_capability_config.dart';
+import 'package:moodiary/features/ai/models/ai_provider_config.dart';
+import 'package:moodiary/features/backup/backup_service.dart';
+import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/pages/home/diary/diary_logic.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/log_util.dart';
 import 'package:moodiary/utils/wifi_multicast_lock.dart';
+import 'package:path/path.dart' as p;
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart';
 import 'package:shelf_multipart/shelf_multipart.dart';
@@ -89,6 +96,8 @@ class LocalSendServerLogic extends GetxController {
   Future<shelf.Response> _handleRequest(shelf.Request request) async {
     late Diary diary;
     String? categoryName;
+    final blocks = <Block>[];
+    File? syncPacket;
     // 处理表单数据
     if (request.formData() case final form?) {
       await for (final formData in form.formData) {
@@ -100,6 +109,33 @@ class LocalSendServerLogic extends GetxController {
             jsonDecode(await formData.part.readString())
                 as Map<String, dynamic>,
           );
+        } else if (name == 'blocks') {
+          // 双模态 Block（含待办/文本/实体卡）
+          try {
+            final list =
+                jsonDecode(await formData.part.readString()) as List;
+            blocks.addAll(
+              list.map(
+                (e) => Block.fromJson(e as Map<String, dynamic>),
+              ),
+            );
+          } catch (_) {
+            // 损坏的 blocks 字段忽略，不影响日记主体
+          }
+        } else if (name == 'file') {
+          // 全量同步包（备份 zip 格式，含日记/Block/CRM/知识库/会话/AI 配置）
+          final directory = p.join(FileUtil.getCachePath(''), 'lan_sync');
+          await Directory(directory).create(recursive: true);
+          final temp = File(
+            p.join(
+              directory,
+              'sync_${DateTime.now().millisecondsSinceEpoch}.zip',
+            ),
+          );
+          final sink = temp.openWrite();
+          await formData.part.pipe(sink);
+          await sink.close();
+          syncPacket = temp;
         } else if (name == 'image' ||
             name == 'video' ||
             name == 'thumbnail' ||
@@ -123,6 +159,25 @@ class LocalSendServerLogic extends GetxController {
         }
       }
     }
+    // 全量同步包优先：解包合并后直接返回
+    if (syncPacket != null) {
+      try {
+        final result = await BackupService.importFromFile(syncPacket.path);
+        await _applyAiExtras(result.extras);
+        await syncPacket.delete();
+        logger.i('LAN sync packet imported: ${result.summary}');
+        receiveCount.value += 1;
+        try {
+          await Bind.find<DiaryLogic>().refreshAll();
+        } catch (_) {}
+        return shelf.Response.ok('Data and files received successfully');
+      } catch (e) {
+        logger.i('LAN sync packet import failed: $e');
+        return shelf.Response.internalServerError(
+          body: 'Sync import failed: $e',
+        );
+      }
+    }
     // 如果分类不为空，插入一个分类
     if (categoryName != null) {
       await IsarUtil.updateACategory(
@@ -133,8 +188,31 @@ class LocalSendServerLogic extends GetxController {
     }
     // 插入日记
     await IsarUtil.insertADiary(diary);
+    for (final block in blocks) {
+      await IsarUtil.insertBlock(block);
+    }
     await Bind.find<DiaryLogic>().refreshAll();
     receiveCount.value += 1;
     return shelf.Response.ok('Data and files received successfully');
+  }
+
+  /// 应用同步包内的 AI 服务商/能力配置（安全存储）
+  Future<void> _applyAiExtras(Map<String, dynamic> extras) async {
+    final providersRaw = extras['ai_providers.json'];
+    if (providersRaw is List) {
+      final providers = providersRaw
+          .cast<Map<String, dynamic>>()
+          .map(AiProviderConfig.fromJson)
+          .toList();
+      if (providers.isNotEmpty) {
+        await AiProviderStore.saveAll(providers);
+        logger.i('AI providers synced: ${providers.length}');
+      }
+    }
+    final capabilitiesRaw = extras['ai_capabilities.json'];
+    if (capabilitiesRaw is Map<String, dynamic>) {
+      await AiCapabilityStore.save(AiCapabilitySet.fromJson(capabilitiesRaw));
+      logger.i('AI capabilities synced');
+    }
   }
 }

@@ -185,4 +185,32 @@ void main() {
       throwsA(isA<FileSystemException>()),
     );
   });
+
+  test('extraJson 附加文件：导入后原样带回（AI 配置同步用）', () async {
+    final zip = await BackupService.export(
+      targetDirectory: tempDir.path,
+      extraJson: {
+        'ai_providers.json': [
+          {
+            'id': 'p1',
+            'name': '测试服务',
+            'baseUrl': 'https://example.com/v1',
+            'apiKey': 'sk-test',
+          },
+        ],
+        'ai_capabilities.json': {
+          'chat': {'id': 'chat', 'enabled': true},
+        },
+      },
+    );
+    final result = await BackupService.importFromFile(zip.path);
+    expect(result.extras['ai_providers.json'], isA<List>());
+    final providers = result.extras['ai_providers.json'] as List;
+    expect(providers, hasLength(1));
+    expect(
+      (providers.single as Map)['apiKey'],
+      'sk-test',
+    );
+    expect(result.extras['ai_capabilities.json'], isA<Map>());
+  });
 }
