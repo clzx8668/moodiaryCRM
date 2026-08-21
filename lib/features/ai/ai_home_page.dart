@@ -438,29 +438,23 @@ class _AiHomePageState extends State<AiHomePage> {
       _throttle?.cancel();
       _throttle = null;
       _flushStream();
+      final assistantText = _streamBuffer.trim().isEmpty
+          ? '（无回答）'
+          : _streamBuffer.trim();
+      final sourcesCopy = List.of(_lastSources);
       setState(() {
         _messages.add(
           _AiMessage(
             role: 'assistant',
-            content: _streamBuffer.trim().isEmpty
-                ? '（无回答）'
-                : _streamBuffer.trim(),
-            sources: List.of(_lastSources),
+            content: assistantText,
+            sources: sourcesCopy,
           ),
         );
-        _history.add(
-          AiChatMessage(role: 'assistant', content: _streamBuffer.trim()),
-        );
+        _history.add(AiChatMessage(role: 'assistant', content: assistantText));
         _streamBuffer = '';
         _streaming = false;
       });
-      await _persistMessage(
-        'assistant',
-        _streamBuffer.trim().isEmpty
-            ? '（无回答）'
-            : _streamBuffer.trim(),
-        sources: List.of(_lastSources),
-      );
+      await _persistMessage('assistant', assistantText, sources: sourcesCopy);
       _scrollToBottom();
     }
   }
@@ -479,22 +473,23 @@ class _AiHomePageState extends State<AiHomePage> {
     _throttle = null;
     _flushStream();
     if (mounted) {
+      final assistantText = _streamBuffer.trim().isEmpty
+          ? '（已停止）'
+          : _streamBuffer.trim();
+      final sourcesCopy = List.of(_lastSources);
       setState(() {
         _messages.add(
           _AiMessage(
             role: 'assistant',
-            content: _streamBuffer.trim().isEmpty
-                ? '（已停止）'
-                : _streamBuffer.trim(),
-            sources: List.of(_lastSources),
+            content: assistantText,
+            sources: sourcesCopy,
           ),
         );
-        _history.add(
-          AiChatMessage(role: 'assistant', content: _streamBuffer.trim()),
-        );
+        _history.add(AiChatMessage(role: 'assistant', content: assistantText));
         _streamBuffer = '';
         _streaming = false;
       });
+      _persistMessage('assistant', assistantText, sources: sourcesCopy);
     }
   }
 
