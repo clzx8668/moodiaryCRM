@@ -100,10 +100,24 @@ class PrefUtil {
     'moduleCalendar',
   };
 
+  /// 允许持久化的动态键前缀（如 `crmTableColumns_` 前缀的列表级设置）。
+  /// 键前缀命中后无需逐一加入 [prefAllowList]，方便后续扩展列表级设置。
+  static const Set<String> prefAllowPrefixes = {
+    'crmTableColumns_',
+  };
+
+  /// 键是否允许读写：精确命中白名单，或以允许前缀开头。
+  static bool isAllowedKey(String key) {
+    if (prefAllowList.contains(key)) return true;
+    return prefAllowPrefixes.any(key.startsWith);
+  }
+
   static Future<void> initPref() async {
+    // 底层缓存不过滤，统一由 [isAllowedKey] 把关：
+    // SharedPreferencesWithCache 的 allowList 仅支持精确键，无法表达动态前缀。
     _prefs = await SharedPreferencesWithCache.create(
       cacheOptions: const SharedPreferencesWithCacheOptions(
-        allowList: prefAllowList,
+        allowList: null,
       ),
     );
     // 首次启动
@@ -234,6 +248,9 @@ class PrefUtil {
   }
 
   static Future<void> setValue<T>(String key, T value) async {
+    if (!isAllowedKey(key)) {
+      throw ArgumentError('Key "$key" is not in PrefUtil allowlist/prefixes');
+    }
     if (T == int) {
       await _prefs.setInt(key, value as int);
     } else if (T == bool) {
@@ -250,6 +267,9 @@ class PrefUtil {
   }
 
   static T? getValue<T>(String key) {
+    if (!isAllowedKey(key)) {
+      throw ArgumentError('Key "$key" is not in PrefUtil allowlist/prefixes');
+    }
     if (T == int) {
       return _prefs.getInt(key) as T?;
     } else if (T == bool) {
@@ -266,6 +286,9 @@ class PrefUtil {
   }
 
   static Future<void> removeValue(String key) async {
+    if (!isAllowedKey(key)) {
+      throw ArgumentError('Key "$key" is not in PrefUtil allowlist/prefixes');
+    }
     await _prefs.remove(key);
   }
 }

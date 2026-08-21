@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/crm/crm_sync_page.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
@@ -69,6 +70,178 @@ class _CrmHomePageState extends State<CrmHomePage> {
     }
   }
 
+  /// P2.6 快速新建客户（AI 实体填充：从日记搜索提取名称）
+  Future<void> _createCompany() async {
+    final name = TextEditingController();
+    final description = TextEditingController();
+    final search = TextEditingController();
+    List<Diary> searchResults = [];
+    bool searching = false;
+    bool saving = false;
+
+    Future<void> doSearch() async {
+      final keyword = search.text.trim();
+      if (keyword.isEmpty) {
+        setState(() => searchResults = []);
+        return;
+      }
+      searching = true;
+      final results = await IsarUtil.searchDiariesByText(keyword);
+      if (context.mounted) {
+        setState(() {
+          searching = false;
+          searchResults = results.take(5).toList();
+        });
+      }
+    }
+
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 8,
+            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('快速新建客户', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(
+                  labelText: '客户名称 *',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: description,
+                decoration: const InputDecoration(
+                  labelText: '备注',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: search,
+                      decoration: const InputDecoration(
+                        labelText: 'AI 实体填充（搜索日记）',
+                        prefixIcon: Icon(Icons.auto_awesome, size: 18),
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      onSubmitted: (_) => doSearch(),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    onPressed: searching ? null : doSearch,
+                    icon: searching
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.search),
+                    tooltip: '搜索',
+                  ),
+                ],
+              ),
+              if (searchResults.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                for (final diary in searchResults)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      diary.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      '${diary.time.toLocal()}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    onTap: () {
+                      setSheetState(() {
+                        name.text = diary.title;
+                        search.clear();
+                        searchResults = [];
+                      });
+                    },
+                  ),
+              ],
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: saving
+                    ? null
+                    : () async {
+                        if (name.text.trim().isEmpty) {
+                          toast.info(message: '请输入客户名称');
+                          return;
+                        }
+                        setSheetState(() => saving = true);
+                        try {
+                          final baseUrl =
+                              await SecureStorageUtil.getValue('twentyBaseUrl');
+                          final token =
+                              await SecureStorageUtil.getValue('twentyApiToken');
+                          final service = CrmSyncService.fromConfig(
+                            TwentyConfig(
+                              baseUrl: baseUrl?.isNotEmpty == true
+                                  ? baseUrl!
+                                  : 'http://10.200.245.54:3000',
+                              apiToken: token ?? '',
+                            ),
+                          );
+                          await service.createCompany(
+                            name: name.text.trim(),
+                            extra: description.text.trim().isEmpty
+                                ? null
+                                : {'description': description.text.trim()},
+                          );
+                          toast.success(message: '客户已创建并同步');
+                          if (sheetContext.mounted) {
+                            Navigator.pop(sheetContext, true);
+                          }
+                          await _load();
+                        } catch (e) {
+                          toast.error(message: '创建失败：$e');
+                        } finally {
+                          if (sheetContext.mounted) {
+                            setSheetState(() => saving = false);
+                          }
+                        }
+                      },
+                icon: saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.add_business_rounded, size: 18),
+                label: Text(saving ? '创建中…' : '创建并同步'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -78,6 +251,12 @@ class _CrmHomePageState extends State<CrmHomePage> {
           children: [
             Text('CRM 同步', style: context.textTheme.titleLarge),
             const Spacer(),
+            FilledButton.tonalIcon(
+              onPressed: _createCompany,
+              icon: const Icon(Icons.add_business_rounded, size: 16),
+              label: const Text('新增客户'),
+            ),
+            const SizedBox(width: 8),
             FilledButton.tonalIcon(
               onPressed: _syncing ? null : _sync,
               icon: _syncing
