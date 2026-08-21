@@ -11,6 +11,7 @@ import 'package:moodiary/pages/home/diary/diary_logic.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/log_util.dart';
+import 'package:moodiary/utils/wifi_multicast_lock.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart';
 import 'package:shelf_multipart/shelf_multipart.dart';
@@ -35,12 +36,16 @@ class LocalSendServerLogic extends GetxController {
 
   @override
   void onReady() async {
+    // Android 接收端必须先持组播锁，否则收不到入站 UDP 广播
+    await WifiMulticastLock.acquire();
     socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, scanPort);
     serverIp = await getDeviceIP();
     update();
     if (serverIp != null) {
       await startBroadcastListener();
       await startServer();
+    } else {
+      logger.i('无法获取本机 IP，接收服务未启动');
     }
     super.onReady();
   }
@@ -49,6 +54,7 @@ class LocalSendServerLogic extends GetxController {
   void onClose() {
     socket.close();
     httpServer?.close(force: true);
+    WifiMulticastLock.release();
     super.onClose();
   }
 
@@ -75,7 +81,8 @@ class LocalSendServerLogic extends GetxController {
     final handler = const shelf.Pipeline()
         .addMiddleware(shelf.logRequests())
         .addHandler(_handleRequest);
-    httpServer = await serve(handler, serverIp!, transferPort);
+    // 绑定所有网卡而非仅 serverIp，避免 VPN/多网卡时 HTTP 监听错接口
+    httpServer = await serve(handler, InternetAddress.anyIPv4, transferPort);
     logger.i('Server started on http://$serverIp:$transferPort');
   }
 

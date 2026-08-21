@@ -14,6 +14,7 @@ import 'package:moodiary/utils/http_util.dart';
 import 'package:moodiary/utils/log_util.dart';
 import 'package:moodiary/utils/notice_util.dart';
 import 'package:moodiary/utils/send_util.dart';
+import 'package:moodiary/utils/wifi_multicast_lock.dart';
 
 import 'local_send_client_state.dart';
 
@@ -29,6 +30,7 @@ class LocalSendClientLogic extends GetxController {
   @override
   void onReady() async {
     super.onReady();
+    await WifiMulticastLock.acquire();
     socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
     socket.broadcastEnabled = true;
     await startFindServer();
@@ -38,17 +40,42 @@ class LocalSendClientLogic extends GetxController {
   void onClose() {
     socket.close();
     timer?.cancel();
+    WifiMulticastLock.release();
     super.onClose();
   }
 
-  void _sendBroadcast() {
+  Future<void> _sendBroadcast() async {
     const message = 'Looking for server';
-    socket.send(
-      message.codeUnits,
+    // 目标集合：全局广播 + 各网卡定向广播（部分网络/路由器会丢弃 255.255.255.255）
+    final targets = <InternetAddress>{
       InternetAddress('255.255.255.255'),
-      scanPort,
-    );
-    logger.i('Broadcast sent');
+    };
+    try {
+      for (final interface in await NetworkInterface.list()) {
+        for (final address in interface.addresses) {
+          // 该 SDK 的 addresses 为 InternetAddress，无 netmask；
+          // 按常见 /24 私网推导定向广播（如 192.168.1.x → 192.168.1.255）
+          if (address.type == InternetAddressType.IPv4 &&
+              !address.isLoopback) {
+            final parts = address.address.split('.');
+            if (parts.length == 4) {
+              parts[3] = '255';
+              targets.add(InternetAddress(parts.join('.')));
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // 枚举网卡失败时仅使用全局广播
+    }
+    for (final target in targets) {
+      try {
+        socket.send(message.codeUnits, target, scanPort);
+      } catch (e) {
+        logger.i('Broadcast to ${target.address} failed: $e');
+      }
+    }
+    logger.i('Broadcast sent to ${targets.map((t) => t.address).join(', ')}');
   }
 
   // 尝试在 30 秒内找到服务器
@@ -88,7 +115,8 @@ class LocalSendClientLogic extends GetxController {
         timer?.cancel();
         state.findStatus.value =
             '未找到接收端：请确认另一台设备已打开「接收」标签、两台设备处于同一局域网，'
-            '且防火墙放行了 $scanPort（扫描）与 ${localSendLogic.state.transferPort.value}（传输）端口。';
+            '且防火墙放行了 $scanPort（扫描）与 ${localSendLogic.state.transferPort.value}（传输）端口；'
+            '若使用路由器/访客 Wi-Fi 请检查是否开启了 AP 隔离。';
         completer.complete(false);
       }
     });
