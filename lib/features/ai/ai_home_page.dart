@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/ai/ai_capability_store.dart';
 import 'package:moodiary/features/ai/ai_composite_provider.dart';
+import 'package:moodiary/features/ai/ai_note_saver.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
+import 'package:moodiary/features/ai/models/ai_chat_session.dart';
 import 'package:moodiary/features/block/block_renderer.dart';
 import 'package:moodiary/features/rag/knowledge_base_page.dart';
 import 'package:moodiary/features/rag/models/knowledge_base.dart';
@@ -51,6 +53,8 @@ class _AiHomePageState extends State<AiHomePage> {
   KnowledgeBase? _kb;
   String? _currentModel;
   List<ChatModelOption> _chatModels = [];
+  AiChatSession? _session;
+  final Map<int, Widget> _msgCache = {};
   bool _online = false;
   bool _streaming = false;
   String _streamBuffer = '';
@@ -72,6 +76,7 @@ class _AiHomePageState extends State<AiHomePage> {
     _kb = widget.initialKnowledgeBase;
     _input.addListener(() => setState(() {}));
     _loadChatModelInfo();
+    _loadRecentSession();
   }
 
   @override
@@ -144,6 +149,147 @@ class _AiHomePageState extends State<AiHomePage> {
         _currentModel = provider.chatLabel;
         _chatModels = provider.chatModels;
       });
+    }
+  }
+
+  Future<void> _loadRecentSession() async {
+    final sessions = await IsarUtil.getAllChatSessions();
+    if (sessions.isNotEmpty && mounted) {
+      await _loadSession(sessions.first);
+    }
+  }
+
+  Future<void> _loadSession(AiChatSession session) async {
+    final records = await IsarUtil.getChatMessages(session.id);
+    if (!mounted) return;
+    setState(() {
+      _session = session;
+      _messages.clear();
+      _history.clear();
+      _msgCache.clear();
+      for (final r in records) {
+        _messages.add(
+          _AiMessage(
+            role: r.role,
+            content: r.content,
+            sources: r.sources,
+          ),
+        );
+        _history.add(r.toAiChatMessage());
+      }
+      _streamBuffer = '';
+      _streaming = false;
+    });
+  }
+
+  Future<void> _ensureSession() async {
+    if (_session != null) return;
+    final session = AiChatSession();
+    await IsarUtil.upsertChatSession(session);
+    if (mounted) {
+      setState(() => _session = session);
+    }
+  }
+
+  Future<void> _persistMessage(
+    String role,
+    String content, {
+    List<RagHit> sources = const [],
+  }) async {
+    final session = _session;
+    if (session == null) return;
+    await IsarUtil.insertChatMessage(
+      AiChatMessageRecord()
+        ..sessionId = session.id
+        ..role = role
+        ..content = content
+        ..sources = sources
+        ..createdAt = DateTime.now(),
+    );
+    session.updatedAt = DateTime.now();
+    if (role == 'user' && session.title == '新话题') {
+      session.title = _sessionTitle(content);
+    }
+    await IsarUtil.upsertChatSession(session);
+  }
+
+  String _sessionTitle(String content) {
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) return '新话题';
+    return trimmed.length <= 20 ? trimmed : '${trimmed.substring(0, 20)}…';
+  }
+
+  Future<void> _newSession() async {
+    _throttle?.cancel();
+    _throttle = null;
+    setState(() {
+      _session = null;
+      _messages.clear();
+      _history.clear();
+      _msgCache.clear();
+      _streamBuffer = '';
+      _pending = '';
+      _streaming = false;
+    });
+    toast.info(message: '已开启新话题');
+  }
+
+  Future<void> _showSessions() async {
+    final sessions = await IsarUtil.getAllChatSessions();
+    if (!mounted) return;
+    final selected = await showModalBottomSheet<AiChatSession>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: sessions.isEmpty
+            ? const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: Text('暂无历史话题')),
+              )
+            : ListView(
+                shrinkWrap: true,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text('历史话题', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                  for (final s in sessions)
+                    ListTile(
+                      leading: Icon(
+                        s.id == _session?.id
+                            ? Icons.radio_button_checked_rounded
+                            : Icons.chat_bubble_outline_rounded,
+                        size: 18,
+                      ),
+                      title: Text(
+                        s.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${s.updatedAt.month}/${s.updatedAt.day} '
+                        '${s.updatedAt.hour.toString().padLeft(2, '0')}:'
+                        '${s.updatedAt.minute.toString().padLeft(2, '0')}',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      trailing: IconButton(
+                        onPressed: () async {
+                          await IsarUtil.deleteChatSession(s.id);
+                          if (sheetContext.mounted) {
+                            Navigator.pop(sheetContext);
+                          }
+                          await _showSessions();
+                        },
+                        icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                      ),
+                      onTap: () => Navigator.pop(sheetContext, s),
+                    ),
+                ],
+              ),
+      ),
+    );
+    if (selected != null && mounted) {
+      await _loadSession(selected);
     }
   }
 
@@ -231,6 +377,8 @@ class _AiHomePageState extends State<AiHomePage> {
       _pending = '';
       _lastSources = [];
     });
+    await _ensureSession();
+    await _persistMessage('user', text);
     _history.add(AiChatMessage(role: 'user', content: text));
     _scrollToBottom();
 
@@ -306,6 +454,13 @@ class _AiHomePageState extends State<AiHomePage> {
         _streamBuffer = '';
         _streaming = false;
       });
+      await _persistMessage(
+        'assistant',
+        _streamBuffer.trim().isEmpty
+            ? '（无回答）'
+            : _streamBuffer.trim(),
+        sources: List.of(_lastSources),
+      );
       _scrollToBottom();
     }
   }
@@ -359,10 +514,56 @@ class _AiHomePageState extends State<AiHomePage> {
     setState(() {
       _messages.clear();
       _history.clear();
+      _msgCache.clear();
       _streamBuffer = '';
       _pending = '';
       _streaming = false;
     });
+  }
+
+  Future<void> _saveAsNote(String content) async {
+    final diary = await AiNoteSaver.save(content);
+    toast.success(message: '已存入笔记');
+    if (mounted) {
+      Get.toNamed(AppRoutes.diaryPage, arguments: [diary, true]);
+    }
+  }
+
+  Future<void> _saveToKnowledgeBase(String content) async {
+    final kbs = await _rag.listKnowledgeBases();
+    if (kbs.isEmpty) {
+      toast.info(message: '还没有知识库，请先到「知识库管理」创建');
+      return;
+    }
+    if (!mounted) return;
+    final kb = await showModalBottomSheet<KnowledgeBase>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                '选择知识库',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            for (final k in kbs)
+              ListTile(
+                leading: const Icon(Icons.menu_book_rounded, size: 18),
+                title: Text(k.name),
+                onTap: () => Navigator.pop(sheetContext, k),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (kb == null || !mounted) return;
+    final diary = await AiNoteSaver.save(content);
+    await _rag.indexBlocks(knowledgeBaseId: kb.id, diaryId: diary.id);
+    toast.success(message: '已加入知识库「${kb.name}」');
   }
 
   bool get _kbEnabled => PrefUtil.getValue<bool>('moduleKnowledgeBase') ?? true;
@@ -417,6 +618,16 @@ class _AiHomePageState extends State<AiHomePage> {
         title: const Text('AI 助手'),
         actions: [
           IconButton(
+            onPressed: _showSessions,
+            icon: const Icon(Icons.history_rounded),
+            tooltip: '历史话题',
+          ),
+          IconButton(
+            onPressed: _newSession,
+            icon: const Icon(Icons.add_comment_outlined),
+            tooltip: '新开话题',
+          ),
+          IconButton(
             onPressed: () => Get.to(() => const KnowledgeBasePage()),
             icon: const Icon(Icons.menu_book_rounded),
             tooltip: '知识库管理',
@@ -448,17 +659,11 @@ class _AiHomePageState extends State<AiHomePage> {
                               streaming: true,
                               sources: const [],
                               index: -1,
+                              onSaveNote: null,
+                              onSaveToKb: null,
                             );
                           }
-                          final msg = _messages[index];
-                          return msg.role == 'user'
-                              ? _buildUser(msg.content)
-                              : _buildAssistant(
-                                  content: msg.content,
-                                  streaming: false,
-                                  sources: msg.sources,
-                                  index: index,
-                                );
+                          return _buildCachedMessage(index);
                         },
                       ),
               ),
@@ -544,11 +749,37 @@ class _AiHomePageState extends State<AiHomePage> {
     );
   }
 
+  Widget _buildCachedMessage(int index) {
+    final cached = _msgCache[index];
+    if (cached != null) return cached;
+    final msg = _messages[index];
+    final widget = msg.role == 'user'
+        ? _buildUser(msg.content)
+        : _buildAssistant(
+            content: msg.content,
+            streaming: false,
+            sources: msg.sources,
+            index: index,
+            onSaveNote: msg.content.trim().isEmpty ||
+                    msg.content == '（无回答）'
+                ? null
+                : () => _saveAsNote(msg.content),
+            onSaveToKb: msg.content.trim().isEmpty ||
+                    msg.content == '（无回答）'
+                ? null
+                : () => _saveToKnowledgeBase(msg.content),
+          );
+    _msgCache[index] = widget;
+    return widget;
+  }
+
   Widget _buildAssistant({
     required String content,
     required bool streaming,
     required List<RagHit> sources,
     required int index,
+    required VoidCallback? onSaveNote,
+    required VoidCallback? onSaveToKb,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
@@ -634,6 +865,18 @@ class _AiHomePageState extends State<AiHomePage> {
                         tooltip: '重新生成',
                         onTap: () => _regenerate(index),
                       ),
+                      if (onSaveNote != null)
+                        _iconAction(
+                          icon: Icons.note_add_outlined,
+                          tooltip: '存入笔记',
+                          onTap: onSaveNote,
+                        ),
+                      if (onSaveToKb != null)
+                        _iconAction(
+                          icon: Icons.menu_book_outlined,
+                          tooltip: '加入知识库',
+                          onTap: onSaveToKb,
+                        ),
                     ],
                   ),
                 ],

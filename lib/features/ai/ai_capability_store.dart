@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_provider_store.dart';
 import 'package:moodiary/features/ai/models/ai_capability_config.dart';
 import 'package:moodiary/features/ai/models/ai_provider_config.dart';
@@ -32,6 +33,7 @@ class AiCapabilityStore {
 
   static Future<void> save(AiCapabilitySet set) async {
     await SecureStorageUtil.setValue(_storageKey, jsonEncode(set.toJson()));
+    AiProviderFactory.invalidate();
   }
 
   /// 从服务商列表生成默认能力（兼容旧版单配置迁移）

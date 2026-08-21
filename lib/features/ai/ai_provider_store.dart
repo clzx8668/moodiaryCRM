@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_config.dart';
 import 'package:moodiary/features/ai/models/ai_provider_config.dart';
 import 'package:moodiary/persistence/secure_storage.dart';
@@ -50,6 +51,7 @@ class AiProviderStore {
       _storageKey,
       jsonEncode(list.map((c) => c.toJson()).toList()),
     );
+    AiProviderFactory.invalidate();
   }
 
   /// 新增/更新单个配置

@@ -181,6 +181,33 @@ class BlockEmbeddings extends Table {
   Set<Column> get primaryKey => {blockId, knowledgeBaseId};
 }
 
+/// AI 对话会话表（历史话题）
+@DataClassName('AiChatSessionRow')
+class AiChatSessions extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text().withDefault(const Constant('新话题'))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// AI 对话消息表
+@DataClassName('AiChatMessageRow')
+class AiChatMessages extends Table {
+  TextColumn get id => text()();
+  TextColumn get sessionId => text()();
+  TextColumn get role => text()();
+  TextColumn get content => text()();
+  /// 引用来源（RagHit JSON 数组，可选）
+  TextColumn get sourcesJson => text().withDefault(const Constant('[]'))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     Diaries,
@@ -192,13 +219,15 @@ class BlockEmbeddings extends Table {
     SyncRecords,
     KnowledgeBases,
     BlockEmbeddings,
+    AiChatSessions,
+    AiChatMessages,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -214,6 +243,12 @@ class AppDatabase extends _$AppDatabase {
         final db = m.database as AppDatabase;
         await m.createTable(db.knowledgeBases);
         await m.createTable(db.blockEmbeddings);
+      }
+      // v5 → v6：AI 对话会话与消息表
+      if (from < 6) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.aiChatSessions);
+        await m.createTable(db.aiChatMessages);
       }
     },
     beforeOpen: (details) async {

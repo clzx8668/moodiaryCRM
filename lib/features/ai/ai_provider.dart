@@ -52,8 +52,15 @@ class AiChatMessage {
 class AiProviderFactory {
   AiProviderFactory._();
 
+  static AiProvider? _cached;
+
   static Future<AiProvider> load() async {
-    return AiCompositeProvider.fromStore();
+    return _cached ??= await AiCompositeProvider.fromStore();
+  }
+
+  /// 配置变更后失效缓存（下次 load 重新构建，复用连接优化性能）
+  static void invalidate() {
+    _cached = null;
   }
 }
 

@@ -10,6 +10,8 @@ import 'package:moodiary/common/models/map.dart';
 import 'package:moodiary/components/base/text.dart';
 import 'package:moodiary/features/block/models/block.dart' as block_model;
 import 'package:moodiary/features/block/markdown_projection.dart';
+import 'package:moodiary/features/ai/models/ai_chat_session.dart'
+    as chat_model;
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart'
     as crm_model;
 import 'package:moodiary/features/rag/models/block_embedding.dart'
@@ -268,6 +270,51 @@ class IsarUtil {
       ..text = row.textContent
       ..embedding = rag_model.BlockEmbedding.decode(row.embedding, row.dimension)
       ..updatedAt = row.updatedAt;
+  }
+
+  static AiChatSessionsCompanion _chatSessionCompanion(
+    chat_model.AiChatSession s,
+  ) {
+    return AiChatSessionsCompanion.insert(
+      id: s.id,
+      title: Value(s.title),
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    );
+  }
+
+  static chat_model.AiChatSession _chatSessionFromRow(AiChatSessionRow row) {
+    return chat_model.AiChatSession()
+      ..id = row.id
+      ..title = row.title
+      ..createdAt = row.createdAt
+      ..updatedAt = row.updatedAt;
+  }
+
+  static AiChatMessagesCompanion _chatMessageCompanion(
+    chat_model.AiChatMessageRecord m,
+  ) {
+    return AiChatMessagesCompanion.insert(
+      id: m.id,
+      sessionId: m.sessionId,
+      role: m.role,
+      content: m.content,
+      sourcesJson: Value(m.sourcesJson),
+      createdAt: m.createdAt,
+    );
+  }
+
+  static chat_model.AiChatMessageRecord _chatMessageFromRow(
+    AiChatMessageRow row,
+  ) {
+    final record = chat_model.AiChatMessageRecord()
+      ..id = row.id
+      ..sessionId = row.sessionId
+      ..role = row.role
+      ..content = row.content
+      ..createdAt = row.createdAt;
+    record.setSourcesJson(row.sourcesJson);
+    return record;
   }
 
   // ==================== 基础操作 ====================
@@ -799,6 +846,51 @@ class IsarUtil {
           ))
         .getSingleOrNull();
     return row == null ? null : _embeddingFromRow(row);
+  }
+
+  // ==================== AI 对话会话（历史话题） ====================
+
+  static Future<void> upsertChatSession(chat_model.AiChatSession session) async {
+    session.updatedAt = DateTime.now();
+    await _database.into(_database.aiChatSessions).insertOnConflictUpdate(
+      _chatSessionCompanion(session),
+    );
+  }
+
+  static Future<List<chat_model.AiChatSession>> getAllChatSessions() async {
+    final rows = await (_database.select(_database.aiChatSessions)
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .get();
+    return rows.map(_chatSessionFromRow).toList();
+  }
+
+  static Future<void> deleteChatSession(String id) async {
+    await _database.transaction(() async {
+      await (_database.delete(_database.aiChatSessions)
+            ..where((t) => t.id.equals(id)))
+          .go();
+      await (_database.delete(_database.aiChatMessages)
+            ..where((t) => t.sessionId.equals(id)))
+          .go();
+    });
+  }
+
+  static Future<void> insertChatMessage(
+    chat_model.AiChatMessageRecord message,
+  ) async {
+    await _database.into(_database.aiChatMessages).insertOnConflictUpdate(
+      _chatMessageCompanion(message),
+    );
+  }
+
+  static Future<List<chat_model.AiChatMessageRecord>> getChatMessages(
+    String sessionId,
+  ) async {
+    final rows = await (_database.select(_database.aiChatMessages)
+          ..where((t) => t.sessionId.equals(sessionId))
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+        .get();
+    return rows.map(_chatMessageFromRow).toList();
   }
 
   static Future<void> deleteSyncRecord(int id) async {
