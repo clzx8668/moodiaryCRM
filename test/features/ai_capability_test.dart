@@ -130,5 +130,45 @@ void main() {
         throwsA(isA<StateError>()),
       );
     });
+
+    test('指定对话主模型并暴露可用模型列表', () async {
+      await AiProviderStore.saveAll([
+        AiProviderConfig()
+          ..id = 'p1'
+          ..name = 'DeepSeek'
+          ..baseUrl = 'https://a'
+          ..apiKey = 'k1'
+          ..models.addAll(['deepseek-chat', 'deepseek-reasoner'])
+          ..enabled = true
+          ..priority = 0,
+        AiProviderConfig()
+          ..id = 'p2'
+          ..name = 'OpenAI'
+          ..baseUrl = 'https://b'
+          ..apiKey = 'k2'
+          ..models.addAll(['gpt-4o'])
+          ..enabled = true
+          ..priority = 1,
+      ]);
+      await AiCapabilityStore.save(
+        AiCapabilitySet(
+          chat: AiCapabilityConfig(
+            id: 'chat',
+            enabled: true,
+            providerId: 'p1',
+            modelName: 'deepseek-reasoner',
+          ),
+        ),
+      );
+
+      final provider = await AiCompositeProvider.fromStore();
+
+      expect(provider.chatLabel, 'DeepSeek · deepseek-reasoner');
+      expect(provider.chatModels.length, 3);
+      expect(
+        provider.chatModels.map((c) => c.label),
+        contains('OpenAI · gpt-4o'),
+      );
+    });
   });
 }

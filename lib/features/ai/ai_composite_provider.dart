@@ -13,10 +13,18 @@ class AiCompositeProvider implements AiProvider {
   final OpenAiCompatibleProvider? _embedding;
   final String? _embeddingName;
 
+  /// 当前对话模型展示（如「DeepSeek · deepseek-chat」）
+  final String? chatLabel;
+
+  /// 可用对话模型列表（服务商 × 勾选模型），供界面切换
+  final List<ChatModelOption> chatModels;
+
   AiCompositeProvider({
     required MultiProvider chat,
     OpenAiCompatibleProvider? embedding,
     String? embeddingName,
+    this.chatLabel,
+    this.chatModels = const [],
   }) : _chat = chat,
        _embedding = embedding,
        _embeddingName = embeddingName;
@@ -27,19 +35,60 @@ class AiCompositeProvider implements AiProvider {
     final caps = await AiCapabilityStore.load();
     final enabled = AiProviderStore.enabledConfigured(providers);
 
-    // 对话：全部启用服务商按优先级主备（chat.providerId 为空时）
+    // 可用对话模型列表（供 AI 助手界面切换）
+    final chatModels = <ChatModelOption>[];
+    for (final c in enabled) {
+      final models = c.models.isEmpty
+          ? [if (c.chatModel.isNotEmpty) c.chatModel]
+          : c.models;
+      for (final m in models) {
+        chatModels.add(ChatModelOption(
+          providerId: c.id,
+          providerName: c.name,
+          modelName: m,
+        ));
+      }
+    }
+
+    // 对话主备：
+    // - chat.providerId 指定 → 该服务商为主（modelName 覆盖其默认模型），其余启用为备
+    // - 未指定 → 全部启用服务商按优先级主备
     final chatProviders = <OpenAiCompatibleProvider>[];
     if (caps.chat.enabled) {
       if (caps.chat.providerId.isNotEmpty) {
-        // 指定单个服务商作为对话
-        final target = enabled.where((c) => c.id == caps.chat.providerId);
-        chatProviders.addAll(
-          target.map((c) => OpenAiCompatibleProvider(config: c.toAiConfig())),
-        );
+        // 主：指定服务商 + 指定模型
+        for (final c in enabled) {
+          if (c.id == caps.chat.providerId) {
+            chatProviders.add(
+              OpenAiCompatibleProvider(
+                config: c.toAiConfig(modelOverride: caps.chat.modelName),
+              ),
+            );
+          } else {
+            chatProviders.add(
+              OpenAiCompatibleProvider(config: c.toAiConfig()),
+            );
+          }
+        }
       } else {
         chatProviders.addAll(
           enabled.map((c) => OpenAiCompatibleProvider(config: c.toAiConfig())),
         );
+      }
+    }
+
+    // 当前对话模型展示
+    String? chatLabel;
+    if (caps.chat.enabled && chatProviders.isNotEmpty) {
+      if (caps.chat.providerId.isNotEmpty) {
+        final target = enabled.where((c) => c.id == caps.chat.providerId);
+        if (target.isNotEmpty) {
+          chatLabel =
+              '${target.first.name} · ${caps.chat.modelName.isEmpty ? target.first.chatModel : caps.chat.modelName}';
+        }
+      } else if (enabled.isNotEmpty) {
+        final primary = enabled.first;
+        chatLabel = '${primary.name} · ${primary.chatModel}';
       }
     }
 
@@ -65,6 +114,8 @@ class AiCompositeProvider implements AiProvider {
       chat: MultiProvider(chatProviders),
       embedding: embedding,
       embeddingName: embeddingName,
+      chatLabel: chatLabel,
+      chatModels: chatModels,
     );
   }
 
@@ -99,4 +150,19 @@ class AiCompositeProvider implements AiProvider {
       );
     }
   }
+}
+
+/// 对话模型选项（服务商 + 模型名）
+class ChatModelOption {
+  final String providerId;
+  final String providerName;
+  final String modelName;
+
+  const ChatModelOption({
+    required this.providerId,
+    required this.providerName,
+    required this.modelName,
+  });
+
+  String get label => '$providerName · $modelName';
 }

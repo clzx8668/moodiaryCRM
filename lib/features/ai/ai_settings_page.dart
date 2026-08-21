@@ -440,7 +440,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                   await _saveCaps();
                 },
               ),
-              if (showModelField) ...[
+              if (showModelField ||
+                  (capability.id == 'chat' &&
+                      capability.providerId.isNotEmpty)) ...[
                 const SizedBox(height: 10),
                 _ModelField(
                   key: ValueKey(
@@ -453,7 +455,8 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                     _saveCaps();
                   },
                 ),
-              ] else if (capability.id == 'chat' && capability.providerId.isEmpty) ...[
+              ] else if (capability.id == 'chat' &&
+                  capability.providerId.isEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
                   '使用全部服务商：各按其默认对话模型主备切换'

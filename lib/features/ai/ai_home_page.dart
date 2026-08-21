@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/features/ai/ai_capability_store.dart';
+import 'package:moodiary/features/ai/ai_composite_provider.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
 import 'package:moodiary/features/block/block_renderer.dart';
@@ -47,6 +49,8 @@ class _AiHomePageState extends State<AiHomePage> {
   final List<AiChatMessage> _history = [];
 
   KnowledgeBase? _kb;
+  String? _currentModel;
+  List<ChatModelOption> _chatModels = [];
   bool _online = false;
   bool _streaming = false;
   String _streamBuffer = '';
@@ -67,6 +71,7 @@ class _AiHomePageState extends State<AiHomePage> {
     super.initState();
     _kb = widget.initialKnowledgeBase;
     _input.addListener(() => setState(() {}));
+    _loadChatModelInfo();
   }
 
   @override
@@ -130,6 +135,89 @@ class _AiHomePageState extends State<AiHomePage> {
     } else if (selected is KnowledgeBase) {
       setState(() => _kb = selected);
     }
+  }
+
+  Future<void> _loadChatModelInfo() async {
+    final provider = await AiProviderFactory.load();
+    if (provider is AiCompositeProvider && mounted) {
+      setState(() {
+        _currentModel = provider.chatLabel;
+        _chatModels = provider.chatModels;
+      });
+    }
+  }
+
+  Future<void> _pickChatModel() async {
+    if (_chatModels.isEmpty) {
+      toast.info(message: '暂无可用模型，请先到「模型管理」添加服务商并勾选模型');
+      return;
+    }
+    final selected = await showModalBottomSheet<Object>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              title: Text('对话模型'),
+              dense: true,
+            ),
+            ListTile(
+              leading: const Icon(Icons.hub_rounded),
+              title: const Text('全部（主备自动切换）'),
+              selected: _currentModel == null || _chatModels.isEmpty,
+              onTap: () => Navigator.pop(sheetContext, 'all'),
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final option in _chatModels)
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.memory_rounded, size: 18),
+                      title: Text(option.label),
+                      selected: _currentModel == option.label,
+                      onTap: () => Navigator.pop(sheetContext, option),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (selected == 'all') {
+      await _saveChatCapability(providerId: '', modelName: '');
+      final provider = await AiProviderFactory.load();
+      if (provider is AiCompositeProvider && mounted) {
+        setState(() => _currentModel = provider.chatLabel);
+      }
+    } else if (selected is ChatModelOption) {
+      await _saveChatCapability(
+        providerId: selected.providerId,
+        modelName: selected.modelName,
+      );
+      if (mounted) {
+        setState(() => _currentModel = selected.label);
+      }
+    }
+  }
+
+  Future<void> _saveChatCapability({
+    required String providerId,
+    required String modelName,
+  }) async {
+    final caps = await AiCapabilityStore.load();
+    caps.chat
+      ..enabled = true
+      ..providerId = providerId
+      ..modelName = modelName;
+    await AiCapabilityStore.save(caps);
+    toast.success(message: '对话模型已切换');
   }
 
   Future<void> _send([String? preset]) async {
@@ -595,6 +683,16 @@ class _AiHomePageState extends State<AiHomePage> {
         constraints: const BoxConstraints(maxWidth: 760),
         child: Row(
           children: [
+            ActionChip(
+              avatar: const Icon(Icons.memory_rounded, size: 16),
+              label: Text(
+                _currentModel ?? '模型',
+                style: const TextStyle(fontSize: 12),
+              ),
+              visualDensity: VisualDensity.compact,
+              onPressed: _pickChatModel,
+            ),
+            const SizedBox(width: 8),
             if (_kbEnabled) ...[
               ActionChip(
                 avatar: const Icon(Icons.menu_book_outlined, size: 16),

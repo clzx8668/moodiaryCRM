@@ -48,10 +48,17 @@ class AiProviderConfig {
 
   bool get isConfigured => baseUrl.trim().isNotEmpty && apiKey.trim().isNotEmpty;
 
-  /// 转单配置（连接测试 / OpenAI 兼容实现使用）
-  AiConfig toAiConfig({String embeddingModelOverride = ''}) {
-    // 对话模型 fallback：默认对话模型 → 勾选模型列表第一个 → 兜底
-    final model = chatModel.trim().isNotEmpty
+  /// 转单配置（连接测试 / OpenAI 兼容实现使用）。
+  /// [modelOverride] 覆盖对话模型（能力配置指定时优先）；
+  /// [embeddingModelOverride] 覆盖向量模型。
+  AiConfig toAiConfig({
+    String modelOverride = '',
+    String embeddingModelOverride = '',
+  }) {
+    // 对话模型：能力指定 → 默认对话模型 → 勾选模型列表第一个 → 兜底
+    final model = modelOverride.trim().isNotEmpty
+        ? modelOverride
+        : chatModel.trim().isNotEmpty
         ? chatModel
         : models.isNotEmpty
         ? models.first
