@@ -1057,6 +1057,14 @@ class IsarUtil {
     return rows.map(_blockFromRow).toList();
   }
 
+  /// 导出/备份用：返回全部 Block（含软删除墓碑，保证往返一致）
+  static Future<List<block_model.Block>> getAllBlocks() async {
+    final rows = await (_database.select(_database.blocks)
+          ..orderBy([(t) => OrderingTerm.asc(t.diaryId)]))
+        .get();
+    return rows.map(_blockFromRow).toList();
+  }
+
   /// 按业务主键查询单个 Block
   static Future<block_model.Block?> getBlockById(String id) async {
     final row = await (_database.select(_database.blocks)
