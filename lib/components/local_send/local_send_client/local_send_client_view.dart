@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/components/base/tile/setting_tile.dart';
+import 'package:moodiary/features/backup/backup_service.dart';
 import 'package:moodiary/l10n/l10n.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/utils/file_util.dart';
 
 import 'local_send_client_logic.dart';
@@ -10,6 +12,58 @@ import 'local_send_client_state.dart';
 
 class LocalSendClientComponent extends StatelessWidget {
   const LocalSendClientComponent({super.key});
+
+  BackupScope get _scope =>
+      backupScopeFromName(PrefUtil.getValue<String>('lanSyncContentScope'));
+
+  Future<void> _showScopeDialog(BuildContext context) async {
+    var selected = _scope;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('同步内容设置'),
+          content: RadioGroup<BackupScope>(
+            groupValue: selected,
+            onChanged: (v) => setDialogState(() => selected = v!),
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RadioListTile<BackupScope>(
+                  value: BackupScope.notes,
+                  title: Text('仅笔记'),
+                  subtitle: Text('日记、Block（含待办）、分类'),
+                ),
+                RadioListTile<BackupScope>(
+                  value: BackupScope.all,
+                  title: Text('全部'),
+                  subtitle: Text(
+                    '笔记 + CRM + 知识库/向量 + 对话记录 + AI 配置',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                await PrefUtil.setValue<String>(
+                  'lanSyncContentScope',
+                  selected.name,
+                );
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -175,10 +229,31 @@ class LocalSendClientComponent extends StatelessWidget {
       });
     }
 
+    Widget buildScope() {
+      return AdaptiveListTile(
+        title: const Text('同步内容'),
+        subtitle: Text(
+          _scope == BackupScope.all
+              ? '全部（含知识库/待办/对话记录/AI 配置）'
+              : '仅笔记（日记/Block/分类）',
+        ),
+        leading: const Icon(Icons.tune_rounded),
+        trailing: Text(
+          _scope == BackupScope.all ? '全部' : '仅笔记',
+          style: context.textTheme.bodySmall!.copyWith(
+            color: context.theme.colorScheme.primary,
+          ),
+        ),
+        onTap: () => _showScopeDialog(context),
+      );
+    }
+
     return GetBuilder<LocalSendClientLogic>(
       assignId: true,
       builder: (_) {
-        return Column(children: [buildSelect(), buildSend(), buildProgress()]);
+        return Column(
+          children: [buildSelect(), buildScope(), buildSend(), buildProgress()],
+        );
       },
     );
   }

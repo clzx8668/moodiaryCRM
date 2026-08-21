@@ -14,6 +14,19 @@ import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:path/path.dart' as p;
 
+/// 同步/备份内容范围：仅笔记（日记+Block+分类）或全部（含 CRM/知识库/会话/AI 配置）
+enum BackupScope { notes, all }
+
+extension BackupScopeName on BackupScope {
+  String get name => switch (this) {
+    BackupScope.notes => 'notes',
+    BackupScope.all => 'all',
+  };
+}
+
+BackupScope backupScopeFromName(String? value) =>
+    value == BackupScope.notes.name ? BackupScope.notes : BackupScope.all;
+
 /// P4.4 结构化备份：Markdown + JSON 全量导出/导入（可读、跨端、往返一致）。
 ///
 /// 备份包为 zip：
@@ -32,6 +45,7 @@ class BackupService {
   static Future<File> export({
     String? targetDirectory,
     Map<String, Object>? extraJson,
+    BackupScope scope = BackupScope.all,
   }) async {
     final diaries = await IsarUtil.getAllDiaries();
     final blocks = await IsarUtil.getAllBlocks();
@@ -60,11 +74,12 @@ class BackupService {
           'diaries': diaries.length,
           'blocks': blocks.length,
           'categories': categories.length,
-          'crm': crmEntities.length,
-          'knowledgeBases': knowledgeBases.length,
-          'embeddings': embeddings.length,
-          'sessions': sessions.length,
-          'messages': messages.length,
+          'crm': scope == BackupScope.all ? crmEntities.length : 0,
+          'knowledgeBases':
+              scope == BackupScope.all ? knowledgeBases.length : 0,
+          'embeddings': scope == BackupScope.all ? embeddings.length : 0,
+          'sessions': scope == BackupScope.all ? sessions.length : 0,
+          'messages': scope == BackupScope.all ? messages.length : 0,
         },
       },
     );
@@ -93,52 +108,54 @@ class BackupService {
 
     addJson('categories.json', [for (final c in categories) c.toJson()]);
 
-    for (final entity in crmEntities) {
-      addJson('crm/${entity.entityType}/${entity.id}.json', entity.toJson());
-    }
-    for (final kb in knowledgeBases) {
-      addJson('knowledge/${kb.id}.json', kb.toJson());
-    }
-    for (final embedding in embeddings) {
-      addJson(
-        'knowledge_embeddings/${embedding.blockId}_${embedding.knowledgeBaseId}.json',
-        {
-          'blockId': embedding.blockId,
-          'diaryId': embedding.diaryId,
-          'knowledgeBaseId': embedding.knowledgeBaseId,
-          'text': embedding.text,
-          'dimension': embedding.dimension,
-          'embedding': embedding.encode(),
-          'updatedAt': embedding.updatedAt.toIso8601String(),
-        },
-      );
-    }
-    for (final session in sessions) {
-      addJson(
-        'ai_sessions/${session.id}.json',
-        {
-          'id': session.id,
-          'title': session.title,
-          'createdAt': session.createdAt.toIso8601String(),
-          'updatedAt': session.updatedAt.toIso8601String(),
-        },
-      );
-    }
-    for (final message in messages) {
-      addJson(
-        'ai_messages/${message.id}.json',
-        {
-          'id': message.id,
-          'sessionId': message.sessionId,
-          'role': message.role,
-          'content': message.content,
-          'sources': message.sourcesJson,
-          'createdAt': message.createdAt.toIso8601String(),
-        },
-      );
-    }
-    for (final entry in (extraJson ?? const <String, Object>{}).entries) {
-      addJson(entry.key, entry.value);
+    if (scope == BackupScope.all) {
+      for (final entity in crmEntities) {
+        addJson('crm/${entity.entityType}/${entity.id}.json', entity.toJson());
+      }
+      for (final kb in knowledgeBases) {
+        addJson('knowledge/${kb.id}.json', kb.toJson());
+      }
+      for (final embedding in embeddings) {
+        addJson(
+          'knowledge_embeddings/${embedding.blockId}_${embedding.knowledgeBaseId}.json',
+          {
+            'blockId': embedding.blockId,
+            'diaryId': embedding.diaryId,
+            'knowledgeBaseId': embedding.knowledgeBaseId,
+            'text': embedding.text,
+            'dimension': embedding.dimension,
+            'embedding': embedding.encode(),
+            'updatedAt': embedding.updatedAt.toIso8601String(),
+          },
+        );
+      }
+      for (final session in sessions) {
+        addJson(
+          'ai_sessions/${session.id}.json',
+          {
+            'id': session.id,
+            'title': session.title,
+            'createdAt': session.createdAt.toIso8601String(),
+            'updatedAt': session.updatedAt.toIso8601String(),
+          },
+        );
+      }
+      for (final message in messages) {
+        addJson(
+          'ai_messages/${message.id}.json',
+          {
+            'id': message.id,
+            'sessionId': message.sessionId,
+            'role': message.role,
+            'content': message.content,
+            'sources': message.sourcesJson,
+            'createdAt': message.createdAt.toIso8601String(),
+          },
+        );
+      }
+      for (final entry in (extraJson ?? const <String, Object>{}).entries) {
+        addJson(entry.key, entry.value);
+      }
     }
 
     final bytes = ZipEncoder().encode(archive);

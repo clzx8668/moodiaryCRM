@@ -10,6 +10,7 @@ import 'package:moodiary/components/local_send/local_send_logic.dart';
 import 'package:moodiary/features/ai/ai_capability_store.dart';
 import 'package:moodiary/features/ai/ai_provider_store.dart';
 import 'package:moodiary/features/backup/backup_service.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/http_util.dart';
@@ -263,9 +264,13 @@ class LocalSendClientLogic extends GetxController {
     state.isSending.value = true;
     try {
       toast.info(message: '正在打包同步数据…');
+      final scope = backupScopeFromName(
+        PrefUtil.getValue<String>('lanSyncContentScope'),
+      );
       final packet = await BackupService.export(
         targetDirectory: FileUtil.getCachePath('lan_sync'),
-        extraJson: await _buildAiExtras(),
+        extraJson: scope == BackupScope.all ? await _buildAiExtras() : null,
+        scope: scope,
       );
 
       final dio.FormData formData = dio.FormData();

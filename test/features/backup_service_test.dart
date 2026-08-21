@@ -213,4 +213,47 @@ void main() {
     );
     expect(result.extras['ai_capabilities.json'], isA<Map>());
   });
+
+  test('scope=notes：仅导出日记/Block/分类，不含 CRM/知识库/会话/AI 配置', () async {
+    final diary = Diary()
+      ..id = 'd1'
+      ..title = '笔记'
+      ..content = '内容'
+      ..contentText = '内容'
+      ..type = 'markdown';
+    await IsarUtil.insertADiary(diary);
+    await IsarUtil.upsertCrmEntities([
+      CrmEntityCache()
+        ..twentyId = 't1'
+        ..entityType = 'company'
+        ..name = '某某公司',
+    ]);
+    await IsarUtil.upsertKnowledgeBase(
+      KnowledgeBase()
+        ..id = 'kb1'
+        ..name = '产品知识库',
+    );
+    await IsarUtil.upsertChatSession(
+      AiChatSession()
+        ..id = 's1'
+        ..title = '话题一',
+    );
+
+    final zip = await BackupService.export(
+      targetDirectory: tempDir.path,
+      scope: BackupScope.notes,
+      extraJson: {
+        'ai_providers.json': [
+          {'id': 'p1'},
+        ],
+      },
+    );
+    final result = await BackupService.importFromFile(zip.path);
+    expect(result.diaries, 1);
+    expect(result.crm, 0);
+    expect(result.knowledgeBases, 0);
+    expect(result.sessions, 0);
+    expect(result.messages, 0);
+    expect(result.extras, isEmpty);
+  });
 }

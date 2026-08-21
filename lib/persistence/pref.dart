@@ -98,6 +98,8 @@ class PrefUtil {
     'moduleCrm',
     'moduleKnowledgeBase',
     'moduleCalendar',
+    // 局域网同步内容范围（notes/all）
+    'lanSyncContentScope',
   };
 
   /// 允许持久化的动态键前缀（如 `crmTableColumns_` 前缀的列表级设置）。
@@ -244,6 +246,10 @@ class PrefUtil {
     await _prefs.setBool(
       'moduleCalendar',
       _prefs.getBool('moduleCalendar') ?? true,
+    );
+    await _prefs.setString(
+      'lanSyncContentScope',
+      _prefs.getString('lanSyncContentScope') ?? 'all',
     );
   }
 
