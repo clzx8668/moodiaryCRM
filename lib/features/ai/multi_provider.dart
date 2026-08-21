@@ -1,17 +1,32 @@
+import 'dart:async';
+
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_provider_store.dart';
 import 'package:moodiary/features/ai/models/ai_provider_config.dart';
 
 /// 多平台 Provider：按优先级依次尝试，主模型失败自动切换到备用。
 ///
-/// 切换触发条件：首个输出前返回错误 / 抛异常（避免中途切换打断已生成的文本）。
+/// 切换触发条件：首个输出前返回错误 / 抛异常 / 超时 / 空响应
+/// （避免中途切换打断已生成的文本）。
 class MultiProvider implements AiProvider {
   final List<_ProviderEntry> _entries;
 
-  MultiProvider(List<AiProvider> providers)
+  /// 首个输出前的等待超时（无首字即判失败切换）
+  final Duration firstChunkTimeout;
+
+  MultiProvider(
+    List<AiProvider> providers, {
+    List<String>? names,
+    this.firstChunkTimeout = const Duration(seconds: 30),
+  })
     : _entries = [
         for (var i = 0; i < providers.length; i++)
-          _ProviderEntry(name: '模型 ${i + 1}', provider: providers[i]),
+          _ProviderEntry(
+            name: names != null && i < names.length
+                ? names[i]
+                : '模型 ${i + 1}',
+            provider: providers[i],
+          ),
       ];
 
   factory MultiProvider.fromConfigs(List<AiProviderConfig> configs) {
@@ -53,30 +68,46 @@ class MultiProvider implements AiProvider {
     for (var i = 0; i < _entries.length; i++) {
       final entry = _entries[i];
       var sawContent = false;
-      var failedBeforeContent = false;
+      String? failReason;
+      final iterator = StreamIterator(call(entry.provider));
       try {
-        await for (final chunk in call(entry.provider)) {
+        var hasNext = await iterator.moveNext().timeout(firstChunkTimeout);
+        if (!hasNext) {
+          failReason = '无响应（空流）';
+        }
+        while (hasNext) {
+          final chunk = iterator.current;
           if (chunk.error != null && !sawContent) {
-            lastError = chunk.error;
-            failedBeforeContent = true;
+            failReason = chunk.error;
             break;
           }
           if (chunk.text.isNotEmpty) sawContent = true;
           yield chunk;
-          if (chunk.done) return;
+          if (chunk.done) break;
+          hasNext = await iterator.moveNext();
+        }
+        if (failReason == null && !sawContent) {
+          failReason = '无输出内容';
         }
       } catch (e) {
-        lastError = '$e';
-        failedBeforeContent = !sawContent;
         if (sawContent) {
           yield AiChunk.error('生成中断：$e');
           return;
         }
+        failReason ??= '$e';
+      } finally {
+        iterator.cancel();
       }
-      if (failedBeforeContent && i < _entries.length - 1) {
-        yield AiChunk(
-          text: '\n\n> ⚠️ ${entry.name} 不可用，已自动切换到备用模型。\n',
-        );
+      if (failReason != null) {
+        lastError = failReason;
+        if (i < _entries.length - 1) {
+          yield AiChunk(
+            text:
+                '\n\n> ⚠️ ${entry.name} 不可用（$failReason），已自动切换到备用模型。\n',
+          );
+        }
+      } else {
+        return;
       }
     }
     yield AiChunk.error(lastError ?? '所有模型均不可用');

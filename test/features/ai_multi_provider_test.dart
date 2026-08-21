@@ -9,11 +9,15 @@ class _FakeProvider implements AiProvider {
   final String name;
   final bool failChat;
   final bool failEmbed;
+  final bool emptyChat;
+  final Duration firstDelay;
 
   _FakeProvider({
     required this.name,
     this.failChat = false,
     this.failEmbed = false,
+    this.emptyChat = false,
+    this.firstDelay = Duration.zero,
   });
 
   @override
@@ -34,12 +38,23 @@ class _FakeProvider implements AiProvider {
 
   @override
   Stream<AiChunk> streamChat(List<AiChatMessage> messages) {
-    return failChat
-        ? Stream.value(AiChunk.error('$name 不可用'))
-        : Stream.fromIterable([
-            AiChunk(text: '$name 回答'),
-            const AiChunk(done: true),
-          ]);
+    return _chatStream();
+  }
+
+  Stream<AiChunk> _chatStream() async* {
+    if (firstDelay > Duration.zero) {
+      await Future.delayed(firstDelay);
+    }
+    if (emptyChat) {
+      yield const AiChunk(done: true);
+      return;
+    }
+    if (failChat) {
+      yield AiChunk.error('$name 不可用');
+      return;
+    }
+    yield AiChunk(text: '$name 回答');
+    yield const AiChunk(done: true);
   }
 
   @override
@@ -186,6 +201,36 @@ void main() {
         const [AiChatMessage(role: 'user', content: 'hi')],
       ).toList();
       expect(chunks.first.error, contains('模型管理'));
+    });
+
+    test('备用模型空响应判失败并继续切换', () async {
+      final provider = MultiProvider([
+        _FakeProvider(name: '空响应', emptyChat: true),
+        _FakeProvider(name: '正常'),
+      ]);
+      final chunks = await provider.streamChat(
+        const [AiChatMessage(role: 'user', content: 'hi')],
+      ).toList();
+      final text = chunks.map((c) => c.text).join();
+      expect(text, contains('已自动切换到备用模型'));
+      expect(text, contains('正常 回答'));
+    });
+
+    test('首字超时切换备用', () async {
+      final provider = MultiProvider(
+        [
+          _FakeProvider(name: '慢模型', firstDelay: const Duration(milliseconds: 500)),
+          _FakeProvider(name: '快模型'),
+        ],
+        firstChunkTimeout: const Duration(milliseconds: 100),
+      );
+      final chunks = await provider.streamChat(
+        const [AiChatMessage(role: 'user', content: 'hi')],
+      ).toList();
+      final text = chunks.map((c) => c.text).join();
+      expect(text, contains('已自动切换到备用模型'));
+      expect(text, contains('快模型 回答'));
+      expect(chunks.any((c) => c.error != null), isFalse);
     });
   });
 }

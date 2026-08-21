@@ -48,6 +48,23 @@ class AiProviderConfig {
 
   bool get isConfigured => baseUrl.trim().isNotEmpty && apiKey.trim().isNotEmpty;
 
+  /// 启发式判断模型是否适合对话（排除 embedding/语音等专用模型名）。
+  /// 无能力元数据时的保守过滤，显式选择优先。
+  static bool isLikelyChatModel(String name) {
+    final n = name.toLowerCase();
+    const markers = [
+      'embedding',
+      'whisper',
+      'tts',
+      'rerank',
+      'similarity',
+      'moderation',
+      'davinci',
+      'audio',
+    ];
+    return !markers.any(n.contains);
+  }
+
   /// 转单配置（连接测试 / OpenAI 兼容实现使用）。
   /// [modelOverride] 覆盖对话模型（能力配置指定时优先）；
   /// [embeddingModelOverride] 覆盖向量模型。
@@ -61,7 +78,10 @@ class AiProviderConfig {
         : chatModel.trim().isNotEmpty
         ? chatModel
         : models.isNotEmpty
-        ? models.first
+        ? models.firstWhere(
+            isLikelyChatModel,
+            orElse: () => models.first,
+          )
         : AiConfig.defaultModel;
     return AiConfig(
       baseUrl: baseUrl,

@@ -109,13 +109,24 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
         if (!_config.models.contains(model)) _config.models.add(model);
         // 默认对话模型为空时，自动取勾选的第一个
         if (_config.chatModel.isEmpty) {
-          _config.chatModel = model;
-          _chatModel.text = model;
+          final chatModel = _firstChatModel();
+          if (chatModel != null) {
+            _config.chatModel = chatModel;
+            _chatModel.text = chatModel;
+          }
         }
       } else {
         _config.models.remove(model);
       }
     });
+  }
+
+  /// 从当前勾选集合中取第一个适合对话的模型（优先非专用模型）
+  String? _firstChatModel() {
+    for (final m in _config.models) {
+      if (AiProviderConfig.isLikelyChatModel(m)) return m;
+    }
+    return _config.models.isEmpty ? null : _config.models.first;
   }
 
   @override
@@ -242,9 +253,12 @@ class _AiProviderEditPageState extends State<AiProviderEditPage> {
                     _config.models
                       ..clear()
                       ..addAll(_fetchedModels);
-                    if (_config.chatModel.isEmpty && _fetchedModels.isNotEmpty) {
-                      _config.chatModel = _fetchedModels.first;
-                      _chatModel.text = _fetchedModels.first;
+                    if (_config.chatModel.isEmpty) {
+                      final chatModel = _firstChatModel();
+                      if (chatModel != null) {
+                        _config.chatModel = chatModel;
+                        _chatModel.text = chatModel;
+                      }
                     }
                   }),
                   child: const Text('全选', style: TextStyle(fontSize: 12)),
