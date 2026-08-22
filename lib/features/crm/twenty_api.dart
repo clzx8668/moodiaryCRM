@@ -144,11 +144,16 @@ class TwentyApiClient {
 
   /// 探测对象类型是否存在（标准对象 note/task 或自定义对象 moodiaryGeneric 等）。
   /// 通过 GraphQL introspection `__type` 判断，不存在的类型返回 false。
+  /// 自定义对象在标准 API 中类型名为首字母大写（如 MoodiaryGeneric），
+  /// 因此同时探测原始名与首字母大写名。
   Future<bool> typeExists(String typeName) async {
-    final data = await graphql(
-      'query TypeExists { __type(name: "$typeName") { name } }',
-    );
-    return data['__type'] is Map<String, dynamic>;
+    for (final candidate in {typeName, _capitalize(typeName)}) {
+      final data = await graphql(
+        'query TypeExists { __type(name: "$candidate") { name } }',
+      );
+      if (data['__type'] is Map<String, dynamic>) return true;
+    }
+    return false;
   }
 
   /// 通用 GraphQL 查询/变更
@@ -392,14 +397,20 @@ mutation Delete$className(\$id: ID!) {
   }) async {
     final data = <String, dynamic>{
       'noteId': noteId,
-      if (companyId != null) 'companyId': companyId,
-      if (personId != null) 'personId': personId,
-      if (opportunityId != null) 'opportunityId': opportunityId,
+      if (companyId != null) 'targetCompanyId': companyId,
+      if (personId != null) 'targetPersonId': personId,
+      if (opportunityId != null) 'targetOpportunityId': opportunityId,
     };
     return create(
       object: 'noteTarget',
       data: data,
-      fields: ['id', 'noteId', 'companyId', 'personId', 'opportunityId'],
+      fields: [
+        'id',
+        'noteId',
+        'targetCompanyId',
+        'targetPersonId',
+        'targetOpportunityId',
+      ],
     );
   }
 
@@ -462,14 +473,20 @@ mutation Delete$className(\$id: ID!) {
   }) async {
     final data = <String, dynamic>{
       'taskId': taskId,
-      if (companyId != null) 'companyId': companyId,
-      if (personId != null) 'personId': personId,
-      if (opportunityId != null) 'opportunityId': opportunityId,
+      if (companyId != null) 'targetCompanyId': companyId,
+      if (personId != null) 'targetPersonId': personId,
+      if (opportunityId != null) 'targetOpportunityId': opportunityId,
     };
     return create(
       object: 'taskTarget',
       data: data,
-      fields: ['id', 'taskId', 'companyId', 'personId', 'opportunityId'],
+      fields: [
+        'id',
+        'taskId',
+        'targetCompanyId',
+        'targetPersonId',
+        'targetOpportunityId',
+      ],
     );
   }
 

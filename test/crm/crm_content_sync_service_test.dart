@@ -60,14 +60,14 @@ class ContentMockAdapter implements HttpClientAdapter {
       data['createNoteTarget'] = {
         'id': 'nt-1',
         'noteId': variables['data']?['noteId'],
-        'companyId': variables['data']?['companyId'],
+        'targetCompanyId': variables['data']?['targetCompanyId'],
       };
     } else if (query.contains('createTaskTarget(')) {
       calls.add('createTaskTarget');
       data['createTaskTarget'] = {
         'id': 'tt-1',
         'taskId': variables['data']?['taskId'],
-        'companyId': variables['data']?['companyId'],
+        'targetCompanyId': variables['data']?['targetCompanyId'],
       };
     } else if (query.contains('createMoodiaryGeneric(')) {
       calls.add('createMoodiaryGeneric');
@@ -100,9 +100,9 @@ class ContentMockAdapter implements HttpClientAdapter {
             'node': {
               'id': 'nt-1',
               'noteId': 'note-1',
-              'companyId': 'company-1',
-              'personId': null,
-              'opportunityId': null,
+              'targetCompanyId': 'company-1',
+              'targetPersonId': null,
+              'targetOpportunityId': null,
             },
           },
         ],
