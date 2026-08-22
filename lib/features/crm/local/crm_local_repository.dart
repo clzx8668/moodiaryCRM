@@ -19,6 +19,8 @@ class CrmLocalRepository {
     'contact',
     'opportunity',
     'contract',
+    'product',
+    'quote',
   ];
 
   // ==================== 客户/账户 ====================
@@ -228,6 +230,9 @@ class CrmLocalRepository {
       ..id = contract.id.isEmpty ? const Uuid().v7() : contract.id;
     entity.createdAt = now;
     entity.updatedAt = now;
+    if (entity.contractNo.isEmpty) {
+      entity.contractNo = await _nextSequenceNo('HT');
+    }
     await db.into(db.crmContracts).insert(_contractCompanion(entity));
     return entity;
   }
@@ -250,6 +255,310 @@ class CrmLocalRepository {
   }
 
   Future<int> countContracts() async => (await listContracts()).length;
+
+  // ==================== 产品分类 / 产品 ====================
+
+  Future<List<LocalProductCategory>> listProductCategories() async {
+    final rows = await db.select(db.crmProductCategories).get();
+    return rows
+        .map(
+          (r) => LocalProductCategory(id: r.id, name: r.name, parentId: r.parentId),
+        )
+        .toList();
+  }
+
+  Future<LocalProductCategory> createProductCategory(
+    LocalProductCategory category,
+  ) async {
+    final entity = category
+      ..id = category.id.isEmpty ? const Uuid().v7() : category.id;
+    await db.into(db.crmProductCategories).insert(
+      CrmProductCategoriesCompanion.insert(
+        id: entity.id,
+        name: entity.name,
+        parentId: Value(entity.parentId),
+      ),
+    );
+    return entity;
+  }
+
+  Future<List<LocalProduct>> listProducts({String? keyword}) async {
+    final query = db.select(db.crmProducts)
+      ..where((t) => t.deleted.equals(false));
+    if (keyword != null && keyword.trim().isNotEmpty) {
+      final k = keyword.trim();
+      query.where(
+        (t) =>
+            t.name.contains(k) |
+            t.sku.contains(k) |
+            t.type.contains(k),
+      );
+    }
+    query.orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
+    final rows = await query.get();
+    return rows.map(_productFromRow).toList();
+  }
+
+  Future<LocalProduct?> getProduct(String id) async {
+    final row = await (db.select(db.crmProducts)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _productFromRow(row);
+  }
+
+  Future<LocalProduct> createProduct(LocalProduct product) async {
+    final now = DateTime.now();
+    final entity = product
+      ..id = product.id.isEmpty ? const Uuid().v7() : product.id;
+    entity.createdAt = now;
+    entity.updatedAt = now;
+    if (entity.sku.trim().isNotEmpty) {
+      final dup = await (db.select(db.crmProducts)
+            ..where(
+              (t) =>
+                  t.sku.equals(entity.sku.trim()) & t.deleted.equals(false),
+            ))
+          .getSingleOrNull();
+      if (dup != null && dup.id != entity.id) {
+        throw ArgumentError('SKU 已存在：${entity.sku}');
+      }
+    }
+    await db.into(db.crmProducts).insert(_productCompanion(entity));
+    return entity;
+  }
+
+  Future<LocalProduct> updateProduct(LocalProduct product) async {
+    product.updatedAt = DateTime.now();
+    await (db.update(db.crmProducts)..where((t) => t.id.equals(product.id)))
+        .write(_productCompanion(product));
+    return product;
+  }
+
+  Future<void> deleteProduct(String id) async {
+    await (db.update(db.crmProducts)..where((t) => t.id.equals(id))).write(
+      CrmProductsCompanion(
+        deleted: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<int> countProducts() async => (await listProducts()).length;
+
+  // ==================== 报价单 / 明细 ====================
+
+  Future<List<LocalQuote>> listQuotes({String? keyword}) async {
+    final query = db.select(db.crmQuotes)
+      ..where((t) => t.deleted.equals(false));
+    if (keyword != null && keyword.trim().isNotEmpty) {
+      final k = keyword.trim();
+      query.where(
+        (t) =>
+            t.quoteNo.contains(k) |
+            t.status.contains(k) |
+            t.note.contains(k),
+      );
+    }
+    query.orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
+    final rows = await query.get();
+    return rows.map(_quoteFromRow).toList();
+  }
+
+  Future<LocalQuote?> getQuote(String id) async {
+    final row = await (db.select(db.crmQuotes)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _quoteFromRow(row);
+  }
+
+  Future<LocalQuote> createQuote(LocalQuote quote) async {
+    final now = DateTime.now();
+    final entity = quote..id = quote.id.isEmpty ? const Uuid().v7() : quote.id;
+    entity.createdAt = now;
+    entity.updatedAt = now;
+    if (entity.quoteNo.isEmpty) {
+      entity.quoteNo = await _nextSequenceNo('QT');
+    }
+    await db.into(db.crmQuotes).insert(_quoteCompanion(entity));
+    return entity;
+  }
+
+  Future<LocalQuote> updateQuote(LocalQuote quote) async {
+    quote.updatedAt = DateTime.now();
+    await (db.update(db.crmQuotes)..where((t) => t.id.equals(quote.id)))
+        .write(_quoteCompanion(quote));
+    return quote;
+  }
+
+  Future<void> deleteQuote(String id) async {
+    await db.transaction(() async {
+      await (db.delete(db.crmQuoteItems)..where((t) => t.quoteId.equals(id)))
+          .go();
+      await (db.update(db.crmQuotes)..where((t) => t.id.equals(id))).write(
+        CrmQuotesCompanion(
+          deleted: const Value(true),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    });
+  }
+
+  Future<List<LocalQuoteItem>> quoteItems(String quoteId) async {
+    final rows = await (db.select(db.crmQuoteItems)
+          ..where((t) => t.quoteId.equals(quoteId))
+          ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+        .get();
+    return rows.map(_quoteItemFromRow).toList();
+  }
+
+  Future<LocalQuoteItem> addQuoteItem(LocalQuoteItem item) async {
+    final entity = item..id = item.id.isEmpty ? const Uuid().v7() : item.id;
+    entity.amount = entity.quantity * entity.unitPrice * entity.discount;
+    await db.into(db.crmQuoteItems).insert(_quoteItemCompanion(entity));
+    await _recalcQuote(entity.quoteId);
+    return entity;
+  }
+
+  Future<LocalQuoteItem> updateQuoteItem(LocalQuoteItem item) async {
+    item.amount = item.quantity * item.unitPrice * item.discount;
+    await (db.update(db.crmQuoteItems)..where((t) => t.id.equals(item.id)))
+        .write(_quoteItemCompanion(item));
+    await _recalcQuote(item.quoteId);
+    return item;
+  }
+
+  Future<void> removeQuoteItem(String id) async {
+    final row = await (db.select(db.crmQuoteItems)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    await (db.delete(db.crmQuoteItems)..where((t) => t.id.equals(id))).go();
+    if (row != null) await _recalcQuote(row.quoteId);
+  }
+
+  Future<void> _recalcQuote(String quoteId) async {
+    final items = await quoteItems(quoteId);
+    final total = items.fold<double>(0, (s, i) => s + i.amount);
+    final quote = await getQuote(quoteId);
+    if (quote != null) {
+      quote.totalAmount = total;
+      await updateQuote(quote);
+    }
+  }
+
+  /// 报价转合同（幂等）：accepted 报价 → 生成合同 + 明细快照。
+  Future<LocalContract> quoteToContract(String quoteId) async {
+    final quote = await getQuote(quoteId);
+    if (quote == null) throw StateError('报价单不存在');
+    if (quote.status != 'accepted') {
+      throw StateError('仅 accepted 状态的报价可转合同（当前 ${quote.status}）');
+    }
+    // 幂等：已存在来源报价的合同直接返回
+    final existing = await (db.select(db.crmContracts)
+          ..where((t) => t.quoteId.equals(quoteId) & t.deleted.equals(false)))
+        .getSingleOrNull();
+    if (existing != null) return _contractFromRow(existing);
+
+    final contract = await createContract(
+      LocalContract(
+        id: '',
+        name: '合同-${quote.quoteNo}',
+        accountId: quote.accountId,
+        contactId: quote.contactId,
+        opportunityId: quote.opportunityId,
+        quoteId: quote.id,
+        status: 'active',
+        totalAmount: quote.totalAmount,
+      ),
+    );
+    final items = await quoteItems(quoteId);
+    for (var i = 0; i < items.length; i++) {
+      final item = items[i];
+      var warrantyMonths = 0;
+      if (item.productId != null) {
+        final product = await getProduct(item.productId!);
+        warrantyMonths = product?.warrantyMonths ?? 0;
+      }
+      await addContractItem(
+        LocalContractItem(
+          id: '',
+          contractId: contract.id,
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          amount: item.amount,
+          warrantyMonths: warrantyMonths,
+          sortOrder: i,
+        ),
+      );
+    }
+    quote.status = 'accepted';
+    await updateQuote(quote);
+    return contract;
+  }
+
+  Future<int> countQuotes() async => (await listQuotes()).length;
+
+  // ==================== 合同明细 ====================
+
+  Future<List<LocalContractItem>> contractItems(String contractId) async {
+    final rows = await (db.select(db.crmContractItems)
+          ..where((t) => t.contractId.equals(contractId))
+          ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+        .get();
+    return rows.map(_contractItemFromRow).toList();
+  }
+
+  Future<LocalContractItem> addContractItem(LocalContractItem item) async {
+    final entity = item..id = item.id.isEmpty ? const Uuid().v7() : item.id;
+    entity.amount = entity.quantity * entity.unitPrice;
+    await db.into(db.crmContractItems).insert(_contractItemCompanion(entity));
+    await _recalcContract(entity.contractId);
+    return entity;
+  }
+
+  Future<void> _recalcContract(String contractId) async {
+    final items = await contractItems(contractId);
+    final total = items.fold<double>(0, (s, i) => s + i.amount);
+    final contract = await getContract(contractId);
+    if (contract != null) {
+      contract.totalAmount = total;
+      await updateContract(contract);
+    }
+  }
+
+  /// 单号生成：前缀 + YYYYMMDD + 当日自增 3 位（QT/HT/AS）
+  Future<String> _nextSequenceNo(String prefix) async {
+    final now = DateTime.now();
+    final date = '${now.year}'
+        '${now.month.toString().padLeft(2, '0')}'
+        '${now.day.toString().padLeft(2, '0')}';
+    final like = '$prefix-$date-%';
+    var maxSeq = 0;
+    if (prefix == 'HT') {
+      final rows = await (db.select(db.crmContracts)
+            ..where((t) => t.contractNo.like(like)))
+          .get();
+      for (final row in rows) {
+        final seq =
+            int.tryParse(row.contractNo.substring(row.contractNo.length - 3)) ??
+            0;
+        if (seq > maxSeq) maxSeq = seq;
+      }
+    } else if (prefix == 'QT') {
+      final rows = await (db.select(db.crmQuotes)
+            ..where((t) => t.quoteNo.like(like)))
+          .get();
+      for (final row in rows) {
+        final seq =
+            int.tryParse(row.quoteNo.substring(row.quoteNo.length - 3)) ?? 0;
+        if (seq > maxSeq) maxSeq = seq;
+      }
+    } else {
+      throw ArgumentError('不支持的编号前缀：$prefix');
+    }
+    return '$prefix-$date-${(maxSeq + 1).toString().padLeft(3, '0')}';
+  }
 
   // ==================== 自定义对象 ====================
 
@@ -416,6 +725,8 @@ class CrmLocalRepository {
     result['contact'] = await countContacts();
     result['opportunity'] = await countOpportunities();
     result['contract'] = await countContracts();
+    result['product'] = await countProducts();
+    result['quote'] = await countQuotes();
     for (final def in await listCustomObjects()) {
       result['custom:${def.id}'] = await countCustomRecords(def.id);
     }
@@ -651,4 +962,127 @@ class CrmLocalRepository {
     relation: row.relation,
     createdAt: row.createdAt,
   );
+
+  CrmProductsCompanion _productCompanion(LocalProduct p) {
+    return CrmProductsCompanion(
+      id: Value(p.id),
+      categoryId: Value(p.categoryId),
+      name: Value(p.name),
+      sku: Value(p.sku),
+      type: Value(p.type),
+      unit: Value(p.unit),
+      price: Value(p.price),
+      cost: Value(p.cost),
+      warrantyMonths: Value(p.warrantyMonths),
+      isActive: Value(p.isActive),
+      note: Value(p.note),
+      createdAt: Value(p.createdAt),
+      updatedAt: Value(p.updatedAt),
+      deleted: Value(p.deleted),
+    );
+  }
+
+  LocalProduct _productFromRow(CrmProductRow row) => LocalProduct(
+    id: row.id,
+    categoryId: row.categoryId,
+    name: row.name,
+    sku: row.sku ?? '',
+    type: row.type,
+    unit: row.unit,
+    price: row.price,
+    cost: row.cost,
+    warrantyMonths: row.warrantyMonths,
+    isActive: row.isActive,
+    note: row.note,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deleted: row.deleted,
+  );
+
+  CrmQuotesCompanion _quoteCompanion(LocalQuote q) {
+    return CrmQuotesCompanion(
+      id: Value(q.id),
+      quoteNo: Value(q.quoteNo),
+      opportunityId: Value(q.opportunityId),
+      accountId: Value(q.accountId),
+      contactId: Value(q.contactId),
+      status: Value(q.status),
+      totalAmount: Value(q.totalAmount),
+      discountAmount: Value(q.discountAmount),
+      validUntil: Value(q.validUntil),
+      note: Value(q.note),
+      createdAt: Value(q.createdAt),
+      updatedAt: Value(q.updatedAt),
+      deleted: Value(q.deleted),
+    );
+  }
+
+  LocalQuote _quoteFromRow(CrmQuoteRow row) => LocalQuote(
+    id: row.id,
+    quoteNo: row.quoteNo,
+    opportunityId: row.opportunityId,
+    accountId: row.accountId,
+    contactId: row.contactId,
+    status: row.status,
+    totalAmount: row.totalAmount,
+    discountAmount: row.discountAmount,
+    validUntil: row.validUntil,
+    note: row.note,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deleted: row.deleted,
+  );
+
+  CrmQuoteItemsCompanion _quoteItemCompanion(LocalQuoteItem i) {
+    return CrmQuoteItemsCompanion(
+      id: Value(i.id),
+      quoteId: Value(i.quoteId),
+      productId: Value(i.productId),
+      productName: Value(i.productName),
+      quantity: Value(i.quantity),
+      unitPrice: Value(i.unitPrice),
+      discount: Value(i.discount),
+      amount: Value(i.amount),
+      sortOrder: Value(i.sortOrder),
+    );
+  }
+
+  LocalQuoteItem _quoteItemFromRow(CrmQuoteItemRow row) => LocalQuoteItem(
+    id: row.id,
+    quoteId: row.quoteId,
+    productId: row.productId,
+    productName: row.productName,
+    quantity: row.quantity,
+    unitPrice: row.unitPrice,
+    discount: row.discount,
+    amount: row.amount,
+    sortOrder: row.sortOrder,
+  );
+
+  CrmContractItemsCompanion _contractItemCompanion(LocalContractItem i) {
+    return CrmContractItemsCompanion(
+      id: Value(i.id),
+      contractId: Value(i.contractId),
+      productId: Value(i.productId),
+      productName: Value(i.productName),
+      quantity: Value(i.quantity),
+      unitPrice: Value(i.unitPrice),
+      amount: Value(i.amount),
+      warrantyMonths: Value(i.warrantyMonths),
+      sortOrder: Value(i.sortOrder),
+    );
+  }
+
+  LocalContractItem _contractItemFromRow(CrmContractItemRow row) =>
+      LocalContractItem(
+        id: row.id,
+        contractId: row.contractId,
+        productId: row.productId,
+        productName: row.productName,
+        quantity: row.quantity,
+        unitPrice: row.unitPrice,
+        amount: row.amount,
+        warrantyMonths: row.warrantyMonths,
+        sortOrder: row.sortOrder,
+      );
 }

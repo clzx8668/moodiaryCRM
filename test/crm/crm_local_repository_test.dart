@@ -147,4 +147,82 @@ void main() {
     expect(stats['account'], 1);
     expect(stats['contact'], 0);
   });
+
+  test('产品与分类 CRUD + SKU 唯一', () async {
+    await repo.createProductCategory(
+      LocalProductCategory(id: '', name: '软件'),
+    );
+    await repo.createProduct(
+      LocalProduct(id: '', name: 'CRM 基础版', sku: 'CRM-BASIC', price: 999),
+    );
+    await expectLater(
+      repo.createProduct(
+        LocalProduct(id: '', name: '重复', sku: 'CRM-BASIC'),
+      ),
+      throwsA(isA<ArgumentError>()),
+    );
+    expect((await repo.listProducts(keyword: 'CRM')).length, 1);
+    expect((await repo.listProductCategories()).length, 1);
+  });
+
+  test('报价单号生成与明细合计', () async {
+    final quote = await repo.createQuote(LocalQuote(id: ''));
+    expect(quote.quoteNo, startsWith('QT-'));
+    expect(quote.quoteNo.length, 'QT-20260822-001'.length);
+
+    await repo.addQuoteItem(
+      LocalQuoteItem(
+        id: '',
+        quoteId: quote.id,
+        productName: 'A',
+        quantity: 2,
+        unitPrice: 100,
+        discount: 0.9,
+      ),
+    );
+    await repo.addQuoteItem(
+      LocalQuoteItem(
+        id: '',
+        quoteId: quote.id,
+        productName: 'B',
+        quantity: 1,
+        unitPrice: 50,
+      ),
+    );
+    final loaded = await repo.getQuote(quote.id);
+    expect(loaded?.totalAmount, closeTo(230, 0.001)); // 2*100*0.9 + 50
+    expect((await repo.quoteItems(quote.id)).length, 2);
+  });
+
+  test('报价转合同：明细快照 + 幂等', () async {
+    final quote = await repo.createQuote(LocalQuote(id: '', status: 'accepted'));
+    await repo.addQuoteItem(
+      LocalQuoteItem(
+        id: '',
+        quoteId: quote.id,
+        productName: '实施服务',
+        quantity: 1,
+        unitPrice: 8000,
+      ),
+    );
+
+    final contract = await repo.quoteToContract(quote.id);
+    expect(contract.contractNo, startsWith('HT-'));
+    expect(contract.quoteId, quote.id);
+    expect(contract.totalAmount, closeTo(8000, 0.001));
+    final items = await repo.contractItems(contract.id);
+    expect(items, hasLength(1));
+    expect(items.first.productName, '实施服务');
+
+    // 幂等：再次转换返回同一合同
+    final again = await repo.quoteToContract(quote.id);
+    expect(again.id, contract.id);
+
+    // 非 accepted 报价不可转
+    final draft = await repo.createQuote(LocalQuote(id: '', status: 'draft'));
+    await expectLater(
+      repo.quoteToContract(draft.id),
+      throwsA(isA<StateError>()),
+    );
+  });
 }

@@ -278,6 +278,96 @@ class CrmContracts extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 产品分类（支持两级）
+@DataClassName('CrmProductCategoryRow')
+class CrmProductCategories extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get parentId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 产品/服务
+@DataClassName('CrmProductRow')
+class CrmProducts extends Table {
+  TextColumn get id => text()();
+  TextColumn get categoryId => text().nullable()();
+  TextColumn get name => text()();
+  TextColumn get sku => text().nullable()();
+  /// product / service
+  TextColumn get type => text().withDefault(const Constant('product'))();
+  TextColumn get unit => text().withDefault(const Constant(''))();
+  RealColumn get price => real().withDefault(const Constant(0))();
+  RealColumn get cost => real().withDefault(const Constant(0))();
+  IntColumn get warrantyMonths => integer().withDefault(const Constant(0))();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 报价单
+@DataClassName('CrmQuoteRow')
+class CrmQuotes extends Table {
+  TextColumn get id => text()();
+  TextColumn get quoteNo => text()();
+  TextColumn get opportunityId => text().nullable()();
+  TextColumn get accountId => text().nullable()();
+  TextColumn get contactId => text().nullable()();
+  /// draft/sent/accepted/rejected/expired
+  TextColumn get status => text().withDefault(const Constant('draft'))();
+  RealColumn get totalAmount => real().withDefault(const Constant(0))();
+  RealColumn get discountAmount => real().withDefault(const Constant(0))();
+  DateTimeColumn get validUntil => dateTime().nullable()();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 报价明细
+@DataClassName('CrmQuoteItemRow')
+class CrmQuoteItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get quoteId => text()();
+  TextColumn get productId => text().nullable()();
+  TextColumn get productName => text()();
+  RealColumn get quantity => real().withDefault(const Constant(1))();
+  RealColumn get unitPrice => real().withDefault(const Constant(0))();
+  RealColumn get discount => real().withDefault(const Constant(1))();
+  RealColumn get amount => real().withDefault(const Constant(0))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 合同明细（产品名快照防篡改）
+@DataClassName('CrmContractItemRow')
+class CrmContractItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get contractId => text()();
+  TextColumn get productId => text().nullable()();
+  TextColumn get productName => text()();
+  RealColumn get quantity => real().withDefault(const Constant(1))();
+  RealColumn get unitPrice => real().withDefault(const Constant(0))();
+  RealColumn get amount => real().withDefault(const Constant(0))();
+  IntColumn get warrantyMonths => integer().withDefault(const Constant(0))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// 自定义数据对象定义（元数据驱动，类似 Twenty metadata）
 @DataClassName('CrmObjectDefRow')
 class CrmObjectDefs extends Table {
@@ -419,6 +509,11 @@ class AiChatMessages extends Table {
     CrmContacts,
     CrmOpportunities,
     CrmContracts,
+    CrmProductCategories,
+    CrmProducts,
+    CrmQuotes,
+    CrmQuoteItems,
+    CrmContractItems,
     CrmObjectDefs,
     CrmCustomRecords,
     CrmEntityLinks,
@@ -433,7 +528,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -480,6 +575,15 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(db.crmContacts);
         await m.createTable(db.crmOpportunities);
         await m.createTable(db.crmContracts);
+      }
+      // v9 → v10：产品/分类、报价单/明细、合同明细
+      if (from < 10) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.crmProductCategories);
+        await m.createTable(db.crmProducts);
+        await m.createTable(db.crmQuotes);
+        await m.createTable(db.crmQuoteItems);
+        await m.createTable(db.crmContractItems);
       }
     },
     beforeOpen: (details) async {

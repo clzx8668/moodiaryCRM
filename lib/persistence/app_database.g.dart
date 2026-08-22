@@ -7508,6 +7508,2938 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
   }
 }
 
+class $CrmProductCategoriesTable extends CrmProductCategories
+    with TableInfo<$CrmProductCategoriesTable, CrmProductCategoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmProductCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, parentId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_product_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmProductCategoryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmProductCategoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmProductCategoryRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_id'],
+      ),
+    );
+  }
+
+  @override
+  $CrmProductCategoriesTable createAlias(String alias) {
+    return $CrmProductCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class CrmProductCategoryRow extends DataClass
+    implements Insertable<CrmProductCategoryRow> {
+  final String id;
+  final String name;
+  final String? parentId;
+  const CrmProductCategoryRow({
+    required this.id,
+    required this.name,
+    this.parentId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
+    }
+    return map;
+  }
+
+  CrmProductCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return CrmProductCategoriesCompanion(
+      id: Value(id),
+      name: Value(name),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
+    );
+  }
+
+  factory CrmProductCategoryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmProductCategoryRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'parentId': serializer.toJson<String?>(parentId),
+    };
+  }
+
+  CrmProductCategoryRow copyWith({
+    String? id,
+    String? name,
+    Value<String?> parentId = const Value.absent(),
+  }) => CrmProductCategoryRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    parentId: parentId.present ? parentId.value : this.parentId,
+  );
+  CrmProductCategoryRow copyWithCompanion(CrmProductCategoriesCompanion data) {
+    return CrmProductCategoryRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmProductCategoryRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('parentId: $parentId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, parentId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmProductCategoryRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.parentId == this.parentId);
+}
+
+class CrmProductCategoriesCompanion
+    extends UpdateCompanion<CrmProductCategoryRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String?> parentId;
+  final Value<int> rowid;
+  const CrmProductCategoriesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmProductCategoriesCompanion.insert({
+    required String id,
+    required String name,
+    this.parentId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name);
+  static Insertable<CrmProductCategoryRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? parentId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (parentId != null) 'parent_id': parentId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmProductCategoriesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String?>? parentId,
+    Value<int>? rowid,
+  }) {
+    return CrmProductCategoriesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      parentId: parentId ?? this.parentId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmProductCategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('parentId: $parentId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmProductsTable extends CrmProducts
+    with TableInfo<$CrmProductsTable, CrmProductRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmProductsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _skuMeta = const VerificationMeta('sku');
+  @override
+  late final GeneratedColumn<String> sku = GeneratedColumn<String>(
+    'sku',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('product'),
+  );
+  static const VerificationMeta _unitMeta = const VerificationMeta('unit');
+  @override
+  late final GeneratedColumn<String> unit = GeneratedColumn<String>(
+    'unit',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _priceMeta = const VerificationMeta('price');
+  @override
+  late final GeneratedColumn<double> price = GeneratedColumn<double>(
+    'price',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _costMeta = const VerificationMeta('cost');
+  @override
+  late final GeneratedColumn<double> cost = GeneratedColumn<double>(
+    'cost',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _warrantyMonthsMeta = const VerificationMeta(
+    'warrantyMonths',
+  );
+  @override
+  late final GeneratedColumn<int> warrantyMonths = GeneratedColumn<int>(
+    'warranty_months',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    categoryId,
+    name,
+    sku,
+    type,
+    unit,
+    price,
+    cost,
+    warrantyMonths,
+    isActive,
+    note,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_products';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmProductRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('sku')) {
+      context.handle(
+        _skuMeta,
+        sku.isAcceptableOrUnknown(data['sku']!, _skuMeta),
+      );
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    }
+    if (data.containsKey('unit')) {
+      context.handle(
+        _unitMeta,
+        unit.isAcceptableOrUnknown(data['unit']!, _unitMeta),
+      );
+    }
+    if (data.containsKey('price')) {
+      context.handle(
+        _priceMeta,
+        price.isAcceptableOrUnknown(data['price']!, _priceMeta),
+      );
+    }
+    if (data.containsKey('cost')) {
+      context.handle(
+        _costMeta,
+        cost.isAcceptableOrUnknown(data['cost']!, _costMeta),
+      );
+    }
+    if (data.containsKey('warranty_months')) {
+      context.handle(
+        _warrantyMonthsMeta,
+        warrantyMonths.isAcceptableOrUnknown(
+          data['warranty_months']!,
+          _warrantyMonthsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmProductRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmProductRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      sku: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sku'],
+      ),
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      unit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unit'],
+      )!,
+      price: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}price'],
+      )!,
+      cost: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}cost'],
+      )!,
+      warrantyMonths: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}warranty_months'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmProductsTable createAlias(String alias) {
+    return $CrmProductsTable(attachedDatabase, alias);
+  }
+}
+
+class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
+  final String id;
+  final String? categoryId;
+  final String name;
+  final String? sku;
+
+  /// product / service
+  final String type;
+  final String unit;
+  final double price;
+  final double cost;
+  final int warrantyMonths;
+  final bool isActive;
+  final String note;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool deleted;
+  const CrmProductRow({
+    required this.id,
+    this.categoryId,
+    required this.name,
+    this.sku,
+    required this.type,
+    required this.unit,
+    required this.price,
+    required this.cost,
+    required this.warrantyMonths,
+    required this.isActive,
+    required this.note,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<String>(categoryId);
+    }
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || sku != null) {
+      map['sku'] = Variable<String>(sku);
+    }
+    map['type'] = Variable<String>(type);
+    map['unit'] = Variable<String>(unit);
+    map['price'] = Variable<double>(price);
+    map['cost'] = Variable<double>(cost);
+    map['warranty_months'] = Variable<int>(warrantyMonths);
+    map['is_active'] = Variable<bool>(isActive);
+    map['note'] = Variable<String>(note);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  CrmProductsCompanion toCompanion(bool nullToAbsent) {
+    return CrmProductsCompanion(
+      id: Value(id),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
+      name: Value(name),
+      sku: sku == null && nullToAbsent ? const Value.absent() : Value(sku),
+      type: Value(type),
+      unit: Value(unit),
+      price: Value(price),
+      cost: Value(cost),
+      warrantyMonths: Value(warrantyMonths),
+      isActive: Value(isActive),
+      note: Value(note),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory CrmProductRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmProductRow(
+      id: serializer.fromJson<String>(json['id']),
+      categoryId: serializer.fromJson<String?>(json['categoryId']),
+      name: serializer.fromJson<String>(json['name']),
+      sku: serializer.fromJson<String?>(json['sku']),
+      type: serializer.fromJson<String>(json['type']),
+      unit: serializer.fromJson<String>(json['unit']),
+      price: serializer.fromJson<double>(json['price']),
+      cost: serializer.fromJson<double>(json['cost']),
+      warrantyMonths: serializer.fromJson<int>(json['warrantyMonths']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      note: serializer.fromJson<String>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'categoryId': serializer.toJson<String?>(categoryId),
+      'name': serializer.toJson<String>(name),
+      'sku': serializer.toJson<String?>(sku),
+      'type': serializer.toJson<String>(type),
+      'unit': serializer.toJson<String>(unit),
+      'price': serializer.toJson<double>(price),
+      'cost': serializer.toJson<double>(cost),
+      'warrantyMonths': serializer.toJson<int>(warrantyMonths),
+      'isActive': serializer.toJson<bool>(isActive),
+      'note': serializer.toJson<String>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  CrmProductRow copyWith({
+    String? id,
+    Value<String?> categoryId = const Value.absent(),
+    String? name,
+    Value<String?> sku = const Value.absent(),
+    String? type,
+    String? unit,
+    double? price,
+    double? cost,
+    int? warrantyMonths,
+    bool? isActive,
+    String? note,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? deleted,
+  }) => CrmProductRow(
+    id: id ?? this.id,
+    categoryId: categoryId.present ? categoryId.value : this.categoryId,
+    name: name ?? this.name,
+    sku: sku.present ? sku.value : this.sku,
+    type: type ?? this.type,
+    unit: unit ?? this.unit,
+    price: price ?? this.price,
+    cost: cost ?? this.cost,
+    warrantyMonths: warrantyMonths ?? this.warrantyMonths,
+    isActive: isActive ?? this.isActive,
+    note: note ?? this.note,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  CrmProductRow copyWithCompanion(CrmProductsCompanion data) {
+    return CrmProductRow(
+      id: data.id.present ? data.id.value : this.id,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      name: data.name.present ? data.name.value : this.name,
+      sku: data.sku.present ? data.sku.value : this.sku,
+      type: data.type.present ? data.type.value : this.type,
+      unit: data.unit.present ? data.unit.value : this.unit,
+      price: data.price.present ? data.price.value : this.price,
+      cost: data.cost.present ? data.cost.value : this.cost,
+      warrantyMonths: data.warrantyMonths.present
+          ? data.warrantyMonths.value
+          : this.warrantyMonths,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmProductRow(')
+          ..write('id: $id, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('name: $name, ')
+          ..write('sku: $sku, ')
+          ..write('type: $type, ')
+          ..write('unit: $unit, ')
+          ..write('price: $price, ')
+          ..write('cost: $cost, ')
+          ..write('warrantyMonths: $warrantyMonths, ')
+          ..write('isActive: $isActive, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    categoryId,
+    name,
+    sku,
+    type,
+    unit,
+    price,
+    cost,
+    warrantyMonths,
+    isActive,
+    note,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmProductRow &&
+          other.id == this.id &&
+          other.categoryId == this.categoryId &&
+          other.name == this.name &&
+          other.sku == this.sku &&
+          other.type == this.type &&
+          other.unit == this.unit &&
+          other.price == this.price &&
+          other.cost == this.cost &&
+          other.warrantyMonths == this.warrantyMonths &&
+          other.isActive == this.isActive &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class CrmProductsCompanion extends UpdateCompanion<CrmProductRow> {
+  final Value<String> id;
+  final Value<String?> categoryId;
+  final Value<String> name;
+  final Value<String?> sku;
+  final Value<String> type;
+  final Value<String> unit;
+  final Value<double> price;
+  final Value<double> cost;
+  final Value<int> warrantyMonths;
+  final Value<bool> isActive;
+  final Value<String> note;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const CrmProductsCompanion({
+    this.id = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.sku = const Value.absent(),
+    this.type = const Value.absent(),
+    this.unit = const Value.absent(),
+    this.price = const Value.absent(),
+    this.cost = const Value.absent(),
+    this.warrantyMonths = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmProductsCompanion.insert({
+    required String id,
+    this.categoryId = const Value.absent(),
+    required String name,
+    this.sku = const Value.absent(),
+    this.type = const Value.absent(),
+    this.unit = const Value.absent(),
+    this.price = const Value.absent(),
+    this.cost = const Value.absent(),
+    this.warrantyMonths = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.note = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CrmProductRow> custom({
+    Expression<String>? id,
+    Expression<String>? categoryId,
+    Expression<String>? name,
+    Expression<String>? sku,
+    Expression<String>? type,
+    Expression<String>? unit,
+    Expression<double>? price,
+    Expression<double>? cost,
+    Expression<int>? warrantyMonths,
+    Expression<bool>? isActive,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (categoryId != null) 'category_id': categoryId,
+      if (name != null) 'name': name,
+      if (sku != null) 'sku': sku,
+      if (type != null) 'type': type,
+      if (unit != null) 'unit': unit,
+      if (price != null) 'price': price,
+      if (cost != null) 'cost': cost,
+      if (warrantyMonths != null) 'warranty_months': warrantyMonths,
+      if (isActive != null) 'is_active': isActive,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmProductsCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? categoryId,
+    Value<String>? name,
+    Value<String?>? sku,
+    Value<String>? type,
+    Value<String>? unit,
+    Value<double>? price,
+    Value<double>? cost,
+    Value<int>? warrantyMonths,
+    Value<bool>? isActive,
+    Value<String>? note,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return CrmProductsCompanion(
+      id: id ?? this.id,
+      categoryId: categoryId ?? this.categoryId,
+      name: name ?? this.name,
+      sku: sku ?? this.sku,
+      type: type ?? this.type,
+      unit: unit ?? this.unit,
+      price: price ?? this.price,
+      cost: cost ?? this.cost,
+      warrantyMonths: warrantyMonths ?? this.warrantyMonths,
+      isActive: isActive ?? this.isActive,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (sku.present) {
+      map['sku'] = Variable<String>(sku.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (unit.present) {
+      map['unit'] = Variable<String>(unit.value);
+    }
+    if (price.present) {
+      map['price'] = Variable<double>(price.value);
+    }
+    if (cost.present) {
+      map['cost'] = Variable<double>(cost.value);
+    }
+    if (warrantyMonths.present) {
+      map['warranty_months'] = Variable<int>(warrantyMonths.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmProductsCompanion(')
+          ..write('id: $id, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('name: $name, ')
+          ..write('sku: $sku, ')
+          ..write('type: $type, ')
+          ..write('unit: $unit, ')
+          ..write('price: $price, ')
+          ..write('cost: $cost, ')
+          ..write('warrantyMonths: $warrantyMonths, ')
+          ..write('isActive: $isActive, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmQuotesTable extends CrmQuotes
+    with TableInfo<$CrmQuotesTable, CrmQuoteRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmQuotesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quoteNoMeta = const VerificationMeta(
+    'quoteNo',
+  );
+  @override
+  late final GeneratedColumn<String> quoteNo = GeneratedColumn<String>(
+    'quote_no',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _opportunityIdMeta = const VerificationMeta(
+    'opportunityId',
+  );
+  @override
+  late final GeneratedColumn<String> opportunityId = GeneratedColumn<String>(
+    'opportunity_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _contactIdMeta = const VerificationMeta(
+    'contactId',
+  );
+  @override
+  late final GeneratedColumn<String> contactId = GeneratedColumn<String>(
+    'contact_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('draft'),
+  );
+  static const VerificationMeta _totalAmountMeta = const VerificationMeta(
+    'totalAmount',
+  );
+  @override
+  late final GeneratedColumn<double> totalAmount = GeneratedColumn<double>(
+    'total_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _discountAmountMeta = const VerificationMeta(
+    'discountAmount',
+  );
+  @override
+  late final GeneratedColumn<double> discountAmount = GeneratedColumn<double>(
+    'discount_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _validUntilMeta = const VerificationMeta(
+    'validUntil',
+  );
+  @override
+  late final GeneratedColumn<DateTime> validUntil = GeneratedColumn<DateTime>(
+    'valid_until',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    quoteNo,
+    opportunityId,
+    accountId,
+    contactId,
+    status,
+    totalAmount,
+    discountAmount,
+    validUntil,
+    note,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_quotes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmQuoteRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('quote_no')) {
+      context.handle(
+        _quoteNoMeta,
+        quoteNo.isAcceptableOrUnknown(data['quote_no']!, _quoteNoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_quoteNoMeta);
+    }
+    if (data.containsKey('opportunity_id')) {
+      context.handle(
+        _opportunityIdMeta,
+        opportunityId.isAcceptableOrUnknown(
+          data['opportunity_id']!,
+          _opportunityIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    }
+    if (data.containsKey('contact_id')) {
+      context.handle(
+        _contactIdMeta,
+        contactId.isAcceptableOrUnknown(data['contact_id']!, _contactIdMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('total_amount')) {
+      context.handle(
+        _totalAmountMeta,
+        totalAmount.isAcceptableOrUnknown(
+          data['total_amount']!,
+          _totalAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('discount_amount')) {
+      context.handle(
+        _discountAmountMeta,
+        discountAmount.isAcceptableOrUnknown(
+          data['discount_amount']!,
+          _discountAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('valid_until')) {
+      context.handle(
+        _validUntilMeta,
+        validUntil.isAcceptableOrUnknown(data['valid_until']!, _validUntilMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmQuoteRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmQuoteRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      quoteNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quote_no'],
+      )!,
+      opportunityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}opportunity_id'],
+      ),
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
+      ),
+      contactId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contact_id'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      totalAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}total_amount'],
+      )!,
+      discountAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}discount_amount'],
+      )!,
+      validUntil: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}valid_until'],
+      ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmQuotesTable createAlias(String alias) {
+    return $CrmQuotesTable(attachedDatabase, alias);
+  }
+}
+
+class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
+  final String id;
+  final String quoteNo;
+  final String? opportunityId;
+  final String? accountId;
+  final String? contactId;
+
+  /// draft/sent/accepted/rejected/expired
+  final String status;
+  final double totalAmount;
+  final double discountAmount;
+  final DateTime? validUntil;
+  final String note;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool deleted;
+  const CrmQuoteRow({
+    required this.id,
+    required this.quoteNo,
+    this.opportunityId,
+    this.accountId,
+    this.contactId,
+    required this.status,
+    required this.totalAmount,
+    required this.discountAmount,
+    this.validUntil,
+    required this.note,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['quote_no'] = Variable<String>(quoteNo);
+    if (!nullToAbsent || opportunityId != null) {
+      map['opportunity_id'] = Variable<String>(opportunityId);
+    }
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<String>(accountId);
+    }
+    if (!nullToAbsent || contactId != null) {
+      map['contact_id'] = Variable<String>(contactId);
+    }
+    map['status'] = Variable<String>(status);
+    map['total_amount'] = Variable<double>(totalAmount);
+    map['discount_amount'] = Variable<double>(discountAmount);
+    if (!nullToAbsent || validUntil != null) {
+      map['valid_until'] = Variable<DateTime>(validUntil);
+    }
+    map['note'] = Variable<String>(note);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  CrmQuotesCompanion toCompanion(bool nullToAbsent) {
+    return CrmQuotesCompanion(
+      id: Value(id),
+      quoteNo: Value(quoteNo),
+      opportunityId: opportunityId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(opportunityId),
+      accountId: accountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accountId),
+      contactId: contactId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contactId),
+      status: Value(status),
+      totalAmount: Value(totalAmount),
+      discountAmount: Value(discountAmount),
+      validUntil: validUntil == null && nullToAbsent
+          ? const Value.absent()
+          : Value(validUntil),
+      note: Value(note),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory CrmQuoteRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmQuoteRow(
+      id: serializer.fromJson<String>(json['id']),
+      quoteNo: serializer.fromJson<String>(json['quoteNo']),
+      opportunityId: serializer.fromJson<String?>(json['opportunityId']),
+      accountId: serializer.fromJson<String?>(json['accountId']),
+      contactId: serializer.fromJson<String?>(json['contactId']),
+      status: serializer.fromJson<String>(json['status']),
+      totalAmount: serializer.fromJson<double>(json['totalAmount']),
+      discountAmount: serializer.fromJson<double>(json['discountAmount']),
+      validUntil: serializer.fromJson<DateTime?>(json['validUntil']),
+      note: serializer.fromJson<String>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'quoteNo': serializer.toJson<String>(quoteNo),
+      'opportunityId': serializer.toJson<String?>(opportunityId),
+      'accountId': serializer.toJson<String?>(accountId),
+      'contactId': serializer.toJson<String?>(contactId),
+      'status': serializer.toJson<String>(status),
+      'totalAmount': serializer.toJson<double>(totalAmount),
+      'discountAmount': serializer.toJson<double>(discountAmount),
+      'validUntil': serializer.toJson<DateTime?>(validUntil),
+      'note': serializer.toJson<String>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  CrmQuoteRow copyWith({
+    String? id,
+    String? quoteNo,
+    Value<String?> opportunityId = const Value.absent(),
+    Value<String?> accountId = const Value.absent(),
+    Value<String?> contactId = const Value.absent(),
+    String? status,
+    double? totalAmount,
+    double? discountAmount,
+    Value<DateTime?> validUntil = const Value.absent(),
+    String? note,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? deleted,
+  }) => CrmQuoteRow(
+    id: id ?? this.id,
+    quoteNo: quoteNo ?? this.quoteNo,
+    opportunityId: opportunityId.present
+        ? opportunityId.value
+        : this.opportunityId,
+    accountId: accountId.present ? accountId.value : this.accountId,
+    contactId: contactId.present ? contactId.value : this.contactId,
+    status: status ?? this.status,
+    totalAmount: totalAmount ?? this.totalAmount,
+    discountAmount: discountAmount ?? this.discountAmount,
+    validUntil: validUntil.present ? validUntil.value : this.validUntil,
+    note: note ?? this.note,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  CrmQuoteRow copyWithCompanion(CrmQuotesCompanion data) {
+    return CrmQuoteRow(
+      id: data.id.present ? data.id.value : this.id,
+      quoteNo: data.quoteNo.present ? data.quoteNo.value : this.quoteNo,
+      opportunityId: data.opportunityId.present
+          ? data.opportunityId.value
+          : this.opportunityId,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      contactId: data.contactId.present ? data.contactId.value : this.contactId,
+      status: data.status.present ? data.status.value : this.status,
+      totalAmount: data.totalAmount.present
+          ? data.totalAmount.value
+          : this.totalAmount,
+      discountAmount: data.discountAmount.present
+          ? data.discountAmount.value
+          : this.discountAmount,
+      validUntil: data.validUntil.present
+          ? data.validUntil.value
+          : this.validUntil,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmQuoteRow(')
+          ..write('id: $id, ')
+          ..write('quoteNo: $quoteNo, ')
+          ..write('opportunityId: $opportunityId, ')
+          ..write('accountId: $accountId, ')
+          ..write('contactId: $contactId, ')
+          ..write('status: $status, ')
+          ..write('totalAmount: $totalAmount, ')
+          ..write('discountAmount: $discountAmount, ')
+          ..write('validUntil: $validUntil, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    quoteNo,
+    opportunityId,
+    accountId,
+    contactId,
+    status,
+    totalAmount,
+    discountAmount,
+    validUntil,
+    note,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmQuoteRow &&
+          other.id == this.id &&
+          other.quoteNo == this.quoteNo &&
+          other.opportunityId == this.opportunityId &&
+          other.accountId == this.accountId &&
+          other.contactId == this.contactId &&
+          other.status == this.status &&
+          other.totalAmount == this.totalAmount &&
+          other.discountAmount == this.discountAmount &&
+          other.validUntil == this.validUntil &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class CrmQuotesCompanion extends UpdateCompanion<CrmQuoteRow> {
+  final Value<String> id;
+  final Value<String> quoteNo;
+  final Value<String?> opportunityId;
+  final Value<String?> accountId;
+  final Value<String?> contactId;
+  final Value<String> status;
+  final Value<double> totalAmount;
+  final Value<double> discountAmount;
+  final Value<DateTime?> validUntil;
+  final Value<String> note;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const CrmQuotesCompanion({
+    this.id = const Value.absent(),
+    this.quoteNo = const Value.absent(),
+    this.opportunityId = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.contactId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.totalAmount = const Value.absent(),
+    this.discountAmount = const Value.absent(),
+    this.validUntil = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmQuotesCompanion.insert({
+    required String id,
+    required String quoteNo,
+    this.opportunityId = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.contactId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.totalAmount = const Value.absent(),
+    this.discountAmount = const Value.absent(),
+    this.validUntil = const Value.absent(),
+    this.note = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       quoteNo = Value(quoteNo),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CrmQuoteRow> custom({
+    Expression<String>? id,
+    Expression<String>? quoteNo,
+    Expression<String>? opportunityId,
+    Expression<String>? accountId,
+    Expression<String>? contactId,
+    Expression<String>? status,
+    Expression<double>? totalAmount,
+    Expression<double>? discountAmount,
+    Expression<DateTime>? validUntil,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (quoteNo != null) 'quote_no': quoteNo,
+      if (opportunityId != null) 'opportunity_id': opportunityId,
+      if (accountId != null) 'account_id': accountId,
+      if (contactId != null) 'contact_id': contactId,
+      if (status != null) 'status': status,
+      if (totalAmount != null) 'total_amount': totalAmount,
+      if (discountAmount != null) 'discount_amount': discountAmount,
+      if (validUntil != null) 'valid_until': validUntil,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmQuotesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? quoteNo,
+    Value<String?>? opportunityId,
+    Value<String?>? accountId,
+    Value<String?>? contactId,
+    Value<String>? status,
+    Value<double>? totalAmount,
+    Value<double>? discountAmount,
+    Value<DateTime?>? validUntil,
+    Value<String>? note,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return CrmQuotesCompanion(
+      id: id ?? this.id,
+      quoteNo: quoteNo ?? this.quoteNo,
+      opportunityId: opportunityId ?? this.opportunityId,
+      accountId: accountId ?? this.accountId,
+      contactId: contactId ?? this.contactId,
+      status: status ?? this.status,
+      totalAmount: totalAmount ?? this.totalAmount,
+      discountAmount: discountAmount ?? this.discountAmount,
+      validUntil: validUntil ?? this.validUntil,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (quoteNo.present) {
+      map['quote_no'] = Variable<String>(quoteNo.value);
+    }
+    if (opportunityId.present) {
+      map['opportunity_id'] = Variable<String>(opportunityId.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
+    }
+    if (contactId.present) {
+      map['contact_id'] = Variable<String>(contactId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (totalAmount.present) {
+      map['total_amount'] = Variable<double>(totalAmount.value);
+    }
+    if (discountAmount.present) {
+      map['discount_amount'] = Variable<double>(discountAmount.value);
+    }
+    if (validUntil.present) {
+      map['valid_until'] = Variable<DateTime>(validUntil.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmQuotesCompanion(')
+          ..write('id: $id, ')
+          ..write('quoteNo: $quoteNo, ')
+          ..write('opportunityId: $opportunityId, ')
+          ..write('accountId: $accountId, ')
+          ..write('contactId: $contactId, ')
+          ..write('status: $status, ')
+          ..write('totalAmount: $totalAmount, ')
+          ..write('discountAmount: $discountAmount, ')
+          ..write('validUntil: $validUntil, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmQuoteItemsTable extends CrmQuoteItems
+    with TableInfo<$CrmQuoteItemsTable, CrmQuoteItemRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmQuoteItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quoteIdMeta = const VerificationMeta(
+    'quoteId',
+  );
+  @override
+  late final GeneratedColumn<String> quoteId = GeneratedColumn<String>(
+    'quote_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _productIdMeta = const VerificationMeta(
+    'productId',
+  );
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+    'product_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _productNameMeta = const VerificationMeta(
+    'productName',
+  );
+  @override
+  late final GeneratedColumn<String> productName = GeneratedColumn<String>(
+    'product_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quantityMeta = const VerificationMeta(
+    'quantity',
+  );
+  @override
+  late final GeneratedColumn<double> quantity = GeneratedColumn<double>(
+    'quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _unitPriceMeta = const VerificationMeta(
+    'unitPrice',
+  );
+  @override
+  late final GeneratedColumn<double> unitPrice = GeneratedColumn<double>(
+    'unit_price',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _discountMeta = const VerificationMeta(
+    'discount',
+  );
+  @override
+  late final GeneratedColumn<double> discount = GeneratedColumn<double>(
+    'discount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    quoteId,
+    productId,
+    productName,
+    quantity,
+    unitPrice,
+    discount,
+    amount,
+    sortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_quote_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmQuoteItemRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('quote_id')) {
+      context.handle(
+        _quoteIdMeta,
+        quoteId.isAcceptableOrUnknown(data['quote_id']!, _quoteIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_quoteIdMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(
+        _productIdMeta,
+        productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta),
+      );
+    }
+    if (data.containsKey('product_name')) {
+      context.handle(
+        _productNameMeta,
+        productName.isAcceptableOrUnknown(
+          data['product_name']!,
+          _productNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_productNameMeta);
+    }
+    if (data.containsKey('quantity')) {
+      context.handle(
+        _quantityMeta,
+        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
+      );
+    }
+    if (data.containsKey('unit_price')) {
+      context.handle(
+        _unitPriceMeta,
+        unitPrice.isAcceptableOrUnknown(data['unit_price']!, _unitPriceMeta),
+      );
+    }
+    if (data.containsKey('discount')) {
+      context.handle(
+        _discountMeta,
+        discount.isAcceptableOrUnknown(data['discount']!, _discountMeta),
+      );
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmQuoteItemRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmQuoteItemRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      quoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quote_id'],
+      )!,
+      productId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_id'],
+      ),
+      productName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_name'],
+      )!,
+      quantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}quantity'],
+      )!,
+      unitPrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}unit_price'],
+      )!,
+      discount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}discount'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmQuoteItemsTable createAlias(String alias) {
+    return $CrmQuoteItemsTable(attachedDatabase, alias);
+  }
+}
+
+class CrmQuoteItemRow extends DataClass implements Insertable<CrmQuoteItemRow> {
+  final String id;
+  final String quoteId;
+  final String? productId;
+  final String productName;
+  final double quantity;
+  final double unitPrice;
+  final double discount;
+  final double amount;
+  final int sortOrder;
+  const CrmQuoteItemRow({
+    required this.id,
+    required this.quoteId,
+    this.productId,
+    required this.productName,
+    required this.quantity,
+    required this.unitPrice,
+    required this.discount,
+    required this.amount,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['quote_id'] = Variable<String>(quoteId);
+    if (!nullToAbsent || productId != null) {
+      map['product_id'] = Variable<String>(productId);
+    }
+    map['product_name'] = Variable<String>(productName);
+    map['quantity'] = Variable<double>(quantity);
+    map['unit_price'] = Variable<double>(unitPrice);
+    map['discount'] = Variable<double>(discount);
+    map['amount'] = Variable<double>(amount);
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  CrmQuoteItemsCompanion toCompanion(bool nullToAbsent) {
+    return CrmQuoteItemsCompanion(
+      id: Value(id),
+      quoteId: Value(quoteId),
+      productId: productId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(productId),
+      productName: Value(productName),
+      quantity: Value(quantity),
+      unitPrice: Value(unitPrice),
+      discount: Value(discount),
+      amount: Value(amount),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory CrmQuoteItemRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmQuoteItemRow(
+      id: serializer.fromJson<String>(json['id']),
+      quoteId: serializer.fromJson<String>(json['quoteId']),
+      productId: serializer.fromJson<String?>(json['productId']),
+      productName: serializer.fromJson<String>(json['productName']),
+      quantity: serializer.fromJson<double>(json['quantity']),
+      unitPrice: serializer.fromJson<double>(json['unitPrice']),
+      discount: serializer.fromJson<double>(json['discount']),
+      amount: serializer.fromJson<double>(json['amount']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'quoteId': serializer.toJson<String>(quoteId),
+      'productId': serializer.toJson<String?>(productId),
+      'productName': serializer.toJson<String>(productName),
+      'quantity': serializer.toJson<double>(quantity),
+      'unitPrice': serializer.toJson<double>(unitPrice),
+      'discount': serializer.toJson<double>(discount),
+      'amount': serializer.toJson<double>(amount),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  CrmQuoteItemRow copyWith({
+    String? id,
+    String? quoteId,
+    Value<String?> productId = const Value.absent(),
+    String? productName,
+    double? quantity,
+    double? unitPrice,
+    double? discount,
+    double? amount,
+    int? sortOrder,
+  }) => CrmQuoteItemRow(
+    id: id ?? this.id,
+    quoteId: quoteId ?? this.quoteId,
+    productId: productId.present ? productId.value : this.productId,
+    productName: productName ?? this.productName,
+    quantity: quantity ?? this.quantity,
+    unitPrice: unitPrice ?? this.unitPrice,
+    discount: discount ?? this.discount,
+    amount: amount ?? this.amount,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  CrmQuoteItemRow copyWithCompanion(CrmQuoteItemsCompanion data) {
+    return CrmQuoteItemRow(
+      id: data.id.present ? data.id.value : this.id,
+      quoteId: data.quoteId.present ? data.quoteId.value : this.quoteId,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      productName: data.productName.present
+          ? data.productName.value
+          : this.productName,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      unitPrice: data.unitPrice.present ? data.unitPrice.value : this.unitPrice,
+      discount: data.discount.present ? data.discount.value : this.discount,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmQuoteItemRow(')
+          ..write('id: $id, ')
+          ..write('quoteId: $quoteId, ')
+          ..write('productId: $productId, ')
+          ..write('productName: $productName, ')
+          ..write('quantity: $quantity, ')
+          ..write('unitPrice: $unitPrice, ')
+          ..write('discount: $discount, ')
+          ..write('amount: $amount, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    quoteId,
+    productId,
+    productName,
+    quantity,
+    unitPrice,
+    discount,
+    amount,
+    sortOrder,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmQuoteItemRow &&
+          other.id == this.id &&
+          other.quoteId == this.quoteId &&
+          other.productId == this.productId &&
+          other.productName == this.productName &&
+          other.quantity == this.quantity &&
+          other.unitPrice == this.unitPrice &&
+          other.discount == this.discount &&
+          other.amount == this.amount &&
+          other.sortOrder == this.sortOrder);
+}
+
+class CrmQuoteItemsCompanion extends UpdateCompanion<CrmQuoteItemRow> {
+  final Value<String> id;
+  final Value<String> quoteId;
+  final Value<String?> productId;
+  final Value<String> productName;
+  final Value<double> quantity;
+  final Value<double> unitPrice;
+  final Value<double> discount;
+  final Value<double> amount;
+  final Value<int> sortOrder;
+  final Value<int> rowid;
+  const CrmQuoteItemsCompanion({
+    this.id = const Value.absent(),
+    this.quoteId = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.productName = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.unitPrice = const Value.absent(),
+    this.discount = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmQuoteItemsCompanion.insert({
+    required String id,
+    required String quoteId,
+    this.productId = const Value.absent(),
+    required String productName,
+    this.quantity = const Value.absent(),
+    this.unitPrice = const Value.absent(),
+    this.discount = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       quoteId = Value(quoteId),
+       productName = Value(productName);
+  static Insertable<CrmQuoteItemRow> custom({
+    Expression<String>? id,
+    Expression<String>? quoteId,
+    Expression<String>? productId,
+    Expression<String>? productName,
+    Expression<double>? quantity,
+    Expression<double>? unitPrice,
+    Expression<double>? discount,
+    Expression<double>? amount,
+    Expression<int>? sortOrder,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (quoteId != null) 'quote_id': quoteId,
+      if (productId != null) 'product_id': productId,
+      if (productName != null) 'product_name': productName,
+      if (quantity != null) 'quantity': quantity,
+      if (unitPrice != null) 'unit_price': unitPrice,
+      if (discount != null) 'discount': discount,
+      if (amount != null) 'amount': amount,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmQuoteItemsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? quoteId,
+    Value<String?>? productId,
+    Value<String>? productName,
+    Value<double>? quantity,
+    Value<double>? unitPrice,
+    Value<double>? discount,
+    Value<double>? amount,
+    Value<int>? sortOrder,
+    Value<int>? rowid,
+  }) {
+    return CrmQuoteItemsCompanion(
+      id: id ?? this.id,
+      quoteId: quoteId ?? this.quoteId,
+      productId: productId ?? this.productId,
+      productName: productName ?? this.productName,
+      quantity: quantity ?? this.quantity,
+      unitPrice: unitPrice ?? this.unitPrice,
+      discount: discount ?? this.discount,
+      amount: amount ?? this.amount,
+      sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (quoteId.present) {
+      map['quote_id'] = Variable<String>(quoteId.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (productName.present) {
+      map['product_name'] = Variable<String>(productName.value);
+    }
+    if (quantity.present) {
+      map['quantity'] = Variable<double>(quantity.value);
+    }
+    if (unitPrice.present) {
+      map['unit_price'] = Variable<double>(unitPrice.value);
+    }
+    if (discount.present) {
+      map['discount'] = Variable<double>(discount.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmQuoteItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('quoteId: $quoteId, ')
+          ..write('productId: $productId, ')
+          ..write('productName: $productName, ')
+          ..write('quantity: $quantity, ')
+          ..write('unitPrice: $unitPrice, ')
+          ..write('discount: $discount, ')
+          ..write('amount: $amount, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmContractItemsTable extends CrmContractItems
+    with TableInfo<$CrmContractItemsTable, CrmContractItemRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmContractItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contractIdMeta = const VerificationMeta(
+    'contractId',
+  );
+  @override
+  late final GeneratedColumn<String> contractId = GeneratedColumn<String>(
+    'contract_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _productIdMeta = const VerificationMeta(
+    'productId',
+  );
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+    'product_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _productNameMeta = const VerificationMeta(
+    'productName',
+  );
+  @override
+  late final GeneratedColumn<String> productName = GeneratedColumn<String>(
+    'product_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quantityMeta = const VerificationMeta(
+    'quantity',
+  );
+  @override
+  late final GeneratedColumn<double> quantity = GeneratedColumn<double>(
+    'quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _unitPriceMeta = const VerificationMeta(
+    'unitPrice',
+  );
+  @override
+  late final GeneratedColumn<double> unitPrice = GeneratedColumn<double>(
+    'unit_price',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _warrantyMonthsMeta = const VerificationMeta(
+    'warrantyMonths',
+  );
+  @override
+  late final GeneratedColumn<int> warrantyMonths = GeneratedColumn<int>(
+    'warranty_months',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    contractId,
+    productId,
+    productName,
+    quantity,
+    unitPrice,
+    amount,
+    warrantyMonths,
+    sortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_contract_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmContractItemRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('contract_id')) {
+      context.handle(
+        _contractIdMeta,
+        contractId.isAcceptableOrUnknown(data['contract_id']!, _contractIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contractIdMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(
+        _productIdMeta,
+        productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta),
+      );
+    }
+    if (data.containsKey('product_name')) {
+      context.handle(
+        _productNameMeta,
+        productName.isAcceptableOrUnknown(
+          data['product_name']!,
+          _productNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_productNameMeta);
+    }
+    if (data.containsKey('quantity')) {
+      context.handle(
+        _quantityMeta,
+        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
+      );
+    }
+    if (data.containsKey('unit_price')) {
+      context.handle(
+        _unitPriceMeta,
+        unitPrice.isAcceptableOrUnknown(data['unit_price']!, _unitPriceMeta),
+      );
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
+    if (data.containsKey('warranty_months')) {
+      context.handle(
+        _warrantyMonthsMeta,
+        warrantyMonths.isAcceptableOrUnknown(
+          data['warranty_months']!,
+          _warrantyMonthsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmContractItemRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmContractItemRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      contractId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contract_id'],
+      )!,
+      productId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_id'],
+      ),
+      productName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_name'],
+      )!,
+      quantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}quantity'],
+      )!,
+      unitPrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}unit_price'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      warrantyMonths: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}warranty_months'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmContractItemsTable createAlias(String alias) {
+    return $CrmContractItemsTable(attachedDatabase, alias);
+  }
+}
+
+class CrmContractItemRow extends DataClass
+    implements Insertable<CrmContractItemRow> {
+  final String id;
+  final String contractId;
+  final String? productId;
+  final String productName;
+  final double quantity;
+  final double unitPrice;
+  final double amount;
+  final int warrantyMonths;
+  final int sortOrder;
+  const CrmContractItemRow({
+    required this.id,
+    required this.contractId,
+    this.productId,
+    required this.productName,
+    required this.quantity,
+    required this.unitPrice,
+    required this.amount,
+    required this.warrantyMonths,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['contract_id'] = Variable<String>(contractId);
+    if (!nullToAbsent || productId != null) {
+      map['product_id'] = Variable<String>(productId);
+    }
+    map['product_name'] = Variable<String>(productName);
+    map['quantity'] = Variable<double>(quantity);
+    map['unit_price'] = Variable<double>(unitPrice);
+    map['amount'] = Variable<double>(amount);
+    map['warranty_months'] = Variable<int>(warrantyMonths);
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  CrmContractItemsCompanion toCompanion(bool nullToAbsent) {
+    return CrmContractItemsCompanion(
+      id: Value(id),
+      contractId: Value(contractId),
+      productId: productId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(productId),
+      productName: Value(productName),
+      quantity: Value(quantity),
+      unitPrice: Value(unitPrice),
+      amount: Value(amount),
+      warrantyMonths: Value(warrantyMonths),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory CrmContractItemRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmContractItemRow(
+      id: serializer.fromJson<String>(json['id']),
+      contractId: serializer.fromJson<String>(json['contractId']),
+      productId: serializer.fromJson<String?>(json['productId']),
+      productName: serializer.fromJson<String>(json['productName']),
+      quantity: serializer.fromJson<double>(json['quantity']),
+      unitPrice: serializer.fromJson<double>(json['unitPrice']),
+      amount: serializer.fromJson<double>(json['amount']),
+      warrantyMonths: serializer.fromJson<int>(json['warrantyMonths']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'contractId': serializer.toJson<String>(contractId),
+      'productId': serializer.toJson<String?>(productId),
+      'productName': serializer.toJson<String>(productName),
+      'quantity': serializer.toJson<double>(quantity),
+      'unitPrice': serializer.toJson<double>(unitPrice),
+      'amount': serializer.toJson<double>(amount),
+      'warrantyMonths': serializer.toJson<int>(warrantyMonths),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  CrmContractItemRow copyWith({
+    String? id,
+    String? contractId,
+    Value<String?> productId = const Value.absent(),
+    String? productName,
+    double? quantity,
+    double? unitPrice,
+    double? amount,
+    int? warrantyMonths,
+    int? sortOrder,
+  }) => CrmContractItemRow(
+    id: id ?? this.id,
+    contractId: contractId ?? this.contractId,
+    productId: productId.present ? productId.value : this.productId,
+    productName: productName ?? this.productName,
+    quantity: quantity ?? this.quantity,
+    unitPrice: unitPrice ?? this.unitPrice,
+    amount: amount ?? this.amount,
+    warrantyMonths: warrantyMonths ?? this.warrantyMonths,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  CrmContractItemRow copyWithCompanion(CrmContractItemsCompanion data) {
+    return CrmContractItemRow(
+      id: data.id.present ? data.id.value : this.id,
+      contractId: data.contractId.present
+          ? data.contractId.value
+          : this.contractId,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      productName: data.productName.present
+          ? data.productName.value
+          : this.productName,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      unitPrice: data.unitPrice.present ? data.unitPrice.value : this.unitPrice,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      warrantyMonths: data.warrantyMonths.present
+          ? data.warrantyMonths.value
+          : this.warrantyMonths,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmContractItemRow(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('productId: $productId, ')
+          ..write('productName: $productName, ')
+          ..write('quantity: $quantity, ')
+          ..write('unitPrice: $unitPrice, ')
+          ..write('amount: $amount, ')
+          ..write('warrantyMonths: $warrantyMonths, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    contractId,
+    productId,
+    productName,
+    quantity,
+    unitPrice,
+    amount,
+    warrantyMonths,
+    sortOrder,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmContractItemRow &&
+          other.id == this.id &&
+          other.contractId == this.contractId &&
+          other.productId == this.productId &&
+          other.productName == this.productName &&
+          other.quantity == this.quantity &&
+          other.unitPrice == this.unitPrice &&
+          other.amount == this.amount &&
+          other.warrantyMonths == this.warrantyMonths &&
+          other.sortOrder == this.sortOrder);
+}
+
+class CrmContractItemsCompanion extends UpdateCompanion<CrmContractItemRow> {
+  final Value<String> id;
+  final Value<String> contractId;
+  final Value<String?> productId;
+  final Value<String> productName;
+  final Value<double> quantity;
+  final Value<double> unitPrice;
+  final Value<double> amount;
+  final Value<int> warrantyMonths;
+  final Value<int> sortOrder;
+  final Value<int> rowid;
+  const CrmContractItemsCompanion({
+    this.id = const Value.absent(),
+    this.contractId = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.productName = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.unitPrice = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.warrantyMonths = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmContractItemsCompanion.insert({
+    required String id,
+    required String contractId,
+    this.productId = const Value.absent(),
+    required String productName,
+    this.quantity = const Value.absent(),
+    this.unitPrice = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.warrantyMonths = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       contractId = Value(contractId),
+       productName = Value(productName);
+  static Insertable<CrmContractItemRow> custom({
+    Expression<String>? id,
+    Expression<String>? contractId,
+    Expression<String>? productId,
+    Expression<String>? productName,
+    Expression<double>? quantity,
+    Expression<double>? unitPrice,
+    Expression<double>? amount,
+    Expression<int>? warrantyMonths,
+    Expression<int>? sortOrder,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (contractId != null) 'contract_id': contractId,
+      if (productId != null) 'product_id': productId,
+      if (productName != null) 'product_name': productName,
+      if (quantity != null) 'quantity': quantity,
+      if (unitPrice != null) 'unit_price': unitPrice,
+      if (amount != null) 'amount': amount,
+      if (warrantyMonths != null) 'warranty_months': warrantyMonths,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmContractItemsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? contractId,
+    Value<String?>? productId,
+    Value<String>? productName,
+    Value<double>? quantity,
+    Value<double>? unitPrice,
+    Value<double>? amount,
+    Value<int>? warrantyMonths,
+    Value<int>? sortOrder,
+    Value<int>? rowid,
+  }) {
+    return CrmContractItemsCompanion(
+      id: id ?? this.id,
+      contractId: contractId ?? this.contractId,
+      productId: productId ?? this.productId,
+      productName: productName ?? this.productName,
+      quantity: quantity ?? this.quantity,
+      unitPrice: unitPrice ?? this.unitPrice,
+      amount: amount ?? this.amount,
+      warrantyMonths: warrantyMonths ?? this.warrantyMonths,
+      sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (contractId.present) {
+      map['contract_id'] = Variable<String>(contractId.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (productName.present) {
+      map['product_name'] = Variable<String>(productName.value);
+    }
+    if (quantity.present) {
+      map['quantity'] = Variable<double>(quantity.value);
+    }
+    if (unitPrice.present) {
+      map['unit_price'] = Variable<double>(unitPrice.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (warrantyMonths.present) {
+      map['warranty_months'] = Variable<int>(warrantyMonths.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmContractItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('productId: $productId, ')
+          ..write('productName: $productName, ')
+          ..write('quantity: $quantity, ')
+          ..write('unitPrice: $unitPrice, ')
+          ..write('amount: $amount, ')
+          ..write('warrantyMonths: $warrantyMonths, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CrmObjectDefsTable extends CrmObjectDefs
     with TableInfo<$CrmObjectDefsTable, CrmObjectDefRow> {
   @override
@@ -10919,6 +13851,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $CrmContractsTable crmContracts = $CrmContractsTable(this);
+  late final $CrmProductCategoriesTable crmProductCategories =
+      $CrmProductCategoriesTable(this);
+  late final $CrmProductsTable crmProducts = $CrmProductsTable(this);
+  late final $CrmQuotesTable crmQuotes = $CrmQuotesTable(this);
+  late final $CrmQuoteItemsTable crmQuoteItems = $CrmQuoteItemsTable(this);
+  late final $CrmContractItemsTable crmContractItems = $CrmContractItemsTable(
+    this,
+  );
   late final $CrmObjectDefsTable crmObjectDefs = $CrmObjectDefsTable(this);
   late final $CrmCustomRecordsTable crmCustomRecords = $CrmCustomRecordsTable(
     this,
@@ -10947,6 +13887,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     crmContacts,
     crmOpportunities,
     crmContracts,
+    crmProductCategories,
+    crmProducts,
+    crmQuotes,
+    crmQuoteItems,
+    crmContractItems,
     crmObjectDefs,
     crmCustomRecords,
     crmEntityLinks,
@@ -14616,6 +17561,1489 @@ typedef $$CrmContractsTableProcessedTableManager =
       CrmContractRow,
       PrefetchHooks Function()
     >;
+typedef $$CrmProductCategoriesTableCreateCompanionBuilder =
+    CrmProductCategoriesCompanion Function({
+      required String id,
+      required String name,
+      Value<String?> parentId,
+      Value<int> rowid,
+    });
+typedef $$CrmProductCategoriesTableUpdateCompanionBuilder =
+    CrmProductCategoriesCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String?> parentId,
+      Value<int> rowid,
+    });
+
+class $$CrmProductCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmProductCategoriesTable> {
+  $$CrmProductCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get parentId => $composableBuilder(
+    column: $table.parentId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmProductCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmProductCategoriesTable> {
+  $$CrmProductCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get parentId => $composableBuilder(
+    column: $table.parentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmProductCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmProductCategoriesTable> {
+  $$CrmProductCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get parentId =>
+      $composableBuilder(column: $table.parentId, builder: (column) => column);
+}
+
+class $$CrmProductCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmProductCategoriesTable,
+          CrmProductCategoryRow,
+          $$CrmProductCategoriesTableFilterComposer,
+          $$CrmProductCategoriesTableOrderingComposer,
+          $$CrmProductCategoriesTableAnnotationComposer,
+          $$CrmProductCategoriesTableCreateCompanionBuilder,
+          $$CrmProductCategoriesTableUpdateCompanionBuilder,
+          (
+            CrmProductCategoryRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CrmProductCategoriesTable,
+              CrmProductCategoryRow
+            >,
+          ),
+          CrmProductCategoryRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmProductCategoriesTableTableManager(
+    _$AppDatabase db,
+    $CrmProductCategoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmProductCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmProductCategoriesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CrmProductCategoriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmProductCategoriesCompanion(
+                id: id,
+                name: name,
+                parentId: parentId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<String?> parentId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmProductCategoriesCompanion.insert(
+                id: id,
+                name: name,
+                parentId: parentId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmProductCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmProductCategoriesTable,
+      CrmProductCategoryRow,
+      $$CrmProductCategoriesTableFilterComposer,
+      $$CrmProductCategoriesTableOrderingComposer,
+      $$CrmProductCategoriesTableAnnotationComposer,
+      $$CrmProductCategoriesTableCreateCompanionBuilder,
+      $$CrmProductCategoriesTableUpdateCompanionBuilder,
+      (
+        CrmProductCategoryRow,
+        BaseReferences<
+          _$AppDatabase,
+          $CrmProductCategoriesTable,
+          CrmProductCategoryRow
+        >,
+      ),
+      CrmProductCategoryRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmProductsTableCreateCompanionBuilder =
+    CrmProductsCompanion Function({
+      required String id,
+      Value<String?> categoryId,
+      required String name,
+      Value<String?> sku,
+      Value<String> type,
+      Value<String> unit,
+      Value<double> price,
+      Value<double> cost,
+      Value<int> warrantyMonths,
+      Value<bool> isActive,
+      Value<String> note,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$CrmProductsTableUpdateCompanionBuilder =
+    CrmProductsCompanion Function({
+      Value<String> id,
+      Value<String?> categoryId,
+      Value<String> name,
+      Value<String?> sku,
+      Value<String> type,
+      Value<String> unit,
+      Value<double> price,
+      Value<double> cost,
+      Value<int> warrantyMonths,
+      Value<bool> isActive,
+      Value<String> note,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+class $$CrmProductsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmProductsTable> {
+  $$CrmProductsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sku => $composableBuilder(
+    column: $table.sku,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get unit => $composableBuilder(
+    column: $table.unit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get cost => $composableBuilder(
+    column: $table.cost,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get warrantyMonths => $composableBuilder(
+    column: $table.warrantyMonths,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmProductsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmProductsTable> {
+  $$CrmProductsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sku => $composableBuilder(
+    column: $table.sku,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get unit => $composableBuilder(
+    column: $table.unit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get cost => $composableBuilder(
+    column: $table.cost,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get warrantyMonths => $composableBuilder(
+    column: $table.warrantyMonths,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmProductsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmProductsTable> {
+  $$CrmProductsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get sku =>
+      $composableBuilder(column: $table.sku, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get unit =>
+      $composableBuilder(column: $table.unit, builder: (column) => column);
+
+  GeneratedColumn<double> get price =>
+      $composableBuilder(column: $table.price, builder: (column) => column);
+
+  GeneratedColumn<double> get cost =>
+      $composableBuilder(column: $table.cost, builder: (column) => column);
+
+  GeneratedColumn<int> get warrantyMonths => $composableBuilder(
+    column: $table.warrantyMonths,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+}
+
+class $$CrmProductsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmProductsTable,
+          CrmProductRow,
+          $$CrmProductsTableFilterComposer,
+          $$CrmProductsTableOrderingComposer,
+          $$CrmProductsTableAnnotationComposer,
+          $$CrmProductsTableCreateCompanionBuilder,
+          $$CrmProductsTableUpdateCompanionBuilder,
+          (
+            CrmProductRow,
+            BaseReferences<_$AppDatabase, $CrmProductsTable, CrmProductRow>,
+          ),
+          CrmProductRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmProductsTableTableManager(_$AppDatabase db, $CrmProductsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmProductsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmProductsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmProductsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> categoryId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> sku = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> unit = const Value.absent(),
+                Value<double> price = const Value.absent(),
+                Value<double> cost = const Value.absent(),
+                Value<int> warrantyMonths = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmProductsCompanion(
+                id: id,
+                categoryId: categoryId,
+                name: name,
+                sku: sku,
+                type: type,
+                unit: unit,
+                price: price,
+                cost: cost,
+                warrantyMonths: warrantyMonths,
+                isActive: isActive,
+                note: note,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> categoryId = const Value.absent(),
+                required String name,
+                Value<String?> sku = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> unit = const Value.absent(),
+                Value<double> price = const Value.absent(),
+                Value<double> cost = const Value.absent(),
+                Value<int> warrantyMonths = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmProductsCompanion.insert(
+                id: id,
+                categoryId: categoryId,
+                name: name,
+                sku: sku,
+                type: type,
+                unit: unit,
+                price: price,
+                cost: cost,
+                warrantyMonths: warrantyMonths,
+                isActive: isActive,
+                note: note,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmProductsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmProductsTable,
+      CrmProductRow,
+      $$CrmProductsTableFilterComposer,
+      $$CrmProductsTableOrderingComposer,
+      $$CrmProductsTableAnnotationComposer,
+      $$CrmProductsTableCreateCompanionBuilder,
+      $$CrmProductsTableUpdateCompanionBuilder,
+      (
+        CrmProductRow,
+        BaseReferences<_$AppDatabase, $CrmProductsTable, CrmProductRow>,
+      ),
+      CrmProductRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmQuotesTableCreateCompanionBuilder =
+    CrmQuotesCompanion Function({
+      required String id,
+      required String quoteNo,
+      Value<String?> opportunityId,
+      Value<String?> accountId,
+      Value<String?> contactId,
+      Value<String> status,
+      Value<double> totalAmount,
+      Value<double> discountAmount,
+      Value<DateTime?> validUntil,
+      Value<String> note,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$CrmQuotesTableUpdateCompanionBuilder =
+    CrmQuotesCompanion Function({
+      Value<String> id,
+      Value<String> quoteNo,
+      Value<String?> opportunityId,
+      Value<String?> accountId,
+      Value<String?> contactId,
+      Value<String> status,
+      Value<double> totalAmount,
+      Value<double> discountAmount,
+      Value<DateTime?> validUntil,
+      Value<String> note,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+class $$CrmQuotesTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmQuotesTable> {
+  $$CrmQuotesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quoteNo => $composableBuilder(
+    column: $table.quoteNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get opportunityId => $composableBuilder(
+    column: $table.opportunityId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contactId => $composableBuilder(
+    column: $table.contactId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get totalAmount => $composableBuilder(
+    column: $table.totalAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get discountAmount => $composableBuilder(
+    column: $table.discountAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get validUntil => $composableBuilder(
+    column: $table.validUntil,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmQuotesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmQuotesTable> {
+  $$CrmQuotesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quoteNo => $composableBuilder(
+    column: $table.quoteNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get opportunityId => $composableBuilder(
+    column: $table.opportunityId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contactId => $composableBuilder(
+    column: $table.contactId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get totalAmount => $composableBuilder(
+    column: $table.totalAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get discountAmount => $composableBuilder(
+    column: $table.discountAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get validUntil => $composableBuilder(
+    column: $table.validUntil,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmQuotesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmQuotesTable> {
+  $$CrmQuotesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get quoteNo =>
+      $composableBuilder(column: $table.quoteNo, builder: (column) => column);
+
+  GeneratedColumn<String> get opportunityId => $composableBuilder(
+    column: $table.opportunityId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get contactId =>
+      $composableBuilder(column: $table.contactId, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<double> get totalAmount => $composableBuilder(
+    column: $table.totalAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get discountAmount => $composableBuilder(
+    column: $table.discountAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get validUntil => $composableBuilder(
+    column: $table.validUntil,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+}
+
+class $$CrmQuotesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmQuotesTable,
+          CrmQuoteRow,
+          $$CrmQuotesTableFilterComposer,
+          $$CrmQuotesTableOrderingComposer,
+          $$CrmQuotesTableAnnotationComposer,
+          $$CrmQuotesTableCreateCompanionBuilder,
+          $$CrmQuotesTableUpdateCompanionBuilder,
+          (
+            CrmQuoteRow,
+            BaseReferences<_$AppDatabase, $CrmQuotesTable, CrmQuoteRow>,
+          ),
+          CrmQuoteRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmQuotesTableTableManager(_$AppDatabase db, $CrmQuotesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmQuotesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmQuotesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmQuotesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> quoteNo = const Value.absent(),
+                Value<String?> opportunityId = const Value.absent(),
+                Value<String?> accountId = const Value.absent(),
+                Value<String?> contactId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<double> totalAmount = const Value.absent(),
+                Value<double> discountAmount = const Value.absent(),
+                Value<DateTime?> validUntil = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmQuotesCompanion(
+                id: id,
+                quoteNo: quoteNo,
+                opportunityId: opportunityId,
+                accountId: accountId,
+                contactId: contactId,
+                status: status,
+                totalAmount: totalAmount,
+                discountAmount: discountAmount,
+                validUntil: validUntil,
+                note: note,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String quoteNo,
+                Value<String?> opportunityId = const Value.absent(),
+                Value<String?> accountId = const Value.absent(),
+                Value<String?> contactId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<double> totalAmount = const Value.absent(),
+                Value<double> discountAmount = const Value.absent(),
+                Value<DateTime?> validUntil = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmQuotesCompanion.insert(
+                id: id,
+                quoteNo: quoteNo,
+                opportunityId: opportunityId,
+                accountId: accountId,
+                contactId: contactId,
+                status: status,
+                totalAmount: totalAmount,
+                discountAmount: discountAmount,
+                validUntil: validUntil,
+                note: note,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmQuotesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmQuotesTable,
+      CrmQuoteRow,
+      $$CrmQuotesTableFilterComposer,
+      $$CrmQuotesTableOrderingComposer,
+      $$CrmQuotesTableAnnotationComposer,
+      $$CrmQuotesTableCreateCompanionBuilder,
+      $$CrmQuotesTableUpdateCompanionBuilder,
+      (
+        CrmQuoteRow,
+        BaseReferences<_$AppDatabase, $CrmQuotesTable, CrmQuoteRow>,
+      ),
+      CrmQuoteRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmQuoteItemsTableCreateCompanionBuilder =
+    CrmQuoteItemsCompanion Function({
+      required String id,
+      required String quoteId,
+      Value<String?> productId,
+      required String productName,
+      Value<double> quantity,
+      Value<double> unitPrice,
+      Value<double> discount,
+      Value<double> amount,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+typedef $$CrmQuoteItemsTableUpdateCompanionBuilder =
+    CrmQuoteItemsCompanion Function({
+      Value<String> id,
+      Value<String> quoteId,
+      Value<String?> productId,
+      Value<String> productName,
+      Value<double> quantity,
+      Value<double> unitPrice,
+      Value<double> discount,
+      Value<double> amount,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+
+class $$CrmQuoteItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmQuoteItemsTable> {
+  $$CrmQuoteItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quoteId => $composableBuilder(
+    column: $table.quoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get unitPrice => $composableBuilder(
+    column: $table.unitPrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get discount => $composableBuilder(
+    column: $table.discount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmQuoteItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmQuoteItemsTable> {
+  $$CrmQuoteItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quoteId => $composableBuilder(
+    column: $table.quoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get unitPrice => $composableBuilder(
+    column: $table.unitPrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get discount => $composableBuilder(
+    column: $table.discount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmQuoteItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmQuoteItemsTable> {
+  $$CrmQuoteItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get quoteId =>
+      $composableBuilder(column: $table.quoteId, builder: (column) => column);
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<double> get unitPrice =>
+      $composableBuilder(column: $table.unitPrice, builder: (column) => column);
+
+  GeneratedColumn<double> get discount =>
+      $composableBuilder(column: $table.discount, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+}
+
+class $$CrmQuoteItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmQuoteItemsTable,
+          CrmQuoteItemRow,
+          $$CrmQuoteItemsTableFilterComposer,
+          $$CrmQuoteItemsTableOrderingComposer,
+          $$CrmQuoteItemsTableAnnotationComposer,
+          $$CrmQuoteItemsTableCreateCompanionBuilder,
+          $$CrmQuoteItemsTableUpdateCompanionBuilder,
+          (
+            CrmQuoteItemRow,
+            BaseReferences<_$AppDatabase, $CrmQuoteItemsTable, CrmQuoteItemRow>,
+          ),
+          CrmQuoteItemRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmQuoteItemsTableTableManager(_$AppDatabase db, $CrmQuoteItemsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmQuoteItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmQuoteItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmQuoteItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> quoteId = const Value.absent(),
+                Value<String?> productId = const Value.absent(),
+                Value<String> productName = const Value.absent(),
+                Value<double> quantity = const Value.absent(),
+                Value<double> unitPrice = const Value.absent(),
+                Value<double> discount = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmQuoteItemsCompanion(
+                id: id,
+                quoteId: quoteId,
+                productId: productId,
+                productName: productName,
+                quantity: quantity,
+                unitPrice: unitPrice,
+                discount: discount,
+                amount: amount,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String quoteId,
+                Value<String?> productId = const Value.absent(),
+                required String productName,
+                Value<double> quantity = const Value.absent(),
+                Value<double> unitPrice = const Value.absent(),
+                Value<double> discount = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmQuoteItemsCompanion.insert(
+                id: id,
+                quoteId: quoteId,
+                productId: productId,
+                productName: productName,
+                quantity: quantity,
+                unitPrice: unitPrice,
+                discount: discount,
+                amount: amount,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmQuoteItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmQuoteItemsTable,
+      CrmQuoteItemRow,
+      $$CrmQuoteItemsTableFilterComposer,
+      $$CrmQuoteItemsTableOrderingComposer,
+      $$CrmQuoteItemsTableAnnotationComposer,
+      $$CrmQuoteItemsTableCreateCompanionBuilder,
+      $$CrmQuoteItemsTableUpdateCompanionBuilder,
+      (
+        CrmQuoteItemRow,
+        BaseReferences<_$AppDatabase, $CrmQuoteItemsTable, CrmQuoteItemRow>,
+      ),
+      CrmQuoteItemRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmContractItemsTableCreateCompanionBuilder =
+    CrmContractItemsCompanion Function({
+      required String id,
+      required String contractId,
+      Value<String?> productId,
+      required String productName,
+      Value<double> quantity,
+      Value<double> unitPrice,
+      Value<double> amount,
+      Value<int> warrantyMonths,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+typedef $$CrmContractItemsTableUpdateCompanionBuilder =
+    CrmContractItemsCompanion Function({
+      Value<String> id,
+      Value<String> contractId,
+      Value<String?> productId,
+      Value<String> productName,
+      Value<double> quantity,
+      Value<double> unitPrice,
+      Value<double> amount,
+      Value<int> warrantyMonths,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+
+class $$CrmContractItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmContractItemsTable> {
+  $$CrmContractItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get unitPrice => $composableBuilder(
+    column: $table.unitPrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get warrantyMonths => $composableBuilder(
+    column: $table.warrantyMonths,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmContractItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmContractItemsTable> {
+  $$CrmContractItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get unitPrice => $composableBuilder(
+    column: $table.unitPrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get warrantyMonths => $composableBuilder(
+    column: $table.warrantyMonths,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmContractItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmContractItemsTable> {
+  $$CrmContractItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<double> get unitPrice =>
+      $composableBuilder(column: $table.unitPrice, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<int> get warrantyMonths => $composableBuilder(
+    column: $table.warrantyMonths,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+}
+
+class $$CrmContractItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmContractItemsTable,
+          CrmContractItemRow,
+          $$CrmContractItemsTableFilterComposer,
+          $$CrmContractItemsTableOrderingComposer,
+          $$CrmContractItemsTableAnnotationComposer,
+          $$CrmContractItemsTableCreateCompanionBuilder,
+          $$CrmContractItemsTableUpdateCompanionBuilder,
+          (
+            CrmContractItemRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CrmContractItemsTable,
+              CrmContractItemRow
+            >,
+          ),
+          CrmContractItemRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmContractItemsTableTableManager(
+    _$AppDatabase db,
+    $CrmContractItemsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmContractItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmContractItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmContractItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> contractId = const Value.absent(),
+                Value<String?> productId = const Value.absent(),
+                Value<String> productName = const Value.absent(),
+                Value<double> quantity = const Value.absent(),
+                Value<double> unitPrice = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<int> warrantyMonths = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmContractItemsCompanion(
+                id: id,
+                contractId: contractId,
+                productId: productId,
+                productName: productName,
+                quantity: quantity,
+                unitPrice: unitPrice,
+                amount: amount,
+                warrantyMonths: warrantyMonths,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String contractId,
+                Value<String?> productId = const Value.absent(),
+                required String productName,
+                Value<double> quantity = const Value.absent(),
+                Value<double> unitPrice = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<int> warrantyMonths = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmContractItemsCompanion.insert(
+                id: id,
+                contractId: contractId,
+                productId: productId,
+                productName: productName,
+                quantity: quantity,
+                unitPrice: unitPrice,
+                amount: amount,
+                warrantyMonths: warrantyMonths,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmContractItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmContractItemsTable,
+      CrmContractItemRow,
+      $$CrmContractItemsTableFilterComposer,
+      $$CrmContractItemsTableOrderingComposer,
+      $$CrmContractItemsTableAnnotationComposer,
+      $$CrmContractItemsTableCreateCompanionBuilder,
+      $$CrmContractItemsTableUpdateCompanionBuilder,
+      (
+        CrmContractItemRow,
+        BaseReferences<
+          _$AppDatabase,
+          $CrmContractItemsTable,
+          CrmContractItemRow
+        >,
+      ),
+      CrmContractItemRow,
+      PrefetchHooks Function()
+    >;
 typedef $$CrmObjectDefsTableCreateCompanionBuilder =
     CrmObjectDefsCompanion Function({
       required String id,
@@ -16476,6 +20904,16 @@ class $AppDatabaseManager {
       $$CrmOpportunitiesTableTableManager(_db, _db.crmOpportunities);
   $$CrmContractsTableTableManager get crmContracts =>
       $$CrmContractsTableTableManager(_db, _db.crmContracts);
+  $$CrmProductCategoriesTableTableManager get crmProductCategories =>
+      $$CrmProductCategoriesTableTableManager(_db, _db.crmProductCategories);
+  $$CrmProductsTableTableManager get crmProducts =>
+      $$CrmProductsTableTableManager(_db, _db.crmProducts);
+  $$CrmQuotesTableTableManager get crmQuotes =>
+      $$CrmQuotesTableTableManager(_db, _db.crmQuotes);
+  $$CrmQuoteItemsTableTableManager get crmQuoteItems =>
+      $$CrmQuoteItemsTableTableManager(_db, _db.crmQuoteItems);
+  $$CrmContractItemsTableTableManager get crmContractItems =>
+      $$CrmContractItemsTableTableManager(_db, _db.crmContractItems);
   $$CrmObjectDefsTableTableManager get crmObjectDefs =>
       $$CrmObjectDefsTableTableManager(_db, _db.crmObjectDefs);
   $$CrmCustomRecordsTableTableManager get crmCustomRecords =>

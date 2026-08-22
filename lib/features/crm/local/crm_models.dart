@@ -205,6 +205,139 @@ class LocalContract {
        updatedAt = updatedAt ?? DateTime.now();
 }
 
+/// 产品分类
+class LocalProductCategory {
+  String id;
+  String name;
+  String? parentId;
+
+  LocalProductCategory({
+    required this.id,
+    required this.name,
+    this.parentId,
+  });
+}
+
+/// 产品/服务
+class LocalProduct {
+  String id;
+  String? categoryId;
+  String name;
+  String sku;
+  String type;
+  String unit;
+  double price;
+  double cost;
+  int warrantyMonths;
+  bool isActive;
+  String note;
+  DateTime createdAt;
+  DateTime updatedAt;
+  bool deleted;
+
+  LocalProduct({
+    required this.id,
+    this.categoryId,
+    this.name = '',
+    this.sku = '',
+    this.type = 'product',
+    this.unit = '',
+    this.price = 0,
+    this.cost = 0,
+    this.warrantyMonths = 0,
+    this.isActive = true,
+    this.note = '',
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    this.deleted = false,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
+}
+
+/// 报价单
+class LocalQuote {
+  String id;
+  String quoteNo;
+  String? opportunityId;
+  String? accountId;
+  String? contactId;
+  String status;
+  double totalAmount;
+  double discountAmount;
+  DateTime? validUntil;
+  String note;
+  DateTime createdAt;
+  DateTime updatedAt;
+  bool deleted;
+
+  LocalQuote({
+    required this.id,
+    this.quoteNo = '',
+    this.opportunityId,
+    this.accountId,
+    this.contactId,
+    this.status = 'draft',
+    this.totalAmount = 0,
+    this.discountAmount = 0,
+    this.validUntil,
+    this.note = '',
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    this.deleted = false,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
+}
+
+/// 报价明细
+class LocalQuoteItem {
+  String id;
+  String quoteId;
+  String? productId;
+  String productName;
+  double quantity;
+  double unitPrice;
+  double discount;
+  double amount;
+  int sortOrder;
+
+  LocalQuoteItem({
+    required this.id,
+    required this.quoteId,
+    this.productId,
+    this.productName = '',
+    this.quantity = 1,
+    this.unitPrice = 0,
+    this.discount = 1,
+    this.amount = 0,
+    this.sortOrder = 0,
+  });
+}
+
+/// 合同明细
+class LocalContractItem {
+  String id;
+  String contractId;
+  String? productId;
+  String productName;
+  double quantity;
+  double unitPrice;
+  double amount;
+  int warrantyMonths;
+  int sortOrder;
+
+  LocalContractItem({
+    required this.id,
+    required this.contractId,
+    this.productId,
+    this.productName = '',
+    this.quantity = 1,
+    this.unitPrice = 0,
+    this.amount = 0,
+    this.warrantyMonths = 0,
+    this.sortOrder = 0,
+  });
+}
+
 /// 自定义数据对象定义
 class LocalCustomObject {
   String id;

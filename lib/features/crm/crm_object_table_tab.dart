@@ -1,16 +1,12 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:moodiary/common/models/isar/diary.dart';
+import 'package:moodiary/features/crm/crm_entity_detail_page.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/widgets/crm_smart_table.dart';
-import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
-import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// CRM 顶部 Tab 定义（本地基础对象）
@@ -26,6 +22,8 @@ const List<CrmTabDef> kCrmTabs = [
   CrmTabDef('contact', '联系人'),
   CrmTabDef('opportunity', '机会/线索'),
   CrmTabDef('contract', '合同'),
+  CrmTabDef('product', '产品'),
+  CrmTabDef('quote', '报价'),
 ];
 
 String crmTypeLabel(String type) {
@@ -34,6 +32,8 @@ String crmTypeLabel(String type) {
     'contact': '联系人',
     'opportunity': '机会/线索',
     'contract': '合同',
+    'product': '产品',
+    'quote': '报价',
   };
   return labels[type] ?? type;
 }
@@ -48,6 +48,10 @@ IconData crmTypeIcon(String type) {
       return Icons.trending_up_rounded;
     case 'contract':
       return Icons.description_rounded;
+    case 'product':
+      return Icons.inventory_2_rounded;
+    case 'quote':
+      return Icons.request_quote_rounded;
     default:
       return Icons.folder_rounded;
   }
@@ -63,6 +67,10 @@ Color crmTypeColor(String type) {
       return Colors.orange.shade400;
     case 'contract':
       return Colors.teal.shade400;
+    case 'product':
+      return Colors.indigo.shade400;
+    case 'quote':
+      return Colors.amber.shade700;
     default:
       return Colors.grey;
   }
@@ -210,6 +218,41 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                 ..updatedAt = c.updatedAt,
             )
             .toList();
+      case 'product':
+        return (await repo.listProducts())
+            .map(
+              (p) => CrmEntityCache()
+                ..id = p.id
+                ..twentyId = p.id
+                ..entityType = 'product'
+                ..name = p.name.isEmpty ? '（未命名产品）' : p.name
+                ..setData(productToDataMap(p))
+                ..updatedAt = p.updatedAt,
+            )
+            .toList();
+      case 'quote':
+        final quotes = await repo.listQuotes();
+        final accountNames = await _accountNameMap();
+        final contactNames = await _contactNameMap();
+        final oppNames = await _opportunityNameMap();
+        return quotes
+            .map(
+              (q) => CrmEntityCache()
+                ..id = q.id
+                ..twentyId = q.id
+                ..entityType = 'quote'
+                ..name = q.quoteNo.isEmpty ? '（未编号报价）' : q.quoteNo
+                ..setData(
+                  quoteToDataMap(
+                    q,
+                    accountName: accountNames[q.accountId],
+                    contactName: contactNames[q.contactId],
+                    opportunityName: oppNames[q.opportunityId],
+                  ),
+                )
+                ..updatedAt = q.updatedAt,
+            )
+            .toList();
       default:
         // 自定义对象
         final objectId = widget.objectType.startsWith('custom:')
@@ -241,6 +284,14 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     final map = <String?, String>{};
     for (final c in await _repo.listContacts()) {
       map[c.id] = c.name;
+    }
+    return map;
+  }
+
+  Future<Map<String?, String>> _opportunityNameMap() async {
+    final map = <String?, String>{};
+    for (final o in await _repo.listOpportunities()) {
+      map[o.id] = o.name;
     }
     return map;
   }
@@ -516,38 +567,13 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   }
 
   Future<void> _edit(CrmEntityCache item) async {
-    _showDetail(item);
-  }
-
-  Future<void> _delete(CrmEntityCache item) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('确认删除'),
-        content: Text('将删除「${item.name}」${widget.title}，此操作不可撤销。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('删除'),
-          ),
-        ],
+    Get.to(
+      () => CrmEntityDetailPage(
+        objectType: widget.objectType,
+        item: item,
+        fields: _fields,
       ),
     );
-    if (ok != true) return;
-    try {
-      await _deleteEntity(item.twentyId);
-      toast.success(message: '已删除');
-      _reload();
-    } catch (e) {
-      toast.error(message: '删除失败：$e');
-    }
   }
 
   Future<void> _updateCell(
@@ -646,6 +672,32 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             note: data['note']?.toString() ?? '',
           ),
         );
+      case 'product':
+        await repo.createProduct(
+          LocalProduct(
+            id: '',
+            name: data['name']?.toString() ?? '',
+            sku: data['sku']?.toString() ?? '',
+            type: data['type']?.toString() ?? 'product',
+            unit: data['unit']?.toString() ?? '',
+            price: _toDouble(data['price']) ?? 0,
+            cost: _toDouble(data['cost']) ?? 0,
+            warrantyMonths: _toInt(data['warrantyMonths']) ?? 0,
+            isActive: data['isActive']?.toString() != 'false',
+            note: data['note']?.toString() ?? '',
+          ),
+        );
+      case 'quote':
+        await repo.createQuote(
+          LocalQuote(
+            id: '',
+            status: data['status']?.toString() ?? 'draft',
+            totalAmount: _toDouble(data['totalAmount']) ?? 0,
+            discountAmount: _toDouble(data['discountAmount']) ?? 0,
+            validUntil: _parseDate(data['validUntil']),
+            note: data['note']?.toString() ?? '',
+          ),
+        );
       default:
         final objectId = widget.objectType.startsWith('custom:')
             ? widget.objectType.substring(7)
@@ -658,22 +710,6 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             data: data,
           ),
         );
-    }
-  }
-
-  Future<void> _deleteEntity(String id) async {
-    final repo = _repo;
-    switch (widget.objectType) {
-      case 'account':
-        await repo.deleteAccount(id);
-      case 'contact':
-        await repo.deleteContact(id);
-      case 'opportunity':
-        await repo.deleteOpportunity(id);
-      case 'contract':
-        await repo.deleteContract(id);
-      default:
-        await repo.deleteCustomRecord(id);
     }
   }
 
@@ -704,6 +740,16 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         if (c == null) return;
         _assign(c, field, value);
         await repo.updateContract(c);
+      case 'product':
+        final p = await repo.getProduct(id);
+        if (p == null) return;
+        _assign(p, field, value);
+        await repo.updateProduct(p);
+      case 'quote':
+        final q = await repo.getQuote(id);
+        if (q == null) return;
+        _assign(q, field, value);
+        await repo.updateQuote(q);
       default:
         final r = await repo.getCustomRecord(id);
         if (r == null) return;
@@ -788,6 +834,24 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         entity.endDate = _parseDate(value);
       case 'warrantyEndDate':
         entity.warrantyEndDate = _parseDate(value);
+      case 'sku':
+        entity.sku = value?.toString() ?? '';
+      case 'unit':
+        entity.unit = value?.toString() ?? '';
+      case 'price':
+        entity.price = _toDouble(value) ?? 0;
+      case 'cost':
+        entity.cost = _toDouble(value) ?? 0;
+      case 'warrantyMonths':
+        entity.warrantyMonths = _toInt(value) ?? 0;
+      case 'isActive':
+        entity.isActive = value?.toString() == 'true';
+      case 'quoteNo':
+        entity.quoteNo = value?.toString() ?? '';
+      case 'discountAmount':
+        entity.discountAmount = _toDouble(value) ?? 0;
+      case 'validUntil':
+        entity.validUntil = _parseDate(value);
     }
   }
 
@@ -813,118 +877,6 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     final text = value.toString().trim();
     if (text.isEmpty) return null;
     return DateTime.tryParse(text);
-  }
-
-  // ==================== 详情/下钻 ====================
-
-  void _showDetail(CrmEntityCache item) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(item.name),
-        content: SizedBox(
-          width: 420,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '类型：${crmTypeLabel(widget.objectType)}\n'
-                  '记录 ID：${item.twentyId}\n'
-                  '更新时间：${item.updatedAt.toLocal()}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const Divider(height: 16),
-                Row(
-                  children: [
-                    Text('详情', style: Theme.of(context).textTheme.titleSmall),
-                    const Spacer(),
-                    TextButton.icon(
-                      onPressed: () {
-                        Get.back();
-                        _delete(item);
-                      },
-                      icon: Icon(
-                        Icons.delete_outline,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      label: const Text('删除'),
-                    ),
-                  ],
-                ),
-                SelectableText(_prettyJson(item.dataJson)),
-                const Divider(height: 16),
-                Text('相关日记', style: Theme.of(context).textTheme.titleSmall),
-                FutureBuilder<List<Diary>>(
-                  future: IsarUtil.searchDiariesByText(item.name),
-                  builder: (context, snapshot) {
-                    final diaries = snapshot.data ?? [];
-                    if (snapshot.connectionState != ConnectionState.done) {
-                      return const Padding(
-                        padding: EdgeInsets.all(8),
-                        child: LinearProgressIndicator(),
-                      );
-                    }
-                    if (diaries.isEmpty) {
-                      return Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(
-                          '未找到包含「${item.name}」的日记',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      );
-                    }
-                    return Column(
-                      children: [
-                        for (final diary in diaries.take(10))
-                          ListTile(
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.article_outlined, size: 18),
-                            title: Text(
-                              diary.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: Text(
-                              '${diary.time.toLocal()}',
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                            onTap: () {
-                              Get.back();
-                              Get.toNamed(
-                                AppRoutes.diaryPage,
-                                arguments: [diary, true],
-                              );
-                            },
-                          ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('关闭'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _prettyJson(String dataJson) {
-    try {
-      final decoded = jsonDecode(dataJson);
-      return const JsonEncoder.withIndent('  ').convert(decoded);
-    } catch (_) {
-      return dataJson;
-    }
   }
 
   // ==================== UI ====================

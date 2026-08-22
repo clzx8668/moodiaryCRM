@@ -24,6 +24,8 @@ const Map<String, String> kLocalLabelFields = {
   'contact': 'name',
   'opportunity': 'name',
   'contract': 'name',
+  'product': 'name',
+  'quote': 'quoteNo',
 };
 
 /// 商机阶段（doc 枚举键，先以中文标签存储展示；S6 看板再做键值化）
@@ -129,6 +131,44 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('createdAt', '创建时间', type: 'date'),
     LocalObjectField('updatedAt', '更新时间', type: 'date'),
   ],
+  'product': [
+    LocalObjectField('name', '产品/服务名称'),
+    LocalObjectField('sku', '编码'),
+    LocalObjectField('type', '类型', type: 'select', options: [
+      'product',
+      'service',
+    ]),
+    LocalObjectField('unit', '单位'),
+    LocalObjectField('price', '标准单价（元）', type: 'number'),
+    LocalObjectField('cost', '成本价（元）', type: 'number'),
+    LocalObjectField('warrantyMonths', '质保月数', type: 'number'),
+    LocalObjectField('isActive', '在售', type: 'select', options: [
+      'true',
+      'false',
+    ]),
+    LocalObjectField('note', '描述', type: 'textarea'),
+    LocalObjectField('createdAt', '创建时间', type: 'date'),
+    LocalObjectField('updatedAt', '更新时间', type: 'date'),
+  ],
+  'quote': [
+    LocalObjectField('quoteNo', '报价单号'),
+    LocalObjectField('account', '客户', type: 'relation'),
+    LocalObjectField('contact', '联系人', type: 'relation'),
+    LocalObjectField('opportunity', '商机', type: 'relation'),
+    LocalObjectField('status', '状态', type: 'select', options: [
+      'draft',
+      'sent',
+      'accepted',
+      'rejected',
+      'expired',
+    ]),
+    LocalObjectField('totalAmount', '总金额（元）', type: 'number'),
+    LocalObjectField('discountAmount', '折扣金额（元）', type: 'number'),
+    LocalObjectField('validUntil', '有效期至', type: 'date'),
+    LocalObjectField('note', '备注', type: 'textarea'),
+    LocalObjectField('createdAt', '创建时间', type: 'date'),
+    LocalObjectField('updatedAt', '更新时间', type: 'date'),
+  ],
 };
 
 /// 基础对象字段的展示值格式化（typed → data map）
@@ -214,4 +254,42 @@ Map<String, dynamic> contractToDataMap(
   'note': c.note,
   'createdAt': c.createdAt.toIso8601String(),
   'updatedAt': c.updatedAt.toIso8601String(),
+};
+
+Map<String, dynamic> productToDataMap(LocalProduct p) => {
+  'name': p.name,
+  'sku': p.sku,
+  'type': p.type,
+  'unit': p.unit,
+  'price': p.price,
+  'cost': p.cost,
+  'warrantyMonths': p.warrantyMonths,
+  'isActive': p.isActive,
+  'note': p.note,
+  'createdAt': p.createdAt.toIso8601String(),
+  'updatedAt': p.updatedAt.toIso8601String(),
+};
+
+Map<String, dynamic> quoteToDataMap(
+  LocalQuote q, {
+  String? accountName,
+  String? contactName,
+  String? opportunityName,
+}) => {
+  'quoteNo': q.quoteNo,
+  'accountId': q.accountId,
+  'account': accountName == null ? q.accountId : {'name': accountName},
+  'contactId': q.contactId,
+  'contact': contactName == null ? q.contactId : {'name': contactName},
+  'opportunityId': q.opportunityId,
+  'opportunity': opportunityName == null
+      ? q.opportunityId
+      : {'name': opportunityName},
+  'status': q.status,
+  'totalAmount': q.totalAmount,
+  'discountAmount': q.discountAmount,
+  'validUntil': q.validUntil?.toIso8601String(),
+  'note': q.note,
+  'createdAt': q.createdAt.toIso8601String(),
+  'updatedAt': q.updatedAt.toIso8601String(),
 };
