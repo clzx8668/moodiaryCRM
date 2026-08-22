@@ -29,6 +29,17 @@ class MapConverter extends TypeConverter<Map<String, dynamic>, String> {
   String toSql(Map<String, dynamic> value) => jsonEncode(value);
 }
 
+/// `List<dynamic>` ↔ JSON 文本
+class JsonListConverter extends TypeConverter<List<dynamic>, String> {
+  const JsonListConverter();
+
+  @override
+  List<dynamic> fromSql(String fromDb) => jsonDecode(fromDb) as List;
+
+  @override
+  String toSql(List<dynamic> value) => jsonEncode(value);
+}
+
 /// 日记表（对应原 Isar Diary）
 @DataClassName('DiaryRow')
 class Diaries extends Table {
@@ -162,6 +173,149 @@ class CrmContentLinks extends Table {
   ];
 }
 
+/// 本地 CRM 公司表（本地优先 CRM，参考成熟 CRM 数据模型）
+@DataClassName('CrmCompanyRow')
+class CrmCompanies extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text().withDefault(const Constant(''))();
+  TextColumn get domainName => text().withDefault(const Constant(''))();
+  TextColumn get addressJson =>
+      text().map(const MapConverter()).withDefault(const Constant('{}'))();
+  IntColumn get employees => integer().nullable()();
+  TextColumn get linkedinLink => text().withDefault(const Constant(''))();
+  TextColumn get xLink => text().withDefault(const Constant(''))();
+  IntColumn get arrMicros => integer().nullable()();
+  TextColumn get icp => text().withDefault(const Constant(''))();
+  TextColumn get customerStatus => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 本地 CRM 联系人表
+@DataClassName('CrmPersonRow')
+class CrmPeople extends Table {
+  TextColumn get id => text()();
+  TextColumn get companyId => text().nullable()();
+  TextColumn get firstName => text().withDefault(const Constant(''))();
+  TextColumn get lastName => text().withDefault(const Constant(''))();
+  TextColumn get jobTitle => text().withDefault(const Constant(''))();
+  TextColumn get emailsJson =>
+      text().map(const MapConverter()).withDefault(const Constant('{}'))();
+  TextColumn get phonesJson =>
+      text().map(const MapConverter()).withDefault(const Constant('{}'))();
+  TextColumn get city => text().withDefault(const Constant(''))();
+  TextColumn get wechat => text().withDefault(const Constant(''))();
+  TextColumn get avatarUrl => text().withDefault(const Constant(''))();
+  TextColumn get linkedinLink => text().withDefault(const Constant(''))();
+  TextColumn get xLink => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 本地 CRM 机会/线索表
+@DataClassName('CrmOpportunityRow')
+class CrmOpportunities extends Table {
+  TextColumn get id => text()();
+  TextColumn get companyId => text().nullable()();
+  TextColumn get pointOfContactId => text().nullable()();
+  TextColumn get name => text().withDefault(const Constant(''))();
+  IntColumn get amountMicros => integer().nullable()();
+  DateTimeColumn get closeDate => dateTime().nullable()();
+  TextColumn get stage => text().withDefault(const Constant(''))();
+  TextColumn get customStatus => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 本地 CRM 合同表
+@DataClassName('CrmContractRow')
+class CrmContracts extends Table {
+  TextColumn get id => text()();
+  TextColumn get companyId => text().nullable()();
+  TextColumn get name => text().withDefault(const Constant(''))();
+  IntColumn get amountMicros => integer().nullable()();
+  TextColumn get currency => text().withDefault(const Constant('CNY'))();
+  TextColumn get status => text().withDefault(const Constant(''))();
+  DateTimeColumn get dueDate => dateTime().nullable()();
+  TextColumn get terms => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 自定义数据对象定义（元数据驱动，类似 Twenty metadata）
+@DataClassName('CrmObjectDefRow')
+class CrmObjectDefs extends Table {
+  /// 对象键（如 payments / invoices）
+  TextColumn get id => text()();
+  TextColumn get labelSingular => text()();
+  TextColumn get labelPlural => text()();
+  TextColumn get icon => text().withDefault(const Constant(''))();
+  /// 字段定义 JSON 数组：[{name,label,type,options,required,order}]
+  TextColumn get fieldsJson =>
+      text().map(const JsonListConverter()).withDefault(const Constant('[]'))();
+  BoolColumn get builtin => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 自定义对象记录（JSON 宽表；label 为展示名，支持 json_extract 排序筛选）
+@DataClassName('CrmCustomRecordRow')
+class CrmCustomRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get objectId => text()();
+  TextColumn get label => text().withDefault(const Constant(''))();
+  TextColumn get dataJson =>
+      text().map(const MapConverter()).withDefault(const Constant('{}'))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 本地实体 ↔ 日记/待办关联表（跟进记录/认领/时间线）
+@DataClassName('CrmEntityLinkRow')
+class CrmEntityLinks extends Table {
+  TextColumn get id => text()();
+  /// entityType：company / person / opportunity / contract / `custom:<objectId>`
+  TextColumn get entityType => text()();
+  TextColumn get entityId => text()();
+  /// localType：diary / block
+  TextColumn get localType => text()();
+  TextColumn get localId => text()();
+  /// relation：followup / note / todo
+  TextColumn get relation => text().withDefault(const Constant('followup'))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {entityType, entityId, localType, localId, relation},
+  ];
+}
+
 /// 同步记录表
 @DataClassName('SyncRecordRow')
 class SyncRecords extends Table {
@@ -241,6 +395,13 @@ class AiChatMessages extends Table {
     AppMetadata,
     CrmEntityCaches,
     CrmContentLinks,
+    CrmCompanies,
+    CrmPeople,
+    CrmOpportunities,
+    CrmContracts,
+    CrmObjectDefs,
+    CrmCustomRecords,
+    CrmEntityLinks,
     SyncRecords,
     KnowledgeBases,
     BlockEmbeddings,
@@ -252,7 +413,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -279,6 +440,17 @@ class AppDatabase extends _$AppDatabase {
       if (from < 7) {
         final db = m.database as AppDatabase;
         await m.createTable(db.crmContentLinks);
+      }
+      // v7 → v8：本地优先 CRM（基础对象 + 自定义对象引擎 + 实体关联）
+      if (from < 8) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.crmCompanies);
+        await m.createTable(db.crmPeople);
+        await m.createTable(db.crmOpportunities);
+        await m.createTable(db.crmContracts);
+        await m.createTable(db.crmObjectDefs);
+        await m.createTable(db.crmCustomRecords);
+        await m.createTable(db.crmEntityLinks);
       }
     },
     beforeOpen: (details) async {

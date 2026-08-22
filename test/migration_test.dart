@@ -60,7 +60,7 @@ void main() {
       MigrationService.currentDbVersion,
     );
     final history = await MigrationService.getMigrationHistory(db);
-    expect(history, hasLength(6));
+    expect(history, hasLength(7));
     expect(history.first['from'], 1);
     expect(history.first['to'], 2);
     expect(history[1]['to'], 3);
@@ -70,8 +70,10 @@ void main() {
     expect(history[3]['to'], 5);
     expect(history[4]['from'], 5);
     expect(history[4]['to'], 6);
-    expect(history.last['from'], 6);
-    expect(history.last['to'], 7);
+    expect(history[5]['from'], 6);
+    expect(history[5]['to'], 7);
+    expect(history.last['from'], 7);
+    expect(history.last['to'], 8);
   });
 
   test('迁移幂等：重复运行不产生重复 Block', () async {
@@ -194,8 +196,10 @@ void main() {
     expect(history[1]['to'], 5);
     expect(history[2]['from'], 5);
     expect(history[2]['to'], 6);
-    expect(history.last['from'], 6);
-    expect(history.last['to'], 7);
+    expect(history[3]['from'], 6);
+    expect(history[3]['to'], 7);
+    expect(history.last['from'], 7);
+    expect(history.last['to'], 8);
   });
 
   test('v3→v4：已带 meta 的 Block 不被覆盖', () async {

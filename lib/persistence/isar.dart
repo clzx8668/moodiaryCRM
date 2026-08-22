@@ -41,6 +41,9 @@ class IsarUtil {
 
   static AppDatabase get _database => _testDb ?? _db!;
 
+  /// 公开数据库实例（供 CRM 本地仓储等模块复用）
+  static AppDatabase get database => _database;
+
   @visibleForTesting
   static void overrideDbForTest(AppDatabase db) {
     _testDb = db;

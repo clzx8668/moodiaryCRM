@@ -16,7 +16,7 @@ class MigrationService {
   static const String migrationHistoryKey = 'migration_history';
 
   /// 当前代码期望的数据库版本
-  static const int currentDbVersion = 7;
+  static const int currentDbVersion = 8;
 
   static Future<String?> _getMeta(AppDatabase db, String key) async {
     final row = await (db.select(db.appMetadata)
@@ -150,6 +150,19 @@ class MigrationService {
         'time': DateTime.now().toIso8601String(),
         'durationMs': stopwatch.elapsedMilliseconds,
         'note': 'crm_content_links 表（笔记/待办 ↔ Twenty 对象映射）',
+      });
+    }
+
+    if (current < 8) {
+      // v7 → v8：本地优先 CRM 表（基础对象 + 自定义对象引擎 + 实体关联）
+      final stopwatch = Stopwatch()..start();
+      current = 8;
+      await _appendMigrationHistory(db, {
+        'from': 7,
+        'to': 8,
+        'time': DateTime.now().toIso8601String(),
+        'durationMs': stopwatch.elapsedMilliseconds,
+        'note': 'crm_companies/people/opportunities/contracts + object_defs/custom_records/entity_links',
       });
     }
 

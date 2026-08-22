@@ -3752,6 +3752,4380 @@ class CrmContentLinksCompanion extends UpdateCompanion<CrmContentLinkRow> {
   }
 }
 
+class $CrmCompaniesTable extends CrmCompanies
+    with TableInfo<$CrmCompaniesTable, CrmCompanyRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmCompaniesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _domainNameMeta = const VerificationMeta(
+    'domainName',
+  );
+  @override
+  late final GeneratedColumn<String> domainName = GeneratedColumn<String>(
+    'domain_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
+  addressJson =
+      GeneratedColumn<String>(
+        'address_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('{}'),
+      ).withConverter<Map<String, dynamic>>(
+        $CrmCompaniesTable.$converteraddressJson,
+      );
+  static const VerificationMeta _employeesMeta = const VerificationMeta(
+    'employees',
+  );
+  @override
+  late final GeneratedColumn<int> employees = GeneratedColumn<int>(
+    'employees',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _linkedinLinkMeta = const VerificationMeta(
+    'linkedinLink',
+  );
+  @override
+  late final GeneratedColumn<String> linkedinLink = GeneratedColumn<String>(
+    'linkedin_link',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _xLinkMeta = const VerificationMeta('xLink');
+  @override
+  late final GeneratedColumn<String> xLink = GeneratedColumn<String>(
+    'x_link',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _arrMicrosMeta = const VerificationMeta(
+    'arrMicros',
+  );
+  @override
+  late final GeneratedColumn<int> arrMicros = GeneratedColumn<int>(
+    'arr_micros',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _icpMeta = const VerificationMeta('icp');
+  @override
+  late final GeneratedColumn<String> icp = GeneratedColumn<String>(
+    'icp',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customerStatusMeta = const VerificationMeta(
+    'customerStatus',
+  );
+  @override
+  late final GeneratedColumn<String> customerStatus = GeneratedColumn<String>(
+    'customer_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    domainName,
+    addressJson,
+    employees,
+    linkedinLink,
+    xLink,
+    arrMicros,
+    icp,
+    customerStatus,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_companies';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmCompanyRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('domain_name')) {
+      context.handle(
+        _domainNameMeta,
+        domainName.isAcceptableOrUnknown(data['domain_name']!, _domainNameMeta),
+      );
+    }
+    if (data.containsKey('employees')) {
+      context.handle(
+        _employeesMeta,
+        employees.isAcceptableOrUnknown(data['employees']!, _employeesMeta),
+      );
+    }
+    if (data.containsKey('linkedin_link')) {
+      context.handle(
+        _linkedinLinkMeta,
+        linkedinLink.isAcceptableOrUnknown(
+          data['linkedin_link']!,
+          _linkedinLinkMeta,
+        ),
+      );
+    }
+    if (data.containsKey('x_link')) {
+      context.handle(
+        _xLinkMeta,
+        xLink.isAcceptableOrUnknown(data['x_link']!, _xLinkMeta),
+      );
+    }
+    if (data.containsKey('arr_micros')) {
+      context.handle(
+        _arrMicrosMeta,
+        arrMicros.isAcceptableOrUnknown(data['arr_micros']!, _arrMicrosMeta),
+      );
+    }
+    if (data.containsKey('icp')) {
+      context.handle(
+        _icpMeta,
+        icp.isAcceptableOrUnknown(data['icp']!, _icpMeta),
+      );
+    }
+    if (data.containsKey('customer_status')) {
+      context.handle(
+        _customerStatusMeta,
+        customerStatus.isAcceptableOrUnknown(
+          data['customer_status']!,
+          _customerStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmCompanyRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmCompanyRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      domainName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}domain_name'],
+      )!,
+      addressJson: $CrmCompaniesTable.$converteraddressJson.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}address_json'],
+        )!,
+      ),
+      employees: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}employees'],
+      ),
+      linkedinLink: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}linkedin_link'],
+      )!,
+      xLink: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}x_link'],
+      )!,
+      arrMicros: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}arr_micros'],
+      ),
+      icp: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icp'],
+      )!,
+      customerStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}customer_status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmCompaniesTable createAlias(String alias) {
+    return $CrmCompaniesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Map<String, dynamic>, String> $converteraddressJson =
+      const MapConverter();
+}
+
+class CrmCompanyRow extends DataClass implements Insertable<CrmCompanyRow> {
+  final String id;
+  final String name;
+  final String domainName;
+  final Map<String, dynamic> addressJson;
+  final int? employees;
+  final String linkedinLink;
+  final String xLink;
+  final int? arrMicros;
+  final String icp;
+  final String customerStatus;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool deleted;
+  const CrmCompanyRow({
+    required this.id,
+    required this.name,
+    required this.domainName,
+    required this.addressJson,
+    this.employees,
+    required this.linkedinLink,
+    required this.xLink,
+    this.arrMicros,
+    required this.icp,
+    required this.customerStatus,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['domain_name'] = Variable<String>(domainName);
+    {
+      map['address_json'] = Variable<String>(
+        $CrmCompaniesTable.$converteraddressJson.toSql(addressJson),
+      );
+    }
+    if (!nullToAbsent || employees != null) {
+      map['employees'] = Variable<int>(employees);
+    }
+    map['linkedin_link'] = Variable<String>(linkedinLink);
+    map['x_link'] = Variable<String>(xLink);
+    if (!nullToAbsent || arrMicros != null) {
+      map['arr_micros'] = Variable<int>(arrMicros);
+    }
+    map['icp'] = Variable<String>(icp);
+    map['customer_status'] = Variable<String>(customerStatus);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  CrmCompaniesCompanion toCompanion(bool nullToAbsent) {
+    return CrmCompaniesCompanion(
+      id: Value(id),
+      name: Value(name),
+      domainName: Value(domainName),
+      addressJson: Value(addressJson),
+      employees: employees == null && nullToAbsent
+          ? const Value.absent()
+          : Value(employees),
+      linkedinLink: Value(linkedinLink),
+      xLink: Value(xLink),
+      arrMicros: arrMicros == null && nullToAbsent
+          ? const Value.absent()
+          : Value(arrMicros),
+      icp: Value(icp),
+      customerStatus: Value(customerStatus),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory CrmCompanyRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmCompanyRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      domainName: serializer.fromJson<String>(json['domainName']),
+      addressJson: serializer.fromJson<Map<String, dynamic>>(
+        json['addressJson'],
+      ),
+      employees: serializer.fromJson<int?>(json['employees']),
+      linkedinLink: serializer.fromJson<String>(json['linkedinLink']),
+      xLink: serializer.fromJson<String>(json['xLink']),
+      arrMicros: serializer.fromJson<int?>(json['arrMicros']),
+      icp: serializer.fromJson<String>(json['icp']),
+      customerStatus: serializer.fromJson<String>(json['customerStatus']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'domainName': serializer.toJson<String>(domainName),
+      'addressJson': serializer.toJson<Map<String, dynamic>>(addressJson),
+      'employees': serializer.toJson<int?>(employees),
+      'linkedinLink': serializer.toJson<String>(linkedinLink),
+      'xLink': serializer.toJson<String>(xLink),
+      'arrMicros': serializer.toJson<int?>(arrMicros),
+      'icp': serializer.toJson<String>(icp),
+      'customerStatus': serializer.toJson<String>(customerStatus),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  CrmCompanyRow copyWith({
+    String? id,
+    String? name,
+    String? domainName,
+    Map<String, dynamic>? addressJson,
+    Value<int?> employees = const Value.absent(),
+    String? linkedinLink,
+    String? xLink,
+    Value<int?> arrMicros = const Value.absent(),
+    String? icp,
+    String? customerStatus,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? deleted,
+  }) => CrmCompanyRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    domainName: domainName ?? this.domainName,
+    addressJson: addressJson ?? this.addressJson,
+    employees: employees.present ? employees.value : this.employees,
+    linkedinLink: linkedinLink ?? this.linkedinLink,
+    xLink: xLink ?? this.xLink,
+    arrMicros: arrMicros.present ? arrMicros.value : this.arrMicros,
+    icp: icp ?? this.icp,
+    customerStatus: customerStatus ?? this.customerStatus,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  CrmCompanyRow copyWithCompanion(CrmCompaniesCompanion data) {
+    return CrmCompanyRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      domainName: data.domainName.present
+          ? data.domainName.value
+          : this.domainName,
+      addressJson: data.addressJson.present
+          ? data.addressJson.value
+          : this.addressJson,
+      employees: data.employees.present ? data.employees.value : this.employees,
+      linkedinLink: data.linkedinLink.present
+          ? data.linkedinLink.value
+          : this.linkedinLink,
+      xLink: data.xLink.present ? data.xLink.value : this.xLink,
+      arrMicros: data.arrMicros.present ? data.arrMicros.value : this.arrMicros,
+      icp: data.icp.present ? data.icp.value : this.icp,
+      customerStatus: data.customerStatus.present
+          ? data.customerStatus.value
+          : this.customerStatus,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmCompanyRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('domainName: $domainName, ')
+          ..write('addressJson: $addressJson, ')
+          ..write('employees: $employees, ')
+          ..write('linkedinLink: $linkedinLink, ')
+          ..write('xLink: $xLink, ')
+          ..write('arrMicros: $arrMicros, ')
+          ..write('icp: $icp, ')
+          ..write('customerStatus: $customerStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    domainName,
+    addressJson,
+    employees,
+    linkedinLink,
+    xLink,
+    arrMicros,
+    icp,
+    customerStatus,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmCompanyRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.domainName == this.domainName &&
+          other.addressJson == this.addressJson &&
+          other.employees == this.employees &&
+          other.linkedinLink == this.linkedinLink &&
+          other.xLink == this.xLink &&
+          other.arrMicros == this.arrMicros &&
+          other.icp == this.icp &&
+          other.customerStatus == this.customerStatus &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class CrmCompaniesCompanion extends UpdateCompanion<CrmCompanyRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> domainName;
+  final Value<Map<String, dynamic>> addressJson;
+  final Value<int?> employees;
+  final Value<String> linkedinLink;
+  final Value<String> xLink;
+  final Value<int?> arrMicros;
+  final Value<String> icp;
+  final Value<String> customerStatus;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const CrmCompaniesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.domainName = const Value.absent(),
+    this.addressJson = const Value.absent(),
+    this.employees = const Value.absent(),
+    this.linkedinLink = const Value.absent(),
+    this.xLink = const Value.absent(),
+    this.arrMicros = const Value.absent(),
+    this.icp = const Value.absent(),
+    this.customerStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmCompaniesCompanion.insert({
+    required String id,
+    this.name = const Value.absent(),
+    this.domainName = const Value.absent(),
+    this.addressJson = const Value.absent(),
+    this.employees = const Value.absent(),
+    this.linkedinLink = const Value.absent(),
+    this.xLink = const Value.absent(),
+    this.arrMicros = const Value.absent(),
+    this.icp = const Value.absent(),
+    this.customerStatus = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CrmCompanyRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? domainName,
+    Expression<String>? addressJson,
+    Expression<int>? employees,
+    Expression<String>? linkedinLink,
+    Expression<String>? xLink,
+    Expression<int>? arrMicros,
+    Expression<String>? icp,
+    Expression<String>? customerStatus,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (domainName != null) 'domain_name': domainName,
+      if (addressJson != null) 'address_json': addressJson,
+      if (employees != null) 'employees': employees,
+      if (linkedinLink != null) 'linkedin_link': linkedinLink,
+      if (xLink != null) 'x_link': xLink,
+      if (arrMicros != null) 'arr_micros': arrMicros,
+      if (icp != null) 'icp': icp,
+      if (customerStatus != null) 'customer_status': customerStatus,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmCompaniesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? domainName,
+    Value<Map<String, dynamic>>? addressJson,
+    Value<int?>? employees,
+    Value<String>? linkedinLink,
+    Value<String>? xLink,
+    Value<int?>? arrMicros,
+    Value<String>? icp,
+    Value<String>? customerStatus,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return CrmCompaniesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      domainName: domainName ?? this.domainName,
+      addressJson: addressJson ?? this.addressJson,
+      employees: employees ?? this.employees,
+      linkedinLink: linkedinLink ?? this.linkedinLink,
+      xLink: xLink ?? this.xLink,
+      arrMicros: arrMicros ?? this.arrMicros,
+      icp: icp ?? this.icp,
+      customerStatus: customerStatus ?? this.customerStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (domainName.present) {
+      map['domain_name'] = Variable<String>(domainName.value);
+    }
+    if (addressJson.present) {
+      map['address_json'] = Variable<String>(
+        $CrmCompaniesTable.$converteraddressJson.toSql(addressJson.value),
+      );
+    }
+    if (employees.present) {
+      map['employees'] = Variable<int>(employees.value);
+    }
+    if (linkedinLink.present) {
+      map['linkedin_link'] = Variable<String>(linkedinLink.value);
+    }
+    if (xLink.present) {
+      map['x_link'] = Variable<String>(xLink.value);
+    }
+    if (arrMicros.present) {
+      map['arr_micros'] = Variable<int>(arrMicros.value);
+    }
+    if (icp.present) {
+      map['icp'] = Variable<String>(icp.value);
+    }
+    if (customerStatus.present) {
+      map['customer_status'] = Variable<String>(customerStatus.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmCompaniesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('domainName: $domainName, ')
+          ..write('addressJson: $addressJson, ')
+          ..write('employees: $employees, ')
+          ..write('linkedinLink: $linkedinLink, ')
+          ..write('xLink: $xLink, ')
+          ..write('arrMicros: $arrMicros, ')
+          ..write('icp: $icp, ')
+          ..write('customerStatus: $customerStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmPeopleTable extends CrmPeople
+    with TableInfo<$CrmPeopleTable, CrmPersonRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmPeopleTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _firstNameMeta = const VerificationMeta(
+    'firstName',
+  );
+  @override
+  late final GeneratedColumn<String> firstName = GeneratedColumn<String>(
+    'first_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _lastNameMeta = const VerificationMeta(
+    'lastName',
+  );
+  @override
+  late final GeneratedColumn<String> lastName = GeneratedColumn<String>(
+    'last_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _jobTitleMeta = const VerificationMeta(
+    'jobTitle',
+  );
+  @override
+  late final GeneratedColumn<String> jobTitle = GeneratedColumn<String>(
+    'job_title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
+  emailsJson = GeneratedColumn<String>(
+    'emails_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  ).withConverter<Map<String, dynamic>>($CrmPeopleTable.$converteremailsJson);
+  @override
+  late final GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
+  phonesJson = GeneratedColumn<String>(
+    'phones_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  ).withConverter<Map<String, dynamic>>($CrmPeopleTable.$converterphonesJson);
+  static const VerificationMeta _cityMeta = const VerificationMeta('city');
+  @override
+  late final GeneratedColumn<String> city = GeneratedColumn<String>(
+    'city',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _wechatMeta = const VerificationMeta('wechat');
+  @override
+  late final GeneratedColumn<String> wechat = GeneratedColumn<String>(
+    'wechat',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _avatarUrlMeta = const VerificationMeta(
+    'avatarUrl',
+  );
+  @override
+  late final GeneratedColumn<String> avatarUrl = GeneratedColumn<String>(
+    'avatar_url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _linkedinLinkMeta = const VerificationMeta(
+    'linkedinLink',
+  );
+  @override
+  late final GeneratedColumn<String> linkedinLink = GeneratedColumn<String>(
+    'linkedin_link',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _xLinkMeta = const VerificationMeta('xLink');
+  @override
+  late final GeneratedColumn<String> xLink = GeneratedColumn<String>(
+    'x_link',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    firstName,
+    lastName,
+    jobTitle,
+    emailsJson,
+    phonesJson,
+    city,
+    wechat,
+    avatarUrl,
+    linkedinLink,
+    xLink,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_people';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmPersonRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    }
+    if (data.containsKey('first_name')) {
+      context.handle(
+        _firstNameMeta,
+        firstName.isAcceptableOrUnknown(data['first_name']!, _firstNameMeta),
+      );
+    }
+    if (data.containsKey('last_name')) {
+      context.handle(
+        _lastNameMeta,
+        lastName.isAcceptableOrUnknown(data['last_name']!, _lastNameMeta),
+      );
+    }
+    if (data.containsKey('job_title')) {
+      context.handle(
+        _jobTitleMeta,
+        jobTitle.isAcceptableOrUnknown(data['job_title']!, _jobTitleMeta),
+      );
+    }
+    if (data.containsKey('city')) {
+      context.handle(
+        _cityMeta,
+        city.isAcceptableOrUnknown(data['city']!, _cityMeta),
+      );
+    }
+    if (data.containsKey('wechat')) {
+      context.handle(
+        _wechatMeta,
+        wechat.isAcceptableOrUnknown(data['wechat']!, _wechatMeta),
+      );
+    }
+    if (data.containsKey('avatar_url')) {
+      context.handle(
+        _avatarUrlMeta,
+        avatarUrl.isAcceptableOrUnknown(data['avatar_url']!, _avatarUrlMeta),
+      );
+    }
+    if (data.containsKey('linkedin_link')) {
+      context.handle(
+        _linkedinLinkMeta,
+        linkedinLink.isAcceptableOrUnknown(
+          data['linkedin_link']!,
+          _linkedinLinkMeta,
+        ),
+      );
+    }
+    if (data.containsKey('x_link')) {
+      context.handle(
+        _xLinkMeta,
+        xLink.isAcceptableOrUnknown(data['x_link']!, _xLinkMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmPersonRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmPersonRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      ),
+      firstName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}first_name'],
+      )!,
+      lastName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_name'],
+      )!,
+      jobTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}job_title'],
+      )!,
+      emailsJson: $CrmPeopleTable.$converteremailsJson.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}emails_json'],
+        )!,
+      ),
+      phonesJson: $CrmPeopleTable.$converterphonesJson.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}phones_json'],
+        )!,
+      ),
+      city: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}city'],
+      )!,
+      wechat: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}wechat'],
+      )!,
+      avatarUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}avatar_url'],
+      )!,
+      linkedinLink: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}linkedin_link'],
+      )!,
+      xLink: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}x_link'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmPeopleTable createAlias(String alias) {
+    return $CrmPeopleTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Map<String, dynamic>, String> $converteremailsJson =
+      const MapConverter();
+  static TypeConverter<Map<String, dynamic>, String> $converterphonesJson =
+      const MapConverter();
+}
+
+class CrmPersonRow extends DataClass implements Insertable<CrmPersonRow> {
+  final String id;
+  final String? companyId;
+  final String firstName;
+  final String lastName;
+  final String jobTitle;
+  final Map<String, dynamic> emailsJson;
+  final Map<String, dynamic> phonesJson;
+  final String city;
+  final String wechat;
+  final String avatarUrl;
+  final String linkedinLink;
+  final String xLink;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool deleted;
+  const CrmPersonRow({
+    required this.id,
+    this.companyId,
+    required this.firstName,
+    required this.lastName,
+    required this.jobTitle,
+    required this.emailsJson,
+    required this.phonesJson,
+    required this.city,
+    required this.wechat,
+    required this.avatarUrl,
+    required this.linkedinLink,
+    required this.xLink,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || companyId != null) {
+      map['company_id'] = Variable<String>(companyId);
+    }
+    map['first_name'] = Variable<String>(firstName);
+    map['last_name'] = Variable<String>(lastName);
+    map['job_title'] = Variable<String>(jobTitle);
+    {
+      map['emails_json'] = Variable<String>(
+        $CrmPeopleTable.$converteremailsJson.toSql(emailsJson),
+      );
+    }
+    {
+      map['phones_json'] = Variable<String>(
+        $CrmPeopleTable.$converterphonesJson.toSql(phonesJson),
+      );
+    }
+    map['city'] = Variable<String>(city);
+    map['wechat'] = Variable<String>(wechat);
+    map['avatar_url'] = Variable<String>(avatarUrl);
+    map['linkedin_link'] = Variable<String>(linkedinLink);
+    map['x_link'] = Variable<String>(xLink);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  CrmPeopleCompanion toCompanion(bool nullToAbsent) {
+    return CrmPeopleCompanion(
+      id: Value(id),
+      companyId: companyId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(companyId),
+      firstName: Value(firstName),
+      lastName: Value(lastName),
+      jobTitle: Value(jobTitle),
+      emailsJson: Value(emailsJson),
+      phonesJson: Value(phonesJson),
+      city: Value(city),
+      wechat: Value(wechat),
+      avatarUrl: Value(avatarUrl),
+      linkedinLink: Value(linkedinLink),
+      xLink: Value(xLink),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory CrmPersonRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmPersonRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String?>(json['companyId']),
+      firstName: serializer.fromJson<String>(json['firstName']),
+      lastName: serializer.fromJson<String>(json['lastName']),
+      jobTitle: serializer.fromJson<String>(json['jobTitle']),
+      emailsJson: serializer.fromJson<Map<String, dynamic>>(json['emailsJson']),
+      phonesJson: serializer.fromJson<Map<String, dynamic>>(json['phonesJson']),
+      city: serializer.fromJson<String>(json['city']),
+      wechat: serializer.fromJson<String>(json['wechat']),
+      avatarUrl: serializer.fromJson<String>(json['avatarUrl']),
+      linkedinLink: serializer.fromJson<String>(json['linkedinLink']),
+      xLink: serializer.fromJson<String>(json['xLink']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String?>(companyId),
+      'firstName': serializer.toJson<String>(firstName),
+      'lastName': serializer.toJson<String>(lastName),
+      'jobTitle': serializer.toJson<String>(jobTitle),
+      'emailsJson': serializer.toJson<Map<String, dynamic>>(emailsJson),
+      'phonesJson': serializer.toJson<Map<String, dynamic>>(phonesJson),
+      'city': serializer.toJson<String>(city),
+      'wechat': serializer.toJson<String>(wechat),
+      'avatarUrl': serializer.toJson<String>(avatarUrl),
+      'linkedinLink': serializer.toJson<String>(linkedinLink),
+      'xLink': serializer.toJson<String>(xLink),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  CrmPersonRow copyWith({
+    String? id,
+    Value<String?> companyId = const Value.absent(),
+    String? firstName,
+    String? lastName,
+    String? jobTitle,
+    Map<String, dynamic>? emailsJson,
+    Map<String, dynamic>? phonesJson,
+    String? city,
+    String? wechat,
+    String? avatarUrl,
+    String? linkedinLink,
+    String? xLink,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? deleted,
+  }) => CrmPersonRow(
+    id: id ?? this.id,
+    companyId: companyId.present ? companyId.value : this.companyId,
+    firstName: firstName ?? this.firstName,
+    lastName: lastName ?? this.lastName,
+    jobTitle: jobTitle ?? this.jobTitle,
+    emailsJson: emailsJson ?? this.emailsJson,
+    phonesJson: phonesJson ?? this.phonesJson,
+    city: city ?? this.city,
+    wechat: wechat ?? this.wechat,
+    avatarUrl: avatarUrl ?? this.avatarUrl,
+    linkedinLink: linkedinLink ?? this.linkedinLink,
+    xLink: xLink ?? this.xLink,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  CrmPersonRow copyWithCompanion(CrmPeopleCompanion data) {
+    return CrmPersonRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      firstName: data.firstName.present ? data.firstName.value : this.firstName,
+      lastName: data.lastName.present ? data.lastName.value : this.lastName,
+      jobTitle: data.jobTitle.present ? data.jobTitle.value : this.jobTitle,
+      emailsJson: data.emailsJson.present
+          ? data.emailsJson.value
+          : this.emailsJson,
+      phonesJson: data.phonesJson.present
+          ? data.phonesJson.value
+          : this.phonesJson,
+      city: data.city.present ? data.city.value : this.city,
+      wechat: data.wechat.present ? data.wechat.value : this.wechat,
+      avatarUrl: data.avatarUrl.present ? data.avatarUrl.value : this.avatarUrl,
+      linkedinLink: data.linkedinLink.present
+          ? data.linkedinLink.value
+          : this.linkedinLink,
+      xLink: data.xLink.present ? data.xLink.value : this.xLink,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmPersonRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('firstName: $firstName, ')
+          ..write('lastName: $lastName, ')
+          ..write('jobTitle: $jobTitle, ')
+          ..write('emailsJson: $emailsJson, ')
+          ..write('phonesJson: $phonesJson, ')
+          ..write('city: $city, ')
+          ..write('wechat: $wechat, ')
+          ..write('avatarUrl: $avatarUrl, ')
+          ..write('linkedinLink: $linkedinLink, ')
+          ..write('xLink: $xLink, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    firstName,
+    lastName,
+    jobTitle,
+    emailsJson,
+    phonesJson,
+    city,
+    wechat,
+    avatarUrl,
+    linkedinLink,
+    xLink,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmPersonRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.firstName == this.firstName &&
+          other.lastName == this.lastName &&
+          other.jobTitle == this.jobTitle &&
+          other.emailsJson == this.emailsJson &&
+          other.phonesJson == this.phonesJson &&
+          other.city == this.city &&
+          other.wechat == this.wechat &&
+          other.avatarUrl == this.avatarUrl &&
+          other.linkedinLink == this.linkedinLink &&
+          other.xLink == this.xLink &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class CrmPeopleCompanion extends UpdateCompanion<CrmPersonRow> {
+  final Value<String> id;
+  final Value<String?> companyId;
+  final Value<String> firstName;
+  final Value<String> lastName;
+  final Value<String> jobTitle;
+  final Value<Map<String, dynamic>> emailsJson;
+  final Value<Map<String, dynamic>> phonesJson;
+  final Value<String> city;
+  final Value<String> wechat;
+  final Value<String> avatarUrl;
+  final Value<String> linkedinLink;
+  final Value<String> xLink;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const CrmPeopleCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.firstName = const Value.absent(),
+    this.lastName = const Value.absent(),
+    this.jobTitle = const Value.absent(),
+    this.emailsJson = const Value.absent(),
+    this.phonesJson = const Value.absent(),
+    this.city = const Value.absent(),
+    this.wechat = const Value.absent(),
+    this.avatarUrl = const Value.absent(),
+    this.linkedinLink = const Value.absent(),
+    this.xLink = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmPeopleCompanion.insert({
+    required String id,
+    this.companyId = const Value.absent(),
+    this.firstName = const Value.absent(),
+    this.lastName = const Value.absent(),
+    this.jobTitle = const Value.absent(),
+    this.emailsJson = const Value.absent(),
+    this.phonesJson = const Value.absent(),
+    this.city = const Value.absent(),
+    this.wechat = const Value.absent(),
+    this.avatarUrl = const Value.absent(),
+    this.linkedinLink = const Value.absent(),
+    this.xLink = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CrmPersonRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? firstName,
+    Expression<String>? lastName,
+    Expression<String>? jobTitle,
+    Expression<String>? emailsJson,
+    Expression<String>? phonesJson,
+    Expression<String>? city,
+    Expression<String>? wechat,
+    Expression<String>? avatarUrl,
+    Expression<String>? linkedinLink,
+    Expression<String>? xLink,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (firstName != null) 'first_name': firstName,
+      if (lastName != null) 'last_name': lastName,
+      if (jobTitle != null) 'job_title': jobTitle,
+      if (emailsJson != null) 'emails_json': emailsJson,
+      if (phonesJson != null) 'phones_json': phonesJson,
+      if (city != null) 'city': city,
+      if (wechat != null) 'wechat': wechat,
+      if (avatarUrl != null) 'avatar_url': avatarUrl,
+      if (linkedinLink != null) 'linkedin_link': linkedinLink,
+      if (xLink != null) 'x_link': xLink,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmPeopleCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? companyId,
+    Value<String>? firstName,
+    Value<String>? lastName,
+    Value<String>? jobTitle,
+    Value<Map<String, dynamic>>? emailsJson,
+    Value<Map<String, dynamic>>? phonesJson,
+    Value<String>? city,
+    Value<String>? wechat,
+    Value<String>? avatarUrl,
+    Value<String>? linkedinLink,
+    Value<String>? xLink,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return CrmPeopleCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      jobTitle: jobTitle ?? this.jobTitle,
+      emailsJson: emailsJson ?? this.emailsJson,
+      phonesJson: phonesJson ?? this.phonesJson,
+      city: city ?? this.city,
+      wechat: wechat ?? this.wechat,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      linkedinLink: linkedinLink ?? this.linkedinLink,
+      xLink: xLink ?? this.xLink,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (firstName.present) {
+      map['first_name'] = Variable<String>(firstName.value);
+    }
+    if (lastName.present) {
+      map['last_name'] = Variable<String>(lastName.value);
+    }
+    if (jobTitle.present) {
+      map['job_title'] = Variable<String>(jobTitle.value);
+    }
+    if (emailsJson.present) {
+      map['emails_json'] = Variable<String>(
+        $CrmPeopleTable.$converteremailsJson.toSql(emailsJson.value),
+      );
+    }
+    if (phonesJson.present) {
+      map['phones_json'] = Variable<String>(
+        $CrmPeopleTable.$converterphonesJson.toSql(phonesJson.value),
+      );
+    }
+    if (city.present) {
+      map['city'] = Variable<String>(city.value);
+    }
+    if (wechat.present) {
+      map['wechat'] = Variable<String>(wechat.value);
+    }
+    if (avatarUrl.present) {
+      map['avatar_url'] = Variable<String>(avatarUrl.value);
+    }
+    if (linkedinLink.present) {
+      map['linkedin_link'] = Variable<String>(linkedinLink.value);
+    }
+    if (xLink.present) {
+      map['x_link'] = Variable<String>(xLink.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmPeopleCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('firstName: $firstName, ')
+          ..write('lastName: $lastName, ')
+          ..write('jobTitle: $jobTitle, ')
+          ..write('emailsJson: $emailsJson, ')
+          ..write('phonesJson: $phonesJson, ')
+          ..write('city: $city, ')
+          ..write('wechat: $wechat, ')
+          ..write('avatarUrl: $avatarUrl, ')
+          ..write('linkedinLink: $linkedinLink, ')
+          ..write('xLink: $xLink, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmOpportunitiesTable extends CrmOpportunities
+    with TableInfo<$CrmOpportunitiesTable, CrmOpportunityRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmOpportunitiesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pointOfContactIdMeta = const VerificationMeta(
+    'pointOfContactId',
+  );
+  @override
+  late final GeneratedColumn<String> pointOfContactId = GeneratedColumn<String>(
+    'point_of_contact_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _amountMicrosMeta = const VerificationMeta(
+    'amountMicros',
+  );
+  @override
+  late final GeneratedColumn<int> amountMicros = GeneratedColumn<int>(
+    'amount_micros',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _closeDateMeta = const VerificationMeta(
+    'closeDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> closeDate = GeneratedColumn<DateTime>(
+    'close_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stageMeta = const VerificationMeta('stage');
+  @override
+  late final GeneratedColumn<String> stage = GeneratedColumn<String>(
+    'stage',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customStatusMeta = const VerificationMeta(
+    'customStatus',
+  );
+  @override
+  late final GeneratedColumn<String> customStatus = GeneratedColumn<String>(
+    'custom_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    pointOfContactId,
+    name,
+    amountMicros,
+    closeDate,
+    stage,
+    customStatus,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_opportunities';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmOpportunityRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    }
+    if (data.containsKey('point_of_contact_id')) {
+      context.handle(
+        _pointOfContactIdMeta,
+        pointOfContactId.isAcceptableOrUnknown(
+          data['point_of_contact_id']!,
+          _pointOfContactIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('amount_micros')) {
+      context.handle(
+        _amountMicrosMeta,
+        amountMicros.isAcceptableOrUnknown(
+          data['amount_micros']!,
+          _amountMicrosMeta,
+        ),
+      );
+    }
+    if (data.containsKey('close_date')) {
+      context.handle(
+        _closeDateMeta,
+        closeDate.isAcceptableOrUnknown(data['close_date']!, _closeDateMeta),
+      );
+    }
+    if (data.containsKey('stage')) {
+      context.handle(
+        _stageMeta,
+        stage.isAcceptableOrUnknown(data['stage']!, _stageMeta),
+      );
+    }
+    if (data.containsKey('custom_status')) {
+      context.handle(
+        _customStatusMeta,
+        customStatus.isAcceptableOrUnknown(
+          data['custom_status']!,
+          _customStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmOpportunityRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmOpportunityRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      ),
+      pointOfContactId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}point_of_contact_id'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      amountMicros: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_micros'],
+      ),
+      closeDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}close_date'],
+      ),
+      stage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stage'],
+      )!,
+      customStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmOpportunitiesTable createAlias(String alias) {
+    return $CrmOpportunitiesTable(attachedDatabase, alias);
+  }
+}
+
+class CrmOpportunityRow extends DataClass
+    implements Insertable<CrmOpportunityRow> {
+  final String id;
+  final String? companyId;
+  final String? pointOfContactId;
+  final String name;
+  final int? amountMicros;
+  final DateTime? closeDate;
+  final String stage;
+  final String customStatus;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool deleted;
+  const CrmOpportunityRow({
+    required this.id,
+    this.companyId,
+    this.pointOfContactId,
+    required this.name,
+    this.amountMicros,
+    this.closeDate,
+    required this.stage,
+    required this.customStatus,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || companyId != null) {
+      map['company_id'] = Variable<String>(companyId);
+    }
+    if (!nullToAbsent || pointOfContactId != null) {
+      map['point_of_contact_id'] = Variable<String>(pointOfContactId);
+    }
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || amountMicros != null) {
+      map['amount_micros'] = Variable<int>(amountMicros);
+    }
+    if (!nullToAbsent || closeDate != null) {
+      map['close_date'] = Variable<DateTime>(closeDate);
+    }
+    map['stage'] = Variable<String>(stage);
+    map['custom_status'] = Variable<String>(customStatus);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  CrmOpportunitiesCompanion toCompanion(bool nullToAbsent) {
+    return CrmOpportunitiesCompanion(
+      id: Value(id),
+      companyId: companyId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(companyId),
+      pointOfContactId: pointOfContactId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pointOfContactId),
+      name: Value(name),
+      amountMicros: amountMicros == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amountMicros),
+      closeDate: closeDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closeDate),
+      stage: Value(stage),
+      customStatus: Value(customStatus),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory CrmOpportunityRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmOpportunityRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String?>(json['companyId']),
+      pointOfContactId: serializer.fromJson<String?>(json['pointOfContactId']),
+      name: serializer.fromJson<String>(json['name']),
+      amountMicros: serializer.fromJson<int?>(json['amountMicros']),
+      closeDate: serializer.fromJson<DateTime?>(json['closeDate']),
+      stage: serializer.fromJson<String>(json['stage']),
+      customStatus: serializer.fromJson<String>(json['customStatus']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String?>(companyId),
+      'pointOfContactId': serializer.toJson<String?>(pointOfContactId),
+      'name': serializer.toJson<String>(name),
+      'amountMicros': serializer.toJson<int?>(amountMicros),
+      'closeDate': serializer.toJson<DateTime?>(closeDate),
+      'stage': serializer.toJson<String>(stage),
+      'customStatus': serializer.toJson<String>(customStatus),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  CrmOpportunityRow copyWith({
+    String? id,
+    Value<String?> companyId = const Value.absent(),
+    Value<String?> pointOfContactId = const Value.absent(),
+    String? name,
+    Value<int?> amountMicros = const Value.absent(),
+    Value<DateTime?> closeDate = const Value.absent(),
+    String? stage,
+    String? customStatus,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? deleted,
+  }) => CrmOpportunityRow(
+    id: id ?? this.id,
+    companyId: companyId.present ? companyId.value : this.companyId,
+    pointOfContactId: pointOfContactId.present
+        ? pointOfContactId.value
+        : this.pointOfContactId,
+    name: name ?? this.name,
+    amountMicros: amountMicros.present ? amountMicros.value : this.amountMicros,
+    closeDate: closeDate.present ? closeDate.value : this.closeDate,
+    stage: stage ?? this.stage,
+    customStatus: customStatus ?? this.customStatus,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  CrmOpportunityRow copyWithCompanion(CrmOpportunitiesCompanion data) {
+    return CrmOpportunityRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      pointOfContactId: data.pointOfContactId.present
+          ? data.pointOfContactId.value
+          : this.pointOfContactId,
+      name: data.name.present ? data.name.value : this.name,
+      amountMicros: data.amountMicros.present
+          ? data.amountMicros.value
+          : this.amountMicros,
+      closeDate: data.closeDate.present ? data.closeDate.value : this.closeDate,
+      stage: data.stage.present ? data.stage.value : this.stage,
+      customStatus: data.customStatus.present
+          ? data.customStatus.value
+          : this.customStatus,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmOpportunityRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('pointOfContactId: $pointOfContactId, ')
+          ..write('name: $name, ')
+          ..write('amountMicros: $amountMicros, ')
+          ..write('closeDate: $closeDate, ')
+          ..write('stage: $stage, ')
+          ..write('customStatus: $customStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    pointOfContactId,
+    name,
+    amountMicros,
+    closeDate,
+    stage,
+    customStatus,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmOpportunityRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.pointOfContactId == this.pointOfContactId &&
+          other.name == this.name &&
+          other.amountMicros == this.amountMicros &&
+          other.closeDate == this.closeDate &&
+          other.stage == this.stage &&
+          other.customStatus == this.customStatus &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class CrmOpportunitiesCompanion extends UpdateCompanion<CrmOpportunityRow> {
+  final Value<String> id;
+  final Value<String?> companyId;
+  final Value<String?> pointOfContactId;
+  final Value<String> name;
+  final Value<int?> amountMicros;
+  final Value<DateTime?> closeDate;
+  final Value<String> stage;
+  final Value<String> customStatus;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const CrmOpportunitiesCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.pointOfContactId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.amountMicros = const Value.absent(),
+    this.closeDate = const Value.absent(),
+    this.stage = const Value.absent(),
+    this.customStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmOpportunitiesCompanion.insert({
+    required String id,
+    this.companyId = const Value.absent(),
+    this.pointOfContactId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.amountMicros = const Value.absent(),
+    this.closeDate = const Value.absent(),
+    this.stage = const Value.absent(),
+    this.customStatus = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CrmOpportunityRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? pointOfContactId,
+    Expression<String>? name,
+    Expression<int>? amountMicros,
+    Expression<DateTime>? closeDate,
+    Expression<String>? stage,
+    Expression<String>? customStatus,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (pointOfContactId != null) 'point_of_contact_id': pointOfContactId,
+      if (name != null) 'name': name,
+      if (amountMicros != null) 'amount_micros': amountMicros,
+      if (closeDate != null) 'close_date': closeDate,
+      if (stage != null) 'stage': stage,
+      if (customStatus != null) 'custom_status': customStatus,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmOpportunitiesCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? companyId,
+    Value<String?>? pointOfContactId,
+    Value<String>? name,
+    Value<int?>? amountMicros,
+    Value<DateTime?>? closeDate,
+    Value<String>? stage,
+    Value<String>? customStatus,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return CrmOpportunitiesCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      pointOfContactId: pointOfContactId ?? this.pointOfContactId,
+      name: name ?? this.name,
+      amountMicros: amountMicros ?? this.amountMicros,
+      closeDate: closeDate ?? this.closeDate,
+      stage: stage ?? this.stage,
+      customStatus: customStatus ?? this.customStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (pointOfContactId.present) {
+      map['point_of_contact_id'] = Variable<String>(pointOfContactId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (amountMicros.present) {
+      map['amount_micros'] = Variable<int>(amountMicros.value);
+    }
+    if (closeDate.present) {
+      map['close_date'] = Variable<DateTime>(closeDate.value);
+    }
+    if (stage.present) {
+      map['stage'] = Variable<String>(stage.value);
+    }
+    if (customStatus.present) {
+      map['custom_status'] = Variable<String>(customStatus.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmOpportunitiesCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('pointOfContactId: $pointOfContactId, ')
+          ..write('name: $name, ')
+          ..write('amountMicros: $amountMicros, ')
+          ..write('closeDate: $closeDate, ')
+          ..write('stage: $stage, ')
+          ..write('customStatus: $customStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmContractsTable extends CrmContracts
+    with TableInfo<$CrmContractsTable, CrmContractRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmContractsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _amountMicrosMeta = const VerificationMeta(
+    'amountMicros',
+  );
+  @override
+  late final GeneratedColumn<int> amountMicros = GeneratedColumn<int>(
+    'amount_micros',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('CNY'),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dueDateMeta = const VerificationMeta(
+    'dueDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> dueDate = GeneratedColumn<DateTime>(
+    'due_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _termsMeta = const VerificationMeta('terms');
+  @override
+  late final GeneratedColumn<String> terms = GeneratedColumn<String>(
+    'terms',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    name,
+    amountMicros,
+    currency,
+    status,
+    dueDate,
+    terms,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_contracts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmContractRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('amount_micros')) {
+      context.handle(
+        _amountMicrosMeta,
+        amountMicros.isAcceptableOrUnknown(
+          data['amount_micros']!,
+          _amountMicrosMeta,
+        ),
+      );
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('due_date')) {
+      context.handle(
+        _dueDateMeta,
+        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+      );
+    }
+    if (data.containsKey('terms')) {
+      context.handle(
+        _termsMeta,
+        terms.isAcceptableOrUnknown(data['terms']!, _termsMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmContractRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmContractRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      amountMicros: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_micros'],
+      ),
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      dueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}due_date'],
+      ),
+      terms: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}terms'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmContractsTable createAlias(String alias) {
+    return $CrmContractsTable(attachedDatabase, alias);
+  }
+}
+
+class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
+  final String id;
+  final String? companyId;
+  final String name;
+  final int? amountMicros;
+  final String currency;
+  final String status;
+  final DateTime? dueDate;
+  final String terms;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool deleted;
+  const CrmContractRow({
+    required this.id,
+    this.companyId,
+    required this.name,
+    this.amountMicros,
+    required this.currency,
+    required this.status,
+    this.dueDate,
+    required this.terms,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || companyId != null) {
+      map['company_id'] = Variable<String>(companyId);
+    }
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || amountMicros != null) {
+      map['amount_micros'] = Variable<int>(amountMicros);
+    }
+    map['currency'] = Variable<String>(currency);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || dueDate != null) {
+      map['due_date'] = Variable<DateTime>(dueDate);
+    }
+    map['terms'] = Variable<String>(terms);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  CrmContractsCompanion toCompanion(bool nullToAbsent) {
+    return CrmContractsCompanion(
+      id: Value(id),
+      companyId: companyId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(companyId),
+      name: Value(name),
+      amountMicros: amountMicros == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amountMicros),
+      currency: Value(currency),
+      status: Value(status),
+      dueDate: dueDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueDate),
+      terms: Value(terms),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory CrmContractRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmContractRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String?>(json['companyId']),
+      name: serializer.fromJson<String>(json['name']),
+      amountMicros: serializer.fromJson<int?>(json['amountMicros']),
+      currency: serializer.fromJson<String>(json['currency']),
+      status: serializer.fromJson<String>(json['status']),
+      dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
+      terms: serializer.fromJson<String>(json['terms']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String?>(companyId),
+      'name': serializer.toJson<String>(name),
+      'amountMicros': serializer.toJson<int?>(amountMicros),
+      'currency': serializer.toJson<String>(currency),
+      'status': serializer.toJson<String>(status),
+      'dueDate': serializer.toJson<DateTime?>(dueDate),
+      'terms': serializer.toJson<String>(terms),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  CrmContractRow copyWith({
+    String? id,
+    Value<String?> companyId = const Value.absent(),
+    String? name,
+    Value<int?> amountMicros = const Value.absent(),
+    String? currency,
+    String? status,
+    Value<DateTime?> dueDate = const Value.absent(),
+    String? terms,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? deleted,
+  }) => CrmContractRow(
+    id: id ?? this.id,
+    companyId: companyId.present ? companyId.value : this.companyId,
+    name: name ?? this.name,
+    amountMicros: amountMicros.present ? amountMicros.value : this.amountMicros,
+    currency: currency ?? this.currency,
+    status: status ?? this.status,
+    dueDate: dueDate.present ? dueDate.value : this.dueDate,
+    terms: terms ?? this.terms,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  CrmContractRow copyWithCompanion(CrmContractsCompanion data) {
+    return CrmContractRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      name: data.name.present ? data.name.value : this.name,
+      amountMicros: data.amountMicros.present
+          ? data.amountMicros.value
+          : this.amountMicros,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      status: data.status.present ? data.status.value : this.status,
+      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      terms: data.terms.present ? data.terms.value : this.terms,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmContractRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('name: $name, ')
+          ..write('amountMicros: $amountMicros, ')
+          ..write('currency: $currency, ')
+          ..write('status: $status, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('terms: $terms, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    name,
+    amountMicros,
+    currency,
+    status,
+    dueDate,
+    terms,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmContractRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.name == this.name &&
+          other.amountMicros == this.amountMicros &&
+          other.currency == this.currency &&
+          other.status == this.status &&
+          other.dueDate == this.dueDate &&
+          other.terms == this.terms &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
+  final Value<String> id;
+  final Value<String?> companyId;
+  final Value<String> name;
+  final Value<int?> amountMicros;
+  final Value<String> currency;
+  final Value<String> status;
+  final Value<DateTime?> dueDate;
+  final Value<String> terms;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const CrmContractsCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.amountMicros = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.status = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.terms = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmContractsCompanion.insert({
+    required String id,
+    this.companyId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.amountMicros = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.status = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.terms = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CrmContractRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? name,
+    Expression<int>? amountMicros,
+    Expression<String>? currency,
+    Expression<String>? status,
+    Expression<DateTime>? dueDate,
+    Expression<String>? terms,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (name != null) 'name': name,
+      if (amountMicros != null) 'amount_micros': amountMicros,
+      if (currency != null) 'currency': currency,
+      if (status != null) 'status': status,
+      if (dueDate != null) 'due_date': dueDate,
+      if (terms != null) 'terms': terms,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmContractsCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? companyId,
+    Value<String>? name,
+    Value<int?>? amountMicros,
+    Value<String>? currency,
+    Value<String>? status,
+    Value<DateTime?>? dueDate,
+    Value<String>? terms,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return CrmContractsCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      name: name ?? this.name,
+      amountMicros: amountMicros ?? this.amountMicros,
+      currency: currency ?? this.currency,
+      status: status ?? this.status,
+      dueDate: dueDate ?? this.dueDate,
+      terms: terms ?? this.terms,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (amountMicros.present) {
+      map['amount_micros'] = Variable<int>(amountMicros.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (dueDate.present) {
+      map['due_date'] = Variable<DateTime>(dueDate.value);
+    }
+    if (terms.present) {
+      map['terms'] = Variable<String>(terms.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmContractsCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('name: $name, ')
+          ..write('amountMicros: $amountMicros, ')
+          ..write('currency: $currency, ')
+          ..write('status: $status, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('terms: $terms, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmObjectDefsTable extends CrmObjectDefs
+    with TableInfo<$CrmObjectDefsTable, CrmObjectDefRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmObjectDefsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelSingularMeta = const VerificationMeta(
+    'labelSingular',
+  );
+  @override
+  late final GeneratedColumn<String> labelSingular = GeneratedColumn<String>(
+    'label_singular',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelPluralMeta = const VerificationMeta(
+    'labelPlural',
+  );
+  @override
+  late final GeneratedColumn<String> labelPlural = GeneratedColumn<String>(
+    'label_plural',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<List<dynamic>, String>
+  fieldsJson = GeneratedColumn<String>(
+    'fields_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  ).withConverter<List<dynamic>>($CrmObjectDefsTable.$converterfieldsJson);
+  static const VerificationMeta _builtinMeta = const VerificationMeta(
+    'builtin',
+  );
+  @override
+  late final GeneratedColumn<bool> builtin = GeneratedColumn<bool>(
+    'builtin',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("builtin" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    labelSingular,
+    labelPlural,
+    icon,
+    fieldsJson,
+    builtin,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_object_defs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmObjectDefRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('label_singular')) {
+      context.handle(
+        _labelSingularMeta,
+        labelSingular.isAcceptableOrUnknown(
+          data['label_singular']!,
+          _labelSingularMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_labelSingularMeta);
+    }
+    if (data.containsKey('label_plural')) {
+      context.handle(
+        _labelPluralMeta,
+        labelPlural.isAcceptableOrUnknown(
+          data['label_plural']!,
+          _labelPluralMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_labelPluralMeta);
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    }
+    if (data.containsKey('builtin')) {
+      context.handle(
+        _builtinMeta,
+        builtin.isAcceptableOrUnknown(data['builtin']!, _builtinMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmObjectDefRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmObjectDefRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      labelSingular: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label_singular'],
+      )!,
+      labelPlural: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label_plural'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      )!,
+      fieldsJson: $CrmObjectDefsTable.$converterfieldsJson.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}fields_json'],
+        )!,
+      ),
+      builtin: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}builtin'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmObjectDefsTable createAlias(String alias) {
+    return $CrmObjectDefsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<List<dynamic>, String> $converterfieldsJson =
+      const JsonListConverter();
+}
+
+class CrmObjectDefRow extends DataClass implements Insertable<CrmObjectDefRow> {
+  /// 对象键（如 payments / invoices）
+  final String id;
+  final String labelSingular;
+  final String labelPlural;
+  final String icon;
+
+  /// 字段定义 JSON 数组：[{name,label,type,options,required,order}]
+  final List<dynamic> fieldsJson;
+  final bool builtin;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const CrmObjectDefRow({
+    required this.id,
+    required this.labelSingular,
+    required this.labelPlural,
+    required this.icon,
+    required this.fieldsJson,
+    required this.builtin,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['label_singular'] = Variable<String>(labelSingular);
+    map['label_plural'] = Variable<String>(labelPlural);
+    map['icon'] = Variable<String>(icon);
+    {
+      map['fields_json'] = Variable<String>(
+        $CrmObjectDefsTable.$converterfieldsJson.toSql(fieldsJson),
+      );
+    }
+    map['builtin'] = Variable<bool>(builtin);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CrmObjectDefsCompanion toCompanion(bool nullToAbsent) {
+    return CrmObjectDefsCompanion(
+      id: Value(id),
+      labelSingular: Value(labelSingular),
+      labelPlural: Value(labelPlural),
+      icon: Value(icon),
+      fieldsJson: Value(fieldsJson),
+      builtin: Value(builtin),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CrmObjectDefRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmObjectDefRow(
+      id: serializer.fromJson<String>(json['id']),
+      labelSingular: serializer.fromJson<String>(json['labelSingular']),
+      labelPlural: serializer.fromJson<String>(json['labelPlural']),
+      icon: serializer.fromJson<String>(json['icon']),
+      fieldsJson: serializer.fromJson<List<dynamic>>(json['fieldsJson']),
+      builtin: serializer.fromJson<bool>(json['builtin']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'labelSingular': serializer.toJson<String>(labelSingular),
+      'labelPlural': serializer.toJson<String>(labelPlural),
+      'icon': serializer.toJson<String>(icon),
+      'fieldsJson': serializer.toJson<List<dynamic>>(fieldsJson),
+      'builtin': serializer.toJson<bool>(builtin),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CrmObjectDefRow copyWith({
+    String? id,
+    String? labelSingular,
+    String? labelPlural,
+    String? icon,
+    List<dynamic>? fieldsJson,
+    bool? builtin,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => CrmObjectDefRow(
+    id: id ?? this.id,
+    labelSingular: labelSingular ?? this.labelSingular,
+    labelPlural: labelPlural ?? this.labelPlural,
+    icon: icon ?? this.icon,
+    fieldsJson: fieldsJson ?? this.fieldsJson,
+    builtin: builtin ?? this.builtin,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CrmObjectDefRow copyWithCompanion(CrmObjectDefsCompanion data) {
+    return CrmObjectDefRow(
+      id: data.id.present ? data.id.value : this.id,
+      labelSingular: data.labelSingular.present
+          ? data.labelSingular.value
+          : this.labelSingular,
+      labelPlural: data.labelPlural.present
+          ? data.labelPlural.value
+          : this.labelPlural,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      fieldsJson: data.fieldsJson.present
+          ? data.fieldsJson.value
+          : this.fieldsJson,
+      builtin: data.builtin.present ? data.builtin.value : this.builtin,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmObjectDefRow(')
+          ..write('id: $id, ')
+          ..write('labelSingular: $labelSingular, ')
+          ..write('labelPlural: $labelPlural, ')
+          ..write('icon: $icon, ')
+          ..write('fieldsJson: $fieldsJson, ')
+          ..write('builtin: $builtin, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    labelSingular,
+    labelPlural,
+    icon,
+    fieldsJson,
+    builtin,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmObjectDefRow &&
+          other.id == this.id &&
+          other.labelSingular == this.labelSingular &&
+          other.labelPlural == this.labelPlural &&
+          other.icon == this.icon &&
+          other.fieldsJson == this.fieldsJson &&
+          other.builtin == this.builtin &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CrmObjectDefsCompanion extends UpdateCompanion<CrmObjectDefRow> {
+  final Value<String> id;
+  final Value<String> labelSingular;
+  final Value<String> labelPlural;
+  final Value<String> icon;
+  final Value<List<dynamic>> fieldsJson;
+  final Value<bool> builtin;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const CrmObjectDefsCompanion({
+    this.id = const Value.absent(),
+    this.labelSingular = const Value.absent(),
+    this.labelPlural = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.fieldsJson = const Value.absent(),
+    this.builtin = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmObjectDefsCompanion.insert({
+    required String id,
+    required String labelSingular,
+    required String labelPlural,
+    this.icon = const Value.absent(),
+    this.fieldsJson = const Value.absent(),
+    this.builtin = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       labelSingular = Value(labelSingular),
+       labelPlural = Value(labelPlural),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CrmObjectDefRow> custom({
+    Expression<String>? id,
+    Expression<String>? labelSingular,
+    Expression<String>? labelPlural,
+    Expression<String>? icon,
+    Expression<String>? fieldsJson,
+    Expression<bool>? builtin,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (labelSingular != null) 'label_singular': labelSingular,
+      if (labelPlural != null) 'label_plural': labelPlural,
+      if (icon != null) 'icon': icon,
+      if (fieldsJson != null) 'fields_json': fieldsJson,
+      if (builtin != null) 'builtin': builtin,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmObjectDefsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? labelSingular,
+    Value<String>? labelPlural,
+    Value<String>? icon,
+    Value<List<dynamic>>? fieldsJson,
+    Value<bool>? builtin,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CrmObjectDefsCompanion(
+      id: id ?? this.id,
+      labelSingular: labelSingular ?? this.labelSingular,
+      labelPlural: labelPlural ?? this.labelPlural,
+      icon: icon ?? this.icon,
+      fieldsJson: fieldsJson ?? this.fieldsJson,
+      builtin: builtin ?? this.builtin,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (labelSingular.present) {
+      map['label_singular'] = Variable<String>(labelSingular.value);
+    }
+    if (labelPlural.present) {
+      map['label_plural'] = Variable<String>(labelPlural.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    if (fieldsJson.present) {
+      map['fields_json'] = Variable<String>(
+        $CrmObjectDefsTable.$converterfieldsJson.toSql(fieldsJson.value),
+      );
+    }
+    if (builtin.present) {
+      map['builtin'] = Variable<bool>(builtin.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmObjectDefsCompanion(')
+          ..write('id: $id, ')
+          ..write('labelSingular: $labelSingular, ')
+          ..write('labelPlural: $labelPlural, ')
+          ..write('icon: $icon, ')
+          ..write('fieldsJson: $fieldsJson, ')
+          ..write('builtin: $builtin, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmCustomRecordsTable extends CrmCustomRecords
+    with TableInfo<$CrmCustomRecordsTable, CrmCustomRecordRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmCustomRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _objectIdMeta = const VerificationMeta(
+    'objectId',
+  );
+  @override
+  late final GeneratedColumn<String> objectId = GeneratedColumn<String>(
+    'object_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
+  dataJson =
+      GeneratedColumn<String>(
+        'data_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('{}'),
+      ).withConverter<Map<String, dynamic>>(
+        $CrmCustomRecordsTable.$converterdataJson,
+      );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    objectId,
+    label,
+    dataJson,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_custom_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmCustomRecordRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('object_id')) {
+      context.handle(
+        _objectIdMeta,
+        objectId.isAcceptableOrUnknown(data['object_id']!, _objectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_objectIdMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmCustomRecordRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmCustomRecordRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      objectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}object_id'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      )!,
+      dataJson: $CrmCustomRecordsTable.$converterdataJson.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}data_json'],
+        )!,
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmCustomRecordsTable createAlias(String alias) {
+    return $CrmCustomRecordsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Map<String, dynamic>, String> $converterdataJson =
+      const MapConverter();
+}
+
+class CrmCustomRecordRow extends DataClass
+    implements Insertable<CrmCustomRecordRow> {
+  final String id;
+  final String objectId;
+  final String label;
+  final Map<String, dynamic> dataJson;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool deleted;
+  const CrmCustomRecordRow({
+    required this.id,
+    required this.objectId,
+    required this.label,
+    required this.dataJson,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['object_id'] = Variable<String>(objectId);
+    map['label'] = Variable<String>(label);
+    {
+      map['data_json'] = Variable<String>(
+        $CrmCustomRecordsTable.$converterdataJson.toSql(dataJson),
+      );
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  CrmCustomRecordsCompanion toCompanion(bool nullToAbsent) {
+    return CrmCustomRecordsCompanion(
+      id: Value(id),
+      objectId: Value(objectId),
+      label: Value(label),
+      dataJson: Value(dataJson),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory CrmCustomRecordRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmCustomRecordRow(
+      id: serializer.fromJson<String>(json['id']),
+      objectId: serializer.fromJson<String>(json['objectId']),
+      label: serializer.fromJson<String>(json['label']),
+      dataJson: serializer.fromJson<Map<String, dynamic>>(json['dataJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'objectId': serializer.toJson<String>(objectId),
+      'label': serializer.toJson<String>(label),
+      'dataJson': serializer.toJson<Map<String, dynamic>>(dataJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  CrmCustomRecordRow copyWith({
+    String? id,
+    String? objectId,
+    String? label,
+    Map<String, dynamic>? dataJson,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? deleted,
+  }) => CrmCustomRecordRow(
+    id: id ?? this.id,
+    objectId: objectId ?? this.objectId,
+    label: label ?? this.label,
+    dataJson: dataJson ?? this.dataJson,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  CrmCustomRecordRow copyWithCompanion(CrmCustomRecordsCompanion data) {
+    return CrmCustomRecordRow(
+      id: data.id.present ? data.id.value : this.id,
+      objectId: data.objectId.present ? data.objectId.value : this.objectId,
+      label: data.label.present ? data.label.value : this.label,
+      dataJson: data.dataJson.present ? data.dataJson.value : this.dataJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmCustomRecordRow(')
+          ..write('id: $id, ')
+          ..write('objectId: $objectId, ')
+          ..write('label: $label, ')
+          ..write('dataJson: $dataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, objectId, label, dataJson, createdAt, updatedAt, deleted);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmCustomRecordRow &&
+          other.id == this.id &&
+          other.objectId == this.objectId &&
+          other.label == this.label &&
+          other.dataJson == this.dataJson &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class CrmCustomRecordsCompanion extends UpdateCompanion<CrmCustomRecordRow> {
+  final Value<String> id;
+  final Value<String> objectId;
+  final Value<String> label;
+  final Value<Map<String, dynamic>> dataJson;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const CrmCustomRecordsCompanion({
+    this.id = const Value.absent(),
+    this.objectId = const Value.absent(),
+    this.label = const Value.absent(),
+    this.dataJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmCustomRecordsCompanion.insert({
+    required String id,
+    required String objectId,
+    this.label = const Value.absent(),
+    this.dataJson = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       objectId = Value(objectId),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CrmCustomRecordRow> custom({
+    Expression<String>? id,
+    Expression<String>? objectId,
+    Expression<String>? label,
+    Expression<String>? dataJson,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (objectId != null) 'object_id': objectId,
+      if (label != null) 'label': label,
+      if (dataJson != null) 'data_json': dataJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmCustomRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? objectId,
+    Value<String>? label,
+    Value<Map<String, dynamic>>? dataJson,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return CrmCustomRecordsCompanion(
+      id: id ?? this.id,
+      objectId: objectId ?? this.objectId,
+      label: label ?? this.label,
+      dataJson: dataJson ?? this.dataJson,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (objectId.present) {
+      map['object_id'] = Variable<String>(objectId.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (dataJson.present) {
+      map['data_json'] = Variable<String>(
+        $CrmCustomRecordsTable.$converterdataJson.toSql(dataJson.value),
+      );
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmCustomRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('objectId: $objectId, ')
+          ..write('label: $label, ')
+          ..write('dataJson: $dataJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmEntityLinksTable extends CrmEntityLinks
+    with TableInfo<$CrmEntityLinksTable, CrmEntityLinkRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmEntityLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entityTypeMeta = const VerificationMeta(
+    'entityType',
+  );
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+    'entity_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entityIdMeta = const VerificationMeta(
+    'entityId',
+  );
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+    'entity_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _localTypeMeta = const VerificationMeta(
+    'localType',
+  );
+  @override
+  late final GeneratedColumn<String> localType = GeneratedColumn<String>(
+    'local_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _localIdMeta = const VerificationMeta(
+    'localId',
+  );
+  @override
+  late final GeneratedColumn<String> localId = GeneratedColumn<String>(
+    'local_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _relationMeta = const VerificationMeta(
+    'relation',
+  );
+  @override
+  late final GeneratedColumn<String> relation = GeneratedColumn<String>(
+    'relation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('followup'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    entityType,
+    entityId,
+    localType,
+    localId,
+    relation,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_entity_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmEntityLinkRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+        _entityTypeMeta,
+        entityType.isAcceptableOrUnknown(data['entity_type']!, _entityTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityTypeMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(
+        _entityIdMeta,
+        entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('local_type')) {
+      context.handle(
+        _localTypeMeta,
+        localType.isAcceptableOrUnknown(data['local_type']!, _localTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localTypeMeta);
+    }
+    if (data.containsKey('local_id')) {
+      context.handle(
+        _localIdMeta,
+        localId.isAcceptableOrUnknown(data['local_id']!, _localIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localIdMeta);
+    }
+    if (data.containsKey('relation')) {
+      context.handle(
+        _relationMeta,
+        relation.isAcceptableOrUnknown(data['relation']!, _relationMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {entityType, entityId, localType, localId, relation},
+  ];
+  @override
+  CrmEntityLinkRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmEntityLinkRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      entityType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_type'],
+      )!,
+      entityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_id'],
+      )!,
+      localType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_type'],
+      )!,
+      localId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_id'],
+      )!,
+      relation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relation'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmEntityLinksTable createAlias(String alias) {
+    return $CrmEntityLinksTable(attachedDatabase, alias);
+  }
+}
+
+class CrmEntityLinkRow extends DataClass
+    implements Insertable<CrmEntityLinkRow> {
+  final String id;
+
+  /// entityType：company / person / opportunity / contract / custom:<objectId>
+  final String entityType;
+  final String entityId;
+
+  /// localType：diary / block
+  final String localType;
+  final String localId;
+
+  /// relation：followup / note / todo
+  final String relation;
+  final DateTime createdAt;
+  const CrmEntityLinkRow({
+    required this.id,
+    required this.entityType,
+    required this.entityId,
+    required this.localType,
+    required this.localId,
+    required this.relation,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['entity_type'] = Variable<String>(entityType);
+    map['entity_id'] = Variable<String>(entityId);
+    map['local_type'] = Variable<String>(localType);
+    map['local_id'] = Variable<String>(localId);
+    map['relation'] = Variable<String>(relation);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CrmEntityLinksCompanion toCompanion(bool nullToAbsent) {
+    return CrmEntityLinksCompanion(
+      id: Value(id),
+      entityType: Value(entityType),
+      entityId: Value(entityId),
+      localType: Value(localType),
+      localId: Value(localId),
+      relation: Value(relation),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CrmEntityLinkRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmEntityLinkRow(
+      id: serializer.fromJson<String>(json['id']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      entityId: serializer.fromJson<String>(json['entityId']),
+      localType: serializer.fromJson<String>(json['localType']),
+      localId: serializer.fromJson<String>(json['localId']),
+      relation: serializer.fromJson<String>(json['relation']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'entityType': serializer.toJson<String>(entityType),
+      'entityId': serializer.toJson<String>(entityId),
+      'localType': serializer.toJson<String>(localType),
+      'localId': serializer.toJson<String>(localId),
+      'relation': serializer.toJson<String>(relation),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  CrmEntityLinkRow copyWith({
+    String? id,
+    String? entityType,
+    String? entityId,
+    String? localType,
+    String? localId,
+    String? relation,
+    DateTime? createdAt,
+  }) => CrmEntityLinkRow(
+    id: id ?? this.id,
+    entityType: entityType ?? this.entityType,
+    entityId: entityId ?? this.entityId,
+    localType: localType ?? this.localType,
+    localId: localId ?? this.localId,
+    relation: relation ?? this.relation,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  CrmEntityLinkRow copyWithCompanion(CrmEntityLinksCompanion data) {
+    return CrmEntityLinkRow(
+      id: data.id.present ? data.id.value : this.id,
+      entityType: data.entityType.present
+          ? data.entityType.value
+          : this.entityType,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      localType: data.localType.present ? data.localType.value : this.localType,
+      localId: data.localId.present ? data.localId.value : this.localId,
+      relation: data.relation.present ? data.relation.value : this.relation,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmEntityLinkRow(')
+          ..write('id: $id, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('localType: $localType, ')
+          ..write('localId: $localId, ')
+          ..write('relation: $relation, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    entityType,
+    entityId,
+    localType,
+    localId,
+    relation,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmEntityLinkRow &&
+          other.id == this.id &&
+          other.entityType == this.entityType &&
+          other.entityId == this.entityId &&
+          other.localType == this.localType &&
+          other.localId == this.localId &&
+          other.relation == this.relation &&
+          other.createdAt == this.createdAt);
+}
+
+class CrmEntityLinksCompanion extends UpdateCompanion<CrmEntityLinkRow> {
+  final Value<String> id;
+  final Value<String> entityType;
+  final Value<String> entityId;
+  final Value<String> localType;
+  final Value<String> localId;
+  final Value<String> relation;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const CrmEntityLinksCompanion({
+    this.id = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.localType = const Value.absent(),
+    this.localId = const Value.absent(),
+    this.relation = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmEntityLinksCompanion.insert({
+    required String id,
+    required String entityType,
+    required String entityId,
+    required String localType,
+    required String localId,
+    this.relation = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       entityType = Value(entityType),
+       entityId = Value(entityId),
+       localType = Value(localType),
+       localId = Value(localId),
+       createdAt = Value(createdAt);
+  static Insertable<CrmEntityLinkRow> custom({
+    Expression<String>? id,
+    Expression<String>? entityType,
+    Expression<String>? entityId,
+    Expression<String>? localType,
+    Expression<String>? localId,
+    Expression<String>? relation,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (entityType != null) 'entity_type': entityType,
+      if (entityId != null) 'entity_id': entityId,
+      if (localType != null) 'local_type': localType,
+      if (localId != null) 'local_id': localId,
+      if (relation != null) 'relation': relation,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmEntityLinksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? entityType,
+    Value<String>? entityId,
+    Value<String>? localType,
+    Value<String>? localId,
+    Value<String>? relation,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return CrmEntityLinksCompanion(
+      id: id ?? this.id,
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
+      localType: localType ?? this.localType,
+      localId: localId ?? this.localId,
+      relation: relation ?? this.relation,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (localType.present) {
+      map['local_type'] = Variable<String>(localType.value);
+    }
+    if (localId.present) {
+      map['local_id'] = Variable<String>(localId.value);
+    }
+    if (relation.present) {
+      map['relation'] = Variable<String>(relation.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmEntityLinksCompanion(')
+          ..write('id: $id, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('localType: $localType, ')
+          ..write('localId: $localId, ')
+          ..write('relation: $relation, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncRecordsTable extends SyncRecords
     with TableInfo<$SyncRecordsTable, SyncRecordRow> {
   @override
@@ -5698,6 +10072,17 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CrmContentLinksTable crmContentLinks = $CrmContentLinksTable(
     this,
   );
+  late final $CrmCompaniesTable crmCompanies = $CrmCompaniesTable(this);
+  late final $CrmPeopleTable crmPeople = $CrmPeopleTable(this);
+  late final $CrmOpportunitiesTable crmOpportunities = $CrmOpportunitiesTable(
+    this,
+  );
+  late final $CrmContractsTable crmContracts = $CrmContractsTable(this);
+  late final $CrmObjectDefsTable crmObjectDefs = $CrmObjectDefsTable(this);
+  late final $CrmCustomRecordsTable crmCustomRecords = $CrmCustomRecordsTable(
+    this,
+  );
+  late final $CrmEntityLinksTable crmEntityLinks = $CrmEntityLinksTable(this);
   late final $SyncRecordsTable syncRecords = $SyncRecordsTable(this);
   late final $KnowledgeBasesTable knowledgeBases = $KnowledgeBasesTable(this);
   late final $BlockEmbeddingsTable blockEmbeddings = $BlockEmbeddingsTable(
@@ -5717,6 +10102,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     appMetadata,
     crmEntityCaches,
     crmContentLinks,
+    crmCompanies,
+    crmPeople,
+    crmOpportunities,
+    crmContracts,
+    crmObjectDefs,
+    crmCustomRecords,
+    crmEntityLinks,
     syncRecords,
     knowledgeBases,
     blockEmbeddings,
@@ -7633,6 +12025,2190 @@ typedef $$CrmContentLinksTableProcessedTableManager =
       CrmContentLinkRow,
       PrefetchHooks Function()
     >;
+typedef $$CrmCompaniesTableCreateCompanionBuilder =
+    CrmCompaniesCompanion Function({
+      required String id,
+      Value<String> name,
+      Value<String> domainName,
+      Value<Map<String, dynamic>> addressJson,
+      Value<int?> employees,
+      Value<String> linkedinLink,
+      Value<String> xLink,
+      Value<int?> arrMicros,
+      Value<String> icp,
+      Value<String> customerStatus,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$CrmCompaniesTableUpdateCompanionBuilder =
+    CrmCompaniesCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> domainName,
+      Value<Map<String, dynamic>> addressJson,
+      Value<int?> employees,
+      Value<String> linkedinLink,
+      Value<String> xLink,
+      Value<int?> arrMicros,
+      Value<String> icp,
+      Value<String> customerStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+class $$CrmCompaniesTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmCompaniesTable> {
+  $$CrmCompaniesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get domainName => $composableBuilder(
+    column: $table.domainName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    Map<String, dynamic>,
+    Map<String, dynamic>,
+    String
+  >
+  get addressJson => $composableBuilder(
+    column: $table.addressJson,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get employees => $composableBuilder(
+    column: $table.employees,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get linkedinLink => $composableBuilder(
+    column: $table.linkedinLink,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get xLink => $composableBuilder(
+    column: $table.xLink,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get arrMicros => $composableBuilder(
+    column: $table.arrMicros,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icp => $composableBuilder(
+    column: $table.icp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customerStatus => $composableBuilder(
+    column: $table.customerStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmCompaniesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmCompaniesTable> {
+  $$CrmCompaniesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get domainName => $composableBuilder(
+    column: $table.domainName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get addressJson => $composableBuilder(
+    column: $table.addressJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get employees => $composableBuilder(
+    column: $table.employees,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get linkedinLink => $composableBuilder(
+    column: $table.linkedinLink,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get xLink => $composableBuilder(
+    column: $table.xLink,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get arrMicros => $composableBuilder(
+    column: $table.arrMicros,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icp => $composableBuilder(
+    column: $table.icp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customerStatus => $composableBuilder(
+    column: $table.customerStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmCompaniesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmCompaniesTable> {
+  $$CrmCompaniesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get domainName => $composableBuilder(
+    column: $table.domainName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
+  get addressJson => $composableBuilder(
+    column: $table.addressJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get employees =>
+      $composableBuilder(column: $table.employees, builder: (column) => column);
+
+  GeneratedColumn<String> get linkedinLink => $composableBuilder(
+    column: $table.linkedinLink,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get xLink =>
+      $composableBuilder(column: $table.xLink, builder: (column) => column);
+
+  GeneratedColumn<int> get arrMicros =>
+      $composableBuilder(column: $table.arrMicros, builder: (column) => column);
+
+  GeneratedColumn<String> get icp =>
+      $composableBuilder(column: $table.icp, builder: (column) => column);
+
+  GeneratedColumn<String> get customerStatus => $composableBuilder(
+    column: $table.customerStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+}
+
+class $$CrmCompaniesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmCompaniesTable,
+          CrmCompanyRow,
+          $$CrmCompaniesTableFilterComposer,
+          $$CrmCompaniesTableOrderingComposer,
+          $$CrmCompaniesTableAnnotationComposer,
+          $$CrmCompaniesTableCreateCompanionBuilder,
+          $$CrmCompaniesTableUpdateCompanionBuilder,
+          (
+            CrmCompanyRow,
+            BaseReferences<_$AppDatabase, $CrmCompaniesTable, CrmCompanyRow>,
+          ),
+          CrmCompanyRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmCompaniesTableTableManager(_$AppDatabase db, $CrmCompaniesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmCompaniesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmCompaniesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmCompaniesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> domainName = const Value.absent(),
+                Value<Map<String, dynamic>> addressJson = const Value.absent(),
+                Value<int?> employees = const Value.absent(),
+                Value<String> linkedinLink = const Value.absent(),
+                Value<String> xLink = const Value.absent(),
+                Value<int?> arrMicros = const Value.absent(),
+                Value<String> icp = const Value.absent(),
+                Value<String> customerStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmCompaniesCompanion(
+                id: id,
+                name: name,
+                domainName: domainName,
+                addressJson: addressJson,
+                employees: employees,
+                linkedinLink: linkedinLink,
+                xLink: xLink,
+                arrMicros: arrMicros,
+                icp: icp,
+                customerStatus: customerStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String> name = const Value.absent(),
+                Value<String> domainName = const Value.absent(),
+                Value<Map<String, dynamic>> addressJson = const Value.absent(),
+                Value<int?> employees = const Value.absent(),
+                Value<String> linkedinLink = const Value.absent(),
+                Value<String> xLink = const Value.absent(),
+                Value<int?> arrMicros = const Value.absent(),
+                Value<String> icp = const Value.absent(),
+                Value<String> customerStatus = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmCompaniesCompanion.insert(
+                id: id,
+                name: name,
+                domainName: domainName,
+                addressJson: addressJson,
+                employees: employees,
+                linkedinLink: linkedinLink,
+                xLink: xLink,
+                arrMicros: arrMicros,
+                icp: icp,
+                customerStatus: customerStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmCompaniesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmCompaniesTable,
+      CrmCompanyRow,
+      $$CrmCompaniesTableFilterComposer,
+      $$CrmCompaniesTableOrderingComposer,
+      $$CrmCompaniesTableAnnotationComposer,
+      $$CrmCompaniesTableCreateCompanionBuilder,
+      $$CrmCompaniesTableUpdateCompanionBuilder,
+      (
+        CrmCompanyRow,
+        BaseReferences<_$AppDatabase, $CrmCompaniesTable, CrmCompanyRow>,
+      ),
+      CrmCompanyRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmPeopleTableCreateCompanionBuilder =
+    CrmPeopleCompanion Function({
+      required String id,
+      Value<String?> companyId,
+      Value<String> firstName,
+      Value<String> lastName,
+      Value<String> jobTitle,
+      Value<Map<String, dynamic>> emailsJson,
+      Value<Map<String, dynamic>> phonesJson,
+      Value<String> city,
+      Value<String> wechat,
+      Value<String> avatarUrl,
+      Value<String> linkedinLink,
+      Value<String> xLink,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$CrmPeopleTableUpdateCompanionBuilder =
+    CrmPeopleCompanion Function({
+      Value<String> id,
+      Value<String?> companyId,
+      Value<String> firstName,
+      Value<String> lastName,
+      Value<String> jobTitle,
+      Value<Map<String, dynamic>> emailsJson,
+      Value<Map<String, dynamic>> phonesJson,
+      Value<String> city,
+      Value<String> wechat,
+      Value<String> avatarUrl,
+      Value<String> linkedinLink,
+      Value<String> xLink,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+class $$CrmPeopleTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmPeopleTable> {
+  $$CrmPeopleTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get firstName => $composableBuilder(
+    column: $table.firstName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastName => $composableBuilder(
+    column: $table.lastName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get jobTitle => $composableBuilder(
+    column: $table.jobTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    Map<String, dynamic>,
+    Map<String, dynamic>,
+    String
+  >
+  get emailsJson => $composableBuilder(
+    column: $table.emailsJson,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    Map<String, dynamic>,
+    Map<String, dynamic>,
+    String
+  >
+  get phonesJson => $composableBuilder(
+    column: $table.phonesJson,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get city => $composableBuilder(
+    column: $table.city,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get wechat => $composableBuilder(
+    column: $table.wechat,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get avatarUrl => $composableBuilder(
+    column: $table.avatarUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get linkedinLink => $composableBuilder(
+    column: $table.linkedinLink,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get xLink => $composableBuilder(
+    column: $table.xLink,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmPeopleTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmPeopleTable> {
+  $$CrmPeopleTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get firstName => $composableBuilder(
+    column: $table.firstName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastName => $composableBuilder(
+    column: $table.lastName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get jobTitle => $composableBuilder(
+    column: $table.jobTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get emailsJson => $composableBuilder(
+    column: $table.emailsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get phonesJson => $composableBuilder(
+    column: $table.phonesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get city => $composableBuilder(
+    column: $table.city,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get wechat => $composableBuilder(
+    column: $table.wechat,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get avatarUrl => $composableBuilder(
+    column: $table.avatarUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get linkedinLink => $composableBuilder(
+    column: $table.linkedinLink,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get xLink => $composableBuilder(
+    column: $table.xLink,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmPeopleTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmPeopleTable> {
+  $$CrmPeopleTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get firstName =>
+      $composableBuilder(column: $table.firstName, builder: (column) => column);
+
+  GeneratedColumn<String> get lastName =>
+      $composableBuilder(column: $table.lastName, builder: (column) => column);
+
+  GeneratedColumn<String> get jobTitle =>
+      $composableBuilder(column: $table.jobTitle, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
+  get emailsJson => $composableBuilder(
+    column: $table.emailsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
+  get phonesJson => $composableBuilder(
+    column: $table.phonesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get city =>
+      $composableBuilder(column: $table.city, builder: (column) => column);
+
+  GeneratedColumn<String> get wechat =>
+      $composableBuilder(column: $table.wechat, builder: (column) => column);
+
+  GeneratedColumn<String> get avatarUrl =>
+      $composableBuilder(column: $table.avatarUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get linkedinLink => $composableBuilder(
+    column: $table.linkedinLink,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get xLink =>
+      $composableBuilder(column: $table.xLink, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+}
+
+class $$CrmPeopleTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmPeopleTable,
+          CrmPersonRow,
+          $$CrmPeopleTableFilterComposer,
+          $$CrmPeopleTableOrderingComposer,
+          $$CrmPeopleTableAnnotationComposer,
+          $$CrmPeopleTableCreateCompanionBuilder,
+          $$CrmPeopleTableUpdateCompanionBuilder,
+          (
+            CrmPersonRow,
+            BaseReferences<_$AppDatabase, $CrmPeopleTable, CrmPersonRow>,
+          ),
+          CrmPersonRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmPeopleTableTableManager(_$AppDatabase db, $CrmPeopleTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmPeopleTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmPeopleTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmPeopleTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> companyId = const Value.absent(),
+                Value<String> firstName = const Value.absent(),
+                Value<String> lastName = const Value.absent(),
+                Value<String> jobTitle = const Value.absent(),
+                Value<Map<String, dynamic>> emailsJson = const Value.absent(),
+                Value<Map<String, dynamic>> phonesJson = const Value.absent(),
+                Value<String> city = const Value.absent(),
+                Value<String> wechat = const Value.absent(),
+                Value<String> avatarUrl = const Value.absent(),
+                Value<String> linkedinLink = const Value.absent(),
+                Value<String> xLink = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmPeopleCompanion(
+                id: id,
+                companyId: companyId,
+                firstName: firstName,
+                lastName: lastName,
+                jobTitle: jobTitle,
+                emailsJson: emailsJson,
+                phonesJson: phonesJson,
+                city: city,
+                wechat: wechat,
+                avatarUrl: avatarUrl,
+                linkedinLink: linkedinLink,
+                xLink: xLink,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> companyId = const Value.absent(),
+                Value<String> firstName = const Value.absent(),
+                Value<String> lastName = const Value.absent(),
+                Value<String> jobTitle = const Value.absent(),
+                Value<Map<String, dynamic>> emailsJson = const Value.absent(),
+                Value<Map<String, dynamic>> phonesJson = const Value.absent(),
+                Value<String> city = const Value.absent(),
+                Value<String> wechat = const Value.absent(),
+                Value<String> avatarUrl = const Value.absent(),
+                Value<String> linkedinLink = const Value.absent(),
+                Value<String> xLink = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmPeopleCompanion.insert(
+                id: id,
+                companyId: companyId,
+                firstName: firstName,
+                lastName: lastName,
+                jobTitle: jobTitle,
+                emailsJson: emailsJson,
+                phonesJson: phonesJson,
+                city: city,
+                wechat: wechat,
+                avatarUrl: avatarUrl,
+                linkedinLink: linkedinLink,
+                xLink: xLink,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmPeopleTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmPeopleTable,
+      CrmPersonRow,
+      $$CrmPeopleTableFilterComposer,
+      $$CrmPeopleTableOrderingComposer,
+      $$CrmPeopleTableAnnotationComposer,
+      $$CrmPeopleTableCreateCompanionBuilder,
+      $$CrmPeopleTableUpdateCompanionBuilder,
+      (
+        CrmPersonRow,
+        BaseReferences<_$AppDatabase, $CrmPeopleTable, CrmPersonRow>,
+      ),
+      CrmPersonRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmOpportunitiesTableCreateCompanionBuilder =
+    CrmOpportunitiesCompanion Function({
+      required String id,
+      Value<String?> companyId,
+      Value<String?> pointOfContactId,
+      Value<String> name,
+      Value<int?> amountMicros,
+      Value<DateTime?> closeDate,
+      Value<String> stage,
+      Value<String> customStatus,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$CrmOpportunitiesTableUpdateCompanionBuilder =
+    CrmOpportunitiesCompanion Function({
+      Value<String> id,
+      Value<String?> companyId,
+      Value<String?> pointOfContactId,
+      Value<String> name,
+      Value<int?> amountMicros,
+      Value<DateTime?> closeDate,
+      Value<String> stage,
+      Value<String> customStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+class $$CrmOpportunitiesTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmOpportunitiesTable> {
+  $$CrmOpportunitiesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pointOfContactId => $composableBuilder(
+    column: $table.pointOfContactId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountMicros => $composableBuilder(
+    column: $table.amountMicros,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get closeDate => $composableBuilder(
+    column: $table.closeDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stage => $composableBuilder(
+    column: $table.stage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customStatus => $composableBuilder(
+    column: $table.customStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmOpportunitiesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmOpportunitiesTable> {
+  $$CrmOpportunitiesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pointOfContactId => $composableBuilder(
+    column: $table.pointOfContactId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountMicros => $composableBuilder(
+    column: $table.amountMicros,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get closeDate => $composableBuilder(
+    column: $table.closeDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stage => $composableBuilder(
+    column: $table.stage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customStatus => $composableBuilder(
+    column: $table.customStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmOpportunitiesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmOpportunitiesTable> {
+  $$CrmOpportunitiesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get pointOfContactId => $composableBuilder(
+    column: $table.pointOfContactId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get amountMicros => $composableBuilder(
+    column: $table.amountMicros,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get closeDate =>
+      $composableBuilder(column: $table.closeDate, builder: (column) => column);
+
+  GeneratedColumn<String> get stage =>
+      $composableBuilder(column: $table.stage, builder: (column) => column);
+
+  GeneratedColumn<String> get customStatus => $composableBuilder(
+    column: $table.customStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+}
+
+class $$CrmOpportunitiesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmOpportunitiesTable,
+          CrmOpportunityRow,
+          $$CrmOpportunitiesTableFilterComposer,
+          $$CrmOpportunitiesTableOrderingComposer,
+          $$CrmOpportunitiesTableAnnotationComposer,
+          $$CrmOpportunitiesTableCreateCompanionBuilder,
+          $$CrmOpportunitiesTableUpdateCompanionBuilder,
+          (
+            CrmOpportunityRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CrmOpportunitiesTable,
+              CrmOpportunityRow
+            >,
+          ),
+          CrmOpportunityRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmOpportunitiesTableTableManager(
+    _$AppDatabase db,
+    $CrmOpportunitiesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmOpportunitiesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmOpportunitiesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmOpportunitiesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> companyId = const Value.absent(),
+                Value<String?> pointOfContactId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int?> amountMicros = const Value.absent(),
+                Value<DateTime?> closeDate = const Value.absent(),
+                Value<String> stage = const Value.absent(),
+                Value<String> customStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmOpportunitiesCompanion(
+                id: id,
+                companyId: companyId,
+                pointOfContactId: pointOfContactId,
+                name: name,
+                amountMicros: amountMicros,
+                closeDate: closeDate,
+                stage: stage,
+                customStatus: customStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> companyId = const Value.absent(),
+                Value<String?> pointOfContactId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int?> amountMicros = const Value.absent(),
+                Value<DateTime?> closeDate = const Value.absent(),
+                Value<String> stage = const Value.absent(),
+                Value<String> customStatus = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmOpportunitiesCompanion.insert(
+                id: id,
+                companyId: companyId,
+                pointOfContactId: pointOfContactId,
+                name: name,
+                amountMicros: amountMicros,
+                closeDate: closeDate,
+                stage: stage,
+                customStatus: customStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmOpportunitiesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmOpportunitiesTable,
+      CrmOpportunityRow,
+      $$CrmOpportunitiesTableFilterComposer,
+      $$CrmOpportunitiesTableOrderingComposer,
+      $$CrmOpportunitiesTableAnnotationComposer,
+      $$CrmOpportunitiesTableCreateCompanionBuilder,
+      $$CrmOpportunitiesTableUpdateCompanionBuilder,
+      (
+        CrmOpportunityRow,
+        BaseReferences<
+          _$AppDatabase,
+          $CrmOpportunitiesTable,
+          CrmOpportunityRow
+        >,
+      ),
+      CrmOpportunityRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmContractsTableCreateCompanionBuilder =
+    CrmContractsCompanion Function({
+      required String id,
+      Value<String?> companyId,
+      Value<String> name,
+      Value<int?> amountMicros,
+      Value<String> currency,
+      Value<String> status,
+      Value<DateTime?> dueDate,
+      Value<String> terms,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$CrmContractsTableUpdateCompanionBuilder =
+    CrmContractsCompanion Function({
+      Value<String> id,
+      Value<String?> companyId,
+      Value<String> name,
+      Value<int?> amountMicros,
+      Value<String> currency,
+      Value<String> status,
+      Value<DateTime?> dueDate,
+      Value<String> terms,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+class $$CrmContractsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmContractsTable> {
+  $$CrmContractsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountMicros => $composableBuilder(
+    column: $table.amountMicros,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get terms => $composableBuilder(
+    column: $table.terms,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmContractsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmContractsTable> {
+  $$CrmContractsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountMicros => $composableBuilder(
+    column: $table.amountMicros,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get terms => $composableBuilder(
+    column: $table.terms,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmContractsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmContractsTable> {
+  $$CrmContractsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get amountMicros => $composableBuilder(
+    column: $table.amountMicros,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dueDate =>
+      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<String> get terms =>
+      $composableBuilder(column: $table.terms, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+}
+
+class $$CrmContractsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmContractsTable,
+          CrmContractRow,
+          $$CrmContractsTableFilterComposer,
+          $$CrmContractsTableOrderingComposer,
+          $$CrmContractsTableAnnotationComposer,
+          $$CrmContractsTableCreateCompanionBuilder,
+          $$CrmContractsTableUpdateCompanionBuilder,
+          (
+            CrmContractRow,
+            BaseReferences<_$AppDatabase, $CrmContractsTable, CrmContractRow>,
+          ),
+          CrmContractRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmContractsTableTableManager(_$AppDatabase db, $CrmContractsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmContractsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmContractsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmContractsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> companyId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int?> amountMicros = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> dueDate = const Value.absent(),
+                Value<String> terms = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmContractsCompanion(
+                id: id,
+                companyId: companyId,
+                name: name,
+                amountMicros: amountMicros,
+                currency: currency,
+                status: status,
+                dueDate: dueDate,
+                terms: terms,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> companyId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int?> amountMicros = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> dueDate = const Value.absent(),
+                Value<String> terms = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmContractsCompanion.insert(
+                id: id,
+                companyId: companyId,
+                name: name,
+                amountMicros: amountMicros,
+                currency: currency,
+                status: status,
+                dueDate: dueDate,
+                terms: terms,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmContractsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmContractsTable,
+      CrmContractRow,
+      $$CrmContractsTableFilterComposer,
+      $$CrmContractsTableOrderingComposer,
+      $$CrmContractsTableAnnotationComposer,
+      $$CrmContractsTableCreateCompanionBuilder,
+      $$CrmContractsTableUpdateCompanionBuilder,
+      (
+        CrmContractRow,
+        BaseReferences<_$AppDatabase, $CrmContractsTable, CrmContractRow>,
+      ),
+      CrmContractRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmObjectDefsTableCreateCompanionBuilder =
+    CrmObjectDefsCompanion Function({
+      required String id,
+      required String labelSingular,
+      required String labelPlural,
+      Value<String> icon,
+      Value<List<dynamic>> fieldsJson,
+      Value<bool> builtin,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CrmObjectDefsTableUpdateCompanionBuilder =
+    CrmObjectDefsCompanion Function({
+      Value<String> id,
+      Value<String> labelSingular,
+      Value<String> labelPlural,
+      Value<String> icon,
+      Value<List<dynamic>> fieldsJson,
+      Value<bool> builtin,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CrmObjectDefsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmObjectDefsTable> {
+  $$CrmObjectDefsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get labelSingular => $composableBuilder(
+    column: $table.labelSingular,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get labelPlural => $composableBuilder(
+    column: $table.labelPlural,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<List<dynamic>, List<dynamic>, String>
+  get fieldsJson => $composableBuilder(
+    column: $table.fieldsJson,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<bool> get builtin => $composableBuilder(
+    column: $table.builtin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmObjectDefsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmObjectDefsTable> {
+  $$CrmObjectDefsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get labelSingular => $composableBuilder(
+    column: $table.labelSingular,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get labelPlural => $composableBuilder(
+    column: $table.labelPlural,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fieldsJson => $composableBuilder(
+    column: $table.fieldsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get builtin => $composableBuilder(
+    column: $table.builtin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmObjectDefsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmObjectDefsTable> {
+  $$CrmObjectDefsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get labelSingular => $composableBuilder(
+    column: $table.labelSingular,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get labelPlural => $composableBuilder(
+    column: $table.labelPlural,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<dynamic>, String> get fieldsJson =>
+      $composableBuilder(
+        column: $table.fieldsJson,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<bool> get builtin =>
+      $composableBuilder(column: $table.builtin, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CrmObjectDefsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmObjectDefsTable,
+          CrmObjectDefRow,
+          $$CrmObjectDefsTableFilterComposer,
+          $$CrmObjectDefsTableOrderingComposer,
+          $$CrmObjectDefsTableAnnotationComposer,
+          $$CrmObjectDefsTableCreateCompanionBuilder,
+          $$CrmObjectDefsTableUpdateCompanionBuilder,
+          (
+            CrmObjectDefRow,
+            BaseReferences<_$AppDatabase, $CrmObjectDefsTable, CrmObjectDefRow>,
+          ),
+          CrmObjectDefRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmObjectDefsTableTableManager(_$AppDatabase db, $CrmObjectDefsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmObjectDefsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmObjectDefsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmObjectDefsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> labelSingular = const Value.absent(),
+                Value<String> labelPlural = const Value.absent(),
+                Value<String> icon = const Value.absent(),
+                Value<List<dynamic>> fieldsJson = const Value.absent(),
+                Value<bool> builtin = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmObjectDefsCompanion(
+                id: id,
+                labelSingular: labelSingular,
+                labelPlural: labelPlural,
+                icon: icon,
+                fieldsJson: fieldsJson,
+                builtin: builtin,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String labelSingular,
+                required String labelPlural,
+                Value<String> icon = const Value.absent(),
+                Value<List<dynamic>> fieldsJson = const Value.absent(),
+                Value<bool> builtin = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CrmObjectDefsCompanion.insert(
+                id: id,
+                labelSingular: labelSingular,
+                labelPlural: labelPlural,
+                icon: icon,
+                fieldsJson: fieldsJson,
+                builtin: builtin,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmObjectDefsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmObjectDefsTable,
+      CrmObjectDefRow,
+      $$CrmObjectDefsTableFilterComposer,
+      $$CrmObjectDefsTableOrderingComposer,
+      $$CrmObjectDefsTableAnnotationComposer,
+      $$CrmObjectDefsTableCreateCompanionBuilder,
+      $$CrmObjectDefsTableUpdateCompanionBuilder,
+      (
+        CrmObjectDefRow,
+        BaseReferences<_$AppDatabase, $CrmObjectDefsTable, CrmObjectDefRow>,
+      ),
+      CrmObjectDefRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmCustomRecordsTableCreateCompanionBuilder =
+    CrmCustomRecordsCompanion Function({
+      required String id,
+      required String objectId,
+      Value<String> label,
+      Value<Map<String, dynamic>> dataJson,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$CrmCustomRecordsTableUpdateCompanionBuilder =
+    CrmCustomRecordsCompanion Function({
+      Value<String> id,
+      Value<String> objectId,
+      Value<String> label,
+      Value<Map<String, dynamic>> dataJson,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+class $$CrmCustomRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmCustomRecordsTable> {
+  $$CrmCustomRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get objectId => $composableBuilder(
+    column: $table.objectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    Map<String, dynamic>,
+    Map<String, dynamic>,
+    String
+  >
+  get dataJson => $composableBuilder(
+    column: $table.dataJson,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmCustomRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmCustomRecordsTable> {
+  $$CrmCustomRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get objectId => $composableBuilder(
+    column: $table.objectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dataJson => $composableBuilder(
+    column: $table.dataJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmCustomRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmCustomRecordsTable> {
+  $$CrmCustomRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get objectId =>
+      $composableBuilder(column: $table.objectId, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Map<String, dynamic>, String> get dataJson =>
+      $composableBuilder(column: $table.dataJson, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+}
+
+class $$CrmCustomRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmCustomRecordsTable,
+          CrmCustomRecordRow,
+          $$CrmCustomRecordsTableFilterComposer,
+          $$CrmCustomRecordsTableOrderingComposer,
+          $$CrmCustomRecordsTableAnnotationComposer,
+          $$CrmCustomRecordsTableCreateCompanionBuilder,
+          $$CrmCustomRecordsTableUpdateCompanionBuilder,
+          (
+            CrmCustomRecordRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CrmCustomRecordsTable,
+              CrmCustomRecordRow
+            >,
+          ),
+          CrmCustomRecordRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmCustomRecordsTableTableManager(
+    _$AppDatabase db,
+    $CrmCustomRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmCustomRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmCustomRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmCustomRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> objectId = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<Map<String, dynamic>> dataJson = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmCustomRecordsCompanion(
+                id: id,
+                objectId: objectId,
+                label: label,
+                dataJson: dataJson,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String objectId,
+                Value<String> label = const Value.absent(),
+                Value<Map<String, dynamic>> dataJson = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmCustomRecordsCompanion.insert(
+                id: id,
+                objectId: objectId,
+                label: label,
+                dataJson: dataJson,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmCustomRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmCustomRecordsTable,
+      CrmCustomRecordRow,
+      $$CrmCustomRecordsTableFilterComposer,
+      $$CrmCustomRecordsTableOrderingComposer,
+      $$CrmCustomRecordsTableAnnotationComposer,
+      $$CrmCustomRecordsTableCreateCompanionBuilder,
+      $$CrmCustomRecordsTableUpdateCompanionBuilder,
+      (
+        CrmCustomRecordRow,
+        BaseReferences<
+          _$AppDatabase,
+          $CrmCustomRecordsTable,
+          CrmCustomRecordRow
+        >,
+      ),
+      CrmCustomRecordRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmEntityLinksTableCreateCompanionBuilder =
+    CrmEntityLinksCompanion Function({
+      required String id,
+      required String entityType,
+      required String entityId,
+      required String localType,
+      required String localId,
+      Value<String> relation,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$CrmEntityLinksTableUpdateCompanionBuilder =
+    CrmEntityLinksCompanion Function({
+      Value<String> id,
+      Value<String> entityType,
+      Value<String> entityId,
+      Value<String> localType,
+      Value<String> localId,
+      Value<String> relation,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$CrmEntityLinksTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmEntityLinksTable> {
+  $$CrmEntityLinksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localType => $composableBuilder(
+    column: $table.localType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localId => $composableBuilder(
+    column: $table.localId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relation => $composableBuilder(
+    column: $table.relation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmEntityLinksTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmEntityLinksTable> {
+  $$CrmEntityLinksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localType => $composableBuilder(
+    column: $table.localType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localId => $composableBuilder(
+    column: $table.localId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relation => $composableBuilder(
+    column: $table.relation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmEntityLinksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmEntityLinksTable> {
+  $$CrmEntityLinksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<String> get localType =>
+      $composableBuilder(column: $table.localType, builder: (column) => column);
+
+  GeneratedColumn<String> get localId =>
+      $composableBuilder(column: $table.localId, builder: (column) => column);
+
+  GeneratedColumn<String> get relation =>
+      $composableBuilder(column: $table.relation, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CrmEntityLinksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmEntityLinksTable,
+          CrmEntityLinkRow,
+          $$CrmEntityLinksTableFilterComposer,
+          $$CrmEntityLinksTableOrderingComposer,
+          $$CrmEntityLinksTableAnnotationComposer,
+          $$CrmEntityLinksTableCreateCompanionBuilder,
+          $$CrmEntityLinksTableUpdateCompanionBuilder,
+          (
+            CrmEntityLinkRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CrmEntityLinksTable,
+              CrmEntityLinkRow
+            >,
+          ),
+          CrmEntityLinkRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmEntityLinksTableTableManager(
+    _$AppDatabase db,
+    $CrmEntityLinksTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmEntityLinksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmEntityLinksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmEntityLinksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<String> entityId = const Value.absent(),
+                Value<String> localType = const Value.absent(),
+                Value<String> localId = const Value.absent(),
+                Value<String> relation = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmEntityLinksCompanion(
+                id: id,
+                entityType: entityType,
+                entityId: entityId,
+                localType: localType,
+                localId: localId,
+                relation: relation,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String entityType,
+                required String entityId,
+                required String localType,
+                required String localId,
+                Value<String> relation = const Value.absent(),
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CrmEntityLinksCompanion.insert(
+                id: id,
+                entityType: entityType,
+                entityId: entityId,
+                localType: localType,
+                localId: localId,
+                relation: relation,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmEntityLinksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmEntityLinksTable,
+      CrmEntityLinkRow,
+      $$CrmEntityLinksTableFilterComposer,
+      $$CrmEntityLinksTableOrderingComposer,
+      $$CrmEntityLinksTableAnnotationComposer,
+      $$CrmEntityLinksTableCreateCompanionBuilder,
+      $$CrmEntityLinksTableUpdateCompanionBuilder,
+      (
+        CrmEntityLinkRow,
+        BaseReferences<_$AppDatabase, $CrmEntityLinksTable, CrmEntityLinkRow>,
+      ),
+      CrmEntityLinkRow,
+      PrefetchHooks Function()
+    >;
 typedef $$SyncRecordsTableCreateCompanionBuilder =
     SyncRecordsCompanion Function({
       required String syncId,
@@ -8721,6 +15297,20 @@ class $AppDatabaseManager {
       $$CrmEntityCachesTableTableManager(_db, _db.crmEntityCaches);
   $$CrmContentLinksTableTableManager get crmContentLinks =>
       $$CrmContentLinksTableTableManager(_db, _db.crmContentLinks);
+  $$CrmCompaniesTableTableManager get crmCompanies =>
+      $$CrmCompaniesTableTableManager(_db, _db.crmCompanies);
+  $$CrmPeopleTableTableManager get crmPeople =>
+      $$CrmPeopleTableTableManager(_db, _db.crmPeople);
+  $$CrmOpportunitiesTableTableManager get crmOpportunities =>
+      $$CrmOpportunitiesTableTableManager(_db, _db.crmOpportunities);
+  $$CrmContractsTableTableManager get crmContracts =>
+      $$CrmContractsTableTableManager(_db, _db.crmContracts);
+  $$CrmObjectDefsTableTableManager get crmObjectDefs =>
+      $$CrmObjectDefsTableTableManager(_db, _db.crmObjectDefs);
+  $$CrmCustomRecordsTableTableManager get crmCustomRecords =>
+      $$CrmCustomRecordsTableTableManager(_db, _db.crmCustomRecords);
+  $$CrmEntityLinksTableTableManager get crmEntityLinks =>
+      $$CrmEntityLinksTableTableManager(_db, _db.crmEntityLinks);
   $$SyncRecordsTableTableManager get syncRecords =>
       $$SyncRecordsTableTableManager(_db, _db.syncRecords);
   $$KnowledgeBasesTableTableManager get knowledgeBases =>

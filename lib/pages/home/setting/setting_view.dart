@@ -17,7 +17,6 @@ import 'package:moodiary/components/language_dialog/language_dialog_view.dart';
 import 'package:moodiary/components/remove_password/remove_password_view.dart';
 import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
-import 'package:moodiary/features/crm/crm_sync_page.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/utils/notice_util.dart';
@@ -212,22 +211,19 @@ class SettingPage extends StatelessWidget {
       }
       return Column(
         children: [
-          const AdaptiveTitleTile(title: 'CRM 同步'),
+          const AdaptiveTitleTile(title: 'CRM（本地）'),
           Card.filled(
             color: context.theme.colorScheme.surfaceContainerLow,
             margin: EdgeInsets.zero,
-            child: Column(
+            child: const Column(
               children: [
                 AdaptiveListTile(
-                  title: const Text('Twenty CRM 同步'),
-                  subtitle: const Text('结构/数据/全量三类同步 · 页面开关 · 内容同步'),
-                  leading: const Icon(Icons.business_rounded),
-                  trailing: const Icon(Icons.chevron_right_rounded),
+                  title: Text('本地 CRM 数据'),
+                  subtitle: Text('客户/联系人/机会/合同 · 自定义对象 · 无需联网'),
+                  leading: Icon(Icons.storage_rounded),
+                  trailing: Text('已启用'),
                   isFirst: true,
                   isLast: true,
-                  onTap: () {
-                    Get.to(() => const CrmSyncPage());
-                  },
                 ),
               ],
             ),

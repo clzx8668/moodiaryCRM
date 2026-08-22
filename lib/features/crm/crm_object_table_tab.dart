@@ -3,18 +3,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
-import 'package:moodiary/features/crm/crm_field_registry.dart';
-import 'package:moodiary/features/crm/crm_sync_service.dart';
+import 'package:moodiary/features/crm/local/crm_field_defs.dart';
+import 'package:moodiary/features/crm/local/crm_local_repository.dart';
+import 'package:moodiary/features/crm/local/crm_models.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
-import 'package:moodiary/features/crm/twenty_config.dart';
 import 'package:moodiary/features/crm/widgets/crm_smart_table.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
-import 'package:moodiary/persistence/secure_storage.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
-/// CRM 主要对象（顶部 Tab 页定义）：与 Twenty 对象名保持动态对应。
+/// CRM 顶部 Tab 定义（本地基础对象）
 class CrmTabDef {
   final String type;
   final String label;
@@ -22,41 +21,19 @@ class CrmTabDef {
   const CrmTabDef(this.type, this.label);
 }
 
-/// CRM 顶部 Tab 默认集合（设置页可开关各页显隐）
 const List<CrmTabDef> kCrmTabs = [
   CrmTabDef('company', '客户'),
   CrmTabDef('person', '联系人'),
-  CrmTabDef('opportunity', '机会'),
-  CrmTabDef('contractsHeTongGuanLi', '合同'),
-  CrmTabDef('paymentsHuiKuanJiLu', '回款'),
-  CrmTabDef('invoiceFaPiao', '发票'),
-  CrmTabDef('commissionsTiChengJieSuan', '提成'),
-  CrmTabDef('task', '任务'),
-  CrmTabDef('note', '笔记'),
-  CrmTabDef('moodiaryGeneric', '通用记录'),
+  CrmTabDef('opportunity', '机会/线索'),
+  CrmTabDef('contract', '合同'),
 ];
-
-/// 按设置过滤后的可见 Tab
-List<CrmTabDef> visibleCrmTabs() {
-  return kCrmTabs
-      .where(
-        (tab) => PrefUtil.getValue<bool>('crmTabVisible_${tab.type}') ?? true,
-      )
-      .toList();
-}
 
 String crmTypeLabel(String type) {
   const labels = {
     'company': '客户',
     'person': '联系人',
-    'opportunity': '机会',
-    'task': '任务',
-    'note': '笔记',
-    'moodiaryGeneric': '通用记录',
-    'contractsHeTongGuanLi': '合同',
-    'paymentsHuiKuanJiLu': '回款',
-    'invoiceFaPiao': '发票',
-    'commissionsTiChengJieSuan': '提成',
+    'opportunity': '机会/线索',
+    'contract': '合同',
   };
   return labels[type] ?? type;
 }
@@ -69,20 +46,8 @@ IconData crmTypeIcon(String type) {
       return Icons.person_rounded;
     case 'opportunity':
       return Icons.trending_up_rounded;
-    case 'task':
-      return Icons.task_alt_rounded;
-    case 'note':
-      return Icons.notes_rounded;
-    case 'moodiaryGeneric':
-      return Icons.inbox_rounded;
-    case 'contractsHeTongGuanLi':
+    case 'contract':
       return Icons.description_rounded;
-    case 'paymentsHuiKuanJiLu':
-      return Icons.payments_rounded;
-    case 'invoiceFaPiao':
-      return Icons.receipt_rounded;
-    case 'commissionsTiChengJieSuan':
-      return Icons.savings_rounded;
     default:
       return Icons.folder_rounded;
   }
@@ -96,38 +61,28 @@ Color crmTypeColor(String type) {
       return Colors.green.shade400;
     case 'opportunity':
       return Colors.orange.shade400;
-    case 'task':
-      return Colors.purple.shade400;
-    case 'note':
-      return Colors.brown.shade400;
-    case 'moodiaryGeneric':
-      return Colors.blueGrey.shade400;
-    case 'contractsHeTongGuanLi':
+    case 'contract':
       return Colors.teal.shade400;
-    case 'paymentsHuiKuanJiLu':
-      return Colors.red.shade400;
-    case 'invoiceFaPiao':
-      return Colors.indigo.shade400;
-    case 'commissionsTiChengJieSuan':
-      return Colors.pink.shade400;
     default:
       return Colors.grey;
   }
 }
 
-/// 单个对象 Tab：智能表格 + 搜索/列设置 + 同步 + 增删改查 + 业务下钻。
+/// 单个对象 Tab：智能表格（本地数据）+ 搜索/列设置 + 增删改查 + 业务下钻。
 class CrmObjectTableTab extends StatefulWidget {
   final String objectType;
   final String title;
-
-  /// 全量同步等外部事件触发的重载令牌（变化时重新加载数据）
   final int reloadToken;
+
+  /// 自定义对象定义（objectType 形如 `custom:<id>` 时传入）
+  final LocalCustomObject? customObject;
 
   const CrmObjectTableTab({
     super.key,
     required this.objectType,
     required this.title,
     this.reloadToken = 0,
+    this.customObject,
   });
 
   @override
@@ -136,35 +91,43 @@ class CrmObjectTableTab extends StatefulWidget {
 
 class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   late Future<List<CrmEntityCache>> _future;
-  bool _syncing = false;
   bool _saving = false;
   String _query = '';
   List<String> _columns = [];
-  CrmObjectMeta? _meta;
+
+  CrmLocalRepository get _repo => CrmLocalRepository();
 
   String get _columnPrefKey => 'crmTableColumns_${widget.objectType}';
+
+  bool get _customized =>
+      PrefUtil.getValue<bool>(
+        'crmTableColumnsCustomized_${widget.objectType}',
+      ) ??
+      false;
+
+  List<LocalObjectField> get _fields {
+    final custom = widget.customObject;
+    if (custom != null) {
+      return [
+        for (final f in custom.fields)
+          LocalObjectField(
+            f.name,
+            f.label,
+            type: f.type,
+            options: f.options,
+          ),
+      ];
+    }
+    return kBaseObjectFields[widget.objectType] ?? const [];
+  }
+
+  String get _labelField => kLocalLabelFields[widget.objectType] ?? 'name';
 
   @override
   void initState() {
     super.initState();
-    _future = IsarUtil.getCrmEntitiesByType(widget.objectType);
     _columns = PrefUtil.getValue<List<String>>(_columnPrefKey) ?? [];
-    _loadFieldMeta();
-  }
-
-  Future<void> _loadFieldMeta() async {
-    try {
-      final service = await _service();
-      final meta = await CrmFieldRegistry.fetchObjectMeta(
-        service.client,
-        widget.objectType,
-      );
-      if (mounted && meta != null) {
-        setState(() => _meta = meta);
-      }
-    } catch (_) {
-      // 元数据拉取失败不阻塞表格（回退快照字段）
-    }
+    _reload();
   }
 
   @override
@@ -176,113 +139,157 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   }
 
   void _reload() {
-    setState(() {
-      _future = IsarUtil.getCrmEntitiesByType(widget.objectType);
-    });
+    setState(() => _future = _loadItems());
   }
 
-  Future<void> _sync() async {
-    if (_syncing) return;
-    setState(() => _syncing = true);
-    try {
-      final baseUrl = await SecureStorageUtil.getValue('twentyBaseUrl');
-      final token = await SecureStorageUtil.getValue('twentyApiToken');
-      final service = CrmSyncService.fromConfig(
-        TwentyConfig(
-          baseUrl: baseUrl?.isNotEmpty == true
-              ? baseUrl!
-              : 'http://10.200.245.54:3000',
-          apiToken: token ?? '',
-        ),
-      );
-      final count = await service.pullObject(widget.objectType);
-      toast.success(message: '已同步 $count 条 ${widget.title}');
-    } catch (e) {
-      toast.error(message: '同步失败：$e');
-    } finally {
-      if (mounted) {
-        setState(() => _syncing = false);
-        _reload();
-      }
+  // ==================== 数据加载（本地仓储 → 表格视图） ====================
+
+  Future<List<CrmEntityCache>> _loadItems() async {
+    final repo = _repo;
+    switch (widget.objectType) {
+      case 'company':
+        return (await repo.listCompanies())
+            .map(
+              (c) => CrmEntityCache()
+                ..id = c.id
+                ..twentyId = c.id
+                ..entityType = 'company'
+                ..name = c.name.isEmpty ? '（未命名客户）' : c.name
+                ..setData(companyToDataMap(c))
+                ..updatedAt = c.updatedAt,
+            )
+            .toList();
+      case 'person':
+        final people = await repo.listPeople();
+        final companyNames = await _companyNameMap();
+        return people
+            .map(
+              (p) => CrmEntityCache()
+                ..id = p.id
+                ..twentyId = p.id
+                ..entityType = 'person'
+                ..name = p.fullName.isEmpty ? '（未命名联系人）' : p.fullName
+                ..setData(personToDataMap(p, companyName: companyNames[p.companyId]))
+                ..updatedAt = p.updatedAt,
+            )
+            .toList();
+      case 'opportunity':
+        final opps = await repo.listOpportunities();
+        final companyNames = await _companyNameMap();
+        final contactNames = await _personNameMap();
+        return opps
+            .map(
+              (o) => CrmEntityCache()
+                ..id = o.id
+                ..twentyId = o.id
+                ..entityType = 'opportunity'
+                ..name = o.name.isEmpty ? '（未命名机会）' : o.name
+                ..setData(
+                  opportunityToDataMap(
+                    o,
+                    companyName: companyNames[o.companyId],
+                    contactName: contactNames[o.pointOfContactId],
+                  ),
+                )
+                ..updatedAt = o.updatedAt,
+            )
+            .toList();
+      case 'contract':
+        final contracts = await repo.listContracts();
+        final companyNames = await _companyNameMap();
+        return contracts
+            .map(
+              (c) => CrmEntityCache()
+                ..id = c.id
+                ..twentyId = c.id
+                ..entityType = 'contract'
+                ..name = c.name.isEmpty ? '（未命名合同）' : c.name
+                ..setData(contractToDataMap(c, companyName: companyNames[c.companyId]))
+                ..updatedAt = c.updatedAt,
+            )
+            .toList();
+      default:
+        // 自定义对象
+        final objectId = widget.objectType.startsWith('custom:')
+            ? widget.objectType.substring(7)
+            : widget.objectType;
+        return (await repo.listCustomRecords(objectId))
+            .map(
+              (r) => CrmEntityCache()
+                ..id = r.id
+                ..twentyId = r.id
+                ..entityType = widget.objectType
+                ..name = r.label.isEmpty ? '（未命名记录）' : r.label
+                ..setData({'name': r.label, ...r.data})
+                ..updatedAt = r.updatedAt,
+            )
+            .toList();
     }
   }
 
-  static bool isDisplayField(String key) {
-    if (key == 'id' || key == 'name') return false;
-    if (key.endsWith('Id')) return false;
-    if (key.startsWith('__')) return false;
-    const audit = {
-      'createdAt',
-      'updatedAt',
-      'deletedAt',
-      'lastSyncedAt',
-      'position',
-      'searchVector',
-    };
-    if (audit.contains(key)) return false;
-    return true;
-  }
-
-  static bool isEditableField(String key) {
-    if (key == 'id' || key == 'twentyId') return false;
-    if (key.endsWith('Id')) return false;
-    if (key.startsWith('__')) return false;
-    if (key == 'createdAt' ||
-        key == 'updatedAt' ||
-        key == 'lastSyncedAt' ||
-        key == 'deletedAt' ||
-        key == 'position') {
-      return false;
+  Future<Map<String?, String>> _companyNameMap() async {
+    final map = <String?, String>{};
+    for (final c in await _repo.listCompanies()) {
+      map[c.id] = c.name;
     }
-    return true;
+    return map;
   }
 
-  List<String> _fieldNames(List<CrmEntityCache> items) {
+  Future<Map<String?, String>> _personNameMap() async {
+    final map = <String?, String>{};
+    for (final p in await _repo.listPeople()) {
+      map[p.id] = p.fullName;
+    }
+    return map;
+  }
+
+  // ==================== 列表/列处理 ====================
+
+  List<String> _allFieldNames(List<CrmEntityCache> items) {
     final names = <String>[_labelField];
     for (final item in items) {
       for (final key in item.data.keys) {
         if (isDisplayField(key) && !names.contains(key)) names.add(key);
       }
     }
+    for (final f in _fields) {
+      if (!names.contains(f.name)) names.add(f.name);
+    }
     return names;
   }
 
-  /// 对象标签字段（优先 Twenty labelIdentifier，兜底命名规则）
-  String get _labelField =>
-      (_meta?.labelField.isNotEmpty == true
-          ? _meta!.labelField
-          : CrmSyncService.labelFieldFor(widget.objectType));
+  static bool isDisplayField(String key) {
+    if (key == 'id' || key == 'name') return false;
+    if (key.endsWith('Id')) return false;
+    if (key.startsWith('__')) return false;
+    return true;
+  }
 
-  /// 是否已自定义列（默认 false → 跟随 Twenty 默认字段）
-  bool get _customized =>
-      PrefUtil.getValue<bool>(
-        'crmTableColumnsCustomized_${widget.objectType}',
-      ) ??
-      false;
+  static bool isEditableField(LocalObjectField field) {
+    if (field.name == 'id') return false;
+    if (field.name.endsWith('Id')) return false;
+    if (field.type == 'relation') return false;
+    if (field.name == 'createdAt' || field.name == 'updatedAt') return false;
+    return true;
+  }
 
-  /// 当前展示列：自定义时用持久化顺序，否则用 Twenty 默认字段
-  List<String> _effectiveColumns(List<CrmEntityCache> items, List<String> all) {
+  List<String> _effectiveColumns(List<String> all) {
+    final defaults = _fields.map((f) => f.name).where(all.contains).toList();
     if (_customized && _columns.isNotEmpty) {
-      final meta = _meta;
-      if (meta != null) {
-        // 保留用户自定义顺序，并自动追加新增默认字段
-        return CrmFieldRegistry.mergeCustomizedWithDefaults(
-          _columns,
-          meta,
-          all.toSet(),
-        );
+      final persisted = _columns.where(all.contains).toList();
+      for (final d in defaults) {
+        if (!persisted.contains(d)) persisted.add(d);
       }
-      return _columns.where(all.contains).toList();
+      return persisted;
     }
-    final meta = _meta;
-    if (meta != null) {
-      final defaults = CrmFieldRegistry.defaultDisplayFields(meta)
-          .map((f) => f.name)
-          .where(all.contains)
-          .toList();
-      if (defaults.isNotEmpty) return defaults;
+    return defaults.isEmpty ? [_labelField] : defaults;
+  }
+
+  String _fieldLabel(String name) {
+    for (final f in _fields) {
+      if (f.name == name) return f.label;
     }
-    return [_labelField];
+    return name;
   }
 
   List<CrmEntityCache> _filtered(List<CrmEntityCache> items) {
@@ -299,23 +306,32 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         .toList();
   }
 
+  Future<void> _persistColumnOrder(List<String> order) async {
+    if (order.isEmpty) return;
+    setState(() => _columns = List<String>.from(order));
+    await PrefUtil.setValue<List<String>>(
+      _columnPrefKey,
+      List<String>.from(order),
+    );
+    await PrefUtil.setValue<bool>(
+      'crmTableColumnsCustomized_${widget.objectType}',
+      true,
+    );
+  }
+
   Future<void> _showColumnSettings(List<CrmEntityCache> items) async {
-    final all = _fieldNames(items);
-    final candidates = _allCandidateFields(all);
-    if (candidates.length <= 1) {
+    final all = _allFieldNames(items);
+    if (all.length <= 1) {
       toast.info(message: '该对象暂无可配置字段');
       return;
     }
-    var visible = _effectiveColumns(items, all).toList();
-    if (visible.isEmpty) visible = [candidates.first];
+    var visible = _effectiveColumns(all);
     var customized = _customized;
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
-          final hidden = candidates
-              .where((f) => !visible.contains(f))
-              .toList();
+          final hidden = all.where((f) => !visible.contains(f)).toList();
           return AlertDialog(
             title: const Text('列设置（显示 / 顺序）'),
             content: SizedBox(
@@ -325,8 +341,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '拖动调整顺序，勾选控制显示（遵循 Twenty 对象字段规则）',
-                    style: context.textTheme.bodySmall,
+                    '拖动调整顺序，勾选控制显示',
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),
                   Flexible(
@@ -372,7 +388,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                     const Divider(height: 8),
                     Text(
                       '隐藏字段（点击恢复显示）',
-                      style: context.textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 4),
                     Wrap(
@@ -400,7 +416,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             actions: [
               TextButton(
                 onPressed: () => setDialogState(() {
-                  visible = _defaultColumns(all);
+                  visible = _fields.map((f) => f.name).where(all.contains).toList();
                   customized = false;
                 }),
                 child: const Text('恢复默认'),
@@ -428,63 +444,16 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     }
   }
 
-  /// 候选字段：Twenty metadata（标签 + 可展示标量）优先，快照字段兜底
-  List<String> _allCandidateFields(List<String> snapshotFields) {
-    final result = <String>[];
-    final meta = _meta;
-    if (meta != null) {
-      final ordered = CrmFieldRegistry.defaultDisplayFields(meta);
-      for (final f in ordered) {
-        if (!result.contains(f.name)) result.add(f.name);
-      }
-    }
-    for (final f in snapshotFields) {
-      if (!result.contains(f)) result.add(f);
-    }
-    return result;
-  }
-
-  /// 默认列（Twenty 规则；meta 缺失时退化为标签字段）
-  List<String> _defaultColumns(List<String> snapshotFields) {
-    final meta = _meta;
-    if (meta != null) {
-      final defaults = CrmFieldRegistry.defaultDisplayFields(meta)
-          .map((f) => f.name)
-          .where(snapshotFields.contains)
-          .toList();
-      if (defaults.isNotEmpty) return defaults;
-    }
-    return [_labelField];
-  }
-
-  /// 表格内拖拽列排序 → 持久化
-  Future<void> _persistColumnOrder(List<String> order) async {
-    if (order.isEmpty || _listEquals(order, _columns)) return;
-    setState(() => _columns = List<String>.from(order));
-    await PrefUtil.setValue<List<String>>(_columnPrefKey, List<String>.from(order));
-    await PrefUtil.setValue<bool>(
-      'crmTableColumnsCustomized_${widget.objectType}',
-      true,
-    );
-  }
-
-  static bool _listEquals(List<String> a, List<String> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
+  // ==================== CRUD（本地仓储） ====================
 
   Future<void> _create(List<CrmEntityCache> items) async {
-    final fields = _editableColumns(items);
+    final fields = _fields
+        .where(isEditableField)
+        .where((f) => f.name != _labelField || true)
+        .toList();
     final controllers = <String, TextEditingController>{
-      for (final f in fields) f: TextEditingController(),
+      for (final f in fields) f.name: TextEditingController(),
     };
-    if (controllers.isEmpty) {
-      toast.info(message: '无可编辑字段，请先在列设置中勾选字段');
-      return;
-    }
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -499,12 +468,12 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: TextField(
-                      controller: controllers[field],
-                      keyboardType: _isNumber(field, items)
+                      controller: controllers[field.name],
+                      keyboardType: field.type == 'number'
                           ? const TextInputType.numberWithOptions(decimal: true)
                           : null,
                       decoration: InputDecoration(
-                        labelText: _fieldLabel(field),
+                        labelText: _fieldLabel(field.name),
                         border: const OutlineInputBorder(),
                         isDense: true,
                       ),
@@ -521,27 +490,21 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('创建并同步'),
+            child: const Text('创建'),
           ),
         ],
       ),
     );
     if (ok != true) return;
-
     setState(() => _saving = true);
     try {
       final data = <String, dynamic>{
-        for (final field in fields)
-          if (controllers[field]!.text.trim().isNotEmpty)
-            field: _typedValue(field, controllers[field]!.text.trim(), items),
+        for (final f in fields)
+          if (controllers[f.name]!.text.trim().isNotEmpty)
+            f.name: _typedInput(f, controllers[f.name]!.text.trim()),
       };
-      if (data.isEmpty) {
-        toast.info(message: '请至少填写一个字段');
-        return;
-      }
-      final service = await _service();
-      await service.createEntity(widget.objectType, data);
-      toast.success(message: '已创建并同步');
+      await _createEntity(data);
+      toast.success(message: '已创建');
       _reload();
     } catch (e) {
       toast.error(message: '创建失败：$e');
@@ -551,76 +514,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   }
 
   Future<void> _edit(CrmEntityCache item) async {
-    final fields = _editableColumns([item]);
-    final controllers = <String, TextEditingController>{
-      for (final f in fields)
-        f: TextEditingController(
-          text: _stringValue(item, f),
-        ),
-    };
-    if (controllers.isEmpty) {
-      _showDetail(item);
-      return;
-    }
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('编辑 ${item.name}'),
-        content: SizedBox(
-          width: 380,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final field in fields)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: TextField(
-                      controller: controllers[field],
-                      keyboardType: _isNumber(field, [item])
-                          ? const TextInputType.numberWithOptions(decimal: true)
-                          : null,
-                      decoration: InputDecoration(
-                        labelText: _fieldLabel(field),
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('保存并同步'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    setState(() => _saving = true);
-    try {
-      final data = <String, dynamic>{
-        for (final field in fields)
-          if (controllers[field]!.text.trim().isNotEmpty)
-            field: _typedValue(field, controllers[field]!.text.trim(), [item]),
-      };
-      final service = await _service();
-      await service.updateEntity(widget.objectType, item.twentyId, data);
-      toast.success(message: '已保存并同步');
-      _reload();
-    } catch (e) {
-      toast.error(message: '更新失败：$e');
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
+    _showDetail(item);
   }
 
   Future<void> _delete(CrmEntityCache item) async {
@@ -628,7 +522,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('确认删除'),
-        content: Text('将删除「${item.name}」并同步 Twenty，此操作不可撤销。'),
+        content: Text('将删除「${item.name}」${widget.title}，此操作不可撤销。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -646,8 +540,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     );
     if (ok != true) return;
     try {
-      final service = await _service();
-      await service.deleteEntity(widget.objectType, item.twentyId);
+      await _deleteEntity(item.twentyId);
       toast.success(message: '已删除');
       _reload();
     } catch (e) {
@@ -660,25 +553,13 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     String field,
     Object? value,
   ) async {
-    if (!isEditableField(field)) return;
-    // 复合/关系字段（Map 值）单元格只读，避免破坏结构化数据
-    if (item.data[field] is Map) return;
+    if (item.data[field] is Map) return; // 复合/关系字段只读
+    if (field == _labelField && item.data[field] is! Map) {
+      // 允许更新名称
+    }
     setState(() => _saving = true);
     try {
-      // 仅提交可编辑字段，避免把 createdAt/position/xxId 等只读字段带入 UpdateInput
-      final data = <String, dynamic>{};
-      for (final entry in item.data.entries) {
-        if (isEditableField(entry.key)) {
-          data[entry.key] = entry.value;
-        }
-      }
-      if (field == _labelField) {
-        data[_labelField] = value;
-      } else {
-        data[field] = value;
-      }
-      final service = await _service();
-      await service.updateEntity(widget.objectType, item.twentyId, data);
+      await _updateEntityField(item.twentyId, field, value);
     } catch (e) {
       toast.error(message: '保存失败：$e');
     } finally {
@@ -689,194 +570,209 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     }
   }
 
-  Future<CrmSyncService> _service() async {
-    final baseUrl = await SecureStorageUtil.getValue('twentyBaseUrl');
-    final token = await SecureStorageUtil.getValue('twentyApiToken');
-    return CrmSyncService.fromConfig(
-      TwentyConfig(
-        baseUrl: baseUrl?.isNotEmpty == true
-            ? baseUrl!
-            : 'http://10.200.245.54:3000',
-        apiToken: token ?? '',
-      ),
-    );
-  }
+  // ---- 类型化写操作 ----
 
-  List<String> _editableColumns(List<CrmEntityCache> items) {
-    final all = _fieldNames(items);
-    final effective = _effectiveColumns(items, all);
-    return effective
-        .where(isEditableField)
-        .where((f) => !items.any((i) => i.data[f] is Map))
-        .toList();
-  }
-
-  bool _isNumber(String field, List<CrmEntityCache> items) {
-    for (final item in items) {
-      final value = item.data[field];
-      if (value is num) return true;
-      if (value is String && value.isNotEmpty && double.tryParse(value) != null) {
-        return true;
-      }
+  Future<void> _createEntity(Map<String, dynamic> data) async {
+    final repo = _repo;
+    switch (widget.objectType) {
+      case 'company':
+        await repo.createCompany(
+          LocalCompany(
+            id: '',
+            name: data['name']?.toString() ?? '',
+            domainName: data['domainName']?.toString() ?? '',
+            employees: (data['employees'] as num?)?.toInt(),
+            linkedinLink: data['linkedinLink']?.toString() ?? '',
+            xLink: data['xLink']?.toString() ?? '',
+            arrMicros: _yuanToMicros(data['arrMicros']),
+            icp: data['icp']?.toString() ?? '',
+            customerStatus: data['customerStatus']?.toString() ?? '',
+          ),
+        );
+      case 'person':
+        final name = data['name']?.toString() ?? '';
+        final parts = name.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+        await repo.createPerson(
+          LocalPerson(
+            id: '',
+            firstName: parts.isEmpty ? '' : parts.first,
+            lastName: parts.length > 1 ? parts.sublist(1).join(' ') : '',
+            jobTitle: data['jobTitle']?.toString() ?? '',
+            emails: {'primaryEmail': data['emails']?.toString() ?? ''},
+            phones: {'primaryPhoneNumber': data['phones']?.toString() ?? ''},
+            city: data['city']?.toString() ?? '',
+            wechat: data['wechat']?.toString() ?? '',
+          ),
+        );
+      case 'opportunity':
+        await repo.createOpportunity(
+          LocalOpportunity(
+            id: '',
+            name: data['name']?.toString() ?? '',
+            amountMicros: _yuanToMicros(data['amountMicros']),
+            closeDate: _parseDate(data['closeDate']),
+            stage: data['stage']?.toString() ?? '',
+            customStatus: data['customStatus']?.toString() ?? '',
+          ),
+        );
+      case 'contract':
+        await repo.createContract(
+          LocalContract(
+            id: '',
+            name: data['name']?.toString() ?? '',
+            amountMicros: _yuanToMicros(data['amountMicros']),
+            currency: data['currency']?.toString() ?? 'CNY',
+            status: data['status']?.toString() ?? '',
+            dueDate: _parseDate(data['dueDate']),
+            terms: data['terms']?.toString() ?? '',
+          ),
+        );
+      default:
+        final objectId = widget.objectType.startsWith('custom:')
+            ? widget.objectType.substring(7)
+            : widget.objectType;
+        await repo.createCustomRecord(
+          LocalCustomRecord(
+            id: '',
+            objectId: objectId,
+            label: data['name']?.toString() ?? '',
+            data: data,
+          ),
+        );
     }
-    return false;
   }
 
-  Object? _typedValue(
+  Future<void> _deleteEntity(String id) async {
+    final repo = _repo;
+    switch (widget.objectType) {
+      case 'company':
+        await repo.deleteCompany(id);
+      case 'person':
+        await repo.deletePerson(id);
+      case 'opportunity':
+        await repo.deleteOpportunity(id);
+      case 'contract':
+        await repo.deleteContract(id);
+      default:
+        await repo.deleteCustomRecord(id);
+    }
+  }
+
+  Future<void> _updateEntityField(
+    String id,
     String field,
-    String raw,
-    List<CrmEntityCache> items,
-  ) {
-    if (_isNumber(field, items)) {
-      return num.tryParse(raw) ?? raw;
+    Object? value,
+  ) async {
+    final repo = _repo;
+    switch (widget.objectType) {
+      case 'company':
+        final c = await repo.getCompany(id);
+        if (c == null) return;
+        _assign(c, field, value);
+        await repo.updateCompany(c);
+      case 'person':
+        final p = await repo.getPerson(id);
+        if (p == null) return;
+        if (field == 'name') {
+          final parts = (value?.toString() ?? '')
+              .split(RegExp(r'\s+'))
+              .where((s) => s.isNotEmpty)
+              .toList();
+          p.firstName = parts.isEmpty ? '' : parts.first;
+          p.lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+        } else if (field == 'emails') {
+          p.emails = {'primaryEmail': value?.toString() ?? ''};
+        } else if (field == 'phones') {
+          p.phones = {'primaryPhoneNumber': value?.toString() ?? ''};
+        } else {
+          _assign(p, field, value);
+        }
+        await repo.updatePerson(p);
+      case 'opportunity':
+        final o = await repo.getOpportunity(id);
+        if (o == null) return;
+        _assign(o, field, value);
+        await repo.updateOpportunity(o);
+      case 'contract':
+        final c = await repo.getContract(id);
+        if (c == null) return;
+        _assign(c, field, value);
+        await repo.updateContract(c);
+      default:
+        final r = await repo.getCustomRecord(id);
+        if (r == null) return;
+        if (field == 'name') {
+          r.label = value?.toString() ?? '';
+        } else {
+          r.data[field] = value;
+        }
+        await repo.updateCustomRecord(r);
     }
+  }
+
+  void _assign(dynamic entity, String field, Object? value) {
+    switch (field) {
+      case 'name':
+        entity.name = value?.toString() ?? '';
+      case 'domainName':
+        entity.domainName = value?.toString() ?? '';
+      case 'employees':
+        entity.employees = (value is num) ? value.toInt() : int.tryParse(value?.toString() ?? '');
+      case 'linkedinLink':
+        entity.linkedinLink = value?.toString() ?? '';
+      case 'xLink':
+        entity.xLink = value?.toString() ?? '';
+      case 'arrMicros':
+        entity.arrMicros = _yuanToMicros(value);
+      case 'icp':
+        entity.icp = value?.toString() ?? '';
+      case 'customerStatus':
+        entity.customerStatus = value?.toString() ?? '';
+      case 'jobTitle':
+        entity.jobTitle = value?.toString() ?? '';
+      case 'city':
+        entity.city = value?.toString() ?? '';
+      case 'wechat':
+        entity.wechat = value?.toString() ?? '';
+      case 'amountMicros':
+        entity.amountMicros = _yuanToMicros(value);
+      case 'closeDate':
+        entity.closeDate = _parseDate(value);
+      case 'stage':
+        entity.stage = value?.toString() ?? '';
+      case 'customStatus':
+        entity.customStatus = value?.toString() ?? '';
+      case 'currency':
+        entity.currency = value?.toString() ?? '';
+      case 'status':
+        entity.status = value?.toString() ?? '';
+      case 'dueDate':
+        entity.dueDate = _parseDate(value);
+      case 'terms':
+        entity.terms = value?.toString() ?? '';
+    }
+  }
+
+  Object? _typedInput(LocalObjectField field, String raw) {
+    if (field.type == 'number') return num.tryParse(raw) ?? raw;
     return raw;
   }
 
-  String _stringValue(CrmEntityCache item, String field) {
-    if (field == _labelField) return item.name;
-    return CrmFieldRegistry.formatValue(item.data[field]);
+  int? _yuanToMicros(Object? value) {
+    if (value == null) return null;
+    final yuan = double.tryParse(value.toString());
+    return yuan == null ? null : (yuan * 1000000).round();
   }
 
-  String _fieldLabel(String field) {
-    final meta = _meta;
-    if (meta != null) {
-      for (final f in meta.fields) {
-        if (f.name == field && f.label.isNotEmpty) return f.label;
-      }
-    }
-    const labels = {
-      'name': '名称',
-      'title': '标题',
-      'contractName': '合同名称',
-      'amount': '金额',
-      'status': '状态',
-      'dueAt': '到期时间',
-      'description': '描述',
-      'note': '备注',
-      'phone': '电话',
-      'email': '邮箱',
-    };
-    return labels[field] ?? field;
+  DateTime? _parseDate(Object? value) {
+    if (value == null) return null;
+    final text = value.toString().trim();
+    if (text.isEmpty) return null;
+    return DateTime.tryParse(text);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<CrmEntityCache>>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final all = snapshot.data!;
-        final items = _filtered(all);
-        final fields = _fieldNames(all);
-        final effectiveColumns = _effectiveColumns(all, fields);
-        final needsSync =
-            !_customized &&
-            _meta != null &&
-            effectiveColumns.length <= 1 &&
-            fields.length > 1;
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 38,
-                      child: TextField(
-                        onChanged: (v) => setState(() => _query = v),
-                        decoration: InputDecoration(
-                          hintText: '搜索名称或字段…',
-                          isDense: true,
-                          prefixIcon: const Icon(Icons.search, size: 18),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    tooltip: '列设置',
-                    onPressed: () => _showColumnSettings(all),
-                    icon: const Icon(Icons.view_column_outlined),
-                  ),
-                  IconButton(
-                    tooltip: '刷新',
-                    onPressed: _reload,
-                    icon: const Icon(Icons.refresh_rounded),
-                  ),
-                  FilledButton.tonalIcon(
-                    onPressed: _saving ? null : () => _create(all),
-                    icon: const Icon(Icons.add_rounded, size: 16),
-                    label: const Text('新增'),
-                  ),
-                  const SizedBox(width: 6),
-                  FilledButton.tonalIcon(
-                    onPressed: _syncing ? null : _sync,
-                    icon: _syncing
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.sync, size: 16),
-                    label: const Text('同步'),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '共 ${items.length} 条'
-                  '${_query.trim().isNotEmpty ? '（过滤）' : ''}'
-                  '${needsSync ? ' · 重新同步可加载全部字段' : ''}'
-                  ' · 双击行编辑 / 右键更多',
-                  style: context.textTheme.bodySmall,
-                ),
-              ),
-            ),
-            const Divider(height: 8),
-            Expanded(
-              child: items.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            crmTypeIcon(widget.objectType),
-                            size: 40,
-                            color: crmTypeColor(widget.objectType),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text('暂无数据，点击「同步」拉取 Twenty 数据'),
-                        ],
-                      ),
-                    )
-                  : CrmSmartTable(
-                      items: items,
-                      fields: effectiveColumns,
-                      onCellChanged: _updateCell,
-                      onOpen: _edit,
-                      onColumnsReordered: _persistColumnOrder,
-                    ),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // ==================== 详情/下钻 ====================
 
-  /// 业务下钻：实体详情 + 相关日记（保留 P2.5 能力）
   void _showDetail(CrmEntityCache item) {
     showDialog<void>(
       context: context,
@@ -890,21 +786,16 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '类型：${crmTypeLabel(item.entityType)}\n'
-                  'Twenty ID：${item.twentyId}\n'
-                  '最近同步：${item.lastSyncedAt.toLocal()}',
-                  style: context.textTheme.bodySmall,
+                  '类型：${crmTypeLabel(widget.objectType)}\n'
+                  '记录 ID：${item.twentyId}\n'
+                  '更新时间：${item.updatedAt.toLocal()}',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const Divider(height: 16),
                 Row(
                   children: [
-                    Text('快照', style: context.textTheme.titleSmall),
+                    Text('详情', style: Theme.of(context).textTheme.titleSmall),
                     const Spacer(),
-                    TextButton.icon(
-                      onPressed: () => _edit(item),
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('编辑'),
-                    ),
                     TextButton.icon(
                       onPressed: () {
                         Get.back();
@@ -921,7 +812,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                 ),
                 SelectableText(_prettyJson(item.dataJson)),
                 const Divider(height: 16),
-                Text('相关日记', style: context.textTheme.titleSmall),
+                Text('相关日记', style: Theme.of(context).textTheme.titleSmall),
                 FutureBuilder<List<Diary>>(
                   future: IsarUtil.searchDiariesByText(item.name),
                   builder: (context, snapshot) {
@@ -937,7 +828,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                         padding: const EdgeInsets.all(8),
                         child: Text(
                           '未找到包含「${item.name}」的日记',
-                          style: context.textTheme.bodySmall,
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
                       );
                     }
@@ -990,5 +881,105 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     } catch (_) {
       return dataJson;
     }
+  }
+
+  // ==================== UI ====================
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<CrmEntityCache>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final all = snapshot.data!;
+        final items = _filtered(all);
+        final fieldNames = _allFieldNames(all);
+        final effectiveColumns = _effectiveColumns(fieldNames);
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 38,
+                      child: TextField(
+                        onChanged: (v) => setState(() => _query = v),
+                        decoration: InputDecoration(
+                          hintText: '搜索名称或字段…',
+                          isDense: true,
+                          prefixIcon: const Icon(Icons.search, size: 18),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    tooltip: '列设置',
+                    onPressed: () => _showColumnSettings(all),
+                    icon: const Icon(Icons.view_column_outlined),
+                  ),
+                  IconButton(
+                    tooltip: '刷新',
+                    onPressed: _reload,
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: _saving ? null : () => _create(all),
+                    icon: const Icon(Icons.add_rounded, size: 16),
+                    label: const Text('新增'),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '共 ${items.length} 条'
+                  '${_query.trim().isNotEmpty ? '（过滤）' : ''}'
+                  ' · 双击行查看详情',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ),
+            const Divider(height: 8),
+            Expanded(
+              child: items.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            crmTypeIcon(widget.objectType),
+                            size: 40,
+                            color: crmTypeColor(widget.objectType),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text('暂无数据，点击「新增」创建'),
+                        ],
+                      ),
+                    )
+                  : CrmSmartTable(
+                      items: items,
+                      fields: effectiveColumns,
+                      onCellChanged: _updateCell,
+                      onOpen: _edit,
+                      onColumnsReordered: _persistColumnOrder,
+                    ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
