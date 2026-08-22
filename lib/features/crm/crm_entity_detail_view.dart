@@ -110,7 +110,8 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
         field: field.name,
         value: raw,
       );
-      _item.data[field.name] = raw;
+      // 写回 dataJson（data 为 getter，直接改 Map 不生效，面板显示会不刷新）
+      _item.setData({..._item.data, field.name: raw});
       if (field.name == _labelField) _item.name = raw;
       if (mounted) {
         setState(() => _editing[field.name] = false);
@@ -132,7 +133,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
         field: field.name,
         value: value,
       );
-      _item.data[field.name] = value;
+      _item.setData({..._item.data, field.name: value});
       if (mounted) {
         setState(() => _editing[field.name] = false);
       }
@@ -154,7 +155,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('字段（点击编辑）', style: Theme.of(context).textTheme.titleSmall),
+            Text('字段', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 6),
             for (final field in editable) _buildFieldTile(field),
           ],
@@ -196,7 +197,6 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ),
-                          const Icon(Icons.edit_outlined, size: 14),
                         ],
                       ),
                     ),
@@ -228,32 +228,20 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     }
     final controller = _controllers[field.name]!;
     final focusNode = _focusNodes[field.name]!;
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            autofocus: true,
-            keyboardType: field.type == 'number'
-                ? const TextInputType.numberWithOptions(decimal: true)
-                : null,
-            decoration: const InputDecoration(
-              isDense: true,
-              hintText: '输入后回车保存',
-            ),
-            onSubmitted: (_) {
-              focusNode.unfocus();
-              _commit(field);
-            },
-          ),
-        ),
-        IconButton(
-          tooltip: '保存',
-          icon: const Icon(Icons.check_rounded, size: 18),
-          onPressed: () => _commit(field),
-        ),
-      ],
+    return TextField(
+      controller: controller,
+      focusNode: focusNode,
+      autofocus: true,
+      keyboardType: field.type == 'number'
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : null,
+      decoration: const InputDecoration(
+        isDense: true,
+      ),
+      onSubmitted: (_) {
+        focusNode.unfocus();
+        _commit(field);
+      },
     );
   }
 
