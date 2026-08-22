@@ -130,9 +130,21 @@ class CrmSyncPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            FilledButton.tonal(
-              onPressed: logic.saveConfig,
-              child: const Text('保存配置'),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.tonal(
+                    onPressed: logic.saveConfig,
+                    child: const Text('保存配置'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: logic.importLocalConfig,
+                  icon: const Icon(Icons.file_open_outlined, size: 16),
+                  label: const Text('导入本地配置'),
+                ),
+              ],
             ),
           ],
         ),
@@ -522,12 +534,33 @@ class CrmSyncController extends GetxController {
       }
       if (token != null) {
         tokenController.text = token;
+      } else {
+        // 安全存储无令牌时尝试从本地配置文件预填（桌面开发环境）
+        try {
+          final local = await TwentyConfig.loadLocal();
+          baseUrlController.text = local.baseUrl;
+          tokenController.text = local.apiToken;
+        } catch (_) {}
       }
     } catch (_) {
       // 安全存储不可用时使用默认地址，页面仍可渲染
       baseUrlController.text = 'http://10.200.245.54:3000';
     }
     _service = null;
+  }
+
+  /// 从 config/twenty.local.json 导入连接配置（桌面开发/CLI 场景）
+  Future<void> importLocalConfig() async {
+    try {
+      final config = await TwentyConfig.loadLocal();
+      baseUrlController.text = config.baseUrl;
+      tokenController.text = config.apiToken;
+      _service = null;
+      await saveConfig();
+      toast.success(message: '已导入本地配置并保存');
+    } catch (e) {
+      toast.error(message: '本地配置文件不可用：$e');
+    }
   }
 
   Future<void> saveConfig() async {

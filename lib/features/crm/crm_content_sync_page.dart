@@ -4,6 +4,7 @@ import 'package:moodiary/features/crm/crm_content_sync_service.dart';
 import 'package:moodiary/features/crm/models/crm_content_link.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
+import 'package:moodiary/features/crm/crm_sync_page.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/secure_storage.dart';
 import 'package:moodiary/utils/notice_util.dart';
@@ -26,11 +27,23 @@ class _CrmContentSyncPageState extends State<CrmContentSyncPage> {
   List<ContentSyncItem> _items = [];
   bool _loaded = false;
   CrmContentSyncResult? _lastResult;
+  bool _configured = false;
 
   @override
   void initState() {
     super.initState();
+    _checkConfig();
     _load();
+  }
+
+  Future<void> _checkConfig() async {
+    final baseUrl = await SecureStorageUtil.getValue('twentyBaseUrl');
+    final token = await SecureStorageUtil.getValue('twentyApiToken');
+    if (mounted) {
+      setState(() {
+        _configured = baseUrl?.isNotEmpty == true && token?.isNotEmpty == true;
+      });
+    }
   }
 
   Future<void> _load() async {
@@ -379,6 +392,31 @@ class _CrmContentSyncPageState extends State<CrmContentSyncPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (!_configured)
+            Card.outlined(
+              color: Theme.of(context).colorScheme.errorContainer
+                  .withValues(alpha: 0.35),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text('尚未配置 Twenty 连接，推送将无法执行。'),
+                    ),
+                    TextButton(
+                      onPressed: () => Get.to(() => const CrmSyncPage()),
+                      child: const Text('去配置'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (!_configured) const SizedBox(height: 12),
           Card.outlined(
             child: Padding(
               padding: const EdgeInsets.all(16),

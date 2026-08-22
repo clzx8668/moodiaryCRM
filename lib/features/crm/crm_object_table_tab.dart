@@ -203,8 +203,17 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
 
   static bool isDisplayField(String key) {
     if (key == 'id' || key == 'name') return false;
-    if (key.endsWith('Id') || key.endsWith('At')) return false;
+    if (key.endsWith('Id')) return false;
     if (key.startsWith('__')) return false;
+    const audit = {
+      'createdAt',
+      'updatedAt',
+      'deletedAt',
+      'lastSyncedAt',
+      'position',
+      'searchVector',
+    };
+    if (audit.contains(key)) return false;
     return true;
   }
 
@@ -743,6 +752,11 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         final items = _filtered(all);
         final fields = _fieldNames(all);
         final effectiveColumns = _effectiveColumns(all, fields);
+        final needsSync =
+            !_customized &&
+            _meta != null &&
+            effectiveColumns.length <= 1 &&
+            fields.length > 1;
         return Column(
           children: [
             Padding(
@@ -805,6 +819,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                 child: Text(
                   '共 ${items.length} 条'
                   '${_query.trim().isNotEmpty ? '（过滤）' : ''}'
+                  '${needsSync ? ' · 重新同步可加载全部字段' : ''}'
                   ' · 双击行编辑 / 右键更多',
                   style: context.textTheme.bodySmall,
                 ),
