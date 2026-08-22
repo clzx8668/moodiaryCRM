@@ -169,17 +169,27 @@ class CrmFieldRegistry {
   /// metadata 类型形态（UPPER_SNAKE，如 TEXT/DATE_TIME/RELATION）
   static final RegExp _metaTypePattern = RegExp(r'^[A-Z0-9_]+$');
 
-  /// 拉取对象元数据（网络优先，失败回退本地缓存）。
+  /// 拉取对象元数据。
+  ///
+  /// [force] = false 时读缓存（内存 → PrefUtil），未缓存才联网（懒初始化）；
+  /// [force] = true 时强制联网刷新并更新缓存（结构同步使用）。
   static Future<CrmObjectMeta?> fetchObjectMeta(
     TwentyApiClient client,
-    String objectKey,
-  ) async {
-    final cachedMeta = _cache[objectKey];
-    if (cachedMeta != null) return cachedMeta;
+    String objectKey, {
+    bool force = false,
+  }) async {
     final metaName = objectMetaName[objectKey];
-    // v2：避免旧版本缓存的残缺字段列表（schema 合并前）长期生效
     final cacheKey = 'crmFieldMeta_v2_$objectKey';
     if (metaName == null) return null;
+    if (!force) {
+      final cached = _cache[objectKey];
+      if (cached != null) return cached;
+      final persisted = _readCached(cacheKey);
+      if (persisted != null) {
+        _cache[objectKey] = persisted;
+        return persisted;
+      }
+    }
     try {
       final data = await client.metadataGraphql(
         '''
@@ -290,15 +300,18 @@ query ListObjects {
     } catch (_) {
       // 网络失败 → 回退缓存
     }
-    String? cached;
+    return _readCached(cacheKey);
+  }
+
+  static CrmObjectMeta? _readCached(String cacheKey) {
     try {
-      cached = PrefUtil.getValue<String>(cacheKey);
+      final cached = PrefUtil.getValue<String>(cacheKey);
+      if (cached != null && cached.isNotEmpty) {
+        return CrmObjectMeta.fromJson(
+          jsonDecode(cached) as Map<String, dynamic>,
+        );
+      }
     } catch (_) {}
-    if (cached != null && cached.isNotEmpty) {
-      try {
-        return CrmObjectMeta.fromJson(jsonDecode(cached) as Map<String, dynamic>);
-      } catch (_) {}
-    }
     return null;
   }
 

@@ -220,7 +220,7 @@ class SettingPage extends StatelessWidget {
               children: [
                 AdaptiveListTile(
                   title: const Text('Twenty CRM 同步'),
-                  subtitle: const Text('智能表格增删改查 · 页面开关 · 内容同步'),
+                  subtitle: const Text('结构/数据/全量三类同步 · 页面开关 · 内容同步'),
                   leading: const Icon(Icons.business_rounded),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   isFirst: true,

@@ -1,4 +1,5 @@
 import 'package:moodiary/features/crm/crm_field_registry.dart';
+import 'package:moodiary/features/crm/crm_structure_sync_service.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/twenty_api.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
@@ -34,6 +35,17 @@ class CrmSyncResult {
   String toString() =>
       'CrmSyncResult(syncedAt: $syncedAt, totalPulled: $totalPulled, '
       'byObject: $pulledByObject)';
+}
+
+/// 全量同步结果（结构 + 数据记录）
+class FullSyncResult {
+  final StructureSyncResult structure;
+  final CrmSyncResult data;
+
+  const FullSyncResult({required this.structure, required this.data});
+
+  @override
+  String toString() => '结构[$structure] · 数据($data)';
 }
 
 /// 同步对账结果（架构文档"五、设置模块-同步对账"）
@@ -147,6 +159,8 @@ class CrmSyncService {
   Future<CrmSyncResult> fullPull({
     Set<String>? objects,
   }) async {
+    // 数据拉取前按需确保结构已同步（仅初始化/版本升级时执行，非每次）
+    await CrmStructureSyncService(client: client).ensureSynced();
     final targets = objects ??
         {...defaultObjects, ...customObjects, ...genericObjects};
     final pulledByObject = <String, int>{};
@@ -181,9 +195,18 @@ class CrmSyncService {
     return result;
   }
 
+  /// 全量同步 = 结构同步 + 数据记录同步
+  Future<FullSyncResult> fullSync() async {
+    final structure = await CrmStructureSyncService(
+      client: client,
+    ).syncStructure();
+    final data = await fullPull();
+    return FullSyncResult(structure: structure, data: data);
+  }
+
   /// 拉取单个对象并 upsert 本地缓存
   Future<int> pullObject(String object) async {
-    // 优先按 Twenty 元数据拉取完整可展示字段（默认列因此能显示多列）
+    // 使用本地结构缓存拉取完整可展示字段（不触发 metadata 网络请求）
     final meta = await CrmFieldRegistry.fetchObjectMeta(client, object);
     var fields = meta == null
         ? <String>[]

@@ -4,6 +4,7 @@ import 'package:moodiary/features/crm/crm_content_sync_page.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/crm_sync_page.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
+import 'package:moodiary/features/crm/crm_structure_sync_service.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
 import 'package:moodiary/persistence/secure_storage.dart';
 import 'package:moodiary/utils/notice_util.dart';
@@ -40,6 +41,29 @@ class _CrmHomePageState extends State<CrmHomePage> {
         _loaded = true;
         _configured = baseUrl?.isNotEmpty == true && token?.isNotEmpty == true;
       });
+      if (_configured) {
+        // 初始化/结构版本升级时后台自动同步结构（不阻塞 UI）
+        _ensureStructure();
+      }
+    }
+  }
+
+  Future<void> _ensureStructure() async {
+    try {
+      final baseUrl = await SecureStorageUtil.getValue('twentyBaseUrl');
+      final token = await SecureStorageUtil.getValue('twentyApiToken');
+      await CrmStructureSyncService(
+        client: CrmSyncService.fromConfig(
+          TwentyConfig(
+            baseUrl: baseUrl?.isNotEmpty == true
+                ? baseUrl!
+                : 'http://10.200.245.54:3000',
+            apiToken: token ?? '',
+          ),
+        ).client,
+      ).ensureSynced();
+    } catch (_) {
+      // 后台结构同步失败不打扰（可手动触发）
     }
   }
 
@@ -57,11 +81,11 @@ class _CrmHomePageState extends State<CrmHomePage> {
           apiToken: token ?? '',
         ),
       );
-      final result = await service.fullPull();
-      toast.success(message: '同步完成：${result.totalPulled} 条');
+      final result = await service.fullSync();
+      toast.success(message: '全量同步完成：$result');
       setState(() => _reloadToken++); // 触发各 Tab 重新加载
     } catch (e) {
-      toast.error(message: '同步失败：$e');
+      toast.error(message: '全量同步失败：$e');
     } finally {
       if (mounted) setState(() => _syncing = false);
     }
