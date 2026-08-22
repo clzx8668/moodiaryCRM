@@ -65,6 +65,7 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
           if (widget.objectType == 'account') _buildAccountDrilldown(),
           if (widget.objectType == 'opportunity') _buildOpportunityDrilldown(),
           if (widget.objectType == 'contract') _buildContractItems(),
+          if (widget.objectType == 'contract') _buildContractFinance(),
           if (widget.objectType == 'quote') _buildQuoteItems(),
           const SizedBox(height: 16),
           _buildRelatedDiaries(),
@@ -331,6 +332,95 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
                       ),
                       trailing: Text('¥${item.amount.toStringAsFixed(2)}'),
                     ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContractFinance() {
+    return FutureBuilder<List<Object>>(
+      future: () async {
+        final id = widget.item.twentyId;
+        final plans = await _repo.listPaymentPlans(contractId: id);
+        final payments = await _repo.listPayments(contractId: id);
+        final invoices = await _repo.listInvoices(contractId: id);
+        return <Object>[...plans, ...payments, ...invoices];
+      }(),
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? const [];
+        final plans = items.whereType<LocalPaymentPlan>().toList();
+        final payments = items.whereType<LocalPayment>().toList();
+        final invoices = items.whereType<LocalInvoice>().toList();
+        final paid = payments.fold<double>(0, (s, p) => s + p.amount);
+        final invoiced = invoices.fold<double>(0, (s, i) => s + i.amount);
+        return Card.outlined(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '财务（已回款 ¥${paid.toStringAsFixed(2)} · 已开票 ¥${invoiced.toStringAsFixed(2)}）',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 6),
+                if (plans.isNotEmpty) ...[
+                  Text(
+                    '回款计划',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
+                  for (final plan in plans)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(plan.planName),
+                      subtitle: Text(
+                        '¥${plan.planAmount.toStringAsFixed(2)}'
+                        ' · 已收 ¥${plan.paidAmount.toStringAsFixed(2)}'
+                        ' · ${plan.status}',
+                      ),
+                    ),
+                ],
+                if (payments.isNotEmpty) ...[
+                  Text(
+                    '回款记录',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
+                  for (final payment in payments)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        '¥${payment.amount.toStringAsFixed(2)} · ${payment.paymentDate.toLocal().toString().substring(0, 10)}',
+                      ),
+                      subtitle: Text(payment.method),
+                    ),
+                ],
+                if (invoices.isNotEmpty) ...[
+                  Text(
+                    '发票',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
+                  for (final invoice in invoices)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        '${invoice.invoiceNo.isEmpty ? '（未编号）' : invoice.invoiceNo} · ¥${invoice.amount.toStringAsFixed(2)}',
+                      ),
+                      subtitle: Text('${invoice.type} · ${invoice.status}'),
+                    ),
+                ],
+                if (items.isEmpty) const Text('暂无财务记录'),
               ],
             ),
           ),

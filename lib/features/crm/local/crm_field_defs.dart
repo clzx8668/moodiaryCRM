@@ -26,6 +26,9 @@ const Map<String, String> kLocalLabelFields = {
   'contract': 'name',
   'product': 'name',
   'quote': 'quoteNo',
+  'paymentPlan': 'planName',
+  'payment': 'paymentDate',
+  'invoice': 'invoiceNo',
 };
 
 /// 商机阶段（doc 枚举键，先以中文标签存储展示；S6 看板再做键值化）
@@ -169,6 +172,53 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('createdAt', '创建时间', type: 'date'),
     LocalObjectField('updatedAt', '更新时间', type: 'date'),
   ],
+  'paymentPlan': [
+    LocalObjectField('planName', '期次名称'),
+    LocalObjectField('contract', '合同', type: 'relation'),
+    LocalObjectField('planAmount', '计划金额（元）', type: 'number'),
+    LocalObjectField('paidAmount', '已收金额（元）', type: 'number'),
+    LocalObjectField('planDate', '计划回款日期', type: 'date'),
+    LocalObjectField('status', '状态', type: 'select', options: [
+      'pending',
+      'partial',
+      'completed',
+      'overdue',
+    ]),
+  ],
+  'payment': [
+    LocalObjectField('paymentDate', '回款日期', type: 'date'),
+    LocalObjectField('contract', '合同', type: 'relation'),
+    LocalObjectField('plan', '回款计划', type: 'relation'),
+    LocalObjectField('amount', '金额（元）', type: 'number'),
+    LocalObjectField('method', '方式', type: 'select', options: [
+      'cash',
+      'transfer',
+      'check',
+      'wechat',
+      'alipay',
+    ]),
+    LocalObjectField('note', '备注', type: 'textarea'),
+  ],
+  'invoice': [
+    LocalObjectField('invoiceNo', '发票号'),
+    LocalObjectField('contract', '合同', type: 'relation'),
+    LocalObjectField('type', '类型', type: 'select', options: [
+      'vat_special',
+      'vat_normal',
+      'electronic',
+    ]),
+    LocalObjectField('amount', '开票金额（元）', type: 'number'),
+    LocalObjectField('taxRate', '税率', type: 'number'),
+    LocalObjectField('issueDate', '开票日期', type: 'date'),
+    LocalObjectField('status', '状态', type: 'select', options: [
+      'pending',
+      'issued',
+      'delivered',
+      'void',
+    ]),
+    LocalObjectField('receiverName', '收票人'),
+    LocalObjectField('note', '备注', type: 'textarea'),
+  ],
 };
 
 /// 基础对象字段的展示值格式化（typed → data map）
@@ -292,4 +342,48 @@ Map<String, dynamic> quoteToDataMap(
   'note': q.note,
   'createdAt': q.createdAt.toIso8601String(),
   'updatedAt': q.updatedAt.toIso8601String(),
+};
+
+Map<String, dynamic> paymentPlanToDataMap(
+  LocalPaymentPlan p, {
+  String? contractName,
+}) => {
+  'planName': p.planName,
+  'contractId': p.contractId,
+  'contract': contractName == null ? p.contractId : {'name': contractName},
+  'planAmount': p.planAmount,
+  'paidAmount': p.paidAmount,
+  'planDate': p.planDate.toIso8601String(),
+  'status': p.status,
+};
+
+Map<String, dynamic> paymentToDataMap(
+  LocalPayment p, {
+  String? contractName,
+  String? planName,
+}) => {
+  'paymentDate': p.paymentDate.toIso8601String(),
+  'contractId': p.contractId,
+  'contract': contractName == null ? p.contractId : {'name': contractName},
+  'planId': p.planId,
+  'plan': planName == null ? p.planId : {'name': planName},
+  'amount': p.amount,
+  'method': p.method,
+  'note': p.note,
+};
+
+Map<String, dynamic> invoiceToDataMap(
+  LocalInvoice i, {
+  String? contractName,
+}) => {
+  'invoiceNo': i.invoiceNo,
+  'contractId': i.contractId,
+  'contract': contractName == null ? i.contractId : {'name': contractName},
+  'type': i.type,
+  'amount': i.amount,
+  'taxRate': i.taxRate,
+  'issueDate': i.issueDate?.toIso8601String(),
+  'status': i.status,
+  'receiverName': i.receiverName,
+  'note': i.note,
 };

@@ -527,6 +527,224 @@ class CrmLocalRepository {
     }
   }
 
+  // ==================== 回款计划 / 回款 / 发票 ====================
+
+  Future<List<LocalPaymentPlan>> listPaymentPlans({String? contractId}) async {
+    final query = db.select(db.crmPaymentPlans);
+    if (contractId != null) {
+      query.where((t) => t.contractId.equals(contractId));
+    }
+    query.orderBy([(t) => OrderingTerm.asc(t.planDate)]);
+    final rows = await query.get();
+    return rows.map(_paymentPlanFromRow).toList();
+  }
+
+  Future<LocalPaymentPlan> createPaymentPlan(LocalPaymentPlan plan) async {
+    final entity = plan..id = plan.id.isEmpty ? const Uuid().v7() : plan.id;
+    await db.into(db.crmPaymentPlans).insert(_paymentPlanCompanion(entity));
+    return entity;
+  }
+
+  Future<LocalPaymentPlan?> getPaymentPlan(String id) async {
+    final row = await (db.select(db.crmPaymentPlans)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _paymentPlanFromRow(row);
+  }
+
+  Future<LocalPaymentPlan> updatePaymentPlan(LocalPaymentPlan plan) async {
+    await (db.update(db.crmPaymentPlans)
+          ..where((t) => t.id.equals(plan.id)))
+        .write(_paymentPlanCompanion(plan));
+    return plan;
+  }
+
+  Future<void> deletePaymentPlan(String id) async {
+    await (db.delete(db.crmPaymentPlans)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<List<LocalPayment>> listPayments({String? contractId}) async {
+    final query = db.select(db.crmPayments);
+    if (contractId != null) {
+      query.where((t) => t.contractId.equals(contractId));
+    }
+    query.orderBy([(t) => OrderingTerm.desc(t.paymentDate)]);
+    final rows = await query.get();
+    return rows.map(_paymentFromRow).toList();
+  }
+
+  Future<LocalPayment> createPayment(LocalPayment payment) async {
+    final entity = payment
+      ..id = payment.id.isEmpty ? const Uuid().v7() : payment.id;
+    await db.transaction(() async {
+      await db.into(db.crmPayments).insert(_paymentCompanion(entity));
+      await _recalcContractPaid(entity.contractId);
+      if (entity.planId != null) await _recalcPlanPaid(entity.planId!);
+    });
+    return entity;
+  }
+
+  Future<LocalPayment?> getPayment(String id) async {
+    final row = await (db.select(db.crmPayments)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _paymentFromRow(row);
+  }
+
+  Future<LocalPayment> updatePayment(LocalPayment payment) async {
+    await (db.update(db.crmPayments)..where((t) => t.id.equals(payment.id)))
+        .write(_paymentCompanion(payment));
+    await _recalcContractPaid(payment.contractId);
+    if (payment.planId != null) await _recalcPlanPaid(payment.planId!);
+    return payment;
+  }
+
+  Future<void> deletePayment(String id) async {
+    final row = await (db.select(db.crmPayments)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (row == null) return;
+    await db.transaction(() async {
+      await (db.delete(db.crmPayments)..where((t) => t.id.equals(id))).go();
+      await _recalcContractPaid(row.contractId);
+      if (row.planId != null) await _recalcPlanPaid(row.planId!);
+    });
+  }
+
+  Future<void> _recalcContractPaid(String contractId) async {
+    final payments = await listPayments(contractId: contractId);
+    final total = payments.fold<double>(0, (s, p) => s + p.amount);
+    final contract = await getContract(contractId);
+    if (contract != null && contract.paidAmount != total) {
+      contract.paidAmount = total;
+      await updateContract(contract);
+    }
+  }
+
+  Future<void> _recalcPlanPaid(String planId) async {
+    final row = await (db.select(db.crmPaymentPlans)
+          ..where((t) => t.id.equals(planId)))
+        .getSingleOrNull();
+    if (row == null) return;
+    final payments = await (db.select(db.crmPayments)
+          ..where((t) => t.planId.equals(planId)))
+        .get();
+    final paid = payments.fold<double>(0, (s, p) => s + p.amount);
+    final today = DateTime.now();
+    var status = 'pending';
+    if (paid >= row.planAmount && row.planAmount > 0) {
+      status = 'completed';
+    } else if (paid > 0) {
+      status = 'partial';
+    } else if (row.planDate.isBefore(DateTime(today.year, today.month, today.day))) {
+      status = 'overdue';
+    }
+    final plan = _paymentPlanFromRow(row);
+    plan.paidAmount = paid;
+    plan.status = status;
+    await updatePaymentPlan(plan);
+  }
+
+  Future<List<LocalInvoice>> listInvoices({String? contractId}) async {
+    final query = db.select(db.crmInvoices);
+    if (contractId != null) {
+      query.where((t) => t.contractId.equals(contractId));
+    }
+    query.orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
+    final rows = await query.get();
+    return rows.map(_invoiceFromRow).toList();
+  }
+
+  Future<LocalInvoice> createInvoice(LocalInvoice invoice) async {
+    final entity = invoice
+      ..id = invoice.id.isEmpty ? const Uuid().v7() : invoice.id;
+    await db.transaction(() async {
+      await db.into(db.crmInvoices).insert(_invoiceCompanion(entity));
+      await _recalcContractInvoiced(entity.contractId);
+    });
+    return entity;
+  }
+
+  Future<LocalInvoice?> getInvoice(String id) async {
+    final row = await (db.select(db.crmInvoices)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _invoiceFromRow(row);
+  }
+
+  Future<LocalInvoice> updateInvoice(LocalInvoice invoice) async {
+    await (db.update(db.crmInvoices)..where((t) => t.id.equals(invoice.id)))
+        .write(_invoiceCompanion(invoice));
+    await _recalcContractInvoiced(invoice.contractId);
+    return invoice;
+  }
+
+  Future<void> deleteInvoice(String id) async {
+    final row = await (db.select(db.crmInvoices)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (row == null) return;
+    await db.transaction(() async {
+      await (db.delete(db.crmInvoices)..where((t) => t.id.equals(id))).go();
+      await _recalcContractInvoiced(row.contractId);
+    });
+  }
+
+  Future<void> _recalcContractInvoiced(String contractId) async {
+    final invoices = await listInvoices(contractId: contractId);
+    final total = invoices
+        .where((i) => i.status != 'void')
+        .fold<double>(0, (s, i) => s + i.amount);
+    final contract = await getContract(contractId);
+    if (contract != null && contract.invoicedAmount != total) {
+      contract.invoicedAmount = total;
+      await updateContract(contract);
+    }
+  }
+
+  /// 到期提醒聚合：回款到期（7 天内未完成）/ 合同到期（30 天内）。
+  Future<List<CrmReminderItem>> dueReminders() async {
+    final today = DateTime.now();
+    final in7 = today.add(const Duration(days: 7));
+    final in30 = today.add(const Duration(days: 30));
+    final result = <CrmReminderItem>[];
+
+    final plans = await listPaymentPlans();
+    for (final plan in plans) {
+      if (plan.status == 'completed') continue;
+      if (!plan.planDate.isBefore(in7)) continue;
+      final contract = await getContract(plan.contractId);
+      result.add(
+        CrmReminderItem(
+          type: 'paymentDue',
+          title: '回款到期：${contract?.name ?? plan.contractId} · ${plan.planName}',
+          at: plan.planDate,
+          entityId: plan.contractId,
+        ),
+      );
+    }
+
+    final contracts = await listContracts();
+    for (final contract in contracts) {
+      final end = contract.endDate;
+      if (end == null || contract.status == 'completed' || contract.status == 'terminated') {
+        continue;
+      }
+      if (!end.isBefore(in30)) continue;
+      result.add(
+        CrmReminderItem(
+          type: 'contractExpire',
+          title: '合同到期：${contract.name}',
+          at: end,
+          entityId: contract.id,
+        ),
+      );
+    }
+
+    result.sort((a, b) => a.at.compareTo(b.at));
+    return result;
+  }
+
   /// 单号生成：前缀 + YYYYMMDD + 当日自增 3 位（QT/HT/AS）
   Future<String> _nextSequenceNo(String prefix) async {
     final now = DateTime.now();
@@ -1085,4 +1303,83 @@ class CrmLocalRepository {
         warrantyMonths: row.warrantyMonths,
         sortOrder: row.sortOrder,
       );
+
+  CrmPaymentPlansCompanion _paymentPlanCompanion(LocalPaymentPlan p) {
+    return CrmPaymentPlansCompanion(
+      id: Value(p.id),
+      contractId: Value(p.contractId),
+      planName: Value(p.planName),
+      planAmount: Value(p.planAmount),
+      paidAmount: Value(p.paidAmount),
+      planDate: Value(p.planDate),
+      status: Value(p.status),
+    );
+  }
+
+  LocalPaymentPlan _paymentPlanFromRow(CrmPaymentPlanRow row) =>
+      LocalPaymentPlan(
+        id: row.id,
+        contractId: row.contractId,
+        planName: row.planName,
+        planAmount: row.planAmount,
+        paidAmount: row.paidAmount,
+        planDate: row.planDate,
+        status: row.status,
+      );
+
+  CrmPaymentsCompanion _paymentCompanion(LocalPayment p) {
+    return CrmPaymentsCompanion(
+      id: Value(p.id),
+      contractId: Value(p.contractId),
+      planId: Value(p.planId),
+      amount: Value(p.amount),
+      paymentDate: Value(p.paymentDate),
+      method: Value(p.method),
+      invoiceId: Value(p.invoiceId),
+      note: Value(p.note),
+      createdAt: Value(p.createdAt),
+    );
+  }
+
+  LocalPayment _paymentFromRow(CrmPaymentRow row) => LocalPayment(
+    id: row.id,
+    contractId: row.contractId,
+    planId: row.planId,
+    amount: row.amount,
+    paymentDate: row.paymentDate,
+    method: row.method,
+    invoiceId: row.invoiceId,
+    note: row.note,
+    createdAt: row.createdAt,
+  );
+
+  CrmInvoicesCompanion _invoiceCompanion(LocalInvoice i) {
+    return CrmInvoicesCompanion(
+      id: Value(i.id),
+      contractId: Value(i.contractId),
+      invoiceNo: Value(i.invoiceNo),
+      type: Value(i.type),
+      amount: Value(i.amount),
+      taxRate: Value(i.taxRate),
+      issueDate: Value(i.issueDate),
+      status: Value(i.status),
+      receiverName: Value(i.receiverName),
+      note: Value(i.note),
+      createdAt: Value(i.createdAt),
+    );
+  }
+
+  LocalInvoice _invoiceFromRow(CrmInvoiceRow row) => LocalInvoice(
+    id: row.id,
+    contractId: row.contractId,
+    invoiceNo: row.invoiceNo,
+    type: row.type,
+    amount: row.amount,
+    taxRate: row.taxRate,
+    issueDate: row.issueDate,
+    status: row.status,
+    receiverName: row.receiverName,
+    note: row.note,
+    createdAt: row.createdAt,
+  );
 }

@@ -24,6 +24,9 @@ const List<CrmTabDef> kCrmTabs = [
   CrmTabDef('contract', '合同'),
   CrmTabDef('product', '产品'),
   CrmTabDef('quote', '报价'),
+  CrmTabDef('paymentPlan', '回款计划'),
+  CrmTabDef('payment', '回款'),
+  CrmTabDef('invoice', '发票'),
 ];
 
 String crmTypeLabel(String type) {
@@ -34,6 +37,9 @@ String crmTypeLabel(String type) {
     'contract': '合同',
     'product': '产品',
     'quote': '报价',
+    'paymentPlan': '回款计划',
+    'payment': '回款',
+    'invoice': '发票',
   };
   return labels[type] ?? type;
 }
@@ -52,6 +58,12 @@ IconData crmTypeIcon(String type) {
       return Icons.inventory_2_rounded;
     case 'quote':
       return Icons.request_quote_rounded;
+    case 'paymentPlan':
+      return Icons.account_balance_wallet_rounded;
+    case 'payment':
+      return Icons.payments_rounded;
+    case 'invoice':
+      return Icons.receipt_rounded;
     default:
       return Icons.folder_rounded;
   }
@@ -71,6 +83,12 @@ Color crmTypeColor(String type) {
       return Colors.indigo.shade400;
     case 'quote':
       return Colors.amber.shade700;
+    case 'paymentPlan':
+      return Colors.lightBlue.shade400;
+    case 'payment':
+      return Colors.red.shade400;
+    case 'invoice':
+      return Colors.purple.shade400;
     default:
       return Colors.grey;
   }
@@ -253,6 +271,63 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                 ..updatedAt = q.updatedAt,
             )
             .toList();
+      case 'paymentPlan':
+        final plans = await repo.listPaymentPlans();
+        final contractNames = await _contractNameMap();
+        return plans
+            .map(
+              (p) => CrmEntityCache()
+                ..id = p.id
+                ..twentyId = p.id
+                ..entityType = 'paymentPlan'
+                ..name = p.planName.isEmpty ? '（未命名期次）' : p.planName
+                ..setData(
+                  paymentPlanToDataMap(
+                    p,
+                    contractName: contractNames[p.contractId],
+                  ),
+                )
+                ..updatedAt = p.planDate,
+            )
+            .toList();
+      case 'payment':
+        final payments = await repo.listPayments();
+        final contractNames = await _contractNameMap();
+        final planNames = await _planNameMap();
+        return payments
+            .map(
+              (p) => CrmEntityCache()
+                ..id = p.id
+                ..twentyId = p.id
+                ..entityType = 'payment'
+                ..name =
+                    '¥${p.amount.toStringAsFixed(2)} · ${p.paymentDate.toLocal().toString().substring(0, 10)}'
+                ..setData(
+                  paymentToDataMap(
+                    p,
+                    contractName: contractNames[p.contractId],
+                    planName: planNames[p.planId],
+                  ),
+                )
+                ..updatedAt = p.paymentDate,
+            )
+            .toList();
+      case 'invoice':
+        final invoices = await repo.listInvoices();
+        final contractNames = await _contractNameMap();
+        return invoices
+            .map(
+              (i) => CrmEntityCache()
+                ..id = i.id
+                ..twentyId = i.id
+                ..entityType = 'invoice'
+                ..name = i.invoiceNo.isEmpty ? '（未编号发票）' : i.invoiceNo
+                ..setData(
+                  invoiceToDataMap(i, contractName: contractNames[i.contractId]),
+                )
+                ..updatedAt = i.createdAt,
+            )
+            .toList();
       default:
         // 自定义对象
         final objectId = widget.objectType.startsWith('custom:')
@@ -292,6 +367,22 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     final map = <String?, String>{};
     for (final o in await _repo.listOpportunities()) {
       map[o.id] = o.name;
+    }
+    return map;
+  }
+
+  Future<Map<String?, String>> _contractNameMap() async {
+    final map = <String?, String>{};
+    for (final c in await _repo.listContracts()) {
+      map[c.id] = c.name;
+    }
+    return map;
+  }
+
+  Future<Map<String?, String>> _planNameMap() async {
+    final map = <String?, String>{};
+    for (final p in await _repo.listPaymentPlans()) {
+      map[p.id] = p.planName;
     }
     return map;
   }
@@ -698,6 +789,43 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             note: data['note']?.toString() ?? '',
           ),
         );
+      case 'paymentPlan':
+        await repo.createPaymentPlan(
+          LocalPaymentPlan(
+            id: '',
+            contractId: '',
+            planName: data['planName']?.toString() ?? '',
+            planAmount: _toDouble(data['planAmount']) ?? 0,
+            planDate: _parseDate(data['planDate']) ?? DateTime.now(),
+            status: data['status']?.toString() ?? 'pending',
+          ),
+        );
+      case 'payment':
+        await repo.createPayment(
+          LocalPayment(
+            id: '',
+            contractId: '',
+            amount: _toDouble(data['amount']) ?? 0,
+            paymentDate: _parseDate(data['paymentDate']) ?? DateTime.now(),
+            method: data['method']?.toString() ?? 'transfer',
+            note: data['note']?.toString() ?? '',
+          ),
+        );
+      case 'invoice':
+        await repo.createInvoice(
+          LocalInvoice(
+            id: '',
+            contractId: '',
+            invoiceNo: data['invoiceNo']?.toString() ?? '',
+            type: data['type']?.toString() ?? 'vat_normal',
+            amount: _toDouble(data['amount']) ?? 0,
+            taxRate: _toDouble(data['taxRate']) ?? 0.13,
+            issueDate: _parseDate(data['issueDate']),
+            status: data['status']?.toString() ?? 'pending',
+            receiverName: data['receiverName']?.toString() ?? '',
+            note: data['note']?.toString() ?? '',
+          ),
+        );
       default:
         final objectId = widget.objectType.startsWith('custom:')
             ? widget.objectType.substring(7)
@@ -750,6 +878,21 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         if (q == null) return;
         _assign(q, field, value);
         await repo.updateQuote(q);
+      case 'paymentPlan':
+        final p = await repo.getPaymentPlan(id);
+        if (p == null) return;
+        _assign(p, field, value);
+        await repo.updatePaymentPlan(p);
+      case 'payment':
+        final p = await repo.getPayment(id);
+        if (p == null) return;
+        _assign(p, field, value);
+        await repo.updatePayment(p);
+      case 'invoice':
+        final i = await repo.getInvoice(id);
+        if (i == null) return;
+        _assign(i, field, value);
+        await repo.updateInvoice(i);
       default:
         final r = await repo.getCustomRecord(id);
         if (r == null) return;
@@ -767,7 +910,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       case 'name':
         entity.name = value?.toString() ?? '';
       case 'type':
-        entity.type = value?.toString() ?? 'company';
+        entity.type = value?.toString() ?? '';
       case 'industry':
         entity.industry = value?.toString() ?? '';
       case 'level':
@@ -852,6 +995,24 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         entity.discountAmount = _toDouble(value) ?? 0;
       case 'validUntil':
         entity.validUntil = _parseDate(value);
+      case 'planName':
+        entity.planName = value?.toString() ?? '';
+      case 'planAmount':
+        entity.planAmount = _toDouble(value) ?? 0;
+      case 'planDate':
+        entity.planDate = _parseDate(value) ?? DateTime.now();
+      case 'paymentDate':
+        entity.paymentDate = _parseDate(value) ?? DateTime.now();
+      case 'method':
+        entity.method = value?.toString() ?? 'transfer';
+      case 'invoiceNo':
+        entity.invoiceNo = value?.toString() ?? '';
+      case 'taxRate':
+        entity.taxRate = _toDouble(value) ?? 0.13;
+      case 'issueDate':
+        entity.issueDate = _parseDate(value);
+      case 'receiverName':
+        entity.receiverName = value?.toString() ?? '';
     }
   }
 

@@ -368,6 +368,61 @@ class CrmContractItems extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 回款计划
+@DataClassName('CrmPaymentPlanRow')
+class CrmPaymentPlans extends Table {
+  TextColumn get id => text()();
+  TextColumn get contractId => text()();
+  TextColumn get planName => text()();
+  RealColumn get planAmount => real().withDefault(const Constant(0))();
+  RealColumn get paidAmount => real().withDefault(const Constant(0))();
+  DateTimeColumn get planDate => dateTime()();
+  /// pending/partial/completed/overdue
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 回款记录
+@DataClassName('CrmPaymentRow')
+class CrmPayments extends Table {
+  TextColumn get id => text()();
+  TextColumn get contractId => text()();
+  TextColumn get planId => text().nullable()();
+  RealColumn get amount => real()();
+  DateTimeColumn get paymentDate => dateTime()();
+  /// cash/transfer/check/wechat/alipay
+  TextColumn get method => text().withDefault(const Constant('transfer'))();
+  TextColumn get invoiceId => text().nullable()();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 发票
+@DataClassName('CrmInvoiceRow')
+class CrmInvoices extends Table {
+  TextColumn get id => text()();
+  TextColumn get contractId => text()();
+  TextColumn get invoiceNo => text().withDefault(const Constant(''))();
+  /// vat_special/vat_normal/electronic
+  TextColumn get type => text().withDefault(const Constant('vat_normal'))();
+  RealColumn get amount => real()();
+  RealColumn get taxRate => real().withDefault(const Constant(0.13))();
+  DateTimeColumn get issueDate => dateTime().nullable()();
+  /// pending/issued/delivered/void
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+  TextColumn get receiverName => text().withDefault(const Constant(''))();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// 自定义数据对象定义（元数据驱动，类似 Twenty metadata）
 @DataClassName('CrmObjectDefRow')
 class CrmObjectDefs extends Table {
@@ -514,6 +569,9 @@ class AiChatMessages extends Table {
     CrmQuotes,
     CrmQuoteItems,
     CrmContractItems,
+    CrmPaymentPlans,
+    CrmPayments,
+    CrmInvoices,
     CrmObjectDefs,
     CrmCustomRecords,
     CrmEntityLinks,
@@ -528,7 +586,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -584,6 +642,13 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(db.crmQuotes);
         await m.createTable(db.crmQuoteItems);
         await m.createTable(db.crmContractItems);
+      }
+      // v10 → v11：回款计划/回款记录/发票
+      if (from < 11) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.crmPaymentPlans);
+        await m.createTable(db.crmPayments);
+        await m.createTable(db.crmInvoices);
       }
     },
     beforeOpen: (details) async {

@@ -225,4 +225,65 @@ void main() {
       throwsA(isA<StateError>()),
     );
   });
+
+  test('回款/发票自动维护合同冗余金额与计划状态', () async {
+    final contract = await repo.createContract(
+      LocalContract(id: '', name: '财务合同', totalAmount: 300000),
+    );
+    final plan = await repo.createPaymentPlan(
+      LocalPaymentPlan(
+        id: '',
+        contractId: contract.id,
+        planName: '首付款',
+        planAmount: 100000,
+        planDate: DateTime.now().add(const Duration(days: 3)),
+      ),
+    );
+    await repo.createPayment(
+      LocalPayment(
+        id: '',
+        contractId: contract.id,
+        planId: plan.id,
+        amount: 100000,
+        method: 'transfer',
+      ),
+    );
+    // 合同已回款冗余 + 计划状态 completed
+    expect((await repo.getContract(contract.id))?.paidAmount, 100000);
+    expect((await repo.getPaymentPlan(plan.id))?.status, 'completed');
+    expect((await repo.getPaymentPlan(plan.id))?.paidAmount, 100000);
+
+    await repo.createInvoice(
+      LocalInvoice(id: '', contractId: contract.id, amount: 50000, status: 'issued'),
+    );
+    expect((await repo.getContract(contract.id))?.invoicedAmount, 50000);
+
+    // 删除回款 → 冗余回退
+    final payments = await repo.listPayments(contractId: contract.id);
+    await repo.deletePayment(payments.first.id);
+    expect((await repo.getContract(contract.id))?.paidAmount, 0);
+  });
+
+  test('到期提醒聚合回款与合同', () async {
+    final contract = await repo.createContract(
+      LocalContract(
+        id: '',
+        name: '临期合同',
+        status: 'active',
+        endDate: DateTime.now().add(const Duration(days: 10)),
+      ),
+    );
+    await repo.createPaymentPlan(
+      LocalPaymentPlan(
+        id: '',
+        contractId: contract.id,
+        planName: '尾款',
+        planAmount: 5000,
+        planDate: DateTime.now().add(const Duration(days: 2)),
+      ),
+    );
+    final reminders = await repo.dueReminders();
+    expect(reminders.any((r) => r.type == 'paymentDue'), isTrue);
+    expect(reminders.any((r) => r.type == 'contractExpire'), isTrue);
+  });
 }

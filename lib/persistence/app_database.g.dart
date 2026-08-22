@@ -10440,6 +10440,1678 @@ class CrmContractItemsCompanion extends UpdateCompanion<CrmContractItemRow> {
   }
 }
 
+class $CrmPaymentPlansTable extends CrmPaymentPlans
+    with TableInfo<$CrmPaymentPlansTable, CrmPaymentPlanRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmPaymentPlansTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contractIdMeta = const VerificationMeta(
+    'contractId',
+  );
+  @override
+  late final GeneratedColumn<String> contractId = GeneratedColumn<String>(
+    'contract_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _planNameMeta = const VerificationMeta(
+    'planName',
+  );
+  @override
+  late final GeneratedColumn<String> planName = GeneratedColumn<String>(
+    'plan_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _planAmountMeta = const VerificationMeta(
+    'planAmount',
+  );
+  @override
+  late final GeneratedColumn<double> planAmount = GeneratedColumn<double>(
+    'plan_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _paidAmountMeta = const VerificationMeta(
+    'paidAmount',
+  );
+  @override
+  late final GeneratedColumn<double> paidAmount = GeneratedColumn<double>(
+    'paid_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _planDateMeta = const VerificationMeta(
+    'planDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> planDate = GeneratedColumn<DateTime>(
+    'plan_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    contractId,
+    planName,
+    planAmount,
+    paidAmount,
+    planDate,
+    status,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_payment_plans';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmPaymentPlanRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('contract_id')) {
+      context.handle(
+        _contractIdMeta,
+        contractId.isAcceptableOrUnknown(data['contract_id']!, _contractIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contractIdMeta);
+    }
+    if (data.containsKey('plan_name')) {
+      context.handle(
+        _planNameMeta,
+        planName.isAcceptableOrUnknown(data['plan_name']!, _planNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_planNameMeta);
+    }
+    if (data.containsKey('plan_amount')) {
+      context.handle(
+        _planAmountMeta,
+        planAmount.isAcceptableOrUnknown(data['plan_amount']!, _planAmountMeta),
+      );
+    }
+    if (data.containsKey('paid_amount')) {
+      context.handle(
+        _paidAmountMeta,
+        paidAmount.isAcceptableOrUnknown(data['paid_amount']!, _paidAmountMeta),
+      );
+    }
+    if (data.containsKey('plan_date')) {
+      context.handle(
+        _planDateMeta,
+        planDate.isAcceptableOrUnknown(data['plan_date']!, _planDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_planDateMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmPaymentPlanRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmPaymentPlanRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      contractId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contract_id'],
+      )!,
+      planName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plan_name'],
+      )!,
+      planAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}plan_amount'],
+      )!,
+      paidAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}paid_amount'],
+      )!,
+      planDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}plan_date'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmPaymentPlansTable createAlias(String alias) {
+    return $CrmPaymentPlansTable(attachedDatabase, alias);
+  }
+}
+
+class CrmPaymentPlanRow extends DataClass
+    implements Insertable<CrmPaymentPlanRow> {
+  final String id;
+  final String contractId;
+  final String planName;
+  final double planAmount;
+  final double paidAmount;
+  final DateTime planDate;
+
+  /// pending/partial/completed/overdue
+  final String status;
+  const CrmPaymentPlanRow({
+    required this.id,
+    required this.contractId,
+    required this.planName,
+    required this.planAmount,
+    required this.paidAmount,
+    required this.planDate,
+    required this.status,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['contract_id'] = Variable<String>(contractId);
+    map['plan_name'] = Variable<String>(planName);
+    map['plan_amount'] = Variable<double>(planAmount);
+    map['paid_amount'] = Variable<double>(paidAmount);
+    map['plan_date'] = Variable<DateTime>(planDate);
+    map['status'] = Variable<String>(status);
+    return map;
+  }
+
+  CrmPaymentPlansCompanion toCompanion(bool nullToAbsent) {
+    return CrmPaymentPlansCompanion(
+      id: Value(id),
+      contractId: Value(contractId),
+      planName: Value(planName),
+      planAmount: Value(planAmount),
+      paidAmount: Value(paidAmount),
+      planDate: Value(planDate),
+      status: Value(status),
+    );
+  }
+
+  factory CrmPaymentPlanRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmPaymentPlanRow(
+      id: serializer.fromJson<String>(json['id']),
+      contractId: serializer.fromJson<String>(json['contractId']),
+      planName: serializer.fromJson<String>(json['planName']),
+      planAmount: serializer.fromJson<double>(json['planAmount']),
+      paidAmount: serializer.fromJson<double>(json['paidAmount']),
+      planDate: serializer.fromJson<DateTime>(json['planDate']),
+      status: serializer.fromJson<String>(json['status']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'contractId': serializer.toJson<String>(contractId),
+      'planName': serializer.toJson<String>(planName),
+      'planAmount': serializer.toJson<double>(planAmount),
+      'paidAmount': serializer.toJson<double>(paidAmount),
+      'planDate': serializer.toJson<DateTime>(planDate),
+      'status': serializer.toJson<String>(status),
+    };
+  }
+
+  CrmPaymentPlanRow copyWith({
+    String? id,
+    String? contractId,
+    String? planName,
+    double? planAmount,
+    double? paidAmount,
+    DateTime? planDate,
+    String? status,
+  }) => CrmPaymentPlanRow(
+    id: id ?? this.id,
+    contractId: contractId ?? this.contractId,
+    planName: planName ?? this.planName,
+    planAmount: planAmount ?? this.planAmount,
+    paidAmount: paidAmount ?? this.paidAmount,
+    planDate: planDate ?? this.planDate,
+    status: status ?? this.status,
+  );
+  CrmPaymentPlanRow copyWithCompanion(CrmPaymentPlansCompanion data) {
+    return CrmPaymentPlanRow(
+      id: data.id.present ? data.id.value : this.id,
+      contractId: data.contractId.present
+          ? data.contractId.value
+          : this.contractId,
+      planName: data.planName.present ? data.planName.value : this.planName,
+      planAmount: data.planAmount.present
+          ? data.planAmount.value
+          : this.planAmount,
+      paidAmount: data.paidAmount.present
+          ? data.paidAmount.value
+          : this.paidAmount,
+      planDate: data.planDate.present ? data.planDate.value : this.planDate,
+      status: data.status.present ? data.status.value : this.status,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmPaymentPlanRow(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('planName: $planName, ')
+          ..write('planAmount: $planAmount, ')
+          ..write('paidAmount: $paidAmount, ')
+          ..write('planDate: $planDate, ')
+          ..write('status: $status')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    contractId,
+    planName,
+    planAmount,
+    paidAmount,
+    planDate,
+    status,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmPaymentPlanRow &&
+          other.id == this.id &&
+          other.contractId == this.contractId &&
+          other.planName == this.planName &&
+          other.planAmount == this.planAmount &&
+          other.paidAmount == this.paidAmount &&
+          other.planDate == this.planDate &&
+          other.status == this.status);
+}
+
+class CrmPaymentPlansCompanion extends UpdateCompanion<CrmPaymentPlanRow> {
+  final Value<String> id;
+  final Value<String> contractId;
+  final Value<String> planName;
+  final Value<double> planAmount;
+  final Value<double> paidAmount;
+  final Value<DateTime> planDate;
+  final Value<String> status;
+  final Value<int> rowid;
+  const CrmPaymentPlansCompanion({
+    this.id = const Value.absent(),
+    this.contractId = const Value.absent(),
+    this.planName = const Value.absent(),
+    this.planAmount = const Value.absent(),
+    this.paidAmount = const Value.absent(),
+    this.planDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmPaymentPlansCompanion.insert({
+    required String id,
+    required String contractId,
+    required String planName,
+    this.planAmount = const Value.absent(),
+    this.paidAmount = const Value.absent(),
+    required DateTime planDate,
+    this.status = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       contractId = Value(contractId),
+       planName = Value(planName),
+       planDate = Value(planDate);
+  static Insertable<CrmPaymentPlanRow> custom({
+    Expression<String>? id,
+    Expression<String>? contractId,
+    Expression<String>? planName,
+    Expression<double>? planAmount,
+    Expression<double>? paidAmount,
+    Expression<DateTime>? planDate,
+    Expression<String>? status,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (contractId != null) 'contract_id': contractId,
+      if (planName != null) 'plan_name': planName,
+      if (planAmount != null) 'plan_amount': planAmount,
+      if (paidAmount != null) 'paid_amount': paidAmount,
+      if (planDate != null) 'plan_date': planDate,
+      if (status != null) 'status': status,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmPaymentPlansCompanion copyWith({
+    Value<String>? id,
+    Value<String>? contractId,
+    Value<String>? planName,
+    Value<double>? planAmount,
+    Value<double>? paidAmount,
+    Value<DateTime>? planDate,
+    Value<String>? status,
+    Value<int>? rowid,
+  }) {
+    return CrmPaymentPlansCompanion(
+      id: id ?? this.id,
+      contractId: contractId ?? this.contractId,
+      planName: planName ?? this.planName,
+      planAmount: planAmount ?? this.planAmount,
+      paidAmount: paidAmount ?? this.paidAmount,
+      planDate: planDate ?? this.planDate,
+      status: status ?? this.status,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (contractId.present) {
+      map['contract_id'] = Variable<String>(contractId.value);
+    }
+    if (planName.present) {
+      map['plan_name'] = Variable<String>(planName.value);
+    }
+    if (planAmount.present) {
+      map['plan_amount'] = Variable<double>(planAmount.value);
+    }
+    if (paidAmount.present) {
+      map['paid_amount'] = Variable<double>(paidAmount.value);
+    }
+    if (planDate.present) {
+      map['plan_date'] = Variable<DateTime>(planDate.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmPaymentPlansCompanion(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('planName: $planName, ')
+          ..write('planAmount: $planAmount, ')
+          ..write('paidAmount: $paidAmount, ')
+          ..write('planDate: $planDate, ')
+          ..write('status: $status, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmPaymentsTable extends CrmPayments
+    with TableInfo<$CrmPaymentsTable, CrmPaymentRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmPaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contractIdMeta = const VerificationMeta(
+    'contractId',
+  );
+  @override
+  late final GeneratedColumn<String> contractId = GeneratedColumn<String>(
+    'contract_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _planIdMeta = const VerificationMeta('planId');
+  @override
+  late final GeneratedColumn<String> planId = GeneratedColumn<String>(
+    'plan_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _paymentDateMeta = const VerificationMeta(
+    'paymentDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> paymentDate = GeneratedColumn<DateTime>(
+    'payment_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _methodMeta = const VerificationMeta('method');
+  @override
+  late final GeneratedColumn<String> method = GeneratedColumn<String>(
+    'method',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('transfer'),
+  );
+  static const VerificationMeta _invoiceIdMeta = const VerificationMeta(
+    'invoiceId',
+  );
+  @override
+  late final GeneratedColumn<String> invoiceId = GeneratedColumn<String>(
+    'invoice_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    contractId,
+    planId,
+    amount,
+    paymentDate,
+    method,
+    invoiceId,
+    note,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_payments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmPaymentRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('contract_id')) {
+      context.handle(
+        _contractIdMeta,
+        contractId.isAcceptableOrUnknown(data['contract_id']!, _contractIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contractIdMeta);
+    }
+    if (data.containsKey('plan_id')) {
+      context.handle(
+        _planIdMeta,
+        planId.isAcceptableOrUnknown(data['plan_id']!, _planIdMeta),
+      );
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('payment_date')) {
+      context.handle(
+        _paymentDateMeta,
+        paymentDate.isAcceptableOrUnknown(
+          data['payment_date']!,
+          _paymentDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_paymentDateMeta);
+    }
+    if (data.containsKey('method')) {
+      context.handle(
+        _methodMeta,
+        method.isAcceptableOrUnknown(data['method']!, _methodMeta),
+      );
+    }
+    if (data.containsKey('invoice_id')) {
+      context.handle(
+        _invoiceIdMeta,
+        invoiceId.isAcceptableOrUnknown(data['invoice_id']!, _invoiceIdMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmPaymentRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmPaymentRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      contractId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contract_id'],
+      )!,
+      planId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plan_id'],
+      ),
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      paymentDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}payment_date'],
+      )!,
+      method: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}method'],
+      )!,
+      invoiceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}invoice_id'],
+      ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmPaymentsTable createAlias(String alias) {
+    return $CrmPaymentsTable(attachedDatabase, alias);
+  }
+}
+
+class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
+  final String id;
+  final String contractId;
+  final String? planId;
+  final double amount;
+  final DateTime paymentDate;
+
+  /// cash/transfer/check/wechat/alipay
+  final String method;
+  final String? invoiceId;
+  final String note;
+  final DateTime createdAt;
+  const CrmPaymentRow({
+    required this.id,
+    required this.contractId,
+    this.planId,
+    required this.amount,
+    required this.paymentDate,
+    required this.method,
+    this.invoiceId,
+    required this.note,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['contract_id'] = Variable<String>(contractId);
+    if (!nullToAbsent || planId != null) {
+      map['plan_id'] = Variable<String>(planId);
+    }
+    map['amount'] = Variable<double>(amount);
+    map['payment_date'] = Variable<DateTime>(paymentDate);
+    map['method'] = Variable<String>(method);
+    if (!nullToAbsent || invoiceId != null) {
+      map['invoice_id'] = Variable<String>(invoiceId);
+    }
+    map['note'] = Variable<String>(note);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CrmPaymentsCompanion toCompanion(bool nullToAbsent) {
+    return CrmPaymentsCompanion(
+      id: Value(id),
+      contractId: Value(contractId),
+      planId: planId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(planId),
+      amount: Value(amount),
+      paymentDate: Value(paymentDate),
+      method: Value(method),
+      invoiceId: invoiceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(invoiceId),
+      note: Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CrmPaymentRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmPaymentRow(
+      id: serializer.fromJson<String>(json['id']),
+      contractId: serializer.fromJson<String>(json['contractId']),
+      planId: serializer.fromJson<String?>(json['planId']),
+      amount: serializer.fromJson<double>(json['amount']),
+      paymentDate: serializer.fromJson<DateTime>(json['paymentDate']),
+      method: serializer.fromJson<String>(json['method']),
+      invoiceId: serializer.fromJson<String?>(json['invoiceId']),
+      note: serializer.fromJson<String>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'contractId': serializer.toJson<String>(contractId),
+      'planId': serializer.toJson<String?>(planId),
+      'amount': serializer.toJson<double>(amount),
+      'paymentDate': serializer.toJson<DateTime>(paymentDate),
+      'method': serializer.toJson<String>(method),
+      'invoiceId': serializer.toJson<String?>(invoiceId),
+      'note': serializer.toJson<String>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  CrmPaymentRow copyWith({
+    String? id,
+    String? contractId,
+    Value<String?> planId = const Value.absent(),
+    double? amount,
+    DateTime? paymentDate,
+    String? method,
+    Value<String?> invoiceId = const Value.absent(),
+    String? note,
+    DateTime? createdAt,
+  }) => CrmPaymentRow(
+    id: id ?? this.id,
+    contractId: contractId ?? this.contractId,
+    planId: planId.present ? planId.value : this.planId,
+    amount: amount ?? this.amount,
+    paymentDate: paymentDate ?? this.paymentDate,
+    method: method ?? this.method,
+    invoiceId: invoiceId.present ? invoiceId.value : this.invoiceId,
+    note: note ?? this.note,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  CrmPaymentRow copyWithCompanion(CrmPaymentsCompanion data) {
+    return CrmPaymentRow(
+      id: data.id.present ? data.id.value : this.id,
+      contractId: data.contractId.present
+          ? data.contractId.value
+          : this.contractId,
+      planId: data.planId.present ? data.planId.value : this.planId,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      paymentDate: data.paymentDate.present
+          ? data.paymentDate.value
+          : this.paymentDate,
+      method: data.method.present ? data.method.value : this.method,
+      invoiceId: data.invoiceId.present ? data.invoiceId.value : this.invoiceId,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmPaymentRow(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('planId: $planId, ')
+          ..write('amount: $amount, ')
+          ..write('paymentDate: $paymentDate, ')
+          ..write('method: $method, ')
+          ..write('invoiceId: $invoiceId, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    contractId,
+    planId,
+    amount,
+    paymentDate,
+    method,
+    invoiceId,
+    note,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmPaymentRow &&
+          other.id == this.id &&
+          other.contractId == this.contractId &&
+          other.planId == this.planId &&
+          other.amount == this.amount &&
+          other.paymentDate == this.paymentDate &&
+          other.method == this.method &&
+          other.invoiceId == this.invoiceId &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class CrmPaymentsCompanion extends UpdateCompanion<CrmPaymentRow> {
+  final Value<String> id;
+  final Value<String> contractId;
+  final Value<String?> planId;
+  final Value<double> amount;
+  final Value<DateTime> paymentDate;
+  final Value<String> method;
+  final Value<String?> invoiceId;
+  final Value<String> note;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const CrmPaymentsCompanion({
+    this.id = const Value.absent(),
+    this.contractId = const Value.absent(),
+    this.planId = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.paymentDate = const Value.absent(),
+    this.method = const Value.absent(),
+    this.invoiceId = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmPaymentsCompanion.insert({
+    required String id,
+    required String contractId,
+    this.planId = const Value.absent(),
+    required double amount,
+    required DateTime paymentDate,
+    this.method = const Value.absent(),
+    this.invoiceId = const Value.absent(),
+    this.note = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       contractId = Value(contractId),
+       amount = Value(amount),
+       paymentDate = Value(paymentDate),
+       createdAt = Value(createdAt);
+  static Insertable<CrmPaymentRow> custom({
+    Expression<String>? id,
+    Expression<String>? contractId,
+    Expression<String>? planId,
+    Expression<double>? amount,
+    Expression<DateTime>? paymentDate,
+    Expression<String>? method,
+    Expression<String>? invoiceId,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (contractId != null) 'contract_id': contractId,
+      if (planId != null) 'plan_id': planId,
+      if (amount != null) 'amount': amount,
+      if (paymentDate != null) 'payment_date': paymentDate,
+      if (method != null) 'method': method,
+      if (invoiceId != null) 'invoice_id': invoiceId,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmPaymentsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? contractId,
+    Value<String?>? planId,
+    Value<double>? amount,
+    Value<DateTime>? paymentDate,
+    Value<String>? method,
+    Value<String?>? invoiceId,
+    Value<String>? note,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return CrmPaymentsCompanion(
+      id: id ?? this.id,
+      contractId: contractId ?? this.contractId,
+      planId: planId ?? this.planId,
+      amount: amount ?? this.amount,
+      paymentDate: paymentDate ?? this.paymentDate,
+      method: method ?? this.method,
+      invoiceId: invoiceId ?? this.invoiceId,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (contractId.present) {
+      map['contract_id'] = Variable<String>(contractId.value);
+    }
+    if (planId.present) {
+      map['plan_id'] = Variable<String>(planId.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (paymentDate.present) {
+      map['payment_date'] = Variable<DateTime>(paymentDate.value);
+    }
+    if (method.present) {
+      map['method'] = Variable<String>(method.value);
+    }
+    if (invoiceId.present) {
+      map['invoice_id'] = Variable<String>(invoiceId.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmPaymentsCompanion(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('planId: $planId, ')
+          ..write('amount: $amount, ')
+          ..write('paymentDate: $paymentDate, ')
+          ..write('method: $method, ')
+          ..write('invoiceId: $invoiceId, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmInvoicesTable extends CrmInvoices
+    with TableInfo<$CrmInvoicesTable, CrmInvoiceRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmInvoicesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contractIdMeta = const VerificationMeta(
+    'contractId',
+  );
+  @override
+  late final GeneratedColumn<String> contractId = GeneratedColumn<String>(
+    'contract_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _invoiceNoMeta = const VerificationMeta(
+    'invoiceNo',
+  );
+  @override
+  late final GeneratedColumn<String> invoiceNo = GeneratedColumn<String>(
+    'invoice_no',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('vat_normal'),
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _taxRateMeta = const VerificationMeta(
+    'taxRate',
+  );
+  @override
+  late final GeneratedColumn<double> taxRate = GeneratedColumn<double>(
+    'tax_rate',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.13),
+  );
+  static const VerificationMeta _issueDateMeta = const VerificationMeta(
+    'issueDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> issueDate = GeneratedColumn<DateTime>(
+    'issue_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _receiverNameMeta = const VerificationMeta(
+    'receiverName',
+  );
+  @override
+  late final GeneratedColumn<String> receiverName = GeneratedColumn<String>(
+    'receiver_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    contractId,
+    invoiceNo,
+    type,
+    amount,
+    taxRate,
+    issueDate,
+    status,
+    receiverName,
+    note,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_invoices';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmInvoiceRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('contract_id')) {
+      context.handle(
+        _contractIdMeta,
+        contractId.isAcceptableOrUnknown(data['contract_id']!, _contractIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contractIdMeta);
+    }
+    if (data.containsKey('invoice_no')) {
+      context.handle(
+        _invoiceNoMeta,
+        invoiceNo.isAcceptableOrUnknown(data['invoice_no']!, _invoiceNoMeta),
+      );
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('tax_rate')) {
+      context.handle(
+        _taxRateMeta,
+        taxRate.isAcceptableOrUnknown(data['tax_rate']!, _taxRateMeta),
+      );
+    }
+    if (data.containsKey('issue_date')) {
+      context.handle(
+        _issueDateMeta,
+        issueDate.isAcceptableOrUnknown(data['issue_date']!, _issueDateMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('receiver_name')) {
+      context.handle(
+        _receiverNameMeta,
+        receiverName.isAcceptableOrUnknown(
+          data['receiver_name']!,
+          _receiverNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmInvoiceRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmInvoiceRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      contractId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contract_id'],
+      )!,
+      invoiceNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}invoice_no'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      taxRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}tax_rate'],
+      )!,
+      issueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}issue_date'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      receiverName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}receiver_name'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmInvoicesTable createAlias(String alias) {
+    return $CrmInvoicesTable(attachedDatabase, alias);
+  }
+}
+
+class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
+  final String id;
+  final String contractId;
+  final String invoiceNo;
+
+  /// vat_special/vat_normal/electronic
+  final String type;
+  final double amount;
+  final double taxRate;
+  final DateTime? issueDate;
+
+  /// pending/issued/delivered/void
+  final String status;
+  final String receiverName;
+  final String note;
+  final DateTime createdAt;
+  const CrmInvoiceRow({
+    required this.id,
+    required this.contractId,
+    required this.invoiceNo,
+    required this.type,
+    required this.amount,
+    required this.taxRate,
+    this.issueDate,
+    required this.status,
+    required this.receiverName,
+    required this.note,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['contract_id'] = Variable<String>(contractId);
+    map['invoice_no'] = Variable<String>(invoiceNo);
+    map['type'] = Variable<String>(type);
+    map['amount'] = Variable<double>(amount);
+    map['tax_rate'] = Variable<double>(taxRate);
+    if (!nullToAbsent || issueDate != null) {
+      map['issue_date'] = Variable<DateTime>(issueDate);
+    }
+    map['status'] = Variable<String>(status);
+    map['receiver_name'] = Variable<String>(receiverName);
+    map['note'] = Variable<String>(note);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CrmInvoicesCompanion toCompanion(bool nullToAbsent) {
+    return CrmInvoicesCompanion(
+      id: Value(id),
+      contractId: Value(contractId),
+      invoiceNo: Value(invoiceNo),
+      type: Value(type),
+      amount: Value(amount),
+      taxRate: Value(taxRate),
+      issueDate: issueDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(issueDate),
+      status: Value(status),
+      receiverName: Value(receiverName),
+      note: Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CrmInvoiceRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmInvoiceRow(
+      id: serializer.fromJson<String>(json['id']),
+      contractId: serializer.fromJson<String>(json['contractId']),
+      invoiceNo: serializer.fromJson<String>(json['invoiceNo']),
+      type: serializer.fromJson<String>(json['type']),
+      amount: serializer.fromJson<double>(json['amount']),
+      taxRate: serializer.fromJson<double>(json['taxRate']),
+      issueDate: serializer.fromJson<DateTime?>(json['issueDate']),
+      status: serializer.fromJson<String>(json['status']),
+      receiverName: serializer.fromJson<String>(json['receiverName']),
+      note: serializer.fromJson<String>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'contractId': serializer.toJson<String>(contractId),
+      'invoiceNo': serializer.toJson<String>(invoiceNo),
+      'type': serializer.toJson<String>(type),
+      'amount': serializer.toJson<double>(amount),
+      'taxRate': serializer.toJson<double>(taxRate),
+      'issueDate': serializer.toJson<DateTime?>(issueDate),
+      'status': serializer.toJson<String>(status),
+      'receiverName': serializer.toJson<String>(receiverName),
+      'note': serializer.toJson<String>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  CrmInvoiceRow copyWith({
+    String? id,
+    String? contractId,
+    String? invoiceNo,
+    String? type,
+    double? amount,
+    double? taxRate,
+    Value<DateTime?> issueDate = const Value.absent(),
+    String? status,
+    String? receiverName,
+    String? note,
+    DateTime? createdAt,
+  }) => CrmInvoiceRow(
+    id: id ?? this.id,
+    contractId: contractId ?? this.contractId,
+    invoiceNo: invoiceNo ?? this.invoiceNo,
+    type: type ?? this.type,
+    amount: amount ?? this.amount,
+    taxRate: taxRate ?? this.taxRate,
+    issueDate: issueDate.present ? issueDate.value : this.issueDate,
+    status: status ?? this.status,
+    receiverName: receiverName ?? this.receiverName,
+    note: note ?? this.note,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  CrmInvoiceRow copyWithCompanion(CrmInvoicesCompanion data) {
+    return CrmInvoiceRow(
+      id: data.id.present ? data.id.value : this.id,
+      contractId: data.contractId.present
+          ? data.contractId.value
+          : this.contractId,
+      invoiceNo: data.invoiceNo.present ? data.invoiceNo.value : this.invoiceNo,
+      type: data.type.present ? data.type.value : this.type,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      taxRate: data.taxRate.present ? data.taxRate.value : this.taxRate,
+      issueDate: data.issueDate.present ? data.issueDate.value : this.issueDate,
+      status: data.status.present ? data.status.value : this.status,
+      receiverName: data.receiverName.present
+          ? data.receiverName.value
+          : this.receiverName,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmInvoiceRow(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('invoiceNo: $invoiceNo, ')
+          ..write('type: $type, ')
+          ..write('amount: $amount, ')
+          ..write('taxRate: $taxRate, ')
+          ..write('issueDate: $issueDate, ')
+          ..write('status: $status, ')
+          ..write('receiverName: $receiverName, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    contractId,
+    invoiceNo,
+    type,
+    amount,
+    taxRate,
+    issueDate,
+    status,
+    receiverName,
+    note,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmInvoiceRow &&
+          other.id == this.id &&
+          other.contractId == this.contractId &&
+          other.invoiceNo == this.invoiceNo &&
+          other.type == this.type &&
+          other.amount == this.amount &&
+          other.taxRate == this.taxRate &&
+          other.issueDate == this.issueDate &&
+          other.status == this.status &&
+          other.receiverName == this.receiverName &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class CrmInvoicesCompanion extends UpdateCompanion<CrmInvoiceRow> {
+  final Value<String> id;
+  final Value<String> contractId;
+  final Value<String> invoiceNo;
+  final Value<String> type;
+  final Value<double> amount;
+  final Value<double> taxRate;
+  final Value<DateTime?> issueDate;
+  final Value<String> status;
+  final Value<String> receiverName;
+  final Value<String> note;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const CrmInvoicesCompanion({
+    this.id = const Value.absent(),
+    this.contractId = const Value.absent(),
+    this.invoiceNo = const Value.absent(),
+    this.type = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.taxRate = const Value.absent(),
+    this.issueDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.receiverName = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmInvoicesCompanion.insert({
+    required String id,
+    required String contractId,
+    this.invoiceNo = const Value.absent(),
+    this.type = const Value.absent(),
+    required double amount,
+    this.taxRate = const Value.absent(),
+    this.issueDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.receiverName = const Value.absent(),
+    this.note = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       contractId = Value(contractId),
+       amount = Value(amount),
+       createdAt = Value(createdAt);
+  static Insertable<CrmInvoiceRow> custom({
+    Expression<String>? id,
+    Expression<String>? contractId,
+    Expression<String>? invoiceNo,
+    Expression<String>? type,
+    Expression<double>? amount,
+    Expression<double>? taxRate,
+    Expression<DateTime>? issueDate,
+    Expression<String>? status,
+    Expression<String>? receiverName,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (contractId != null) 'contract_id': contractId,
+      if (invoiceNo != null) 'invoice_no': invoiceNo,
+      if (type != null) 'type': type,
+      if (amount != null) 'amount': amount,
+      if (taxRate != null) 'tax_rate': taxRate,
+      if (issueDate != null) 'issue_date': issueDate,
+      if (status != null) 'status': status,
+      if (receiverName != null) 'receiver_name': receiverName,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmInvoicesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? contractId,
+    Value<String>? invoiceNo,
+    Value<String>? type,
+    Value<double>? amount,
+    Value<double>? taxRate,
+    Value<DateTime?>? issueDate,
+    Value<String>? status,
+    Value<String>? receiverName,
+    Value<String>? note,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return CrmInvoicesCompanion(
+      id: id ?? this.id,
+      contractId: contractId ?? this.contractId,
+      invoiceNo: invoiceNo ?? this.invoiceNo,
+      type: type ?? this.type,
+      amount: amount ?? this.amount,
+      taxRate: taxRate ?? this.taxRate,
+      issueDate: issueDate ?? this.issueDate,
+      status: status ?? this.status,
+      receiverName: receiverName ?? this.receiverName,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (contractId.present) {
+      map['contract_id'] = Variable<String>(contractId.value);
+    }
+    if (invoiceNo.present) {
+      map['invoice_no'] = Variable<String>(invoiceNo.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (taxRate.present) {
+      map['tax_rate'] = Variable<double>(taxRate.value);
+    }
+    if (issueDate.present) {
+      map['issue_date'] = Variable<DateTime>(issueDate.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (receiverName.present) {
+      map['receiver_name'] = Variable<String>(receiverName.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmInvoicesCompanion(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('invoiceNo: $invoiceNo, ')
+          ..write('type: $type, ')
+          ..write('amount: $amount, ')
+          ..write('taxRate: $taxRate, ')
+          ..write('issueDate: $issueDate, ')
+          ..write('status: $status, ')
+          ..write('receiverName: $receiverName, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CrmObjectDefsTable extends CrmObjectDefs
     with TableInfo<$CrmObjectDefsTable, CrmObjectDefRow> {
   @override
@@ -13859,6 +15531,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CrmContractItemsTable crmContractItems = $CrmContractItemsTable(
     this,
   );
+  late final $CrmPaymentPlansTable crmPaymentPlans = $CrmPaymentPlansTable(
+    this,
+  );
+  late final $CrmPaymentsTable crmPayments = $CrmPaymentsTable(this);
+  late final $CrmInvoicesTable crmInvoices = $CrmInvoicesTable(this);
   late final $CrmObjectDefsTable crmObjectDefs = $CrmObjectDefsTable(this);
   late final $CrmCustomRecordsTable crmCustomRecords = $CrmCustomRecordsTable(
     this,
@@ -13892,6 +15569,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     crmQuotes,
     crmQuoteItems,
     crmContractItems,
+    crmPaymentPlans,
+    crmPayments,
+    crmInvoices,
     crmObjectDefs,
     crmCustomRecords,
     crmEntityLinks,
@@ -19044,6 +20724,854 @@ typedef $$CrmContractItemsTableProcessedTableManager =
       CrmContractItemRow,
       PrefetchHooks Function()
     >;
+typedef $$CrmPaymentPlansTableCreateCompanionBuilder =
+    CrmPaymentPlansCompanion Function({
+      required String id,
+      required String contractId,
+      required String planName,
+      Value<double> planAmount,
+      Value<double> paidAmount,
+      required DateTime planDate,
+      Value<String> status,
+      Value<int> rowid,
+    });
+typedef $$CrmPaymentPlansTableUpdateCompanionBuilder =
+    CrmPaymentPlansCompanion Function({
+      Value<String> id,
+      Value<String> contractId,
+      Value<String> planName,
+      Value<double> planAmount,
+      Value<double> paidAmount,
+      Value<DateTime> planDate,
+      Value<String> status,
+      Value<int> rowid,
+    });
+
+class $$CrmPaymentPlansTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmPaymentPlansTable> {
+  $$CrmPaymentPlansTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get planName => $composableBuilder(
+    column: $table.planName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get planAmount => $composableBuilder(
+    column: $table.planAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get paidAmount => $composableBuilder(
+    column: $table.paidAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get planDate => $composableBuilder(
+    column: $table.planDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmPaymentPlansTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmPaymentPlansTable> {
+  $$CrmPaymentPlansTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get planName => $composableBuilder(
+    column: $table.planName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get planAmount => $composableBuilder(
+    column: $table.planAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get paidAmount => $composableBuilder(
+    column: $table.paidAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get planDate => $composableBuilder(
+    column: $table.planDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmPaymentPlansTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmPaymentPlansTable> {
+  $$CrmPaymentPlansTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get planName =>
+      $composableBuilder(column: $table.planName, builder: (column) => column);
+
+  GeneratedColumn<double> get planAmount => $composableBuilder(
+    column: $table.planAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get paidAmount => $composableBuilder(
+    column: $table.paidAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get planDate =>
+      $composableBuilder(column: $table.planDate, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+}
+
+class $$CrmPaymentPlansTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmPaymentPlansTable,
+          CrmPaymentPlanRow,
+          $$CrmPaymentPlansTableFilterComposer,
+          $$CrmPaymentPlansTableOrderingComposer,
+          $$CrmPaymentPlansTableAnnotationComposer,
+          $$CrmPaymentPlansTableCreateCompanionBuilder,
+          $$CrmPaymentPlansTableUpdateCompanionBuilder,
+          (
+            CrmPaymentPlanRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CrmPaymentPlansTable,
+              CrmPaymentPlanRow
+            >,
+          ),
+          CrmPaymentPlanRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmPaymentPlansTableTableManager(
+    _$AppDatabase db,
+    $CrmPaymentPlansTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmPaymentPlansTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmPaymentPlansTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmPaymentPlansTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> contractId = const Value.absent(),
+                Value<String> planName = const Value.absent(),
+                Value<double> planAmount = const Value.absent(),
+                Value<double> paidAmount = const Value.absent(),
+                Value<DateTime> planDate = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmPaymentPlansCompanion(
+                id: id,
+                contractId: contractId,
+                planName: planName,
+                planAmount: planAmount,
+                paidAmount: paidAmount,
+                planDate: planDate,
+                status: status,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String contractId,
+                required String planName,
+                Value<double> planAmount = const Value.absent(),
+                Value<double> paidAmount = const Value.absent(),
+                required DateTime planDate,
+                Value<String> status = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmPaymentPlansCompanion.insert(
+                id: id,
+                contractId: contractId,
+                planName: planName,
+                planAmount: planAmount,
+                paidAmount: paidAmount,
+                planDate: planDate,
+                status: status,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmPaymentPlansTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmPaymentPlansTable,
+      CrmPaymentPlanRow,
+      $$CrmPaymentPlansTableFilterComposer,
+      $$CrmPaymentPlansTableOrderingComposer,
+      $$CrmPaymentPlansTableAnnotationComposer,
+      $$CrmPaymentPlansTableCreateCompanionBuilder,
+      $$CrmPaymentPlansTableUpdateCompanionBuilder,
+      (
+        CrmPaymentPlanRow,
+        BaseReferences<_$AppDatabase, $CrmPaymentPlansTable, CrmPaymentPlanRow>,
+      ),
+      CrmPaymentPlanRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmPaymentsTableCreateCompanionBuilder =
+    CrmPaymentsCompanion Function({
+      required String id,
+      required String contractId,
+      Value<String?> planId,
+      required double amount,
+      required DateTime paymentDate,
+      Value<String> method,
+      Value<String?> invoiceId,
+      Value<String> note,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$CrmPaymentsTableUpdateCompanionBuilder =
+    CrmPaymentsCompanion Function({
+      Value<String> id,
+      Value<String> contractId,
+      Value<String?> planId,
+      Value<double> amount,
+      Value<DateTime> paymentDate,
+      Value<String> method,
+      Value<String?> invoiceId,
+      Value<String> note,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$CrmPaymentsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmPaymentsTable> {
+  $$CrmPaymentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get planId => $composableBuilder(
+    column: $table.planId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get invoiceId => $composableBuilder(
+    column: $table.invoiceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmPaymentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmPaymentsTable> {
+  $$CrmPaymentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get planId => $composableBuilder(
+    column: $table.planId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get invoiceId => $composableBuilder(
+    column: $table.invoiceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmPaymentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmPaymentsTable> {
+  $$CrmPaymentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get planId =>
+      $composableBuilder(column: $table.planId, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => column);
+
+  GeneratedColumn<String> get invoiceId =>
+      $composableBuilder(column: $table.invoiceId, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CrmPaymentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmPaymentsTable,
+          CrmPaymentRow,
+          $$CrmPaymentsTableFilterComposer,
+          $$CrmPaymentsTableOrderingComposer,
+          $$CrmPaymentsTableAnnotationComposer,
+          $$CrmPaymentsTableCreateCompanionBuilder,
+          $$CrmPaymentsTableUpdateCompanionBuilder,
+          (
+            CrmPaymentRow,
+            BaseReferences<_$AppDatabase, $CrmPaymentsTable, CrmPaymentRow>,
+          ),
+          CrmPaymentRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmPaymentsTableTableManager(_$AppDatabase db, $CrmPaymentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmPaymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmPaymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmPaymentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> contractId = const Value.absent(),
+                Value<String?> planId = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<DateTime> paymentDate = const Value.absent(),
+                Value<String> method = const Value.absent(),
+                Value<String?> invoiceId = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmPaymentsCompanion(
+                id: id,
+                contractId: contractId,
+                planId: planId,
+                amount: amount,
+                paymentDate: paymentDate,
+                method: method,
+                invoiceId: invoiceId,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String contractId,
+                Value<String?> planId = const Value.absent(),
+                required double amount,
+                required DateTime paymentDate,
+                Value<String> method = const Value.absent(),
+                Value<String?> invoiceId = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CrmPaymentsCompanion.insert(
+                id: id,
+                contractId: contractId,
+                planId: planId,
+                amount: amount,
+                paymentDate: paymentDate,
+                method: method,
+                invoiceId: invoiceId,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmPaymentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmPaymentsTable,
+      CrmPaymentRow,
+      $$CrmPaymentsTableFilterComposer,
+      $$CrmPaymentsTableOrderingComposer,
+      $$CrmPaymentsTableAnnotationComposer,
+      $$CrmPaymentsTableCreateCompanionBuilder,
+      $$CrmPaymentsTableUpdateCompanionBuilder,
+      (
+        CrmPaymentRow,
+        BaseReferences<_$AppDatabase, $CrmPaymentsTable, CrmPaymentRow>,
+      ),
+      CrmPaymentRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmInvoicesTableCreateCompanionBuilder =
+    CrmInvoicesCompanion Function({
+      required String id,
+      required String contractId,
+      Value<String> invoiceNo,
+      Value<String> type,
+      required double amount,
+      Value<double> taxRate,
+      Value<DateTime?> issueDate,
+      Value<String> status,
+      Value<String> receiverName,
+      Value<String> note,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$CrmInvoicesTableUpdateCompanionBuilder =
+    CrmInvoicesCompanion Function({
+      Value<String> id,
+      Value<String> contractId,
+      Value<String> invoiceNo,
+      Value<String> type,
+      Value<double> amount,
+      Value<double> taxRate,
+      Value<DateTime?> issueDate,
+      Value<String> status,
+      Value<String> receiverName,
+      Value<String> note,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$CrmInvoicesTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmInvoicesTable> {
+  $$CrmInvoicesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get invoiceNo => $composableBuilder(
+    column: $table.invoiceNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get taxRate => $composableBuilder(
+    column: $table.taxRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get issueDate => $composableBuilder(
+    column: $table.issueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get receiverName => $composableBuilder(
+    column: $table.receiverName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmInvoicesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmInvoicesTable> {
+  $$CrmInvoicesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get invoiceNo => $composableBuilder(
+    column: $table.invoiceNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get taxRate => $composableBuilder(
+    column: $table.taxRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get issueDate => $composableBuilder(
+    column: $table.issueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get receiverName => $composableBuilder(
+    column: $table.receiverName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmInvoicesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmInvoicesTable> {
+  $$CrmInvoicesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get invoiceNo =>
+      $composableBuilder(column: $table.invoiceNo, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<double> get taxRate =>
+      $composableBuilder(column: $table.taxRate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get issueDate =>
+      $composableBuilder(column: $table.issueDate, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get receiverName => $composableBuilder(
+    column: $table.receiverName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CrmInvoicesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmInvoicesTable,
+          CrmInvoiceRow,
+          $$CrmInvoicesTableFilterComposer,
+          $$CrmInvoicesTableOrderingComposer,
+          $$CrmInvoicesTableAnnotationComposer,
+          $$CrmInvoicesTableCreateCompanionBuilder,
+          $$CrmInvoicesTableUpdateCompanionBuilder,
+          (
+            CrmInvoiceRow,
+            BaseReferences<_$AppDatabase, $CrmInvoicesTable, CrmInvoiceRow>,
+          ),
+          CrmInvoiceRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmInvoicesTableTableManager(_$AppDatabase db, $CrmInvoicesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmInvoicesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmInvoicesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmInvoicesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> contractId = const Value.absent(),
+                Value<String> invoiceNo = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<double> taxRate = const Value.absent(),
+                Value<DateTime?> issueDate = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> receiverName = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmInvoicesCompanion(
+                id: id,
+                contractId: contractId,
+                invoiceNo: invoiceNo,
+                type: type,
+                amount: amount,
+                taxRate: taxRate,
+                issueDate: issueDate,
+                status: status,
+                receiverName: receiverName,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String contractId,
+                Value<String> invoiceNo = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                required double amount,
+                Value<double> taxRate = const Value.absent(),
+                Value<DateTime?> issueDate = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> receiverName = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CrmInvoicesCompanion.insert(
+                id: id,
+                contractId: contractId,
+                invoiceNo: invoiceNo,
+                type: type,
+                amount: amount,
+                taxRate: taxRate,
+                issueDate: issueDate,
+                status: status,
+                receiverName: receiverName,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmInvoicesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmInvoicesTable,
+      CrmInvoiceRow,
+      $$CrmInvoicesTableFilterComposer,
+      $$CrmInvoicesTableOrderingComposer,
+      $$CrmInvoicesTableAnnotationComposer,
+      $$CrmInvoicesTableCreateCompanionBuilder,
+      $$CrmInvoicesTableUpdateCompanionBuilder,
+      (
+        CrmInvoiceRow,
+        BaseReferences<_$AppDatabase, $CrmInvoicesTable, CrmInvoiceRow>,
+      ),
+      CrmInvoiceRow,
+      PrefetchHooks Function()
+    >;
 typedef $$CrmObjectDefsTableCreateCompanionBuilder =
     CrmObjectDefsCompanion Function({
       required String id,
@@ -20914,6 +23442,12 @@ class $AppDatabaseManager {
       $$CrmQuoteItemsTableTableManager(_db, _db.crmQuoteItems);
   $$CrmContractItemsTableTableManager get crmContractItems =>
       $$CrmContractItemsTableTableManager(_db, _db.crmContractItems);
+  $$CrmPaymentPlansTableTableManager get crmPaymentPlans =>
+      $$CrmPaymentPlansTableTableManager(_db, _db.crmPaymentPlans);
+  $$CrmPaymentsTableTableManager get crmPayments =>
+      $$CrmPaymentsTableTableManager(_db, _db.crmPayments);
+  $$CrmInvoicesTableTableManager get crmInvoices =>
+      $$CrmInvoicesTableTableManager(_db, _db.crmInvoices);
   $$CrmObjectDefsTableTableManager get crmObjectDefs =>
       $$CrmObjectDefsTableTableManager(_db, _db.crmObjectDefs);
   $$CrmCustomRecordsTableTableManager get crmCustomRecords =>

@@ -338,6 +338,97 @@ class LocalContractItem {
   });
 }
 
+/// 回款计划
+class LocalPaymentPlan {
+  String id;
+  String contractId;
+  String planName;
+  double planAmount;
+  double paidAmount;
+  DateTime planDate;
+  String status;
+
+  LocalPaymentPlan({
+    required this.id,
+    required this.contractId,
+    this.planName = '',
+    this.planAmount = 0,
+    this.paidAmount = 0,
+    DateTime? planDate,
+    this.status = 'pending',
+  }) : planDate = planDate ?? DateTime.now();
+}
+
+/// 回款记录
+class LocalPayment {
+  String id;
+  String contractId;
+  String? planId;
+  double amount;
+  DateTime paymentDate;
+  String method;
+  String? invoiceId;
+  String note;
+  DateTime createdAt;
+
+  LocalPayment({
+    required this.id,
+    required this.contractId,
+    this.planId,
+    this.amount = 0,
+    DateTime? paymentDate,
+    this.method = 'transfer',
+    this.invoiceId,
+    this.note = '',
+    DateTime? createdAt,
+  }) : paymentDate = paymentDate ?? DateTime.now(),
+       createdAt = createdAt ?? DateTime.now();
+}
+
+/// 发票
+class LocalInvoice {
+  String id;
+  String contractId;
+  String invoiceNo;
+  String type;
+  double amount;
+  double taxRate;
+  DateTime? issueDate;
+  String status;
+  String receiverName;
+  String note;
+  DateTime createdAt;
+
+  LocalInvoice({
+    required this.id,
+    required this.contractId,
+    this.invoiceNo = '',
+    this.type = 'vat_normal',
+    this.amount = 0,
+    this.taxRate = 0.13,
+    this.issueDate,
+    this.status = 'pending',
+    this.receiverName = '',
+    this.note = '',
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+}
+
+/// 到期提醒条目
+class CrmReminderItem {
+  final String type; // paymentDue / contractExpire / warrantyExpire
+  final String title;
+  final DateTime at;
+  final String? entityId;
+
+  const CrmReminderItem({
+    required this.type,
+    required this.title,
+    required this.at,
+    this.entityId,
+  });
+}
+
 /// 自定义数据对象定义
 class LocalCustomObject {
   String id;
