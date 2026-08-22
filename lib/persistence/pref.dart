@@ -107,6 +107,8 @@ class PrefUtil {
   static const Set<String> prefAllowPrefixes = {
     'crmTableColumns_',
     'crmTabVisible_',
+    'crmTableColumnsCustomized_',
+    'crmFieldMeta_',
   };
 
   /// 键是否允许读写：精确命中白名单，或以允许前缀开头。

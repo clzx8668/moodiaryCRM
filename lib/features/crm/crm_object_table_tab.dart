@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
+import 'package:moodiary/features/crm/crm_field_registry.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
@@ -133,6 +134,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   bool _saving = false;
   String _query = '';
   List<String> _columns = [];
+  CrmObjectMeta? _meta;
 
   String get _columnPrefKey => 'crmTableColumns_${widget.objectType}';
 
@@ -141,6 +143,22 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     super.initState();
     _future = IsarUtil.getCrmEntitiesByType(widget.objectType);
     _columns = PrefUtil.getValue<List<String>>(_columnPrefKey) ?? [];
+    _loadFieldMeta();
+  }
+
+  Future<void> _loadFieldMeta() async {
+    try {
+      final service = await _service();
+      final meta = await CrmFieldRegistry.fetchObjectMeta(
+        service.client,
+        widget.objectType,
+      );
+      if (mounted && meta != null) {
+        setState(() => _meta = meta);
+      }
+    } catch (_) {
+      // 元数据拉取失败不阻塞表格（回退快照字段）
+    }
   }
 
   @override
@@ -214,8 +232,34 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     return names;
   }
 
-  /// 对象标签字段（company→name / task·note→title / 合同→contractName）
-  String get _labelField => CrmSyncService.labelFieldFor(widget.objectType);
+  /// 对象标签字段（优先 Twenty labelIdentifier，兜底命名规则）
+  String get _labelField =>
+      (_meta?.labelField.isNotEmpty == true
+          ? _meta!.labelField
+          : CrmSyncService.labelFieldFor(widget.objectType));
+
+  /// 是否已自定义列（默认 false → 跟随 Twenty 默认字段）
+  bool get _customized =>
+      PrefUtil.getValue<bool>(
+        'crmTableColumnsCustomized_${widget.objectType}',
+      ) ??
+      false;
+
+  /// 当前展示列：自定义时用持久化顺序，否则用 Twenty 默认字段
+  List<String> _effectiveColumns(List<CrmEntityCache> items, List<String> all) {
+    if (_customized && _columns.isNotEmpty) {
+      return _columns.where(all.contains).toList();
+    }
+    final meta = _meta;
+    if (meta != null) {
+      final defaults = CrmFieldRegistry.defaultDisplayFields(meta)
+          .map((f) => f.name)
+          .where(all.contains)
+          .toList();
+      if (defaults.isNotEmpty) return defaults;
+    }
+    return [_labelField];
+  }
 
   List<CrmEntityCache> _filtered(List<CrmEntityCache> items) {
     final q = _query.trim().toLowerCase();
@@ -233,54 +277,179 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
 
   Future<void> _showColumnSettings(List<CrmEntityCache> items) async {
     final all = _fieldNames(items);
-    if (all.length <= 1) {
+    final candidates = _allCandidateFields(all);
+    if (candidates.length <= 1) {
       toast.info(message: '该对象暂无可配置字段');
       return;
     }
-    final local = List<String>.from(_columns);
+    var visible = _effectiveColumns(items, all).toList();
+    if (visible.isEmpty) visible = [candidates.first];
+    var customized = _customized;
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('列设置'),
-          content: SizedBox(
-            width: 360,
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                for (final field in all)
-                  CheckboxListTile(
-                    dense: true,
-                    value: local.contains(field),
-                    title: Text(field, style: const TextStyle(fontSize: 13)),
-                    onChanged: (v) => setDialogState(() {
-                      if (v == true) {
-                        if (!local.contains(field)) local.add(field);
-                      } else {
-                        local.remove(field);
-                      }
-                    }),
+        builder: (dialogContext, setDialogState) {
+          final hidden = candidates
+              .where((f) => !visible.contains(f))
+              .toList();
+          return AlertDialog(
+            title: const Text('列设置（显示 / 顺序）'),
+            content: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '拖动调整顺序，勾选控制显示（遵循 Twenty 对象字段规则）',
+                    style: context.textTheme.bodySmall,
                   ),
-              ],
+                  const SizedBox(height: 8),
+                  Flexible(
+                    child: ReorderableListView.builder(
+                      shrinkWrap: true,
+                      itemCount: visible.length,
+                      onReorder: (oldIndex, newIndex) {
+                        setDialogState(() {
+                          if (newIndex > oldIndex) newIndex--;
+                          final item = visible.removeAt(oldIndex);
+                          visible.insert(newIndex, item);
+                          customized = true;
+                        });
+                      },
+                      itemBuilder: (context, index) {
+                        final field = visible[index];
+                        return ListTile(
+                          key: ValueKey(field),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: ReorderableDragStartListener(
+                            index: index,
+                            child: const Icon(Icons.drag_handle_rounded),
+                          ),
+                          title: Text(
+                            _fieldLabel(field),
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          trailing: Checkbox(
+                            value: true,
+                            onChanged: (v) => setDialogState(() {
+                              if (v == false) {
+                                visible.remove(field);
+                                customized = true;
+                              }
+                            }),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  if (hidden.isNotEmpty) ...[
+                    const Divider(height: 8),
+                    Text(
+                      '隐藏字段（点击恢复显示）',
+                      style: context.textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        for (final field in hidden)
+                          ActionChip(
+                            label: Text(
+                              _fieldLabel(field),
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => setDialogState(() {
+                              visible.add(field);
+                              customized = true;
+                            }),
+                          ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('保存'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => setDialogState(() {
+                  visible = _defaultColumns(all);
+                  customized = false;
+                }),
+                child: const Text('恢复默认'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('保存'),
+              ),
+            ],
+          );
+        },
       ),
     );
     if (ok == true) {
-      setState(() => _columns = local);
-      await PrefUtil.setValue<List<String>>(_columnPrefKey, local);
+      setState(() => _columns = visible);
+      await PrefUtil.setValue<List<String>>(_columnPrefKey, visible);
+      await PrefUtil.setValue<bool>(
+        'crmTableColumnsCustomized_${widget.objectType}',
+        customized,
+      );
     }
+  }
+
+  /// 候选字段：Twenty metadata（标签 + 可展示标量）优先，快照字段兜底
+  List<String> _allCandidateFields(List<String> snapshotFields) {
+    final result = <String>[];
+    final meta = _meta;
+    if (meta != null) {
+      final ordered = CrmFieldRegistry.defaultDisplayFields(meta);
+      for (final f in ordered) {
+        if (!result.contains(f.name)) result.add(f.name);
+      }
+    }
+    for (final f in snapshotFields) {
+      if (!result.contains(f)) result.add(f);
+    }
+    return result;
+  }
+
+  /// 默认列（Twenty 规则；meta 缺失时退化为标签字段）
+  List<String> _defaultColumns(List<String> snapshotFields) {
+    final meta = _meta;
+    if (meta != null) {
+      final defaults = CrmFieldRegistry.defaultDisplayFields(meta)
+          .map((f) => f.name)
+          .where(snapshotFields.contains)
+          .toList();
+      if (defaults.isNotEmpty) return defaults;
+    }
+    return [_labelField];
+  }
+
+  /// 表格内拖拽列排序 → 持久化
+  Future<void> _persistColumnOrder(List<String> order) async {
+    if (order.isEmpty || _listEquals(order, _columns)) return;
+    setState(() => _columns = List<String>.from(order));
+    await PrefUtil.setValue<List<String>>(_columnPrefKey, List<String>.from(order));
+    await PrefUtil.setValue<bool>(
+      'crmTableColumnsCustomized_${widget.objectType}',
+      true,
+    );
+  }
+
+  static bool _listEquals(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   Future<void> _create(List<CrmEntityCache> items) async {
@@ -509,8 +678,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
 
   List<String> _editableColumns(List<CrmEntityCache> items) {
     final all = _fieldNames(items);
-    final configured = _columns.where(all.contains).toList();
-    final effective = configured.isEmpty ? [_labelField] : configured;
+    final effective = _effectiveColumns(items, all);
     return effective.where(isEditableField).toList();
   }
 
@@ -542,6 +710,12 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   }
 
   String _fieldLabel(String field) {
+    final meta = _meta;
+    if (meta != null) {
+      for (final f in meta.fields) {
+        if (f.name == field && f.label.isNotEmpty) return f.label;
+      }
+    }
     const labels = {
       'name': '名称',
       'title': '标题',
@@ -568,8 +742,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         final all = snapshot.data!;
         final items = _filtered(all);
         final fields = _fieldNames(all);
-        final columns = _columns.where(fields.contains).toList();
-        final effectiveColumns = columns.isEmpty ? [_labelField] : columns;
+        final effectiveColumns = _effectiveColumns(all, fields);
         return Column(
           children: [
             Padding(
@@ -659,6 +832,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                       fields: effectiveColumns,
                       onCellChanged: _updateCell,
                       onOpen: _edit,
+                      onColumnsReordered: _persistColumnOrder,
                     ),
             ),
           ],

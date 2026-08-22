@@ -128,6 +128,17 @@ void main() {
     expect(genericLink.remoteType, CrmContentLink.remoteTypeGeneric);
     expect(genericLink.isGeneric, isTrue);
 
+    // 3.1) 通用记录应带标签字段 name（Twenty labelIdentifier），保证表格可见
+    final generics = await content.client.listAll(
+      object: 'moodiaryGeneric',
+      fields: const ['id', 'name', 'title', 'content', 'sourceType'],
+    );
+    final createdGeneric = generics.firstWhere(
+      (g) => g.id == genericLink.remoteId,
+    );
+    expect(createdGeneric.data['name'], genericDiary.title);
+    expect(createdGeneric.data['sourceType'], 'NOTE');
+
     // 4) 认领：通用记录 → 升级 note + target，通用记录被删除
     final claimed = await content.claimAssociation(
       genericLink,
