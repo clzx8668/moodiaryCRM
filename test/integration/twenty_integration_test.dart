@@ -59,6 +59,32 @@ void main() {
       reason: '公司快照应包含关键 CRM 字段（实际：${companies.first.data.keys}）',
     );
 
+    // 联系人/机会关键字段同样完整
+    final people = await IsarUtil.getCrmEntitiesByType('person');
+    if (people.isNotEmpty) {
+      const personCritical = {'jobTitle', 'city', 'wechat', 'emails', 'phones'};
+      final personPresent = personCritical
+          .where(people.first.data.containsKey)
+          .toList();
+      expect(
+        personPresent,
+        isNotEmpty,
+        reason: '联系人快照应包含关键字段（实际：${people.first.data.keys}）',
+      );
+    }
+    final opportunities = await IsarUtil.getCrmEntitiesByType('opportunity');
+    if (opportunities.isNotEmpty) {
+      const oppCritical = {'amount', 'closeDate', 'stage'};
+      final oppPresent = oppCritical
+          .where(opportunities.first.data.containsKey)
+          .toList();
+      expect(
+        oppPresent,
+        isNotEmpty,
+        reason: '机会快照应包含关键字段（实际：${opportunities.first.data.keys}）',
+      );
+    }
+
     // 对账：全量拉取后本地与远端应基本一致
     final reconcile = await service.reconcile();
     expect(reconcile.totalDiff, lessThanOrEqualTo(2),

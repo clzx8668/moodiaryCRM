@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/crm/crm_content_sync_page.dart';
+import 'package:moodiary/features/crm/crm_structure_sync_service.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
 import 'package:moodiary/features/crm/business_objects_page.dart';
@@ -159,13 +160,19 @@ class CrmSyncPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('同步操作', style: Theme.of(context).textTheme.titleMedium),
+            Text('同步（分类）', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              '数据结构同步：对象/字段元数据，初始化或结构变更时执行；'
+              '数据记录同步：日常记录数据；全量同步 = 结构 + 数据。',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 12),
             Obx(
               () => Row(
                 children: [
                   Expanded(
-                    child: FilledButton.icon(
+                    child: OutlinedButton.icon(
                       onPressed: logic.testing.value ? null : logic.testConnection,
                       icon: logic.testing.value
                           ? const SizedBox(
@@ -177,23 +184,8 @@ class CrmSyncPage extends StatelessWidget {
                       label: const Text('测试连接'),
                     ),
                   ),
-                  const SizedBox(width: 12),
                   Expanded(
-                    child: FilledButton.icon(
-                      onPressed: logic.syncing.value ? null : logic.fullSync,
-                      icon: logic.syncing.value
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.sync),
-                      label: const Text('全量同步'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.tonalIcon(
+                    child: OutlinedButton.icon(
                       onPressed: logic.reconciling.value
                           ? null
                           : logic.reconcile,
@@ -211,15 +203,83 @@ class CrmSyncPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            _buildSyncRow(
+              context,
+              logic,
+              title: '数据结构同步',
+              subtitle: '对象 / 字段元数据（初始化、结构变更、手动）',
+              icon: Icons.account_tree_rounded,
+              running: logic.structuring.value,
+              label: '同步结构',
+              onPressed: logic.structuring.value ? null : logic.syncStructure,
+              status: Obx(() {
+                final r = logic.structureResult.value;
+                final String text;
+                if (r != null) {
+                  text = '上次 ${r.syncedAt.toLocal()} · $r';
+                } else {
+                  final last = CrmStructureSyncService.lastSyncedAt();
+                  text = last == null
+                      ? '未同步（首次或结构变更后需同步）'
+                      : '上次 ${last.toLocal()}';
+                }
+                return Text(
+                  text,
+                  style: Theme.of(context).textTheme.bodySmall,
+                );
+              }),
+            ),
+            const SizedBox(height: 8),
+            _buildSyncRow(
+              context,
+              logic,
+              title: '数据记录同步',
+              subtitle: '客户 / 联系人 / 机会等记录数据（日常）',
+              icon: Icons.storage_rounded,
+              running: logic.syncing.value,
+              label: '同步数据',
+              onPressed: logic.syncing.value ? null : logic.syncData,
+              status: Obx(() {
+                final r = logic.syncResult.value;
+                final String text = r == null
+                    ? '未执行过'
+                    : '上次 ${r.syncedAt.toLocal()} · ${r.totalPulled} 条';
+                return Text(
+                  text,
+                  style: Theme.of(context).textTheme.bodySmall,
+                );
+              }),
+            ),
+            const SizedBox(height: 8),
+            _buildSyncRow(
+              context,
+              logic,
+              title: '全量同步',
+              subtitle: '数据结构 + 数据记录 一起同步',
+              icon: Icons.sync_rounded,
+              running: logic.syncing.value || logic.structuring.value,
+              label: '全量同步',
+              onPressed: (logic.syncing.value || logic.structuring.value)
+                  ? null
+                  : logic.syncAll,
+              status: Obx(() {
+                final all = logic.fullResult.value;
+                final String text = all == null
+                    ? '结构 + 数据'
+                    : '上次 ${all.data.syncedAt.toLocal()} · $all';
+                return Text(
+                  text,
+                  style: Theme.of(context).textTheme.bodySmall,
+                );
+              }),
+            ),
+            const SizedBox(height: 8),
             Obx(() {
               final result = logic.connectionResult.value;
-              final sync = logic.syncResult.value;
               final reconcile = logic.reconcileResult.value;
-              final stats = logic.stats.value;
-              if (result != null ||
-                  sync != null ||
-                  reconcile != null ||
-                  stats.isNotEmpty) {
+              if (result != null || reconcile != null) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -232,8 +292,6 @@ class CrmSyncPage extends StatelessWidget {
                               : Colors.red.shade700,
                         ),
                       ),
-                    if (sync != null)
-                      Text('上次全量拉取：${sync.totalPulled} 条 ${sync.pulledByObject}'),
                     if (reconcile != null)
                       Text(
                         reconcile.totalDiff == 0
@@ -242,16 +300,72 @@ class CrmSyncPage extends StatelessWidget {
                                   '（缺失 ${reconcile.missingLocal}，'
                                   '过期 ${reconcile.staleLocal}）',
                       ),
-                    if (stats.isNotEmpty)
-                      Text('本地缓存：${stats.entries.map((e) => "${e.key}:${e.value}").join(" / ")}'),
                   ],
                 );
               }
               return const SizedBox.shrink();
             }),
+            Obx(() {
+              final stats = logic.stats.value;
+              if (stats.isEmpty) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '本地缓存：${stats.entries.map((e) => "${e.key}:${e.value}").join(" / ")}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              );
+            }),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSyncRow(
+    BuildContext context,
+    CrmSyncController logic, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool running,
+    required String label,
+    required VoidCallback? onPressed,
+    required Widget status,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodySmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              status,
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        FilledButton.tonalIcon(
+          onPressed: onPressed,
+          icon: running
+              ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(icon, size: 16),
+          label: Text(label),
+        ),
+      ],
     );
   }
 
@@ -479,9 +593,12 @@ class CrmSyncController extends GetxController {
   final tokenVisible = false.obs;
   final testing = false.obs;
   final syncing = false.obs;
+  final structuring = false.obs;
   final reconciling = false.obs;
   final connectionResult = Rx<ConnectionResult?>(null);
   final syncResult = Rx<CrmSyncResult?>(null);
+  final structureResult = Rx<StructureSyncResult?>(null);
+  final fullResult = Rx<FullSyncResult?>(null);
   final reconcileResult = Rx<ReconcileResult?>(null);
   final stats = <String, int>{}.obs;
   final cacheItems = <CrmEntityCache>[].obs;
@@ -585,17 +702,50 @@ class CrmSyncController extends GetxController {
     }
   }
 
-  Future<void> fullSync() async {
+  Future<void> syncData() async {
     syncing.value = true;
     try {
       syncResult.value = await service.fullPull();
       await refreshCache();
       refreshLog();
-      toast.success(message: '同步完成');
+      toast.success(message: '数据同步完成');
     } catch (e) {
-      toast.error(message: '同步失败：$e');
+      toast.error(message: '数据同步失败：$e');
     } finally {
       syncing.value = false;
+    }
+  }
+
+  Future<void> syncStructure() async {
+    if (structuring.value) return;
+    structuring.value = true;
+    try {
+      structureResult.value = await CrmStructureSyncService(
+        client: service.client,
+      ).syncStructure();
+      refreshLog();
+      toast.success(
+        message: '结构同步完成：${structureResult.value}',
+      );
+    } catch (e) {
+      toast.error(message: '结构同步失败：$e');
+    } finally {
+      structuring.value = false;
+    }
+  }
+
+  Future<void> syncAll() async {
+    if (syncing.value || structuring.value) return;
+    structuring.value = true;
+    try {
+      fullResult.value = await service.fullSync();
+      await refreshCache();
+      refreshLog();
+      toast.success(message: '全量同步完成：${fullResult.value}');
+    } catch (e) {
+      toast.error(message: '全量同步失败：$e');
+    } finally {
+      structuring.value = false;
     }
   }
 
