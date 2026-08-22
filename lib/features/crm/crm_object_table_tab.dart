@@ -33,6 +33,7 @@ const List<CrmTabDef> kCrmTabs = [
   CrmTabDef('commissionsTiChengJieSuan', '提成'),
   CrmTabDef('task', '任务'),
   CrmTabDef('note', '笔记'),
+  CrmTabDef('moodiaryGeneric', '通用记录'),
 ];
 
 /// 按设置过滤后的可见 Tab
@@ -51,6 +52,7 @@ String crmTypeLabel(String type) {
     'opportunity': '机会',
     'task': '任务',
     'note': '笔记',
+    'moodiaryGeneric': '通用记录',
     'contractsHeTongGuanLi': '合同',
     'paymentsHuiKuanJiLu': '回款',
     'invoiceFaPiao': '发票',
@@ -71,6 +73,8 @@ IconData crmTypeIcon(String type) {
       return Icons.task_alt_rounded;
     case 'note':
       return Icons.notes_rounded;
+    case 'moodiaryGeneric':
+      return Icons.inbox_rounded;
     case 'contractsHeTongGuanLi':
       return Icons.description_rounded;
     case 'paymentsHuiKuanJiLu':
@@ -96,6 +100,8 @@ Color crmTypeColor(String type) {
       return Colors.purple.shade400;
     case 'note':
       return Colors.brown.shade400;
+    case 'moodiaryGeneric':
+      return Colors.blueGrey.shade400;
     case 'contractsHeTongGuanLi':
       return Colors.teal.shade400;
     case 'paymentsHuiKuanJiLu':

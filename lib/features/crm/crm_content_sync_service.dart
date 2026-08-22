@@ -562,6 +562,17 @@ class CrmContentSyncService {
   Future<CrmSyncResult> pullRemoteContent() async {
     final notes = await client.listNotes();
     final tasks = await client.listTasks();
+    List<TwentyEntity> generics = const [];
+    try {
+      if (await client.typeExists(genericObjectName)) {
+        generics = await client.listAll(
+          object: genericObjectName,
+          fields: const ['id', 'name', 'title', 'content', 'sourceType', 'dueAt', 'status'],
+        );
+      }
+    } catch (_) {
+      // 通用对象缺失/权限不足时忽略
+    }
     final now = DateTime.now();
     final caches = <CrmEntityCache>[];
     for (final entity in notes) {
@@ -592,11 +603,29 @@ class CrmContentSyncService {
           ..updatedAt = now,
       );
     }
+    for (final entity in generics) {
+      caches.add(
+        CrmEntityCache()
+          ..twentyId = entity.id
+          ..entityType = 'moodiaryGeneric'
+          ..name =
+              entity.data['name']?.toString() ??
+              entity.data['title']?.toString() ??
+              entity.id
+          ..setData(entity.data)
+          ..lastSyncedAt = now
+          ..updatedAt = now,
+      );
+    }
     await IsarUtil.upsertCrmEntities(caches);
     return CrmSyncResult(
       syncedAt: now,
-      pulledByObject: {'note': notes.length, 'task': tasks.length},
-      totalPulled: notes.length + tasks.length,
+      pulledByObject: {
+        'note': notes.length,
+        'task': tasks.length,
+        'moodiaryGeneric': generics.length,
+      },
+      totalPulled: notes.length + tasks.length + generics.length,
     );
   }
 
