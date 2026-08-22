@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:moodiary/features/crm/crm_field_registry.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
@@ -69,23 +70,7 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
   void _build() {
     final fields = widget.fields.isEmpty ? const ['name'] : widget.fields;
     _columns = [
-      for (final field in fields)
-        PlutoColumn(
-          title: _columnTitle(field),
-          field: field,
-          type: _columnType(field),
-          width: _columnWidth(field),
-          enableSorting: true,
-          enableFilterMenuItem: true,
-          enableHideColumnMenuItem: true,
-          enableSetColumnsMenuItem: true,
-          enableEditingMode: field != 'id' && field != 'twentyId',
-          readOnly: field == 'id' || field == 'twentyId',
-          frozen:
-              field == 'name' || field == 'title'
-              ? PlutoColumnFrozen.start
-              : PlutoColumnFrozen.none,
-        ),
+      for (final field in fields) _columnFor(field),
     ];
     _rows = [
       for (final item in widget.items)
@@ -96,9 +81,30 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
     ];
   }
 
+  PlutoColumn _columnFor(String field) {
+    final mapValued = widget.items.any((i) => i.data[field] is Map);
+    final readOnly = field == 'id' || field == 'twentyId' || mapValued;
+    return PlutoColumn(
+      title: _columnTitle(field),
+      field: field,
+      type: _columnType(field),
+      width: _columnWidth(field),
+      enableSorting: true,
+      enableFilterMenuItem: true,
+      enableHideColumnMenuItem: true,
+      enableSetColumnsMenuItem: true,
+      enableEditingMode: !readOnly,
+      readOnly: readOnly,
+      frozen:
+          field == 'name' || field == 'title'
+          ? PlutoColumnFrozen.start
+          : PlutoColumnFrozen.none,
+    );
+  }
+
   Object? _cellValue(CrmEntityCache item, String field) {
     if (field == 'name') return item.name;
-    return item.data[field];
+    return CrmFieldRegistry.formatValue(item.data[field]);
   }
 
   CrmColumnKind _inferKind(String field, Iterable<CrmEntityCache> items) {

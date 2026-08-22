@@ -215,4 +215,45 @@ void main() {
       expect(CrmFieldRegistry.objectMetaName['moodiaryGeneric'], 'moodiaryGeneric');
     });
   });
+
+  group('CrmFieldRegistry.formatValue', () {
+    test('复合值可读化', () {
+      expect(
+        CrmFieldRegistry.formatValue({
+          'firstName': '张',
+          'lastName': '三',
+        }),
+        '张 三',
+      );
+      expect(
+        CrmFieldRegistry.formatValue({
+          'primaryEmail': 'a@b.com',
+        }),
+        'a@b.com',
+      );
+      expect(
+        CrmFieldRegistry.formatValue({
+          'amountMicros': 123450000,
+          'currencyCode': 'USD',
+        }),
+        'USD 123.45',
+      );
+      expect(
+        CrmFieldRegistry.formatValue({
+          'id': 'company-1',
+          'name': 'Notion',
+        }),
+        'Notion',
+      );
+      expect(CrmFieldRegistry.formatValue(null), '');
+    });
+
+    test('日期字符串格式化为 yyyy-MM-dd', () {
+      expect(
+        CrmFieldRegistry.formatValue('2026-08-22T06:01:36.858Z'),
+        matches(RegExp(r'^\d{4}-\d{2}-\d{2}$')),
+      );
+      expect(CrmFieldRegistry.formatValue('普通文本'), '普通文本');
+    });
+  });
 }

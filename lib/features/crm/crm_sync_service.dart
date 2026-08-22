@@ -216,9 +216,16 @@ class CrmSyncService {
     if (fields.isEmpty) {
       fields = ['id', labelFieldFor(object)];
     }
+    // 关系标签列以 `field { name }` 拉取（展示关联对象名称）
+    final relationLabels =
+        CrmFieldRegistry.relationLabelFields[object] ?? const <String>[];
+    final requestFields = [
+      for (final f in fields)
+        relationLabels.contains(f) ? '$f { name }' : f,
+    ];
     List<TwentyEntity> entities;
     try {
-      entities = await client.listAll(object: object, fields: fields);
+      entities = await client.listAll(object: object, fields: requestFields);
     } on TwentyApiException catch (e) {
       // 个别字段与 GraphQL 不一致时回退到标签字段，避免整对象拉取失败
       await log.write(
@@ -382,12 +389,25 @@ class CrmSyncService {
   /// 从远端快照提取展示名（与 pullObject 保持一致）。
   static String _nameOf(Map<String, dynamic> data, String object, String id) {
     final labelField = labelFieldFor(object);
-    return data[labelField]?.toString() ??
-        data['name']?.toString() ??
-        data['title']?.toString() ??
-        data['contractName']?.toString() ??
-        data['amount']?.toString() ??
-        id;
+    for (final key in {labelField, 'name', 'title', 'contractName'}) {
+      final raw = data[key];
+      if (raw != null) {
+        final text = CrmFieldRegistry.formatValue(raw);
+        if (text.isNotEmpty) return text;
+      }
+    }
+    // 避免标签为空时直接显示 UUID：优先取其他有意义字段
+    final fallbackKeys = object == 'person'
+        ? const ['jobTitle', 'emails', 'phones', 'city']
+        : const ['domainName', 'amount', 'status', 'content'];
+    for (final key in fallbackKeys) {
+      final raw = data[key];
+      if (raw != null) {
+        final text = CrmFieldRegistry.formatValue(raw);
+        if (text.isNotEmpty) return text;
+      }
+    }
+    return id;
   }
 
   /// 本地缓存搜索（跨对象）

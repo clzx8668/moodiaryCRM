@@ -661,6 +661,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     Object? value,
   ) async {
     if (!isEditableField(field)) return;
+    // 复合/关系字段（Map 值）单元格只读，避免破坏结构化数据
+    if (item.data[field] is Map) return;
     setState(() => _saving = true);
     try {
       // 仅提交可编辑字段，避免把 createdAt/position/xxId 等只读字段带入 UpdateInput
@@ -703,7 +705,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   List<String> _editableColumns(List<CrmEntityCache> items) {
     final all = _fieldNames(items);
     final effective = _effectiveColumns(items, all);
-    return effective.where(isEditableField).toList();
+    return effective
+        .where(isEditableField)
+        .where((f) => !items.any((i) => i.data[f] is Map))
+        .toList();
   }
 
   bool _isNumber(String field, List<CrmEntityCache> items) {
@@ -730,7 +735,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
 
   String _stringValue(CrmEntityCache item, String field) {
     if (field == _labelField) return item.name;
-    return item.data[field]?.toString() ?? '';
+    return CrmFieldRegistry.formatValue(item.data[field]);
   }
 
   String _fieldLabel(String field) {

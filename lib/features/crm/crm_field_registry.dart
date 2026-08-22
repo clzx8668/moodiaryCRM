@@ -114,10 +114,8 @@ class CrmFieldRegistry {
   /// 系统/审计字段（默认不展示）
   static const Set<String> _auditFields = {
     'id',
-    'createdAt',
     'updatedAt',
     'deletedAt',
-    'createdBy',
     'updatedBy',
     'position',
     'searchVector',
@@ -145,7 +143,17 @@ class CrmFieldRegistry {
     'RAW_JSON',
     'TS_VECTOR',
     'POSITION',
-    'ACTOR',
+  };
+
+  /// 关系标签列：以 `field { name }` 拉取并显示关联对象名称
+  /// （对齐 Twenty 视图中的 Company/Owner/Assignee 等列）。
+  static const Map<String, List<String>> relationLabelFields = {
+    'person': ['company'],
+    'opportunity': ['company', 'pointOfContact', 'owner'],
+    'task': ['assignee'],
+    'company': ['accountOwner'],
+    'contractsHeTongGuanLi': ['company'],
+    'invoiceFaPiao': ['heTong'],
   };
 
   /// 复合标量对象类型（GraphQL schema 形态，可整字段查询并展示）
@@ -278,6 +286,14 @@ query ListObjects {
         } catch (_) {
           // schema 拉取失败时使用 metadata + 补充字段
         }
+        // 注入关系标签列（以 `field { name }` 拉取关联对象名称）
+        for (final rel in relationLabelFields[objectKey] ?? const []) {
+          if (!fields.any((f) => f.name == rel)) {
+            fields.add(
+              CrmFieldMeta(name: rel, label: rel, type: 'RELATION_LABEL'),
+            );
+          }
+        }
         final labelField = _guessLabelField(
           node['nameSingular'] as String,
           fields,
@@ -355,6 +371,7 @@ query ListObjects {
     if (field.name.startsWith('__')) return false;
     final type = field.type;
     if (type.isEmpty) return true;
+    if (type == 'RELATION_LABEL') return true;
     if (_excludedTypes.contains(type)) return false;
     if (_metaTypePattern.hasMatch(type)) {
       // metadata 风格（UPPER_SNAKE）：仅排除关系类型
@@ -362,6 +379,65 @@ query ListObjects {
     }
     // schema 风格（PascalCase）：复合标量白名单，其余对象视为关系
     return _compositeScalarTypes.contains(type);
+  }
+
+  /// 复合值可读化：FullName/Links/Address/Currency/Emails/Phones/Actor/关系 等
+  /// Map 值 → 单行文本；ISO 日期 → yyyy-MM-dd；其余原样。
+  static String formatValue(dynamic value) {
+    if (value == null) return '';
+    if (value is String) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return '';
+      final date = DateTime.tryParse(trimmed);
+      if (date != null &&
+          trimmed.contains('-') &&
+          (trimmed.length == 10 || trimmed.contains('T'))) {
+        final local = date.toLocal();
+        return '${local.year.toString().padLeft(4, '0')}-'
+            '${local.month.toString().padLeft(2, '0')}-'
+            '${local.day.toString().padLeft(2, '0')}';
+      }
+      return trimmed;
+    }
+    if (value is Map) return _extractMapText(value);
+    return value.toString();
+  }
+
+  static String _extractMapText(Map<dynamic, dynamic> map) {
+    for (final key in const [
+      'name',
+      'title',
+      'displayName',
+      'primaryEmail',
+      'primaryPhoneNumber',
+      'primaryLinkUrl',
+      'addressStreet1',
+    ]) {
+      final v = map[key];
+      if (v != null && v.toString().trim().isNotEmpty) return v.toString().trim();
+    }
+    // FullName 组合
+    final first = map['firstName']?.toString().trim() ?? '';
+    final last = map['lastName']?.toString().trim() ?? '';
+    if (first.isNotEmpty || last.isNotEmpty) return '$first $last'.trim();
+    // Currency：金额微元 + 币种
+    final amount = map['amountMicros'];
+    if (amount is num) {
+      final code = map['currencyCode']?.toString() ?? '';
+      final value = amount / 1000000;
+      return '$code ${value.toStringAsFixed(2)}'.trim();
+    }
+    // Actor：name 或 source
+    final actorName = map['name'];
+    if (actorName is Map) {
+      final extracted = _extractMapText(actorName);
+      if (extracted.isNotEmpty) return extracted;
+    }
+    final source = map['source']?.toString();
+    if (source != null && source.isNotEmpty && source != 'MANUAL') {
+      return source;
+    }
+    return '';
   }
 
   /// 标签字段命名规则兜底（与 Twenty label identifier 对齐）
