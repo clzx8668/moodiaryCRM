@@ -154,6 +154,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   List<String> _hidden = [];
   CrmEntityCache? _selected;
   List<String> _lastAll = [];
+  int _refreshToken = 0;
   _PanelMode _panelMode = _PanelMode.none;
 
   CrmLocalRepository get _repo => CrmLocalRepository();
@@ -198,12 +199,20 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   void didUpdateWidget(covariant CrmObjectTableTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.reloadToken != widget.reloadToken) {
-      _reload();
+      _refreshGrid();
     }
   }
 
   void _reload() {
     setState(() {
+      _future = _loadItems();
+    });
+  }
+
+  /// 外部数据/列变更后重建网格（pluto_grid 不响应列/行更新，需换 key 重建）。
+  void _refreshGrid() {
+    setState(() {
+      _refreshToken++;
       _future = _loadItems();
     });
   }
@@ -709,6 +718,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         setState(() {
           _columns = visible;
           _hidden = hiddenList;
+          _refreshToken++;
         });
       }
     }
@@ -784,7 +794,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       };
       await _createEntity(data);
       toast.success(message: '已创建');
-      _reload();
+      _refreshGrid();
     } catch (e) {
       toast.error(message: '创建失败：$e');
     } finally {
@@ -853,13 +863,28 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       setState(() {
         _columns = visible;
         _hidden = hiddenList;
+        _refreshToken++;
         _panelMode = _PanelMode.none;
       });
     }
   }
 
+  /// 点击面板外：等待失焦自动提交完成后，关闭面板并刷新网格。
+  Future<void> _closeAndRefresh() async {
+    // 给字段失焦提交留出执行时间（DB 写入为异步）
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    if (mounted) {
+      setState(() {
+        _panelMode = _PanelMode.none;
+        _selected = null;
+      });
+      _refreshGrid();
+    }
+  }
+
   Future<void> _createFromPanel(Map<String, dynamic> data) async {
     await _createEntity(data);
+    _refreshGrid();
   }
 
   /// 追加「用户从未决定过」的新默认字段（显式隐藏的除外）：
@@ -978,7 +1003,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       toast.success(message: '已删除');
       setState(() => _selected = null);
       _panelMode = _PanelMode.none;
-      _reload();
+      _refreshGrid();
     } catch (e) {
       toast.error(message: '删除失败：$e');
     }
@@ -1288,7 +1313,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                   ),
                   IconButton(
                     tooltip: '刷新',
-                    onPressed: _reload,
+                    onPressed: _refreshGrid,
                     icon: const Icon(Icons.refresh_rounded),
                   ),
                   FilledButton.tonalIcon(
@@ -1316,28 +1341,46 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
               child: Row(
                 children: [
                   Expanded(
-                    child: items.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  crmTypeIcon(widget.objectType),
-                                  size: 40,
-                                  color: crmTypeColor(widget.objectType),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: items.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        crmTypeIcon(widget.objectType),
+                                        size: 40,
+                                        color: crmTypeColor(widget.objectType),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text('暂无数据，点击「新增」创建'),
+                                    ],
+                                  ),
+                                )
+                              : CrmSmartTable(
+                                  key: ValueKey(
+                                    '${widget.objectType}-grid-$_refreshToken',
+                                  ),
+                                  items: items,
+                                  fields: effectiveColumns,
+                                  onCellChanged: _updateCell,
+                                  onOpen: _edit,
+                                  onColumnsReordered: _persistColumnOrder,
                                 ),
-                                const SizedBox(height: 8),
-                                const Text('暂无数据，点击「新增」创建'),
-                              ],
+                        ),
+                        if (_panelMode != _PanelMode.none &&
+                            MediaQuery.sizeOf(context).width >= 900)
+                          Positioned.fill(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _closeAndRefresh,
+                              child: const ColoredBox(color: Colors.transparent),
                             ),
-                          )
-                        : CrmSmartTable(
-                            items: items,
-                            fields: effectiveColumns,
-                            onCellChanged: _updateCell,
-                            onOpen: _edit,
-                            onColumnsReordered: _persistColumnOrder,
                           ),
+                      ],
+                    ),
                   ),
                   if (_panelMode != _PanelMode.none &&
                       MediaQuery.sizeOf(context).width >= 900) ...[
@@ -1349,8 +1392,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                           objectType: widget.objectType,
                           item: _selected!,
                           fields: _fields,
-                          onClose: _closePanel,
-                          onChanged: _reload,
+                          onClose: _closeAndRefresh,
+                          onChanged: _refreshGrid,
                           onDelete: _deleteSelected,
                         ),
                         _PanelMode.columns => CrmColumnSettingsPanel(
