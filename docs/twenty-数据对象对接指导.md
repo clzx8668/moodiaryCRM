@@ -68,6 +68,7 @@
 | :-- | :-- | :-- | :-- |
 | title | TEXT | ✅ | 标题（日记标题 / 待办首行） |
 | content | TEXT | – | 完整内容（Markdown 或任务行） |
+| name | TEXT | ✅ | **标签标识字段**：Twenty 自动生成（labelIdentifier），记录在表格/视图中的显示名，应用写入=标题 |
 | sourceType | SELECT | ✅ | `NOTE` / `TODO`（Twenty 枚举要求大写蛇形），认领时决定升级为 note 还是 task |
 | dueAt | DATE_TIME | – | 待办到期时间 |
 | status | SELECT | – | TODO / IN_PROGRESS / DONE |
@@ -154,6 +155,10 @@ curl -X POST http://10.200.245.54:3000/metadata \
 > 权限要求：调用 `/metadata/graphql` 需要 API Key 具备 **Data model** 管理权限
 > （Settings → Permissions / API Key 创建时勾选）。若 Key 只有业务数据权限，
 > 请使用方式 A 在界面创建对象。
+
+> 注意：创建对象时若未指定标签标识字段，Twenty 会自动新增 `name` 字段作为
+> labelIdentifier。写入通用记录必须同时提供 `name`（显示名），否则记录在
+> Twenty 表格中显示为空白。
 
 ## 3. 关联与客户时间线机制
 

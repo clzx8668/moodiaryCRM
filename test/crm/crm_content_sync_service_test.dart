@@ -366,6 +366,56 @@ void main() {
   });
 
   group('CrmContentSyncService 其它', () {
+    test('遗留降级记录（generic+标准note）在 pushAll 时迁移到通用表', () async {
+      final adapter = ContentMockAdapter(genericExists: true);
+      final service = makeService(adapter);
+      final diary = Diary()
+        ..id = 'd-legacy'
+        ..type = 'markdown'
+        ..title = '旧降级笔记'
+        ..contentText = '内容'
+        ..time = DateTime(2026, 8, 22)
+        ..lastModified = DateTime(2026, 8, 22);
+      await IsarUtil.insertADiary(diary);
+      // 模拟旧构建：已推为标准 note 且状态为 generic（待迁移）
+      await IsarUtil.upsertCrmContentLinks([
+        CrmContentLink()
+          ..localType = CrmContentLink.localTypeDiary
+          ..localId = diary.id
+          ..remoteType = CrmContentLink.remoteTypeNote
+          ..remoteId = 'legacy-note-1'
+          ..status = CrmContentLink.statusGeneric,
+      ]);
+
+      final result = await service.pushAll();
+
+      expect(result.pushedNotes, 1);
+      final link = await IsarUtil.getCrmContentLinkByLocal(
+        CrmContentLink.localTypeDiary,
+        diary.id,
+      );
+      expect(link?.remoteType, CrmContentLink.remoteTypeGeneric);
+      expect(adapter.calls, containsAll(['createMoodiaryGeneric', 'deleteNote']));
+      expect(adapter.calls, isNot(contains('createNote')));
+    });
+
+    test('通用记录创建包含 name 标签字段', () async {
+      final adapter = ContentMockAdapter(genericExists: true);
+      final service = makeService(adapter);
+      final diary = Diary()
+        ..id = 'd-name'
+        ..type = 'markdown'
+        ..title = '带标签记录'
+        ..contentText = '内容'
+        ..time = DateTime(2026, 8, 22)
+        ..lastModified = DateTime(2026, 8, 22);
+
+      final link = await service.pushDiary(diary);
+
+      expect(link.remoteType, CrmContentLink.remoteTypeGeneric);
+      expect(link.isGeneric, isTrue);
+    });
+
     test('拉取 Twenty 笔记/待办写入本地缓存', () async {
       final adapter = ContentMockAdapter();
       final service = makeService(adapter);

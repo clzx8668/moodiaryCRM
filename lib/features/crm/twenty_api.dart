@@ -156,6 +156,60 @@ class TwentyApiClient {
     return false;
   }
 
+  /// Metadata API 通用调用（对象/字段元数据管理）。
+  /// 端点优先 `/metadata`，部分 Twenty 版本为 `/metadata/graphql`（404 时回退）。
+  Future<Map<String, dynamic>> metadataGraphql(
+    String query, [
+    Map<String, dynamic>? variables,
+  ]) async {
+    for (final path in const ['/metadata', '/metadata/graphql']) {
+      try {
+        final response = await _requestWithRetry(
+          () => _dio.post<dynamic>(
+            path,
+            data: {
+              'query': query,
+              if (variables != null) 'variables': variables,
+            },
+          ),
+          operation: 'metadata',
+          target: path,
+        );
+        final body = response.data;
+        if (body is! Map<String, dynamic>) {
+          throw const TwentyApiException('Metadata 响应格式异常');
+        }
+        final errors = body['errors'];
+        if (errors != null && errors is List && errors.isNotEmpty) {
+          final messages = errors
+              .map(
+                (e) =>
+                    (e as Map<String, dynamic>)['message']?.toString() ?? '',
+              )
+              .where((m) => m.isNotEmpty)
+              .toList();
+          throw TwentyApiException(
+            'Metadata 返回错误',
+            graphQlErrors: messages,
+          );
+        }
+        final data = body['data'];
+        if (data is! Map<String, dynamic>) {
+          throw const TwentyApiException('Metadata 无 data 字段');
+        }
+        return data;
+      } on TwentyApiException catch (e) {
+        if (path == '/metadata' &&
+            e.statusCode == 404 &&
+            (e.graphQlErrors?.isEmpty ?? true)) {
+          continue; // 端点不存在 → 尝试 /metadata/graphql
+        }
+        rethrow;
+      }
+    }
+    throw const TwentyApiException('Metadata 端点不可用');
+  }
+
   /// 通用 GraphQL 查询/变更
   Future<Map<String, dynamic>> graphql(
     String query, [

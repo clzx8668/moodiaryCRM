@@ -124,7 +124,7 @@ class CrmContentSyncService {
         CrmContentLink.localTypeDiary,
         diary.id,
       );
-      if (!force && existing != null) continue;
+      if (!force && existing != null && !_needsReprocess(existing)) continue;
       try {
         final link = await pushDiary(
           diary,
@@ -147,7 +147,7 @@ class CrmContentSyncService {
         CrmContentLink.localTypeBlock,
         block.id,
       );
-      if (!force && existing != null) continue;
+      if (!force && existing != null && !_needsReprocess(existing)) continue;
       try {
         final link = await pushTodoBlock(
           block,
@@ -179,6 +179,12 @@ class CrmContentSyncService {
     );
     return result;
   }
+
+  /// 遗留降级记录：状态为 generic 但远端仍是标准 note/task（通用对象创建前
+  /// 推送的旧数据）→ 需要重推迁移到通用表。
+  static bool _needsReprocess(CrmContentLink link) =>
+      link.isGeneric &&
+      link.remoteType != CrmContentLink.remoteTypeGeneric;
 
   /// 推送一条日记为 Twenty 笔记。
   Future<CrmContentLink> pushDiary(
@@ -240,6 +246,7 @@ class CrmContentSyncService {
           remoteId = (await client.create(
             object: genericObjectName,
             data: {
+              'name': title,
               'title': title,
               'content': body,
               'sourceType': 'NOTE',
@@ -257,7 +264,12 @@ class CrmContentSyncService {
           await client.update(
             object: genericObjectName,
             id: remoteId,
-            data: {'title': title, 'content': body, 'sourceType': 'NOTE'},
+            data: {
+              'name': title,
+              'title': title,
+              'content': body,
+              'sourceType': 'NOTE',
+            },
           );
         }
         link
@@ -357,6 +369,7 @@ class CrmContentSyncService {
           remoteId = (await client.create(
             object: genericObjectName,
             data: {
+              'name': title,
               'title': title,
               'content': body,
               'sourceType': 'TODO',
@@ -376,6 +389,7 @@ class CrmContentSyncService {
             object: genericObjectName,
             id: remoteId,
             data: {
+              'name': title,
               'title': title,
               'content': body,
               'sourceType': 'TODO',

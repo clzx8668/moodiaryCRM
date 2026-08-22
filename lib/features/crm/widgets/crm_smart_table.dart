@@ -25,12 +25,16 @@ class CrmSmartTable extends StatefulWidget {
   /// 双击行 / 选中打开详情
   final void Function(CrmEntityCache item)? onOpen;
 
+  /// 拖拽列排序完成（参数为当前可见字段顺序），用于持久化
+  final void Function(List<String> fields)? onColumnsReordered;
+
   const CrmSmartTable({
     super.key,
     required this.items,
     required this.fields,
     this.onCellChanged,
     this.onOpen,
+    this.onColumnsReordered,
   });
 
   @override
@@ -257,6 +261,11 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
         final rowIdx = event.rowIdx;
         if (rowIdx < 0 || rowIdx >= widget.items.length) return;
         widget.onOpen?.call(widget.items[rowIdx]);
+      },
+      onColumnsMoved: (event) {
+        widget.onColumnsReordered?.call([
+          for (final column in event.columns) column.field,
+        ]);
       },
     );
   }

@@ -77,6 +77,47 @@ class _CrmContentSyncPageState extends State<CrmContentSyncPage> {
     }
   }
 
+  Future<void> _forcePushAll() async {
+    if (_pushing) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('强制重推'),
+        content: const Text(
+          '将重新推送全部笔记与待办（含已推送记录，按最新内容更新远端；'
+          '历史降级为标准对象的未关联记录会迁移到通用数据表）。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('强制重推'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _pushing = true);
+    try {
+      final service = await _service();
+      final result = await service.pushAll(force: true);
+      _lastResult = result;
+      toast.success(
+        message: result.failed > 0
+            ? '重推完成：${result.total} 条，失败 ${result.failed}'
+            : '重推完成：${result.total} 条',
+      );
+      await _load();
+    } catch (e) {
+      toast.error(message: '重推失败：$e');
+    } finally {
+      if (mounted) setState(() => _pushing = false);
+    }
+  }
+
   Future<void> _pullRemote() async {
     if (_pulling) return;
     setState(() => _pulling = true);
@@ -351,19 +392,31 @@ class _CrmContentSyncPageState extends State<CrmContentSyncPage> {
                     style: context.textTheme.bodySmall,
                   ),
                   const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: _pushing ? null : _pushAll,
-                    icon: _pushing
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.upload_rounded, size: 18),
-                    label: Text(_pushing ? '推送中…' : '一键推送全部未同步内容'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: _pushing ? null : _pushAll,
+                          icon: _pushing
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.upload_rounded, size: 18),
+                          label: Text(_pushing ? '推送中…' : '一键推送全部未同步内容'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: _pushing ? null : _forcePushAll,
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('强制重推'),
+                      ),
+                    ],
                   ),
                   if (_lastResult != null) ...[
                     const SizedBox(height: 8),
