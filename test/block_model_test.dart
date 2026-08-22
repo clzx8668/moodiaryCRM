@@ -71,6 +71,38 @@ void main() {
       expect(cloned.content, '新内容');
       expect(cloned.id, block.id);
     });
+
+    test('metaJson 往返一致', () {
+      final block = Block()
+        ..id = 'block-meta'
+        ..diaryId = 'diary-1'
+        ..content = '正文'
+        ..meta = BlockMeta(
+          source: BlockMeta.sourceAppended,
+          syncStatus: BlockMeta.syncPending,
+          aiTemplate: 'todo',
+          entityType: 'company',
+          title: '追加卡',
+        );
+
+      final restored = Block.fromJson(block.toJson());
+
+      expect(restored, block);
+      expect(restored.meta.source, BlockMeta.sourceAppended);
+      expect(restored.meta.isPending, isTrue);
+      expect(restored.meta.aiTemplate, 'todo');
+      expect(restored.meta.entityType, 'company');
+      expect(restored.meta.title, '追加卡');
+    });
+
+    test('metaJson 容错：损坏/空值回退默认', () {
+      final empty = Block();
+      expect(empty.meta.source, BlockMeta.sourceInitial);
+      expect(empty.meta.isInitial, isTrue);
+
+      final broken = Block()..metaJson = 'not-json';
+      expect(broken.meta.source, BlockMeta.sourceInitial);
+    });
   });
 
   group('Block Drift 往返', () {

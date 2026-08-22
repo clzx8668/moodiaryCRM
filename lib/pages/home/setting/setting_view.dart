@@ -18,6 +18,7 @@ import 'package:moodiary/components/remove_password/remove_password_view.dart';
 import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
 import 'package:moodiary/features/crm/crm_sync_page.dart';
+import 'package:moodiary/features/ai/ai_settings_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -153,6 +154,15 @@ class SettingPage extends StatelessWidget {
                   leading: const Icon(Icons.sync_rounded),
                 ),
                 AdaptiveListTile(
+                  title: const Text('数据健康度'),
+                  subtitle: const Text('统计概览 / 附件清理 / 重建向量索引 / CRM 对账'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    logic.toHealthPage();
+                  },
+                  leading: const Icon(Icons.monitor_heart_rounded),
+                ),
+                AdaptiveListTile(
                   title: Text(context.l10n.settingClean),
                   leading: const Icon(Icons.cleaning_services_rounded),
                   trailing: GetBuilder<SettingLogic>(
@@ -226,6 +236,33 @@ class SettingPage extends StatelessWidget {
       );
     }
 
+    Widget buildAi() {
+      return Column(
+        children: [
+          const AdaptiveTitleTile(title: 'AI 助手'),
+          Card.filled(
+            color: context.theme.colorScheme.surfaceContainerLow,
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                AdaptiveListTile(
+                  title: const Text('AI 设置'),
+                  subtitle: const Text('API Key / 模型配置与连接测试'),
+                  leading: const Icon(Icons.auto_awesome_rounded),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  isFirst: true,
+                  isLast: true,
+                  onTap: () {
+                    Get.to(() => const AiSettingsPage());
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     Widget buildModuleSwitches() {
       return Column(
         children: [
@@ -247,7 +284,7 @@ class SettingPage extends StatelessWidget {
                   value: state.moduleKnowledgeBase.value,
                   onChanged: logic.changeModuleKnowledgeBase,
                   title: const Text('知识库模块'),
-                  subtitle: const Text('知识库/RAG 能力（Phase 3 建设中）'),
+                  subtitle: const Text('关闭后隐藏知识库选择与索引（AI 对话仍可用）'),
                   secondary: const Icon(Icons.menu_book_rounded),
                 ),
                 AdaptiveSwitchListTile(
@@ -582,6 +619,7 @@ class SettingPage extends StatelessWidget {
                   children: [
                     buildModuleSwitches(),
                     buildCrm(),
+                    buildAi(),
                   ],
                 ),
               ),

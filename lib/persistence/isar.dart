@@ -9,8 +9,15 @@ import 'package:moodiary/common/models/isar/sync_record.dart' hide fastHash;
 import 'package:moodiary/common/models/map.dart';
 import 'package:moodiary/components/base/text.dart';
 import 'package:moodiary/features/block/models/block.dart' as block_model;
+import 'package:moodiary/features/block/markdown_projection.dart';
+import 'package:moodiary/features/ai/models/ai_chat_session.dart'
+    as chat_model;
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart'
     as crm_model;
+import 'package:moodiary/features/rag/models/block_embedding.dart'
+    as rag_model;
+import 'package:moodiary/features/rag/models/knowledge_base.dart'
+    as kb_model;
 import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/persistence/migration.dart';
 import 'package:moodiary/persistence/pref.dart';
@@ -155,6 +162,7 @@ class IsarUtil {
       isDeleted: Value(b.isDeleted),
       streamBuffer: Value(b.streamBuffer),
       streamComplete: Value(b.streamComplete),
+      metaJson: Value(b.metaJson),
       createdAt: b.createdAt,
       updatedAt: b.updatedAt,
     );
@@ -170,6 +178,7 @@ class IsarUtil {
       ..isDeleted = row.isDeleted
       ..streamBuffer = row.streamBuffer
       ..streamComplete = row.streamComplete
+      ..metaJson = row.metaJson
       ..createdAt = row.createdAt
       ..updatedAt = row.updatedAt;
   }
@@ -218,6 +227,94 @@ class IsarUtil {
       ..diaryJson = row.diaryJson
       ..time = row.time
       ..syncType = SyncType.values[row.syncType];
+  }
+
+  static KnowledgeBasesCompanion _kbCompanion(kb_model.KnowledgeBase kb) {
+    return KnowledgeBasesCompanion.insert(
+      id: kb.id,
+      name: kb.name,
+      description: Value(kb.description),
+      createdAt: kb.createdAt,
+      updatedAt: kb.updatedAt,
+    );
+  }
+
+  static kb_model.KnowledgeBase _kbFromRow(KnowledgeBaseRow row) {
+    return kb_model.KnowledgeBase()
+      ..id = row.id
+      ..name = row.name
+      ..description = row.description
+      ..createdAt = row.createdAt
+      ..updatedAt = row.updatedAt;
+  }
+
+  static BlockEmbeddingsCompanion _embeddingCompanion(
+    rag_model.BlockEmbedding e,
+  ) {
+    return BlockEmbeddingsCompanion.insert(
+      blockId: e.blockId,
+      diaryId: e.diaryId,
+      knowledgeBaseId: e.knowledgeBaseId,
+      textContent: e.text,
+      embedding: e.encode(),
+      dimension: e.dimension,
+      updatedAt: e.updatedAt,
+    );
+  }
+
+  static rag_model.BlockEmbedding _embeddingFromRow(BlockEmbeddingRow row) {
+    return rag_model.BlockEmbedding()
+      ..blockId = row.blockId
+      ..diaryId = row.diaryId
+      ..knowledgeBaseId = row.knowledgeBaseId
+      ..text = row.textContent
+      ..embedding = rag_model.BlockEmbedding.decode(row.embedding, row.dimension)
+      ..updatedAt = row.updatedAt;
+  }
+
+  static AiChatSessionsCompanion _chatSessionCompanion(
+    chat_model.AiChatSession s,
+  ) {
+    return AiChatSessionsCompanion.insert(
+      id: s.id,
+      title: Value(s.title),
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    );
+  }
+
+  static chat_model.AiChatSession _chatSessionFromRow(AiChatSessionRow row) {
+    return chat_model.AiChatSession()
+      ..id = row.id
+      ..title = row.title
+      ..createdAt = row.createdAt
+      ..updatedAt = row.updatedAt;
+  }
+
+  static AiChatMessagesCompanion _chatMessageCompanion(
+    chat_model.AiChatMessageRecord m,
+  ) {
+    return AiChatMessagesCompanion.insert(
+      id: m.id,
+      sessionId: m.sessionId,
+      role: m.role,
+      content: m.content,
+      sourcesJson: Value(m.sourcesJson),
+      createdAt: m.createdAt,
+    );
+  }
+
+  static chat_model.AiChatMessageRecord _chatMessageFromRow(
+    AiChatMessageRow row,
+  ) {
+    final record = chat_model.AiChatMessageRecord()
+      ..id = row.id
+      ..sessionId = row.sessionId
+      ..role = row.role
+      ..content = row.content
+      ..createdAt = row.createdAt;
+    record.setSourcesJson(row.sourcesJson);
+    return record;
   }
 
   // ==================== 基础操作 ====================
@@ -286,6 +383,14 @@ class IsarUtil {
       if (fastHash(row.id) == isarId) return _diaryFromRow(row);
     }
     return null;
+  }
+
+  /// 按业务主键（UUID）查找日记（SmartCanvasPage 等按 id 聚合的场景）
+  static Future<Diary?> getDiaryById(String id) async {
+    final row = await (_database.select(_database.diaries)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _diaryFromRow(row);
   }
 
   static Future<List<Diary>> getDiariesByDateRange(
@@ -646,6 +751,148 @@ class IsarUtil {
     return rows.map(_syncFromRow).toList();
   }
 
+  // ==================== 知识库（P3.2） ====================
+
+  static Future<void> upsertKnowledgeBase(kb_model.KnowledgeBase kb) async {
+    kb.updatedAt = DateTime.now();
+    await _database.into(_database.knowledgeBases).insertOnConflictUpdate(
+      _kbCompanion(kb),
+    );
+  }
+
+  static Future<List<kb_model.KnowledgeBase>> getAllKnowledgeBases() async {
+    final rows = await (_database.select(_database.knowledgeBases)
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .get();
+    return rows.map(_kbFromRow).toList();
+  }
+
+  static Future<kb_model.KnowledgeBase?> getKnowledgeBaseById(String id) async {
+    final row = await (_database.select(_database.knowledgeBases)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _kbFromRow(row);
+  }
+
+  static Future<void> deleteKnowledgeBase(String id) async {
+    await _database.transaction(() async {
+      await (_database.delete(_database.knowledgeBases)
+            ..where((t) => t.id.equals(id)))
+          .go();
+      await (_database.delete(_database.blockEmbeddings)
+            ..where((t) => t.knowledgeBaseId.equals(id)))
+          .go();
+    });
+  }
+
+  static Future<int> countEmbeddingsByKnowledgeBase(String kbId) async {
+    return (await (_database.select(_database.blockEmbeddings)
+              ..where((t) => t.knowledgeBaseId.equals(kbId)))
+            .get())
+        .length;
+  }
+
+  // ==================== 块向量（P3.3） ====================
+
+  static Future<void> upsertBlockEmbedding(rag_model.BlockEmbedding e) async {
+    e.updatedAt = DateTime.now();
+    await _database.into(_database.blockEmbeddings).insertOnConflictUpdate(
+      _embeddingCompanion(e),
+    );
+  }
+
+  static Future<void> deleteBlockEmbeddings(String blockId) async {
+    await (_database.delete(_database.blockEmbeddings)
+          ..where((t) => t.blockId.equals(blockId)))
+        .go();
+  }
+
+  static Future<void> deleteBlockEmbedding(
+    String blockId,
+    String knowledgeBaseId,
+  ) async {
+    await (_database.delete(_database.blockEmbeddings)
+          ..where(
+            (t) =>
+                t.blockId.equals(blockId) &
+                t.knowledgeBaseId.equals(knowledgeBaseId),
+          ))
+        .go();
+  }
+
+  static Future<List<rag_model.BlockEmbedding>> getEmbeddingsByKnowledgeBase(
+    String kbId,
+  ) async {
+    final rows = await (_database.select(_database.blockEmbeddings)
+          ..where((t) => t.knowledgeBaseId.equals(kbId)))
+        .get();
+    return rows.map(_embeddingFromRow).toList();
+  }
+
+  static Future<List<rag_model.BlockEmbedding>> getAllBlockEmbeddings() async {
+    final rows = await _database.select(_database.blockEmbeddings).get();
+    return rows.map(_embeddingFromRow).toList();
+  }
+
+  static Future<rag_model.BlockEmbedding?> getEmbeddingByBlockAndKb(
+    String blockId,
+    String kbId,
+  ) async {
+    final row = await (_database.select(_database.blockEmbeddings)
+          ..where(
+            (t) =>
+                t.blockId.equals(blockId) &
+                t.knowledgeBaseId.equals(kbId),
+          ))
+        .getSingleOrNull();
+    return row == null ? null : _embeddingFromRow(row);
+  }
+
+  // ==================== AI 对话会话（历史话题） ====================
+
+  static Future<void> upsertChatSession(chat_model.AiChatSession session) async {
+    session.updatedAt = DateTime.now();
+    await _database.into(_database.aiChatSessions).insertOnConflictUpdate(
+      _chatSessionCompanion(session),
+    );
+  }
+
+  static Future<List<chat_model.AiChatSession>> getAllChatSessions() async {
+    final rows = await (_database.select(_database.aiChatSessions)
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .get();
+    return rows.map(_chatSessionFromRow).toList();
+  }
+
+  static Future<void> deleteChatSession(String id) async {
+    await _database.transaction(() async {
+      await (_database.delete(_database.aiChatSessions)
+            ..where((t) => t.id.equals(id)))
+          .go();
+      await (_database.delete(_database.aiChatMessages)
+            ..where((t) => t.sessionId.equals(id)))
+          .go();
+    });
+  }
+
+  static Future<void> insertChatMessage(
+    chat_model.AiChatMessageRecord message,
+  ) async {
+    await _database.into(_database.aiChatMessages).insertOnConflictUpdate(
+      _chatMessageCompanion(message),
+    );
+  }
+
+  static Future<List<chat_model.AiChatMessageRecord>> getChatMessages(
+    String sessionId,
+  ) async {
+    final rows = await (_database.select(_database.aiChatMessages)
+          ..where((t) => t.sessionId.equals(sessionId))
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+        .get();
+    return rows.map(_chatMessageFromRow).toList();
+  }
+
   static Future<void> deleteSyncRecord(int id) async {
     final rows = await _database.select(_database.syncRecords).get();
     for (final row in rows) {
@@ -808,6 +1055,36 @@ class IsarUtil {
           ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
         .get();
     return rows.map(_blockFromRow).toList();
+  }
+
+  /// 导出/备份用：返回全部 Block（含软删除墓碑，保证往返一致）
+  static Future<List<block_model.Block>> getAllBlocks() async {
+    final rows = await (_database.select(_database.blocks)
+          ..orderBy([(t) => OrderingTerm.asc(t.diaryId)]))
+        .get();
+    return rows.map(_blockFromRow).toList();
+  }
+
+  /// 按业务主键查询单个 Block
+  static Future<block_model.Block?> getBlockById(String id) async {
+    final row = await (_database.select(_database.blocks)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _blockFromRow(row);
+  }
+
+  /// 双模态聚合投影刷新：以 Blocks 为真相层，重算 diary.content/contentText
+  /// 并落库（智能详情页-双模态架构设计 3.1/3.3）。
+  ///
+  /// 返回聚合后的 Markdown（供调用方同步内存对象）。
+  static Future<String> refreshDiaryProjection(Diary diary) async {
+    final blocks = await getBlocksByDiary(diary.id);
+    final projection = MarkdownProjection.aggregate(blocks);
+    diary
+      ..content = projection
+      ..contentText = projection.removeLineBreaks();
+    await updateADiary(newDiary: diary);
+    return projection;
   }
 
   static Future<void> upsertDiaryTextBlock(Diary diary) async {

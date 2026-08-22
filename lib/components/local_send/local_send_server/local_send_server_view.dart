@@ -26,7 +26,9 @@ class LocalSendServerComponent extends StatelessWidget {
               AdaptiveListTile(
                 leading: const FaIcon(FontAwesomeIcons.server),
                 title: logic.serverName,
-                subtitle: context.l10n.lanTransferReceiveServerStart,
+                subtitle:
+                    '${context.l10n.lanTransferReceiveServerStart}\n'
+                    '监听于 ${logic.serverIp ?? '未知 IP'}:${logic.transferPort}',
               ),
               if (logic.receiveCount.value > 0) ...[
                 Obx(() {

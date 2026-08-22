@@ -3,17 +3,21 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart' as dio;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/components/local_send/local_send_logic.dart';
+import 'package:moodiary/features/ai/ai_capability_store.dart';
+import 'package:moodiary/features/ai/ai_provider_store.dart';
+import 'package:moodiary/features/backup/backup_service.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/http_util.dart';
 import 'package:moodiary/utils/log_util.dart';
 import 'package:moodiary/utils/notice_util.dart';
 import 'package:moodiary/utils/send_util.dart';
+import 'package:moodiary/utils/wifi_multicast_lock.dart';
 
 import 'local_send_client_state.dart';
 
@@ -29,6 +33,7 @@ class LocalSendClientLogic extends GetxController {
   @override
   void onReady() async {
     super.onReady();
+    await WifiMulticastLock.acquire();
     socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
     socket.broadcastEnabled = true;
     await startFindServer();
@@ -38,17 +43,42 @@ class LocalSendClientLogic extends GetxController {
   void onClose() {
     socket.close();
     timer?.cancel();
+    WifiMulticastLock.release();
     super.onClose();
   }
 
-  void _sendBroadcast() {
+  Future<void> _sendBroadcast() async {
     const message = 'Looking for server';
-    socket.send(
-      message.codeUnits,
+    // 目标集合：全局广播 + 各网卡定向广播（部分网络/路由器会丢弃 255.255.255.255）
+    final targets = <InternetAddress>{
       InternetAddress('255.255.255.255'),
-      scanPort,
-    );
-    logger.i('Broadcast sent');
+    };
+    try {
+      for (final interface in await NetworkInterface.list()) {
+        for (final address in interface.addresses) {
+          // 该 SDK 的 addresses 为 InternetAddress，无 netmask；
+          // 按常见 /24 私网推导定向广播（如 192.168.1.x → 192.168.1.255）
+          if (address.type == InternetAddressType.IPv4 &&
+              !address.isLoopback) {
+            final parts = address.address.split('.');
+            if (parts.length == 4) {
+              parts[3] = '255';
+              targets.add(InternetAddress(parts.join('.')));
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // 枚举网卡失败时仅使用全局广播
+    }
+    for (final target in targets) {
+      try {
+        socket.send(message.codeUnits, target, scanPort);
+      } catch (e) {
+        logger.i('Broadcast to ${target.address} failed: $e');
+      }
+    }
+    logger.i('Broadcast sent to ${targets.map((t) => t.address).join(', ')}');
   }
 
   // 尝试在 30 秒内找到服务器
@@ -86,6 +116,10 @@ class LocalSendClientLogic extends GetxController {
     Future.delayed(timeout, () {
       if (!completer.isCompleted) {
         timer?.cancel();
+        state.findStatus.value =
+            '未找到接收端：请确认另一台设备已打开「接收」标签、两台设备处于同一局域网，'
+            '且防火墙放行了 $scanPort（扫描）与 ${localSendLogic.state.transferPort.value}（传输）端口；'
+            '若使用路由器/访客 Wi-Fi 请检查是否开启了 AP 隔离。';
         completer.complete(false);
       }
     });
@@ -107,6 +141,8 @@ class LocalSendClientLogic extends GetxController {
           state.serverIp = serverInfo[0];
           state.serverPort = int.parse(serverInfo[1]);
           state.serverName = serverInfo[2];
+          state.findStatus.value =
+              '已找到服务器：${state.serverName}（${state.serverIp}:${state.serverPort}）';
           state.isFindingServer = false;
           update();
 
@@ -122,6 +158,7 @@ class LocalSendClientLogic extends GetxController {
 
     // 初次发送广播
     _sendBroadcast();
+    state.findStatus.value = '正在查找服务器…';
 
     return completer.future;
   }
@@ -133,6 +170,14 @@ class LocalSendClientLogic extends GetxController {
     final dio.FormData formData = dio.FormData();
     // 添加 JSON 数据
     formData.fields.add(MapEntry('diary', jsonEncode(diary.toJson())));
+    // 双模态 Block（含待办/文本/实体卡），保证对端日历待办与详情页一致
+    final blocks = await IsarUtil.getBlocksByDiary(diary.id);
+    formData.fields.add(
+      MapEntry(
+        'blocks',
+        jsonEncode([for (final block in blocks) block.toJson()]),
+      ),
+    );
     // 如果有分类，把分类名字带过去
     if (diary.categoryId != null) {
       final categoryName =
@@ -214,42 +259,71 @@ class LocalSendClientLogic extends GetxController {
     }
   }
 
-  // 向服务器发送数据并监听进度
+  /// 全量同步：打包 日记+Block+CRM+知识库+向量+AI 会话/AI 配置 为 zip 发送。
   Future<void> sendAllData() async {
     state.isSending.value = true;
-    final dataPath = FileUtil.getRealPath('', '');
-    final zipPath = FileUtil.getCachePath('');
-    final isolateParams = {'zipPath': zipPath, 'dataPath': dataPath};
-    // 获取压缩文件路径
-    final filePath = await compute(FileUtil.zipFile, isolateParams);
+    try {
+      toast.info(message: '正在打包同步数据…');
+      final scope = backupScopeFromName(
+        PrefUtil.getValue<String>('lanSyncContentScope'),
+      );
+      final packet = await BackupService.export(
+        targetDirectory: FileUtil.getCachePath('lan_sync'),
+        extraJson: scope == BackupScope.all ? await _buildAiExtras() : null,
+        scope: scope,
+      );
 
-    // 创建 FormData 并同步添加 JSON 和文件
-    final dio.FormData formData = dio.FormData();
-    // 添加 JSON 数据
-    formData.files.add(
-      MapEntry('file', await dio.MultipartFile.fromFile(filePath)),
-    );
+      final dio.FormData formData = dio.FormData();
+      formData.files.add(
+        MapEntry(
+          'file',
+          await dio.MultipartFile.fromFile(
+            packet.path,
+            filename: packet.path.split(Platform.pathSeparator).last,
+          ),
+        ),
+      );
 
-    final uploadSpeedCalculator = UploadSpeedCalculator();
-    // 发送请求并监听进度
-    final response = await HttpUtil().upload(
-      'http://${state.serverIp}:${state.serverPort}',
-      data: formData,
-      onSendProgress: (int sent, int total) {
-        uploadSpeedCalculator.updateSpeed(sent);
-        final speed = uploadSpeedCalculator.getSpeed();
-        state.speed.value = speed;
-        state.progress.value = sent / total;
-      },
-    );
-    state.isSending.value = false;
-    if (response.statusCode == 200 && response.data != null) {
-      if (response.data as String == 'Data and files received successfully') {
-        toast.success(message: '发送成功');
+      final uploadSpeedCalculator = UploadSpeedCalculator();
+      final response = await HttpUtil().upload(
+        'http://${state.serverIp}:${state.serverPort}',
+        data: formData,
+        onSendProgress: (int sent, int total) {
+          uploadSpeedCalculator.updateSpeed(sent);
+          final speed = uploadSpeedCalculator.getSpeed();
+          state.speed.value = speed;
+          state.progress.value = sent / total;
+        },
+      );
+      if (response.statusCode == 200 &&
+          response.data == 'Data and files received successfully') {
+        toast.success(message: '同步完成：多端数据已合并');
+      } else {
+        toast.error(message: '同步失败');
       }
-    } else {
-      toast.error(message: '发送失败');
+      await packet.delete();
+    } catch (e) {
+      toast.error(message: '同步失败：$e');
+    } finally {
+      state.isSending.value = false;
     }
+  }
+
+  /// AI 服务商 + 能力配置（安全存储）打包为同步附加 JSON
+  Future<Map<String, Object>> _buildAiExtras() async {
+    final extras = <String, Object>{};
+    try {
+      final providers = await AiProviderStore.loadAll();
+      extras['ai_providers.json'] = [
+        for (final provider in providers) provider.toJson(),
+      ];
+    } catch (_) {
+      // 安全存储不可用（如测试环境）时跳过配置同步
+    }
+    try {
+      extras['ai_capabilities.json'] = (await AiCapabilityStore.load()).toJson();
+    } catch (_) {}
+    return extras;
   }
 
   Future<void> setDiary(Duration duration, BuildContext context) async {

@@ -13,6 +13,9 @@ class LocalSendClientState {
 
   bool isFindingServer = false;
 
+  /// 查找状态提示（含找不到时的操作指引）
+  RxString findStatus = ''.obs;
+
   RxBool isSending = false.obs;
   RxList<Diary> diaryToSend = <Diary>[].obs;
   RxInt sendCount = 0.obs;

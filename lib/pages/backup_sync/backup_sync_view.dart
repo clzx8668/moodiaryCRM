@@ -57,6 +57,24 @@ class BackupSyncPage extends StatelessWidget {
             trailing: const Icon(Icons.chevron_right_rounded),
             leading: const Icon(Icons.file_download_outlined),
           ),
+          AdaptiveListTile(
+            title: const Text('导出 Markdown+JSON 备份'),
+            subtitle: const Text(
+              '全量结构化备份（日记/Block/CRM/知识库/对话），可跨端迁移',
+            ),
+            onTap: () => logic.exportStructured(),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            leading: const Icon(Icons.backup_outlined),
+          ),
+          AdaptiveListTile(
+            title: const Text('导入 Markdown+JSON 备份'),
+            subtitle: const Text(
+              '选择 moodiary_backup_*.zip 恢复（按 id 幂等合并）',
+            ),
+            onTap: () => logic.importStructured(),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            leading: const Icon(Icons.restore_outlined),
+          ),
           const LocalSendComponent(),
           const WebDavComponent(),
         ],

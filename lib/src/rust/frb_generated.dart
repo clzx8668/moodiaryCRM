@@ -7,10 +7,12 @@ import 'api/aes.dart';
 import 'api/argon2.dart';
 import 'api/compress.dart';
 import 'api/constants.dart';
+import 'api/event_bus.dart';
 import 'api/ffi_api.dart';
 import 'api/font.dart';
 import 'api/jieba.dart';
 import 'api/kmp.dart';
+import 'api/sync_events.dart';
 import 'api/zip.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -74,7 +76,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -2003543117;
+  int get rustContentHash => -473992273;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -205,11 +207,35 @@ abstract class RustLibApi extends BaseApi {
 
   Zip crateApiZipZipNew({required String filePath});
 
+  Stream<AiStreamEvent> crateApiFfiApiAiStreamStream();
+
   Future<int> crateApiFfiApiApiVersion();
 
   Future<Uint64List> crateApiKmpBuildPrefixTable({
     required List<String> pattern,
   });
+
+  Future<void> crateApiEventBusEmitAiStream({
+    required String blockId,
+    required String chunk,
+    required bool isComplete,
+  });
+
+  Future<void> crateApiFfiApiEmitDemoSyncEvents();
+
+  Future<void> crateApiEventBusEmitFileSync({
+    required String filePath,
+    required FileSyncEventStatus status,
+    required double progress,
+  });
+
+  Future<void> crateApiEventBusEmitSyncProgress({
+    required SyncProgressPhase phase,
+    required double progress,
+    required String message,
+  });
+
+  Stream<FileSyncEvent> crateApiFfiApiFileSyncStream();
 
   Future<String> crateApiFfiApiGetSyncStatus();
 
@@ -223,6 +249,8 @@ abstract class RustLibApi extends BaseApi {
   Future<List<String>> crateApiFfiApiSyncProgressEventsSince({
     required PlatformInt64 sinceTimestamp,
   });
+
+  Stream<SyncProgressEvent> crateApiFfiApiSyncProgressStream();
 
   Future<void> crateApiFfiApiTriggerFullSync();
 
@@ -1148,6 +1176,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "Zip_new", argNames: ["filePath"]);
 
   @override
+  Stream<AiStreamEvent> crateApiFfiApiAiStreamStream() {
+    final sink = RustStreamSink<AiStreamEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_StreamSink_ai_stream_event_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 25,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_AnyhowException,
+          ),
+          constMeta: kCrateApiFfiApiAiStreamStreamConstMeta,
+          argValues: [sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiFfiApiAiStreamStreamConstMeta =>
+      const TaskConstMeta(debugName: "ai_stream_stream", argNames: ["sink"]);
+
+  @override
   Future<int> crateApiFfiApiApiVersion() {
     return handler.executeNormal(
       NormalTask(
@@ -1156,7 +1216,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 26,
             port: port_,
           );
         },
@@ -1186,7 +1246,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 27,
             port: port_,
           );
         },
@@ -1208,6 +1268,176 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<void> crateApiEventBusEmitAiStream({
+    required String blockId,
+    required String chunk,
+    required bool isComplete,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(blockId, serializer);
+          sse_encode_String(chunk, serializer);
+          sse_encode_bool(isComplete, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 28,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEventBusEmitAiStreamConstMeta,
+        argValues: [blockId, chunk, isComplete],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEventBusEmitAiStreamConstMeta =>
+      const TaskConstMeta(
+        debugName: "emit_ai_stream",
+        argNames: ["blockId", "chunk", "isComplete"],
+      );
+
+  @override
+  Future<void> crateApiFfiApiEmitDemoSyncEvents() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 29,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFfiApiEmitDemoSyncEventsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFfiApiEmitDemoSyncEventsConstMeta =>
+      const TaskConstMeta(debugName: "emit_demo_sync_events", argNames: []);
+
+  @override
+  Future<void> crateApiEventBusEmitFileSync({
+    required String filePath,
+    required FileSyncEventStatus status,
+    required double progress,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(filePath, serializer);
+          sse_encode_file_sync_event_status(status, serializer);
+          sse_encode_f_32(progress, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 30,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEventBusEmitFileSyncConstMeta,
+        argValues: [filePath, status, progress],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEventBusEmitFileSyncConstMeta =>
+      const TaskConstMeta(
+        debugName: "emit_file_sync",
+        argNames: ["filePath", "status", "progress"],
+      );
+
+  @override
+  Future<void> crateApiEventBusEmitSyncProgress({
+    required SyncProgressPhase phase,
+    required double progress,
+    required String message,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_sync_progress_phase(phase, serializer);
+          sse_encode_f_32(progress, serializer);
+          sse_encode_String(message, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 31,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiEventBusEmitSyncProgressConstMeta,
+        argValues: [phase, progress, message],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiEventBusEmitSyncProgressConstMeta =>
+      const TaskConstMeta(
+        debugName: "emit_sync_progress",
+        argNames: ["phase", "progress", "message"],
+      );
+
+  @override
+  Stream<FileSyncEvent> crateApiFfiApiFileSyncStream() {
+    final sink = RustStreamSink<FileSyncEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_StreamSink_file_sync_event_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 32,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_AnyhowException,
+          ),
+          constMeta: kCrateApiFfiApiFileSyncStreamConstMeta,
+          argValues: [sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiFfiApiFileSyncStreamConstMeta =>
+      const TaskConstMeta(debugName: "file_sync_stream", argNames: ["sink"]);
+
+  @override
   Future<String> crateApiFfiApiGetSyncStatus() {
     return handler.executeNormal(
       NormalTask(
@@ -1216,7 +1446,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 33,
             port: port_,
           );
         },
@@ -1243,7 +1473,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 34,
             port: port_,
           );
         },
@@ -1275,7 +1505,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 35,
             port: port_,
           );
         },
@@ -1307,7 +1537,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 36,
             port: port_,
           );
         },
@@ -1329,6 +1559,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Stream<SyncProgressEvent> crateApiFfiApiSyncProgressStream() {
+    final sink = RustStreamSink<SyncProgressEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_StreamSink_sync_progress_event_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 37,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_AnyhowException,
+          ),
+          constMeta: kCrateApiFfiApiSyncProgressStreamConstMeta,
+          argValues: [sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiFfiApiSyncProgressStreamConstMeta =>
+      const TaskConstMeta(
+        debugName: "sync_progress_stream",
+        argNames: ["sink"],
+      );
+
+  @override
   Future<void> crateApiFfiApiTriggerFullSync() {
     return handler.executeNormal(
       NormalTask(
@@ -1337,7 +1602,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 38,
             port: port_,
           );
         },
@@ -1621,9 +1886,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  RustStreamSink<AiStreamEvent> dco_decode_StreamSink_ai_stream_event_Sse(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
+  }
+
+  @protected
+  RustStreamSink<FileSyncEvent> dco_decode_StreamSink_file_sync_event_Sse(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
+  }
+
+  @protected
+  RustStreamSink<SyncProgressEvent>
+  dco_decode_StreamSink_sync_progress_event_Sse(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
+  }
+
+  @protected
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as String;
+  }
+
+  @protected
+  AiStreamEvent dco_decode_ai_stream_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return AiStreamEvent(
+      blockId: dco_decode_String(arr[0]),
+      chunk: dco_decode_String(arr[1]),
+      isComplete: dco_decode_bool(arr[2]),
+    );
   }
 
   @protected
@@ -1666,6 +1967,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   double dco_decode_f_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as double;
+  }
+
+  @protected
+  FileSyncEvent dco_decode_file_sync_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return FileSyncEvent(
+      filePath: dco_decode_String(arr[0]),
+      status: dco_decode_file_sync_event_status(arr[1]),
+      progress: dco_decode_f_32(arr[2]),
+    );
+  }
+
+  @protected
+  FileSyncEventStatus dco_decode_file_sync_event_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return FileSyncEventStatus.values[raw as int];
   }
 
   @protected
@@ -1777,6 +2097,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       throw Exception('Expected 2 elements, got ${arr.length}');
     }
     return (dco_decode_String(arr[0]), dco_decode_String(arr[1]));
+  }
+
+  @protected
+  SyncProgressEvent dco_decode_sync_progress_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return SyncProgressEvent(
+      phase: dco_decode_sync_progress_phase(arr[0]),
+      progress: dco_decode_f_32(arr[1]),
+      message: dco_decode_String(arr[2]),
+    );
+  }
+
+  @protected
+  SyncProgressPhase dco_decode_sync_progress_phase(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SyncProgressPhase.values[raw as int];
   }
 
   @protected
@@ -2064,10 +2403,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  RustStreamSink<AiStreamEvent> sse_decode_StreamSink_ai_stream_event_Sse(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
+  }
+
+  @protected
+  RustStreamSink<FileSyncEvent> sse_decode_StreamSink_file_sync_event_Sse(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
+  }
+
+  @protected
+  RustStreamSink<SyncProgressEvent>
+  sse_decode_StreamSink_sync_progress_event_Sse(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
+  }
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     final inner = sse_decode_list_prim_u_8_strict(deserializer);
     return utf8.decoder.convert(inner);
+  }
+
+  @protected
+  AiStreamEvent sse_decode_ai_stream_event(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_blockId = sse_decode_String(deserializer);
+    final var_chunk = sse_decode_String(deserializer);
+    final var_isComplete = sse_decode_bool(deserializer);
+    return AiStreamEvent(
+      blockId: var_blockId,
+      chunk: var_chunk,
+      isComplete: var_isComplete,
+    );
   }
 
   @protected
@@ -2113,6 +2488,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   double sse_decode_f_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getFloat64();
+  }
+
+  @protected
+  FileSyncEvent sse_decode_file_sync_event(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_filePath = sse_decode_String(deserializer);
+    final var_status = sse_decode_file_sync_event_status(deserializer);
+    final var_progress = sse_decode_f_32(deserializer);
+    return FileSyncEvent(
+      filePath: var_filePath,
+      status: var_status,
+      progress: var_progress,
+    );
+  }
+
+  @protected
+  FileSyncEventStatus sse_decode_file_sync_event_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final inner = sse_decode_i_32(deserializer);
+    return FileSyncEventStatus.values[inner];
   }
 
   @protected
@@ -2281,6 +2678,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final var_field0 = sse_decode_String(deserializer);
     final var_field1 = sse_decode_String(deserializer);
     return (var_field0, var_field1);
+  }
+
+  @protected
+  SyncProgressEvent sse_decode_sync_progress_event(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final var_phase = sse_decode_sync_progress_phase(deserializer);
+    final var_progress = sse_decode_f_32(deserializer);
+    final var_message = sse_decode_String(deserializer);
+    return SyncProgressEvent(
+      phase: var_phase,
+      progress: var_progress,
+      message: var_message,
+    );
+  }
+
+  @protected
+  SyncProgressPhase sse_decode_sync_progress_phase(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final inner = sse_decode_i_32(deserializer);
+    return SyncProgressPhase.values[inner];
   }
 
   @protected
@@ -2593,9 +3014,71 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_StreamSink_ai_stream_event_Sse(
+    RustStreamSink<AiStreamEvent> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_ai_stream_event,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_StreamSink_file_sync_event_Sse(
+    RustStreamSink<FileSyncEvent> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_file_sync_event,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_StreamSink_sync_progress_event_Sse(
+    RustStreamSink<SyncProgressEvent> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_sync_progress_event,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
+  }
+
+  @protected
   void sse_encode_String(String self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_prim_u_8_strict(utf8.encoder.convert(self), serializer);
+  }
+
+  @protected
+  void sse_encode_ai_stream_event(
+    AiStreamEvent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.blockId, serializer);
+    sse_encode_String(self.chunk, serializer);
+    sse_encode_bool(self.isComplete, serializer);
   }
 
   @protected
@@ -2644,6 +3127,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_f_64(double self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putFloat64(self);
+  }
+
+  @protected
+  void sse_encode_file_sync_event(
+    FileSyncEvent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.filePath, serializer);
+    sse_encode_file_sync_event_status(self.status, serializer);
+    sse_encode_f_32(self.progress, serializer);
+  }
+
+  @protected
+  void sse_encode_file_sync_event_status(
+    FileSyncEventStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -2809,6 +3312,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.$1, serializer);
     sse_encode_String(self.$2, serializer);
+  }
+
+  @protected
+  void sse_encode_sync_progress_event(
+    SyncProgressEvent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_sync_progress_phase(self.phase, serializer);
+    sse_encode_f_32(self.progress, serializer);
+    sse_encode_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_sync_progress_phase(
+    SyncProgressPhase self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

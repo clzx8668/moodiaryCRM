@@ -1,5 +1,9 @@
 import 'package:uuid/uuid.dart';
 
+import 'block_meta.dart';
+
+export 'block_meta.dart';
+
 /// Block 类型（架构文档：Text/SmartEntity/Todo/Chart/AiStream/Image/Code）
 enum BlockType {
   text(0),
@@ -55,9 +59,20 @@ class Block {
   /// 标记流式输出是否已完成
   bool streamComplete = false;
 
+  /// 业务元数据（JSON 文本）：source/syncStatus/aiTemplate/entityType/title
+  /// （智能详情页-双模态架构设计 3.2，v3→v4 迁移新增）
+  String metaJson = '{}';
+
   DateTime createdAt = DateTime.now();
 
   DateTime updatedAt = DateTime.now();
+
+  /// metaJson 的便捷视图
+  BlockMeta get meta => BlockMeta.decode(metaJson);
+
+  set meta(BlockMeta value) {
+    metaJson = value.encode();
+  }
 
   Block();
 
@@ -72,6 +87,7 @@ class Block {
       ..isDeleted = isDeleted
       ..streamBuffer = streamBuffer
       ..streamComplete = streamComplete
+      ..metaJson = metaJson
       ..createdAt = DateTime.fromMillisecondsSinceEpoch(
         createdAt.millisecondsSinceEpoch,
       )
@@ -97,6 +113,7 @@ class Block {
       'isDeleted': isDeleted,
       'streamBuffer': streamBuffer,
       'streamComplete': streamComplete,
+      'metaJson': metaJson,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -112,6 +129,7 @@ class Block {
       ..isDeleted = json['isDeleted'] as bool
       ..streamBuffer = json['streamBuffer'] as String? ?? ''
       ..streamComplete = json['streamComplete'] as bool? ?? false
+      ..metaJson = json['metaJson'] as String? ?? '{}'
       ..createdAt = DateTime.parse(json['createdAt'] as String)
       ..updatedAt = DateTime.parse(json['updatedAt'] as String);
   }
@@ -129,6 +147,7 @@ class Block {
           isDeleted == other.isDeleted &&
           streamBuffer == other.streamBuffer &&
           streamComplete == other.streamComplete &&
+          metaJson == other.metaJson &&
           createdAt == other.createdAt &&
           updatedAt == other.updatedAt;
 
@@ -143,6 +162,7 @@ class Block {
       isDeleted,
       streamBuffer,
       streamComplete,
+      metaJson,
       createdAt,
       updatedAt,
     );

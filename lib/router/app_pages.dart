@@ -15,7 +15,6 @@ import 'package:moodiary/pages/backup_sync/backup_sync_logic.dart';
 import 'package:moodiary/pages/backup_sync/backup_sync_view.dart';
 import 'package:moodiary/pages/category_manager/category_manager_logic.dart';
 import 'package:moodiary/pages/category_manager/category_manager_view.dart';
-import 'package:moodiary/pages/diary_details/diary_details_view.dart';
 import 'package:moodiary/pages/diary_setting/diary_setting_logic.dart';
 import 'package:moodiary/pages/diary_setting/diary_setting_view.dart';
 import 'package:moodiary/pages/draw/draw_logic.dart';
@@ -24,6 +23,7 @@ import 'package:moodiary/pages/edit/edit_logic.dart';
 import 'package:moodiary/pages/edit/edit_view.dart';
 import 'package:moodiary/pages/font/font_logic.dart';
 import 'package:moodiary/pages/font/font_view.dart';
+import 'package:moodiary/features/health/health_tools_page.dart';
 import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/pages/home/home_view.dart';
 import 'package:moodiary/pages/laboratory/laboratory_logic.dart';
@@ -48,6 +48,7 @@ import 'package:moodiary/pages/user/user_view.dart';
 import 'package:page_transition/page_transition.dart';
 
 import '../pages/sponsor/sponsor_logic.dart';
+import 'package:moodiary/features/smart_canvas/smart_canvas_page.dart';
 import '../pages/web_view/web_view_logic.dart';
 import '../pages/web_view/web_view_view.dart';
 import 'app_routes.dart';
@@ -73,7 +74,7 @@ class AppPages {
       binds: [Bind.lazyPut(fenix: true, () => AnalyseLogic())],
     ),
     //日记页路由
-    MoodiaryGetPage(name: AppRoutes.diaryPage, page: () => DiaryDetailsPage()),
+    MoodiaryGetPage(name: AppRoutes.diaryPage, page: () => const SmartCanvasPage()),
     //回收站
     MoodiaryGetPage(
       name: AppRoutes.recyclePage,
@@ -168,6 +169,10 @@ class AppPages {
       name: AppRoutes.assistantPage,
       page: () => const AssistantPage(),
       binds: [Bind.lazyPut(fenix: true, () => AssistantLogic())],
+    ),
+    MoodiaryGetPage(
+      name: AppRoutes.healthPage,
+      page: () => const HealthToolsPage(),
     ),
     MoodiaryGetPage(
       name: AppRoutes.sponsorPage,

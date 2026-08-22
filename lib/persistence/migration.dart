@@ -16,7 +16,7 @@ class MigrationService {
   static const String migrationHistoryKey = 'migration_history';
 
   /// 当前代码期望的数据库版本
-  static const int currentDbVersion = 3;
+  static const int currentDbVersion = 6;
 
   static Future<String?> _getMeta(AppDatabase db, String key) async {
     final row = await (db.select(db.appMetadata)
@@ -100,6 +100,46 @@ class MigrationService {
       });
     }
 
+    if (current < 4) {
+      final stopwatch = Stopwatch()..start();
+      final migrated = await migrateV3ToV4(db);
+      stopwatch.stop();
+      current = 4;
+      await _appendMigrationHistory(db, {
+        'from': 3,
+        'to': 4,
+        'time': DateTime.now().toIso8601String(),
+        'durationMs': stopwatch.elapsedMilliseconds,
+        'migratedBlocks': migrated,
+      });
+    }
+
+    if (current < 5) {
+      // v4 → v5：新增知识库/向量表由 Drift schema 迁移处理，此处仅推进版本号
+      final stopwatch = Stopwatch()..start();
+      current = 5;
+      await _appendMigrationHistory(db, {
+        'from': 4,
+        'to': 5,
+        'time': DateTime.now().toIso8601String(),
+        'durationMs': stopwatch.elapsedMilliseconds,
+        'note': 'knowledge_bases + block_embeddings 表',
+      });
+    }
+
+    if (current < 6) {
+      // v5 → v6：AI 会话/消息表由 Drift schema 迁移处理
+      final stopwatch = Stopwatch()..start();
+      current = 6;
+      await _appendMigrationHistory(db, {
+        'from': 5,
+        'to': 6,
+        'time': DateTime.now().toIso8601String(),
+        'durationMs': stopwatch.elapsedMilliseconds,
+        'note': 'ai_chat_sessions + ai_chat_messages 表',
+      });
+    }
+
     await setDbVersion(db, currentDbVersion);
     return MigrationResult(migratedDiaries: migrated);
   }
@@ -178,6 +218,31 @@ class MigrationService {
     }
 
     return MigrationResult(migratedDiaries: migrated);
+  }
+
+  /// v3 → v4：为历史 Block 回填 metaJson（source=initial）。
+  ///
+  /// 迁移前创建的 Block（v1→v2 包装的原始内容、快速收集生成的 text Block）
+  /// 语义上都是"原始记录卡"，统一标记为 initial；已带 meta 的 Block 跳过。
+  /// 幂等：版本门禁保证只执行一次，此处仍按"空 meta 才回填"做二次保护。
+  static Future<int> migrateV3ToV4(AppDatabase db) async {
+    final blocks = await db.select(db.blocks).get();
+    var migrated = 0;
+
+    for (final row in blocks) {
+      final raw = row.metaJson.trim();
+      final isEmpty = raw.isEmpty || raw == '{}';
+      if (!isEmpty) continue;
+      await (db.update(db.blocks)..where((t) => t.id.equals(row.id))).write(
+        BlocksCompanion(
+          metaJson: const Value('{"source":"initial"}'),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+      migrated++;
+    }
+
+    return migrated;
   }
 }
 

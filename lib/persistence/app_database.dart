@@ -101,6 +101,9 @@ class Blocks extends Table {
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   TextColumn get streamBuffer => text().withDefault(const Constant(''))();
   BoolColumn get streamComplete => boolean().withDefault(const Constant(false))();
+  /// 业务元数据（JSON 文本）：source/syncStatus/aiTemplate/entityType/title
+  /// （智能详情页-双模态架构设计 3.2，v3→v4 迁移新增）
+  TextColumn get metaJson => text().withDefault(const Constant('{}'))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -148,6 +151,63 @@ class SyncRecords extends Table {
   Set<Column> get primaryKey => {syncId};
 }
 
+/// 知识库表（P3.2：多知识空间）
+@DataClassName('KnowledgeBaseRow')
+class KnowledgeBases extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 块向量表（P3.3：Text Block → Embedding → 本地向量库）
+@DataClassName('BlockEmbeddingRow')
+class BlockEmbeddings extends Table {
+  TextColumn get blockId => text()();
+  TextColumn get diaryId => text()();
+  TextColumn get knowledgeBaseId => text()();
+  /// 文本快照（用于重新生成向量与检索摘要）
+  TextColumn get textContent => text()();
+  /// f32 小端字节的 base64（避免 drift_dev 2.31 blob 代码生成路径的内部错误）
+  TextColumn get embedding => text()();
+  IntColumn get dimension => integer()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {blockId, knowledgeBaseId};
+}
+
+/// AI 对话会话表（历史话题）
+@DataClassName('AiChatSessionRow')
+class AiChatSessions extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text().withDefault(const Constant('新话题'))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// AI 对话消息表
+@DataClassName('AiChatMessageRow')
+class AiChatMessages extends Table {
+  TextColumn get id => text()();
+  TextColumn get sessionId => text()();
+  TextColumn get role => text()();
+  TextColumn get content => text()();
+  /// 引用来源（RagHit JSON 数组，可选）
+  TextColumn get sourcesJson => text().withDefault(const Constant('[]'))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     Diaries,
@@ -157,17 +217,40 @@ class SyncRecords extends Table {
     AppMetadata,
     CrmEntityCaches,
     SyncRecords,
+    KnowledgeBases,
+    BlockEmbeddings,
+    AiChatSessions,
+    AiChatMessages,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      // v3 → v4：Blocks 增加 metaJson 列（数据级回填由 MigrationService 处理）
+      if (from < 4) {
+        final db = m.database as AppDatabase;
+        await m.addColumn(db.blocks, db.blocks.metaJson);
+      }
+      // v4 → v5：新增知识库表与块向量表
+      if (from < 5) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.knowledgeBases);
+        await m.createTable(db.blockEmbeddings);
+      }
+      // v5 → v6：AI 对话会话与消息表
+      if (from < 6) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.aiChatSessions);
+        await m.createTable(db.aiChatMessages);
+      }
+    },
     beforeOpen: (details) async {
       // 数据级迁移（v1→v2→v3）由 MigrationService 在打开后执行
     },

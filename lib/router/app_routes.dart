@@ -72,4 +72,7 @@ abstract class AppRoutes {
 
   //webView
   static const webViewPage = '/webView';
+
+  //数据健康度
+  static const healthPage = '/health';
 }

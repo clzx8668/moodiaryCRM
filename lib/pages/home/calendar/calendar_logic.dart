@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/activity/calendar_activity.dart';
 import 'package:moodiary/features/timeline/timeline_item.dart';
+import 'package:moodiary/features/todo/todo_aggregator.dart';
+import 'package:moodiary/features/todo/todo_item.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -47,6 +49,28 @@ class CalendarLogic extends GetxController {
     ]..sort((a, b) => b.time.compareTo(a.time));
     state.timelineItems.value = items;
     state.isFetching.value = false;
+    await loadTodos();
+  }
+
+  /// 加载跨源待办（本地 Todo Block + Twenty task）
+  Future<void> loadTodos({bool includeDone = true}) async {
+    state.isFetchingTodos.value = true;
+    state.todoItems.value = await TodoAggregator.load(
+      includeDone: includeDone,
+    );
+    state.isFetchingTodos.value = false;
+  }
+
+  /// 勾选/取消本地待办后刷新
+  Future<void> toggleTodo(TodoItem item) async {
+    await TodoAggregator.toggleLocal(item);
+    await loadTodos();
+  }
+
+  /// 日历快捷新建待办（Diary + todo Block），随后刷新日历与待办
+  Future<void> quickAddTodo(String text, DateTime? dueDate) async {
+    await TodoAggregator.quickAdd(text: text, dueDate: dueDate);
+    await getMonthDiary(state.currentMonth.value);
   }
 
   int _pendingScrollOperations = 0;

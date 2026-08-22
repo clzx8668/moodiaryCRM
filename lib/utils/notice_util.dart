@@ -12,7 +12,17 @@ class NoticeUtil {
 
   factory NoticeUtil() => _instance;
 
+  /// 是否有可用的 UI 上下文（树外/后台/测试环境为 false）
+  bool get _hasUiContext {
+    try {
+      return Get.context != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> info({required String message}) async {
+    if (!_hasUiContext) return; // 无 UI 上下文（后台/测试）时跳过
     await SmartDialog.show(
       alignment: Alignment.center,
       animationType: SmartAnimationType.centerFade_otherSlide,
@@ -37,6 +47,7 @@ class NoticeUtil {
   }
 
   Future<void> loading({String? message}) async {
+    if (!_hasUiContext) return;
     await SmartDialog.showLoading(
       msg: '',
       animationType: SmartAnimationType.centerFade_otherSlide,
@@ -63,6 +74,7 @@ class NoticeUtil {
   }
 
   Future<void> error({String? message}) async {
+    if (!_hasUiContext) return;
     await SmartDialog.show(
       alignment: Alignment.center,
       animationType: SmartAnimationType.centerFade_otherSlide,
@@ -87,6 +99,7 @@ class NoticeUtil {
   }
 
   Future<void> success({String? message}) async {
+    if (!_hasUiContext) return;
     await SmartDialog.show(
       alignment: Alignment.center,
       animationType: SmartAnimationType.centerFade_otherSlide,
