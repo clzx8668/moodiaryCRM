@@ -27,6 +27,8 @@ const List<CrmTabDef> kCrmTabs = [
   CrmTabDef('paymentPlan', '回款计划'),
   CrmTabDef('payment', '回款'),
   CrmTabDef('invoice', '发票'),
+  CrmTabDef('warranty', '质保'),
+  CrmTabDef('afterSales', '售后'),
 ];
 
 String crmTypeLabel(String type) {
@@ -40,6 +42,8 @@ String crmTypeLabel(String type) {
     'paymentPlan': '回款计划',
     'payment': '回款',
     'invoice': '发票',
+    'warranty': '质保',
+    'afterSales': '售后',
   };
   return labels[type] ?? type;
 }
@@ -64,6 +68,10 @@ IconData crmTypeIcon(String type) {
       return Icons.payments_rounded;
     case 'invoice':
       return Icons.receipt_rounded;
+    case 'warranty':
+      return Icons.verified_rounded;
+    case 'afterSales':
+      return Icons.support_agent_rounded;
     default:
       return Icons.folder_rounded;
   }
@@ -89,6 +97,10 @@ Color crmTypeColor(String type) {
       return Colors.red.shade400;
     case 'invoice':
       return Colors.purple.shade400;
+    case 'warranty':
+      return Colors.cyan.shade400;
+    case 'afterSales':
+      return Colors.deepOrange.shade400;
     default:
       return Colors.grey;
   }
@@ -328,6 +340,50 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                 ..updatedAt = i.createdAt,
             )
             .toList();
+      case 'warranty':
+        final warranties = await repo.listWarranties();
+        final contractNames = await _contractNameMap();
+        final productNames = await _productNameMap();
+        return warranties
+            .map(
+              (w) => CrmEntityCache()
+                ..id = w.id
+                ..twentyId = w.id
+                ..entityType = 'warranty'
+                ..name = w.serialNo.isEmpty ? '（质保）' : w.serialNo
+                ..setData(
+                  warrantyToDataMap(
+                    w,
+                    contractName: contractNames[w.contractId],
+                    productName: productNames[w.productId],
+                  ),
+                )
+                ..updatedAt = w.endDate,
+            )
+            .toList();
+      case 'afterSales':
+        final tickets = await repo.listAfterSales();
+        final accountNames = await _accountNameMap();
+        final contactNames = await _contactNameMap();
+        final contractNames = await _contractNameMap();
+        return tickets
+            .map(
+              (t) => CrmEntityCache()
+                ..id = t.id
+                ..twentyId = t.id
+                ..entityType = 'afterSales'
+                ..name = t.ticketNo.isEmpty ? '（未编号工单）' : t.ticketNo
+                ..setData(
+                  afterSalesToDataMap(
+                    t,
+                    accountName: accountNames[t.accountId],
+                    contactName: contactNames[t.contactId],
+                    contractName: contractNames[t.contractId],
+                  ),
+                )
+                ..updatedAt = t.updatedAt,
+            )
+            .toList();
       default:
         // 自定义对象
         final objectId = widget.objectType.startsWith('custom:')
@@ -383,6 +439,14 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     final map = <String?, String>{};
     for (final p in await _repo.listPaymentPlans()) {
       map[p.id] = p.planName;
+    }
+    return map;
+  }
+
+  Future<Map<String?, String>> _productNameMap() async {
+    final map = <String?, String>{};
+    for (final p in await _repo.listProducts()) {
+      map[p.id] = p.name;
     }
     return map;
   }
@@ -826,6 +890,31 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             note: data['note']?.toString() ?? '',
           ),
         );
+      case 'warranty':
+        await repo.createWarranty(
+          LocalWarranty(
+            id: '',
+            contractId: '',
+            serialNo: data['serialNo']?.toString() ?? '',
+            startDate: _parseDate(data['startDate']) ?? DateTime.now(),
+            endDate: _parseDate(data['endDate']) ?? DateTime.now(),
+            status: data['status']?.toString() ?? 'active',
+            note: data['note']?.toString() ?? '',
+          ),
+        );
+      case 'afterSales':
+        await repo.createAfterSales(
+          LocalAfterSales(
+            id: '',
+            subject: data['subject']?.toString() ?? '',
+            type: data['type']?.toString() ?? 'other',
+            priority: data['priority']?.toString() ?? 'medium',
+            status: data['status']?.toString() ?? 'open',
+            description: data['description']?.toString() ?? '',
+            resolution: data['resolution']?.toString() ?? '',
+            note: data['note']?.toString() ?? '',
+          ),
+        );
       default:
         final objectId = widget.objectType.startsWith('custom:')
             ? widget.objectType.substring(7)
@@ -893,6 +982,16 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         if (i == null) return;
         _assign(i, field, value);
         await repo.updateInvoice(i);
+      case 'warranty':
+        final w = await repo.getWarranty(id);
+        if (w == null) return;
+        _assign(w, field, value);
+        await repo.updateWarranty(w);
+      case 'afterSales':
+        final t = await repo.getAfterSales(id);
+        if (t == null) return;
+        _assign(t, field, value);
+        await repo.updateAfterSales(t);
       default:
         final r = await repo.getCustomRecord(id);
         if (r == null) return;
@@ -971,10 +1070,6 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         entity.invoicedAmount = _toDouble(value) ?? 0;
       case 'signDate':
         entity.signDate = _parseDate(value);
-      case 'startDate':
-        entity.startDate = _parseDate(value);
-      case 'endDate':
-        entity.endDate = _parseDate(value);
       case 'warrantyEndDate':
         entity.warrantyEndDate = _parseDate(value);
       case 'sku':
@@ -1013,6 +1108,20 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         entity.issueDate = _parseDate(value);
       case 'receiverName':
         entity.receiverName = value?.toString() ?? '';
+      case 'serialNo':
+        entity.serialNo = value?.toString() ?? '';
+      case 'startDate':
+        entity.startDate = _parseDate(value) ?? DateTime.now();
+      case 'endDate':
+        entity.endDate = _parseDate(value) ?? DateTime.now();
+      case 'subject':
+        entity.subject = value?.toString() ?? '';
+      case 'priority':
+        entity.priority = value?.toString() ?? 'medium';
+      case 'description':
+        entity.description = value?.toString() ?? '';
+      case 'resolution':
+        entity.resolution = value?.toString() ?? '';
     }
   }
 

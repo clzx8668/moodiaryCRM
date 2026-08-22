@@ -429,6 +429,79 @@ class CrmReminderItem {
   });
 }
 
+/// 质保
+class LocalWarranty {
+  String id;
+  String contractId;
+  String? contractItemId;
+  String? productId;
+  String serialNo;
+  DateTime startDate;
+  DateTime endDate;
+  String status;
+  String note;
+  DateTime createdAt;
+
+  LocalWarranty({
+    required this.id,
+    required this.contractId,
+    this.contractItemId,
+    this.productId,
+    this.serialNo = '',
+    DateTime? startDate,
+    DateTime? endDate,
+    this.status = 'active',
+    this.note = '',
+    DateTime? createdAt,
+  }) : startDate = startDate ?? DateTime.now(),
+       endDate = endDate ?? DateTime.now(),
+       createdAt = createdAt ?? DateTime.now();
+}
+
+/// 售后工单
+class LocalAfterSales {
+  String id;
+  String ticketNo;
+  String accountId;
+  String? contactId;
+  String? contractId;
+  String? warrantyId;
+  String type;
+  String priority;
+  String status;
+  String subject;
+  String description;
+  String resolution;
+  DateTime? resolvedAt;
+  DateTime? closedAt;
+  String note;
+  DateTime createdAt;
+  DateTime updatedAt;
+  bool deleted;
+
+  LocalAfterSales({
+    required this.id,
+    this.ticketNo = '',
+    this.accountId = '',
+    this.contactId,
+    this.contractId,
+    this.warrantyId,
+    this.type = 'other',
+    this.priority = 'medium',
+    this.status = 'open',
+    this.subject = '',
+    this.description = '',
+    this.resolution = '',
+    this.resolvedAt,
+    this.closedAt,
+    this.note = '',
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    this.deleted = false,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
+}
+
 /// 自定义数据对象定义
 class LocalCustomObject {
   String id;

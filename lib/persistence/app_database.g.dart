@@ -12112,6 +12112,1617 @@ class CrmInvoicesCompanion extends UpdateCompanion<CrmInvoiceRow> {
   }
 }
 
+class $CrmWarrantiesTable extends CrmWarranties
+    with TableInfo<$CrmWarrantiesTable, CrmWarrantyRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmWarrantiesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contractIdMeta = const VerificationMeta(
+    'contractId',
+  );
+  @override
+  late final GeneratedColumn<String> contractId = GeneratedColumn<String>(
+    'contract_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contractItemIdMeta = const VerificationMeta(
+    'contractItemId',
+  );
+  @override
+  late final GeneratedColumn<String> contractItemId = GeneratedColumn<String>(
+    'contract_item_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _productIdMeta = const VerificationMeta(
+    'productId',
+  );
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+    'product_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _serialNoMeta = const VerificationMeta(
+    'serialNo',
+  );
+  @override
+  late final GeneratedColumn<String> serialNo = GeneratedColumn<String>(
+    'serial_no',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+    'end_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('active'),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    contractId,
+    contractItemId,
+    productId,
+    serialNo,
+    startDate,
+    endDate,
+    status,
+    note,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_warranties';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmWarrantyRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('contract_id')) {
+      context.handle(
+        _contractIdMeta,
+        contractId.isAcceptableOrUnknown(data['contract_id']!, _contractIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contractIdMeta);
+    }
+    if (data.containsKey('contract_item_id')) {
+      context.handle(
+        _contractItemIdMeta,
+        contractItemId.isAcceptableOrUnknown(
+          data['contract_item_id']!,
+          _contractItemIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(
+        _productIdMeta,
+        productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta),
+      );
+    }
+    if (data.containsKey('serial_no')) {
+      context.handle(
+        _serialNoMeta,
+        serialNo.isAcceptableOrUnknown(data['serial_no']!, _serialNoMeta),
+      );
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endDateMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmWarrantyRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmWarrantyRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      contractId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contract_id'],
+      )!,
+      contractItemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contract_item_id'],
+      ),
+      productId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_id'],
+      ),
+      serialNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}serial_no'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      )!,
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_date'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmWarrantiesTable createAlias(String alias) {
+    return $CrmWarrantiesTable(attachedDatabase, alias);
+  }
+}
+
+class CrmWarrantyRow extends DataClass implements Insertable<CrmWarrantyRow> {
+  final String id;
+  final String contractId;
+  final String? contractItemId;
+  final String? productId;
+  final String serialNo;
+  final DateTime startDate;
+  final DateTime endDate;
+
+  /// active/expired/void
+  final String status;
+  final String note;
+  final DateTime createdAt;
+  const CrmWarrantyRow({
+    required this.id,
+    required this.contractId,
+    this.contractItemId,
+    this.productId,
+    required this.serialNo,
+    required this.startDate,
+    required this.endDate,
+    required this.status,
+    required this.note,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['contract_id'] = Variable<String>(contractId);
+    if (!nullToAbsent || contractItemId != null) {
+      map['contract_item_id'] = Variable<String>(contractItemId);
+    }
+    if (!nullToAbsent || productId != null) {
+      map['product_id'] = Variable<String>(productId);
+    }
+    map['serial_no'] = Variable<String>(serialNo);
+    map['start_date'] = Variable<DateTime>(startDate);
+    map['end_date'] = Variable<DateTime>(endDate);
+    map['status'] = Variable<String>(status);
+    map['note'] = Variable<String>(note);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CrmWarrantiesCompanion toCompanion(bool nullToAbsent) {
+    return CrmWarrantiesCompanion(
+      id: Value(id),
+      contractId: Value(contractId),
+      contractItemId: contractItemId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contractItemId),
+      productId: productId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(productId),
+      serialNo: Value(serialNo),
+      startDate: Value(startDate),
+      endDate: Value(endDate),
+      status: Value(status),
+      note: Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CrmWarrantyRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmWarrantyRow(
+      id: serializer.fromJson<String>(json['id']),
+      contractId: serializer.fromJson<String>(json['contractId']),
+      contractItemId: serializer.fromJson<String?>(json['contractItemId']),
+      productId: serializer.fromJson<String?>(json['productId']),
+      serialNo: serializer.fromJson<String>(json['serialNo']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      endDate: serializer.fromJson<DateTime>(json['endDate']),
+      status: serializer.fromJson<String>(json['status']),
+      note: serializer.fromJson<String>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'contractId': serializer.toJson<String>(contractId),
+      'contractItemId': serializer.toJson<String?>(contractItemId),
+      'productId': serializer.toJson<String?>(productId),
+      'serialNo': serializer.toJson<String>(serialNo),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'endDate': serializer.toJson<DateTime>(endDate),
+      'status': serializer.toJson<String>(status),
+      'note': serializer.toJson<String>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  CrmWarrantyRow copyWith({
+    String? id,
+    String? contractId,
+    Value<String?> contractItemId = const Value.absent(),
+    Value<String?> productId = const Value.absent(),
+    String? serialNo,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? status,
+    String? note,
+    DateTime? createdAt,
+  }) => CrmWarrantyRow(
+    id: id ?? this.id,
+    contractId: contractId ?? this.contractId,
+    contractItemId: contractItemId.present
+        ? contractItemId.value
+        : this.contractItemId,
+    productId: productId.present ? productId.value : this.productId,
+    serialNo: serialNo ?? this.serialNo,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate ?? this.endDate,
+    status: status ?? this.status,
+    note: note ?? this.note,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  CrmWarrantyRow copyWithCompanion(CrmWarrantiesCompanion data) {
+    return CrmWarrantyRow(
+      id: data.id.present ? data.id.value : this.id,
+      contractId: data.contractId.present
+          ? data.contractId.value
+          : this.contractId,
+      contractItemId: data.contractItemId.present
+          ? data.contractItemId.value
+          : this.contractItemId,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      serialNo: data.serialNo.present ? data.serialNo.value : this.serialNo,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      status: data.status.present ? data.status.value : this.status,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmWarrantyRow(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('contractItemId: $contractItemId, ')
+          ..write('productId: $productId, ')
+          ..write('serialNo: $serialNo, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('status: $status, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    contractId,
+    contractItemId,
+    productId,
+    serialNo,
+    startDate,
+    endDate,
+    status,
+    note,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmWarrantyRow &&
+          other.id == this.id &&
+          other.contractId == this.contractId &&
+          other.contractItemId == this.contractItemId &&
+          other.productId == this.productId &&
+          other.serialNo == this.serialNo &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.status == this.status &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class CrmWarrantiesCompanion extends UpdateCompanion<CrmWarrantyRow> {
+  final Value<String> id;
+  final Value<String> contractId;
+  final Value<String?> contractItemId;
+  final Value<String?> productId;
+  final Value<String> serialNo;
+  final Value<DateTime> startDate;
+  final Value<DateTime> endDate;
+  final Value<String> status;
+  final Value<String> note;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const CrmWarrantiesCompanion({
+    this.id = const Value.absent(),
+    this.contractId = const Value.absent(),
+    this.contractItemId = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.serialNo = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmWarrantiesCompanion.insert({
+    required String id,
+    required String contractId,
+    this.contractItemId = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.serialNo = const Value.absent(),
+    required DateTime startDate,
+    required DateTime endDate,
+    this.status = const Value.absent(),
+    this.note = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       contractId = Value(contractId),
+       startDate = Value(startDate),
+       endDate = Value(endDate),
+       createdAt = Value(createdAt);
+  static Insertable<CrmWarrantyRow> custom({
+    Expression<String>? id,
+    Expression<String>? contractId,
+    Expression<String>? contractItemId,
+    Expression<String>? productId,
+    Expression<String>? serialNo,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? endDate,
+    Expression<String>? status,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (contractId != null) 'contract_id': contractId,
+      if (contractItemId != null) 'contract_item_id': contractItemId,
+      if (productId != null) 'product_id': productId,
+      if (serialNo != null) 'serial_no': serialNo,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (status != null) 'status': status,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmWarrantiesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? contractId,
+    Value<String?>? contractItemId,
+    Value<String?>? productId,
+    Value<String>? serialNo,
+    Value<DateTime>? startDate,
+    Value<DateTime>? endDate,
+    Value<String>? status,
+    Value<String>? note,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return CrmWarrantiesCompanion(
+      id: id ?? this.id,
+      contractId: contractId ?? this.contractId,
+      contractItemId: contractItemId ?? this.contractItemId,
+      productId: productId ?? this.productId,
+      serialNo: serialNo ?? this.serialNo,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      status: status ?? this.status,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (contractId.present) {
+      map['contract_id'] = Variable<String>(contractId.value);
+    }
+    if (contractItemId.present) {
+      map['contract_item_id'] = Variable<String>(contractItemId.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (serialNo.present) {
+      map['serial_no'] = Variable<String>(serialNo.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmWarrantiesCompanion(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('contractItemId: $contractItemId, ')
+          ..write('productId: $productId, ')
+          ..write('serialNo: $serialNo, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('status: $status, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmAfterSalesTable extends CrmAfterSales
+    with TableInfo<$CrmAfterSalesTable, CrmAfterSalesRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmAfterSalesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ticketNoMeta = const VerificationMeta(
+    'ticketNo',
+  );
+  @override
+  late final GeneratedColumn<String> ticketNo = GeneratedColumn<String>(
+    'ticket_no',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contactIdMeta = const VerificationMeta(
+    'contactId',
+  );
+  @override
+  late final GeneratedColumn<String> contactId = GeneratedColumn<String>(
+    'contact_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _contractIdMeta = const VerificationMeta(
+    'contractId',
+  );
+  @override
+  late final GeneratedColumn<String> contractId = GeneratedColumn<String>(
+    'contract_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _warrantyIdMeta = const VerificationMeta(
+    'warrantyId',
+  );
+  @override
+  late final GeneratedColumn<String> warrantyId = GeneratedColumn<String>(
+    'warranty_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('other'),
+  );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<String> priority = GeneratedColumn<String>(
+    'priority',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('medium'),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('open'),
+  );
+  static const VerificationMeta _subjectMeta = const VerificationMeta(
+    'subject',
+  );
+  @override
+  late final GeneratedColumn<String> subject = GeneratedColumn<String>(
+    'subject',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _resolutionMeta = const VerificationMeta(
+    'resolution',
+  );
+  @override
+  late final GeneratedColumn<String> resolution = GeneratedColumn<String>(
+    'resolution',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _resolvedAtMeta = const VerificationMeta(
+    'resolvedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> resolvedAt = GeneratedColumn<DateTime>(
+    'resolved_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _closedAtMeta = const VerificationMeta(
+    'closedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> closedAt = GeneratedColumn<DateTime>(
+    'closed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    ticketNo,
+    accountId,
+    contactId,
+    contractId,
+    warrantyId,
+    type,
+    priority,
+    status,
+    subject,
+    description,
+    resolution,
+    resolvedAt,
+    closedAt,
+    note,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_after_sales';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmAfterSalesRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('ticket_no')) {
+      context.handle(
+        _ticketNoMeta,
+        ticketNo.isAcceptableOrUnknown(data['ticket_no']!, _ticketNoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ticketNoMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('contact_id')) {
+      context.handle(
+        _contactIdMeta,
+        contactId.isAcceptableOrUnknown(data['contact_id']!, _contactIdMeta),
+      );
+    }
+    if (data.containsKey('contract_id')) {
+      context.handle(
+        _contractIdMeta,
+        contractId.isAcceptableOrUnknown(data['contract_id']!, _contractIdMeta),
+      );
+    }
+    if (data.containsKey('warranty_id')) {
+      context.handle(
+        _warrantyIdMeta,
+        warrantyId.isAcceptableOrUnknown(data['warranty_id']!, _warrantyIdMeta),
+      );
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('subject')) {
+      context.handle(
+        _subjectMeta,
+        subject.isAcceptableOrUnknown(data['subject']!, _subjectMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('resolution')) {
+      context.handle(
+        _resolutionMeta,
+        resolution.isAcceptableOrUnknown(data['resolution']!, _resolutionMeta),
+      );
+    }
+    if (data.containsKey('resolved_at')) {
+      context.handle(
+        _resolvedAtMeta,
+        resolvedAt.isAcceptableOrUnknown(data['resolved_at']!, _resolvedAtMeta),
+      );
+    }
+    if (data.containsKey('closed_at')) {
+      context.handle(
+        _closedAtMeta,
+        closedAt.isAcceptableOrUnknown(data['closed_at']!, _closedAtMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmAfterSalesRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmAfterSalesRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      ticketNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ticket_no'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
+      )!,
+      contactId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contact_id'],
+      ),
+      contractId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contract_id'],
+      ),
+      warrantyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}warranty_id'],
+      ),
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}priority'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      subject: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      resolution: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}resolution'],
+      )!,
+      resolvedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}resolved_at'],
+      ),
+      closedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}closed_at'],
+      ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmAfterSalesTable createAlias(String alias) {
+    return $CrmAfterSalesTable(attachedDatabase, alias);
+  }
+}
+
+class CrmAfterSalesRow extends DataClass
+    implements Insertable<CrmAfterSalesRow> {
+  final String id;
+  final String ticketNo;
+  final String accountId;
+  final String? contactId;
+  final String? contractId;
+  final String? warrantyId;
+
+  /// repair/install/consult/complaint/other
+  final String type;
+
+  /// low/medium/high/urgent
+  final String priority;
+
+  /// open/inProgress/waitingCustomer/resolved/closed
+  final String status;
+  final String subject;
+  final String description;
+  final String resolution;
+  final DateTime? resolvedAt;
+  final DateTime? closedAt;
+  final String note;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool deleted;
+  const CrmAfterSalesRow({
+    required this.id,
+    required this.ticketNo,
+    required this.accountId,
+    this.contactId,
+    this.contractId,
+    this.warrantyId,
+    required this.type,
+    required this.priority,
+    required this.status,
+    required this.subject,
+    required this.description,
+    required this.resolution,
+    this.resolvedAt,
+    this.closedAt,
+    required this.note,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['ticket_no'] = Variable<String>(ticketNo);
+    map['account_id'] = Variable<String>(accountId);
+    if (!nullToAbsent || contactId != null) {
+      map['contact_id'] = Variable<String>(contactId);
+    }
+    if (!nullToAbsent || contractId != null) {
+      map['contract_id'] = Variable<String>(contractId);
+    }
+    if (!nullToAbsent || warrantyId != null) {
+      map['warranty_id'] = Variable<String>(warrantyId);
+    }
+    map['type'] = Variable<String>(type);
+    map['priority'] = Variable<String>(priority);
+    map['status'] = Variable<String>(status);
+    map['subject'] = Variable<String>(subject);
+    map['description'] = Variable<String>(description);
+    map['resolution'] = Variable<String>(resolution);
+    if (!nullToAbsent || resolvedAt != null) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt);
+    }
+    if (!nullToAbsent || closedAt != null) {
+      map['closed_at'] = Variable<DateTime>(closedAt);
+    }
+    map['note'] = Variable<String>(note);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['deleted'] = Variable<bool>(deleted);
+    return map;
+  }
+
+  CrmAfterSalesCompanion toCompanion(bool nullToAbsent) {
+    return CrmAfterSalesCompanion(
+      id: Value(id),
+      ticketNo: Value(ticketNo),
+      accountId: Value(accountId),
+      contactId: contactId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contactId),
+      contractId: contractId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contractId),
+      warrantyId: warrantyId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(warrantyId),
+      type: Value(type),
+      priority: Value(priority),
+      status: Value(status),
+      subject: Value(subject),
+      description: Value(description),
+      resolution: Value(resolution),
+      resolvedAt: resolvedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resolvedAt),
+      closedAt: closedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closedAt),
+      note: Value(note),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory CrmAfterSalesRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmAfterSalesRow(
+      id: serializer.fromJson<String>(json['id']),
+      ticketNo: serializer.fromJson<String>(json['ticketNo']),
+      accountId: serializer.fromJson<String>(json['accountId']),
+      contactId: serializer.fromJson<String?>(json['contactId']),
+      contractId: serializer.fromJson<String?>(json['contractId']),
+      warrantyId: serializer.fromJson<String?>(json['warrantyId']),
+      type: serializer.fromJson<String>(json['type']),
+      priority: serializer.fromJson<String>(json['priority']),
+      status: serializer.fromJson<String>(json['status']),
+      subject: serializer.fromJson<String>(json['subject']),
+      description: serializer.fromJson<String>(json['description']),
+      resolution: serializer.fromJson<String>(json['resolution']),
+      resolvedAt: serializer.fromJson<DateTime?>(json['resolvedAt']),
+      closedAt: serializer.fromJson<DateTime?>(json['closedAt']),
+      note: serializer.fromJson<String>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'ticketNo': serializer.toJson<String>(ticketNo),
+      'accountId': serializer.toJson<String>(accountId),
+      'contactId': serializer.toJson<String?>(contactId),
+      'contractId': serializer.toJson<String?>(contractId),
+      'warrantyId': serializer.toJson<String?>(warrantyId),
+      'type': serializer.toJson<String>(type),
+      'priority': serializer.toJson<String>(priority),
+      'status': serializer.toJson<String>(status),
+      'subject': serializer.toJson<String>(subject),
+      'description': serializer.toJson<String>(description),
+      'resolution': serializer.toJson<String>(resolution),
+      'resolvedAt': serializer.toJson<DateTime?>(resolvedAt),
+      'closedAt': serializer.toJson<DateTime?>(closedAt),
+      'note': serializer.toJson<String>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deleted': serializer.toJson<bool>(deleted),
+    };
+  }
+
+  CrmAfterSalesRow copyWith({
+    String? id,
+    String? ticketNo,
+    String? accountId,
+    Value<String?> contactId = const Value.absent(),
+    Value<String?> contractId = const Value.absent(),
+    Value<String?> warrantyId = const Value.absent(),
+    String? type,
+    String? priority,
+    String? status,
+    String? subject,
+    String? description,
+    String? resolution,
+    Value<DateTime?> resolvedAt = const Value.absent(),
+    Value<DateTime?> closedAt = const Value.absent(),
+    String? note,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? deleted,
+  }) => CrmAfterSalesRow(
+    id: id ?? this.id,
+    ticketNo: ticketNo ?? this.ticketNo,
+    accountId: accountId ?? this.accountId,
+    contactId: contactId.present ? contactId.value : this.contactId,
+    contractId: contractId.present ? contractId.value : this.contractId,
+    warrantyId: warrantyId.present ? warrantyId.value : this.warrantyId,
+    type: type ?? this.type,
+    priority: priority ?? this.priority,
+    status: status ?? this.status,
+    subject: subject ?? this.subject,
+    description: description ?? this.description,
+    resolution: resolution ?? this.resolution,
+    resolvedAt: resolvedAt.present ? resolvedAt.value : this.resolvedAt,
+    closedAt: closedAt.present ? closedAt.value : this.closedAt,
+    note: note ?? this.note,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  CrmAfterSalesRow copyWithCompanion(CrmAfterSalesCompanion data) {
+    return CrmAfterSalesRow(
+      id: data.id.present ? data.id.value : this.id,
+      ticketNo: data.ticketNo.present ? data.ticketNo.value : this.ticketNo,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      contactId: data.contactId.present ? data.contactId.value : this.contactId,
+      contractId: data.contractId.present
+          ? data.contractId.value
+          : this.contractId,
+      warrantyId: data.warrantyId.present
+          ? data.warrantyId.value
+          : this.warrantyId,
+      type: data.type.present ? data.type.value : this.type,
+      priority: data.priority.present ? data.priority.value : this.priority,
+      status: data.status.present ? data.status.value : this.status,
+      subject: data.subject.present ? data.subject.value : this.subject,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      resolution: data.resolution.present
+          ? data.resolution.value
+          : this.resolution,
+      resolvedAt: data.resolvedAt.present
+          ? data.resolvedAt.value
+          : this.resolvedAt,
+      closedAt: data.closedAt.present ? data.closedAt.value : this.closedAt,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmAfterSalesRow(')
+          ..write('id: $id, ')
+          ..write('ticketNo: $ticketNo, ')
+          ..write('accountId: $accountId, ')
+          ..write('contactId: $contactId, ')
+          ..write('contractId: $contractId, ')
+          ..write('warrantyId: $warrantyId, ')
+          ..write('type: $type, ')
+          ..write('priority: $priority, ')
+          ..write('status: $status, ')
+          ..write('subject: $subject, ')
+          ..write('description: $description, ')
+          ..write('resolution: $resolution, ')
+          ..write('resolvedAt: $resolvedAt, ')
+          ..write('closedAt: $closedAt, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    ticketNo,
+    accountId,
+    contactId,
+    contractId,
+    warrantyId,
+    type,
+    priority,
+    status,
+    subject,
+    description,
+    resolution,
+    resolvedAt,
+    closedAt,
+    note,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmAfterSalesRow &&
+          other.id == this.id &&
+          other.ticketNo == this.ticketNo &&
+          other.accountId == this.accountId &&
+          other.contactId == this.contactId &&
+          other.contractId == this.contractId &&
+          other.warrantyId == this.warrantyId &&
+          other.type == this.type &&
+          other.priority == this.priority &&
+          other.status == this.status &&
+          other.subject == this.subject &&
+          other.description == this.description &&
+          other.resolution == this.resolution &&
+          other.resolvedAt == this.resolvedAt &&
+          other.closedAt == this.closedAt &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class CrmAfterSalesCompanion extends UpdateCompanion<CrmAfterSalesRow> {
+  final Value<String> id;
+  final Value<String> ticketNo;
+  final Value<String> accountId;
+  final Value<String?> contactId;
+  final Value<String?> contractId;
+  final Value<String?> warrantyId;
+  final Value<String> type;
+  final Value<String> priority;
+  final Value<String> status;
+  final Value<String> subject;
+  final Value<String> description;
+  final Value<String> resolution;
+  final Value<DateTime?> resolvedAt;
+  final Value<DateTime?> closedAt;
+  final Value<String> note;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> deleted;
+  final Value<int> rowid;
+  const CrmAfterSalesCompanion({
+    this.id = const Value.absent(),
+    this.ticketNo = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.contactId = const Value.absent(),
+    this.contractId = const Value.absent(),
+    this.warrantyId = const Value.absent(),
+    this.type = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.status = const Value.absent(),
+    this.subject = const Value.absent(),
+    this.description = const Value.absent(),
+    this.resolution = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+    this.closedAt = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmAfterSalesCompanion.insert({
+    required String id,
+    required String ticketNo,
+    required String accountId,
+    this.contactId = const Value.absent(),
+    this.contractId = const Value.absent(),
+    this.warrantyId = const Value.absent(),
+    this.type = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.status = const Value.absent(),
+    required String subject,
+    this.description = const Value.absent(),
+    this.resolution = const Value.absent(),
+    this.resolvedAt = const Value.absent(),
+    this.closedAt = const Value.absent(),
+    this.note = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       ticketNo = Value(ticketNo),
+       accountId = Value(accountId),
+       subject = Value(subject),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CrmAfterSalesRow> custom({
+    Expression<String>? id,
+    Expression<String>? ticketNo,
+    Expression<String>? accountId,
+    Expression<String>? contactId,
+    Expression<String>? contractId,
+    Expression<String>? warrantyId,
+    Expression<String>? type,
+    Expression<String>? priority,
+    Expression<String>? status,
+    Expression<String>? subject,
+    Expression<String>? description,
+    Expression<String>? resolution,
+    Expression<DateTime>? resolvedAt,
+    Expression<DateTime>? closedAt,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (ticketNo != null) 'ticket_no': ticketNo,
+      if (accountId != null) 'account_id': accountId,
+      if (contactId != null) 'contact_id': contactId,
+      if (contractId != null) 'contract_id': contractId,
+      if (warrantyId != null) 'warranty_id': warrantyId,
+      if (type != null) 'type': type,
+      if (priority != null) 'priority': priority,
+      if (status != null) 'status': status,
+      if (subject != null) 'subject': subject,
+      if (description != null) 'description': description,
+      if (resolution != null) 'resolution': resolution,
+      if (resolvedAt != null) 'resolved_at': resolvedAt,
+      if (closedAt != null) 'closed_at': closedAt,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmAfterSalesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? ticketNo,
+    Value<String>? accountId,
+    Value<String?>? contactId,
+    Value<String?>? contractId,
+    Value<String?>? warrantyId,
+    Value<String>? type,
+    Value<String>? priority,
+    Value<String>? status,
+    Value<String>? subject,
+    Value<String>? description,
+    Value<String>? resolution,
+    Value<DateTime?>? resolvedAt,
+    Value<DateTime?>? closedAt,
+    Value<String>? note,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? deleted,
+    Value<int>? rowid,
+  }) {
+    return CrmAfterSalesCompanion(
+      id: id ?? this.id,
+      ticketNo: ticketNo ?? this.ticketNo,
+      accountId: accountId ?? this.accountId,
+      contactId: contactId ?? this.contactId,
+      contractId: contractId ?? this.contractId,
+      warrantyId: warrantyId ?? this.warrantyId,
+      type: type ?? this.type,
+      priority: priority ?? this.priority,
+      status: status ?? this.status,
+      subject: subject ?? this.subject,
+      description: description ?? this.description,
+      resolution: resolution ?? this.resolution,
+      resolvedAt: resolvedAt ?? this.resolvedAt,
+      closedAt: closedAt ?? this.closedAt,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (ticketNo.present) {
+      map['ticket_no'] = Variable<String>(ticketNo.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
+    }
+    if (contactId.present) {
+      map['contact_id'] = Variable<String>(contactId.value);
+    }
+    if (contractId.present) {
+      map['contract_id'] = Variable<String>(contractId.value);
+    }
+    if (warrantyId.present) {
+      map['warranty_id'] = Variable<String>(warrantyId.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<String>(priority.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (subject.present) {
+      map['subject'] = Variable<String>(subject.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (resolution.present) {
+      map['resolution'] = Variable<String>(resolution.value);
+    }
+    if (resolvedAt.present) {
+      map['resolved_at'] = Variable<DateTime>(resolvedAt.value);
+    }
+    if (closedAt.present) {
+      map['closed_at'] = Variable<DateTime>(closedAt.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmAfterSalesCompanion(')
+          ..write('id: $id, ')
+          ..write('ticketNo: $ticketNo, ')
+          ..write('accountId: $accountId, ')
+          ..write('contactId: $contactId, ')
+          ..write('contractId: $contractId, ')
+          ..write('warrantyId: $warrantyId, ')
+          ..write('type: $type, ')
+          ..write('priority: $priority, ')
+          ..write('status: $status, ')
+          ..write('subject: $subject, ')
+          ..write('description: $description, ')
+          ..write('resolution: $resolution, ')
+          ..write('resolvedAt: $resolvedAt, ')
+          ..write('closedAt: $closedAt, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CrmObjectDefsTable extends CrmObjectDefs
     with TableInfo<$CrmObjectDefsTable, CrmObjectDefRow> {
   @override
@@ -15536,6 +17147,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $CrmPaymentsTable crmPayments = $CrmPaymentsTable(this);
   late final $CrmInvoicesTable crmInvoices = $CrmInvoicesTable(this);
+  late final $CrmWarrantiesTable crmWarranties = $CrmWarrantiesTable(this);
+  late final $CrmAfterSalesTable crmAfterSales = $CrmAfterSalesTable(this);
   late final $CrmObjectDefsTable crmObjectDefs = $CrmObjectDefsTable(this);
   late final $CrmCustomRecordsTable crmCustomRecords = $CrmCustomRecordsTable(
     this,
@@ -15572,6 +17185,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     crmPaymentPlans,
     crmPayments,
     crmInvoices,
+    crmWarranties,
+    crmAfterSales,
     crmObjectDefs,
     crmCustomRecords,
     crmEntityLinks,
@@ -21572,6 +23187,766 @@ typedef $$CrmInvoicesTableProcessedTableManager =
       CrmInvoiceRow,
       PrefetchHooks Function()
     >;
+typedef $$CrmWarrantiesTableCreateCompanionBuilder =
+    CrmWarrantiesCompanion Function({
+      required String id,
+      required String contractId,
+      Value<String?> contractItemId,
+      Value<String?> productId,
+      Value<String> serialNo,
+      required DateTime startDate,
+      required DateTime endDate,
+      Value<String> status,
+      Value<String> note,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$CrmWarrantiesTableUpdateCompanionBuilder =
+    CrmWarrantiesCompanion Function({
+      Value<String> id,
+      Value<String> contractId,
+      Value<String?> contractItemId,
+      Value<String?> productId,
+      Value<String> serialNo,
+      Value<DateTime> startDate,
+      Value<DateTime> endDate,
+      Value<String> status,
+      Value<String> note,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$CrmWarrantiesTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmWarrantiesTable> {
+  $$CrmWarrantiesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contractItemId => $composableBuilder(
+    column: $table.contractItemId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get serialNo => $composableBuilder(
+    column: $table.serialNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmWarrantiesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmWarrantiesTable> {
+  $$CrmWarrantiesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contractItemId => $composableBuilder(
+    column: $table.contractItemId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get serialNo => $composableBuilder(
+    column: $table.serialNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmWarrantiesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmWarrantiesTable> {
+  $$CrmWarrantiesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contractItemId => $composableBuilder(
+    column: $table.contractItemId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<String> get serialNo =>
+      $composableBuilder(column: $table.serialNo, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CrmWarrantiesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmWarrantiesTable,
+          CrmWarrantyRow,
+          $$CrmWarrantiesTableFilterComposer,
+          $$CrmWarrantiesTableOrderingComposer,
+          $$CrmWarrantiesTableAnnotationComposer,
+          $$CrmWarrantiesTableCreateCompanionBuilder,
+          $$CrmWarrantiesTableUpdateCompanionBuilder,
+          (
+            CrmWarrantyRow,
+            BaseReferences<_$AppDatabase, $CrmWarrantiesTable, CrmWarrantyRow>,
+          ),
+          CrmWarrantyRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmWarrantiesTableTableManager(_$AppDatabase db, $CrmWarrantiesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmWarrantiesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmWarrantiesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmWarrantiesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> contractId = const Value.absent(),
+                Value<String?> contractItemId = const Value.absent(),
+                Value<String?> productId = const Value.absent(),
+                Value<String> serialNo = const Value.absent(),
+                Value<DateTime> startDate = const Value.absent(),
+                Value<DateTime> endDate = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmWarrantiesCompanion(
+                id: id,
+                contractId: contractId,
+                contractItemId: contractItemId,
+                productId: productId,
+                serialNo: serialNo,
+                startDate: startDate,
+                endDate: endDate,
+                status: status,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String contractId,
+                Value<String?> contractItemId = const Value.absent(),
+                Value<String?> productId = const Value.absent(),
+                Value<String> serialNo = const Value.absent(),
+                required DateTime startDate,
+                required DateTime endDate,
+                Value<String> status = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CrmWarrantiesCompanion.insert(
+                id: id,
+                contractId: contractId,
+                contractItemId: contractItemId,
+                productId: productId,
+                serialNo: serialNo,
+                startDate: startDate,
+                endDate: endDate,
+                status: status,
+                note: note,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmWarrantiesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmWarrantiesTable,
+      CrmWarrantyRow,
+      $$CrmWarrantiesTableFilterComposer,
+      $$CrmWarrantiesTableOrderingComposer,
+      $$CrmWarrantiesTableAnnotationComposer,
+      $$CrmWarrantiesTableCreateCompanionBuilder,
+      $$CrmWarrantiesTableUpdateCompanionBuilder,
+      (
+        CrmWarrantyRow,
+        BaseReferences<_$AppDatabase, $CrmWarrantiesTable, CrmWarrantyRow>,
+      ),
+      CrmWarrantyRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmAfterSalesTableCreateCompanionBuilder =
+    CrmAfterSalesCompanion Function({
+      required String id,
+      required String ticketNo,
+      required String accountId,
+      Value<String?> contactId,
+      Value<String?> contractId,
+      Value<String?> warrantyId,
+      Value<String> type,
+      Value<String> priority,
+      Value<String> status,
+      required String subject,
+      Value<String> description,
+      Value<String> resolution,
+      Value<DateTime?> resolvedAt,
+      Value<DateTime?> closedAt,
+      Value<String> note,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+typedef $$CrmAfterSalesTableUpdateCompanionBuilder =
+    CrmAfterSalesCompanion Function({
+      Value<String> id,
+      Value<String> ticketNo,
+      Value<String> accountId,
+      Value<String?> contactId,
+      Value<String?> contractId,
+      Value<String?> warrantyId,
+      Value<String> type,
+      Value<String> priority,
+      Value<String> status,
+      Value<String> subject,
+      Value<String> description,
+      Value<String> resolution,
+      Value<DateTime?> resolvedAt,
+      Value<DateTime?> closedAt,
+      Value<String> note,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> deleted,
+      Value<int> rowid,
+    });
+
+class $$CrmAfterSalesTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmAfterSalesTable> {
+  $$CrmAfterSalesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ticketNo => $composableBuilder(
+    column: $table.ticketNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contactId => $composableBuilder(
+    column: $table.contactId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get warrantyId => $composableBuilder(
+    column: $table.warrantyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get subject => $composableBuilder(
+    column: $table.subject,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get resolution => $composableBuilder(
+    column: $table.resolution,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get closedAt => $composableBuilder(
+    column: $table.closedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmAfterSalesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmAfterSalesTable> {
+  $$CrmAfterSalesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ticketNo => $composableBuilder(
+    column: $table.ticketNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contactId => $composableBuilder(
+    column: $table.contactId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get warrantyId => $composableBuilder(
+    column: $table.warrantyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get subject => $composableBuilder(
+    column: $table.subject,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get resolution => $composableBuilder(
+    column: $table.resolution,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get closedAt => $composableBuilder(
+    column: $table.closedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmAfterSalesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmAfterSalesTable> {
+  $$CrmAfterSalesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get ticketNo =>
+      $composableBuilder(column: $table.ticketNo, builder: (column) => column);
+
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get contactId =>
+      $composableBuilder(column: $table.contactId, builder: (column) => column);
+
+  GeneratedColumn<String> get contractId => $composableBuilder(
+    column: $table.contractId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get warrantyId => $composableBuilder(
+    column: $table.warrantyId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get subject =>
+      $composableBuilder(column: $table.subject, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get resolution => $composableBuilder(
+    column: $table.resolution,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get resolvedAt => $composableBuilder(
+    column: $table.resolvedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get closedAt =>
+      $composableBuilder(column: $table.closedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+}
+
+class $$CrmAfterSalesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmAfterSalesTable,
+          CrmAfterSalesRow,
+          $$CrmAfterSalesTableFilterComposer,
+          $$CrmAfterSalesTableOrderingComposer,
+          $$CrmAfterSalesTableAnnotationComposer,
+          $$CrmAfterSalesTableCreateCompanionBuilder,
+          $$CrmAfterSalesTableUpdateCompanionBuilder,
+          (
+            CrmAfterSalesRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CrmAfterSalesTable,
+              CrmAfterSalesRow
+            >,
+          ),
+          CrmAfterSalesRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmAfterSalesTableTableManager(_$AppDatabase db, $CrmAfterSalesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmAfterSalesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmAfterSalesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmAfterSalesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> ticketNo = const Value.absent(),
+                Value<String> accountId = const Value.absent(),
+                Value<String?> contactId = const Value.absent(),
+                Value<String?> contractId = const Value.absent(),
+                Value<String?> warrantyId = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> priority = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> subject = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<String> resolution = const Value.absent(),
+                Value<DateTime?> resolvedAt = const Value.absent(),
+                Value<DateTime?> closedAt = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmAfterSalesCompanion(
+                id: id,
+                ticketNo: ticketNo,
+                accountId: accountId,
+                contactId: contactId,
+                contractId: contractId,
+                warrantyId: warrantyId,
+                type: type,
+                priority: priority,
+                status: status,
+                subject: subject,
+                description: description,
+                resolution: resolution,
+                resolvedAt: resolvedAt,
+                closedAt: closedAt,
+                note: note,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String ticketNo,
+                required String accountId,
+                Value<String?> contactId = const Value.absent(),
+                Value<String?> contractId = const Value.absent(),
+                Value<String?> warrantyId = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> priority = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                required String subject,
+                Value<String> description = const Value.absent(),
+                Value<String> resolution = const Value.absent(),
+                Value<DateTime?> resolvedAt = const Value.absent(),
+                Value<DateTime?> closedAt = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<bool> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmAfterSalesCompanion.insert(
+                id: id,
+                ticketNo: ticketNo,
+                accountId: accountId,
+                contactId: contactId,
+                contractId: contractId,
+                warrantyId: warrantyId,
+                type: type,
+                priority: priority,
+                status: status,
+                subject: subject,
+                description: description,
+                resolution: resolution,
+                resolvedAt: resolvedAt,
+                closedAt: closedAt,
+                note: note,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmAfterSalesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmAfterSalesTable,
+      CrmAfterSalesRow,
+      $$CrmAfterSalesTableFilterComposer,
+      $$CrmAfterSalesTableOrderingComposer,
+      $$CrmAfterSalesTableAnnotationComposer,
+      $$CrmAfterSalesTableCreateCompanionBuilder,
+      $$CrmAfterSalesTableUpdateCompanionBuilder,
+      (
+        CrmAfterSalesRow,
+        BaseReferences<_$AppDatabase, $CrmAfterSalesTable, CrmAfterSalesRow>,
+      ),
+      CrmAfterSalesRow,
+      PrefetchHooks Function()
+    >;
 typedef $$CrmObjectDefsTableCreateCompanionBuilder =
     CrmObjectDefsCompanion Function({
       required String id,
@@ -23448,6 +25823,10 @@ class $AppDatabaseManager {
       $$CrmPaymentsTableTableManager(_db, _db.crmPayments);
   $$CrmInvoicesTableTableManager get crmInvoices =>
       $$CrmInvoicesTableTableManager(_db, _db.crmInvoices);
+  $$CrmWarrantiesTableTableManager get crmWarranties =>
+      $$CrmWarrantiesTableTableManager(_db, _db.crmWarranties);
+  $$CrmAfterSalesTableTableManager get crmAfterSales =>
+      $$CrmAfterSalesTableTableManager(_db, _db.crmAfterSales);
   $$CrmObjectDefsTableTableManager get crmObjectDefs =>
       $$CrmObjectDefsTableTableManager(_db, _db.crmObjectDefs);
   $$CrmCustomRecordsTableTableManager get crmCustomRecords =>

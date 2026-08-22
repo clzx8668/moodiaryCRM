@@ -741,9 +741,131 @@ class CrmLocalRepository {
       );
     }
 
+    final warranties = await listWarranties();
+    for (final warranty in warranties) {
+      if (warranty.status != 'active') continue;
+      if (!warranty.endDate.isBefore(in30)) continue;
+      final contract = await getContract(warranty.contractId);
+      result.add(
+        CrmReminderItem(
+          type: 'warrantyExpire',
+          title:
+              '质保到期：${contract?.name ?? warranty.contractId}'
+              '${warranty.serialNo.isEmpty ? '' : '（${warranty.serialNo}）'}',
+          at: warranty.endDate,
+          entityId: warranty.contractId,
+        ),
+      );
+    }
+
     result.sort((a, b) => a.at.compareTo(b.at));
     return result;
   }
+
+  // ==================== 质保 / 售后 ====================
+
+  Future<List<LocalWarranty>> listWarranties({String? contractId}) async {
+    final query = db.select(db.crmWarranties);
+    if (contractId != null) {
+      query.where((t) => t.contractId.equals(contractId));
+    }
+    final rows = await query.get();
+    final today = DateTime.now();
+    final result = <LocalWarranty>[];
+    for (final row in rows) {
+      final warranty = _warrantyFromRow(row);
+      // 到期自动置 expired
+      if (warranty.status == 'active' &&
+          warranty.endDate.isBefore(today)) {
+        warranty.status = 'expired';
+        await updateWarranty(warranty);
+      }
+      result.add(warranty);
+    }
+    result.sort((a, b) => a.endDate.compareTo(b.endDate));
+    return result;
+  }
+
+  Future<LocalWarranty?> getWarranty(String id) async {
+    final row = await (db.select(db.crmWarranties)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _warrantyFromRow(row);
+  }
+
+  Future<LocalWarranty> createWarranty(LocalWarranty warranty) async {
+    final entity = warranty
+      ..id = warranty.id.isEmpty ? const Uuid().v7() : warranty.id;
+    await db.into(db.crmWarranties).insert(_warrantyCompanion(entity));
+    return entity;
+  }
+
+  Future<LocalWarranty> updateWarranty(LocalWarranty warranty) async {
+    await (db.update(db.crmWarranties)
+          ..where((t) => t.id.equals(warranty.id)))
+        .write(_warrantyCompanion(warranty));
+    return warranty;
+  }
+
+  Future<void> deleteWarranty(String id) async {
+    await (db.delete(db.crmWarranties)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<List<LocalAfterSales>> listAfterSales({String? accountId}) async {
+    final query = db.select(db.crmAfterSales)
+      ..where((t) => t.deleted.equals(false));
+    if (accountId != null) {
+      query.where((t) => t.accountId.equals(accountId));
+    }
+    query.orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
+    final rows = await query.get();
+    return rows.map(_afterSalesFromRow).toList();
+  }
+
+  Future<LocalAfterSales?> getAfterSales(String id) async {
+    final row = await (db.select(db.crmAfterSales)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _afterSalesFromRow(row);
+  }
+
+  Future<LocalAfterSales> createAfterSales(LocalAfterSales ticket) async {
+    final now = DateTime.now();
+    final entity = ticket
+      ..id = ticket.id.isEmpty ? const Uuid().v7() : ticket.id;
+    entity.createdAt = now;
+    entity.updatedAt = now;
+    if (entity.ticketNo.isEmpty) {
+      entity.ticketNo = await _nextSequenceNo('AS');
+    }
+    await db.into(db.crmAfterSales).insert(_afterSalesCompanion(entity));
+    return entity;
+  }
+
+  Future<LocalAfterSales> updateAfterSales(LocalAfterSales ticket) async {
+    ticket.updatedAt = DateTime.now();
+    if (ticket.status == 'resolved' && ticket.resolvedAt == null) {
+      ticket.resolvedAt = DateTime.now();
+    }
+    if (ticket.status == 'closed' && ticket.closedAt == null) {
+      ticket.closedAt = DateTime.now();
+    }
+    await (db.update(db.crmAfterSales)
+          ..where((t) => t.id.equals(ticket.id)))
+        .write(_afterSalesCompanion(ticket));
+    return ticket;
+  }
+
+  Future<void> deleteAfterSales(String id) async {
+    await (db.update(db.crmAfterSales)..where((t) => t.id.equals(id))).write(
+      CrmAfterSalesCompanion(
+        deleted: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<int> countAfterSales() async => (await listAfterSales()).length;
 
   /// 单号生成：前缀 + YYYYMMDD + 当日自增 3 位（QT/HT/AS）
   Future<String> _nextSequenceNo(String prefix) async {
@@ -770,6 +892,15 @@ class CrmLocalRepository {
       for (final row in rows) {
         final seq =
             int.tryParse(row.quoteNo.substring(row.quoteNo.length - 3)) ?? 0;
+        if (seq > maxSeq) maxSeq = seq;
+      }
+    } else if (prefix == 'AS') {
+      final rows = await (db.select(db.crmAfterSales)
+            ..where((t) => t.ticketNo.like(like)))
+          .get();
+      for (final row in rows) {
+        final seq =
+            int.tryParse(row.ticketNo.substring(row.ticketNo.length - 3)) ?? 0;
         if (seq > maxSeq) maxSeq = seq;
       }
     } else {
@@ -945,6 +1076,7 @@ class CrmLocalRepository {
     result['contract'] = await countContracts();
     result['product'] = await countProducts();
     result['quote'] = await countQuotes();
+    result['afterSales'] = await countAfterSales();
     for (final def in await listCustomObjects()) {
       result['custom:${def.id}'] = await countCustomRecords(def.id);
     }
@@ -1381,5 +1513,77 @@ class CrmLocalRepository {
     receiverName: row.receiverName,
     note: row.note,
     createdAt: row.createdAt,
+  );
+
+  CrmWarrantiesCompanion _warrantyCompanion(LocalWarranty w) {
+    return CrmWarrantiesCompanion(
+      id: Value(w.id),
+      contractId: Value(w.contractId),
+      contractItemId: Value(w.contractItemId),
+      productId: Value(w.productId),
+      serialNo: Value(w.serialNo),
+      startDate: Value(w.startDate),
+      endDate: Value(w.endDate),
+      status: Value(w.status),
+      note: Value(w.note),
+      createdAt: Value(w.createdAt),
+    );
+  }
+
+  LocalWarranty _warrantyFromRow(CrmWarrantyRow row) => LocalWarranty(
+    id: row.id,
+    contractId: row.contractId,
+    contractItemId: row.contractItemId,
+    productId: row.productId,
+    serialNo: row.serialNo,
+    startDate: row.startDate,
+    endDate: row.endDate,
+    status: row.status,
+    note: row.note,
+    createdAt: row.createdAt,
+  );
+
+  CrmAfterSalesCompanion _afterSalesCompanion(LocalAfterSales t) {
+    return CrmAfterSalesCompanion(
+      id: Value(t.id),
+      ticketNo: Value(t.ticketNo),
+      accountId: Value(t.accountId),
+      contactId: Value(t.contactId),
+      contractId: Value(t.contractId),
+      warrantyId: Value(t.warrantyId),
+      type: Value(t.type),
+      priority: Value(t.priority),
+      status: Value(t.status),
+      subject: Value(t.subject),
+      description: Value(t.description),
+      resolution: Value(t.resolution),
+      resolvedAt: Value(t.resolvedAt),
+      closedAt: Value(t.closedAt),
+      note: Value(t.note),
+      createdAt: Value(t.createdAt),
+      updatedAt: Value(t.updatedAt),
+      deleted: Value(t.deleted),
+    );
+  }
+
+  LocalAfterSales _afterSalesFromRow(CrmAfterSalesRow row) => LocalAfterSales(
+    id: row.id,
+    ticketNo: row.ticketNo,
+    accountId: row.accountId,
+    contactId: row.contactId,
+    contractId: row.contractId,
+    warrantyId: row.warrantyId,
+    type: row.type,
+    priority: row.priority,
+    status: row.status,
+    subject: row.subject,
+    description: row.description,
+    resolution: row.resolution,
+    resolvedAt: row.resolvedAt,
+    closedAt: row.closedAt,
+    note: row.note,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deleted: row.deleted,
   );
 }

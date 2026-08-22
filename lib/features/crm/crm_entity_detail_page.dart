@@ -66,6 +66,7 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
           if (widget.objectType == 'opportunity') _buildOpportunityDrilldown(),
           if (widget.objectType == 'contract') _buildContractItems(),
           if (widget.objectType == 'contract') _buildContractFinance(),
+          if (widget.objectType == 'contract') _buildContractWarranties(),
           if (widget.objectType == 'quote') _buildQuoteItems(),
           const SizedBox(height: 16),
           _buildRelatedDiaries(),
@@ -421,6 +422,48 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
                     ),
                 ],
                 if (items.isEmpty) const Text('暂无财务记录'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContractWarranties() {
+    return FutureBuilder<List<LocalWarranty>>(
+      future: _repo.listWarranties(contractId: widget.item.twentyId),
+      builder: (context, snapshot) {
+        final warranties = snapshot.data ?? const [];
+        return Card.outlined(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '质保（${warranties.length}）',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 6),
+                if (warranties.isEmpty)
+                  const Text('暂无质保')
+                else
+                  for (final warranty in warranties)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        warranty.serialNo.isEmpty
+                            ? '（未登记序列号）'
+                            : warranty.serialNo,
+                      ),
+                      subtitle: Text(
+                        '${warranty.startDate.toLocal().toString().substring(0, 10)}'
+                        ' ~ ${warranty.endDate.toLocal().toString().substring(0, 10)}'
+                        ' · ${warranty.status}',
+                      ),
+                    ),
               ],
             ),
           ),

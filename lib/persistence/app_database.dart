@@ -423,6 +423,54 @@ class CrmInvoices extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 质保
+@DataClassName('CrmWarrantyRow')
+class CrmWarranties extends Table {
+  TextColumn get id => text()();
+  TextColumn get contractId => text()();
+  TextColumn get contractItemId => text().nullable()();
+  TextColumn get productId => text().nullable()();
+  TextColumn get serialNo => text().withDefault(const Constant(''))();
+  DateTimeColumn get startDate => dateTime()();
+  DateTimeColumn get endDate => dateTime()();
+  /// active/expired/void
+  TextColumn get status => text().withDefault(const Constant('active'))();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 售后工单
+@DataClassName('CrmAfterSalesRow')
+class CrmAfterSales extends Table {
+  TextColumn get id => text()();
+  TextColumn get ticketNo => text()();
+  TextColumn get accountId => text()();
+  TextColumn get contactId => text().nullable()();
+  TextColumn get contractId => text().nullable()();
+  TextColumn get warrantyId => text().nullable()();
+  /// repair/install/consult/complaint/other
+  TextColumn get type => text().withDefault(const Constant('other'))();
+  /// low/medium/high/urgent
+  TextColumn get priority => text().withDefault(const Constant('medium'))();
+  /// open/inProgress/waitingCustomer/resolved/closed
+  TextColumn get status => text().withDefault(const Constant('open'))();
+  TextColumn get subject => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  TextColumn get resolution => text().withDefault(const Constant(''))();
+  DateTimeColumn get resolvedAt => dateTime().nullable()();
+  DateTimeColumn get closedAt => dateTime().nullable()();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// 自定义数据对象定义（元数据驱动，类似 Twenty metadata）
 @DataClassName('CrmObjectDefRow')
 class CrmObjectDefs extends Table {
@@ -572,6 +620,8 @@ class AiChatMessages extends Table {
     CrmPaymentPlans,
     CrmPayments,
     CrmInvoices,
+    CrmWarranties,
+    CrmAfterSales,
     CrmObjectDefs,
     CrmCustomRecords,
     CrmEntityLinks,
@@ -586,7 +636,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -649,6 +699,12 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(db.crmPaymentPlans);
         await m.createTable(db.crmPayments);
         await m.createTable(db.crmInvoices);
+      }
+      // v11 → v12：质保 + 售后工单
+      if (from < 12) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.crmWarranties);
+        await m.createTable(db.crmAfterSales);
       }
     },
     beforeOpen: (details) async {

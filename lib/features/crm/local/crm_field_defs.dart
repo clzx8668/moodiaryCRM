@@ -29,6 +29,8 @@ const Map<String, String> kLocalLabelFields = {
   'paymentPlan': 'planName',
   'payment': 'paymentDate',
   'invoice': 'invoiceNo',
+  'warranty': 'serialNo',
+  'afterSales': 'ticketNo',
 };
 
 /// 商机阶段（doc 枚举键，先以中文标签存储展示；S6 看板再做键值化）
@@ -219,6 +221,51 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('receiverName', '收票人'),
     LocalObjectField('note', '备注', type: 'textarea'),
   ],
+  'warranty': [
+    LocalObjectField('serialNo', '序列号'),
+    LocalObjectField('contract', '合同', type: 'relation'),
+    LocalObjectField('product', '产品', type: 'relation'),
+    LocalObjectField('startDate', '质保开始', type: 'date'),
+    LocalObjectField('endDate', '质保到期', type: 'date'),
+    LocalObjectField('status', '状态', type: 'select', options: [
+      'active',
+      'expired',
+      'void',
+    ]),
+    LocalObjectField('note', '备注', type: 'textarea'),
+  ],
+  'afterSales': [
+    LocalObjectField('ticketNo', '工单号'),
+    LocalObjectField('subject', '主题'),
+    LocalObjectField('account', '客户', type: 'relation'),
+    LocalObjectField('contact', '联系人', type: 'relation'),
+    LocalObjectField('contract', '合同', type: 'relation'),
+    LocalObjectField('type', '类型', type: 'select', options: [
+      'repair',
+      'install',
+      'consult',
+      'complaint',
+      'other',
+    ]),
+    LocalObjectField('priority', '优先级', type: 'select', options: [
+      'low',
+      'medium',
+      'high',
+      'urgent',
+    ]),
+    LocalObjectField('status', '状态', type: 'select', options: [
+      'open',
+      'inProgress',
+      'waitingCustomer',
+      'resolved',
+      'closed',
+    ]),
+    LocalObjectField('description', '描述', type: 'textarea'),
+    LocalObjectField('resolution', '解决方案', type: 'textarea'),
+    LocalObjectField('note', '备注', type: 'textarea'),
+    LocalObjectField('createdAt', '创建时间', type: 'date'),
+    LocalObjectField('updatedAt', '更新时间', type: 'date'),
+  ],
 };
 
 /// 基础对象字段的展示值格式化（typed → data map）
@@ -386,4 +433,44 @@ Map<String, dynamic> invoiceToDataMap(
   'status': i.status,
   'receiverName': i.receiverName,
   'note': i.note,
+};
+
+Map<String, dynamic> warrantyToDataMap(
+  LocalWarranty w, {
+  String? contractName,
+  String? productName,
+}) => {
+  'serialNo': w.serialNo,
+  'contractId': w.contractId,
+  'contract': contractName == null ? w.contractId : {'name': contractName},
+  'productId': w.productId,
+  'product': productName == null ? w.productId : {'name': productName},
+  'startDate': w.startDate.toIso8601String(),
+  'endDate': w.endDate.toIso8601String(),
+  'status': w.status,
+  'note': w.note,
+};
+
+Map<String, dynamic> afterSalesToDataMap(
+  LocalAfterSales t, {
+  String? accountName,
+  String? contactName,
+  String? contractName,
+}) => {
+  'ticketNo': t.ticketNo,
+  'subject': t.subject,
+  'accountId': t.accountId,
+  'account': accountName == null ? t.accountId : {'name': accountName},
+  'contactId': t.contactId,
+  'contact': contactName == null ? t.contactId : {'name': contactName},
+  'contractId': t.contractId,
+  'contract': contractName == null ? t.contractId : {'name': contractName},
+  'type': t.type,
+  'priority': t.priority,
+  'status': t.status,
+  'description': t.description,
+  'resolution': t.resolution,
+  'note': t.note,
+  'createdAt': t.createdAt.toIso8601String(),
+  'updatedAt': t.updatedAt.toIso8601String(),
 };

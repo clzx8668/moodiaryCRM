@@ -286,4 +286,40 @@ void main() {
     expect(reminders.any((r) => r.type == 'paymentDue'), isTrue);
     expect(reminders.any((r) => r.type == 'contractExpire'), isTrue);
   });
+
+  test('质保到期自动置过期 + 提醒；售后工单 AS 编号', () async {
+    final contract = await repo.createContract(
+      LocalContract(id: '', name: '设备合同'),
+    );
+    await repo.createWarranty(
+      LocalWarranty(
+        id: '',
+        contractId: contract.id,
+        serialNo: 'SN-001',
+        startDate: DateTime.now().subtract(const Duration(days: 400)),
+        endDate: DateTime.now().subtract(const Duration(days: 10)),
+      ),
+    );
+    final warranties = await repo.listWarranties();
+    expect(warranties.single.status, 'expired');
+
+    final ticket = await repo.createAfterSales(
+      LocalAfterSales(id: '', subject: '设备故障', accountId: 'a1'),
+    );
+    expect(ticket.ticketNo, startsWith('AS-'));
+    expect(ticket.ticketNo.length, 'AS-20260822-001'.length);
+
+    // 即将到期的质保进入提醒
+    await repo.createWarranty(
+      LocalWarranty(
+        id: '',
+        contractId: contract.id,
+        serialNo: 'SN-002',
+        startDate: DateTime.now(),
+        endDate: DateTime.now().add(const Duration(days: 5)),
+      ),
+    );
+    final reminders = await repo.dueReminders();
+    expect(reminders.any((r) => r.type == 'warrantyExpire'), isTrue);
+  });
 }
