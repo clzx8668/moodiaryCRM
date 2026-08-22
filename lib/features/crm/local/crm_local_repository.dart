@@ -992,6 +992,88 @@ class CrmLocalRepository {
     return tags;
   }
 
+  // ==================== 附件 / 提醒 ====================
+
+  Future<List<LocalAttachment>> listAttachments(
+    String relatedType,
+    String relatedId,
+  ) async {
+    final rows = await (db.select(db.crmAttachments)
+          ..where(
+            (t) => t.relatedType.equals(relatedType) & t.relatedId.equals(relatedId),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .get();
+    return rows.map(_attachmentFromRow).toList();
+  }
+
+  Future<LocalAttachment> addAttachment(LocalAttachment attachment) async {
+    final entity = attachment
+      ..id = attachment.id.isEmpty ? const Uuid().v7() : attachment.id;
+    await db.into(db.crmAttachments).insert(_attachmentCompanion(entity));
+    return entity;
+  }
+
+  Future<LocalAttachment?> getAttachment(String id) async {
+    final row = await (db.select(db.crmAttachments)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _attachmentFromRow(row);
+  }
+
+  Future<void> deleteAttachment(String id) async {
+    await (db.delete(db.crmAttachments)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<List<LocalReminder>> listReminders({
+    bool includeCompleted = false,
+  }) async {
+    final query = db.select(db.crmReminders);
+    if (!includeCompleted) {
+      query.where((t) => t.isCompleted.equals(false));
+    }
+    query.orderBy([(t) => OrderingTerm.asc(t.remindAt)]);
+    final rows = await query.get();
+    return rows.map(_reminderFromRow).toList();
+  }
+
+  Future<LocalReminder> createReminder(LocalReminder reminder) async {
+    final entity = reminder
+      ..id = reminder.id.isEmpty ? const Uuid().v7() : reminder.id;
+    await db.into(db.crmReminders).insert(_reminderCompanion(entity));
+    return entity;
+  }
+
+  Future<LocalReminder?> getReminder(String id) async {
+    final row = await (db.select(db.crmReminders)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _reminderFromRow(row);
+  }
+
+  Future<LocalReminder> updateReminder(LocalReminder reminder) async {
+    await (db.update(db.crmReminders)
+          ..where((t) => t.id.equals(reminder.id)))
+        .write(_reminderCompanion(reminder));
+    return reminder;
+  }
+
+  Future<LocalReminder> completeReminder(String id) async {
+    final row = await (db.select(db.crmReminders)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (row == null) throw StateError('提醒不存在');
+    final reminder = _reminderFromRow(row)..isCompleted = true;
+    await (db.update(db.crmReminders)..where((t) => t.id.equals(id))).write(
+      const CrmRemindersCompanion(isCompleted: Value(true)),
+    );
+    return reminder;
+  }
+
+  Future<void> deleteReminder(String id) async {
+    await (db.delete(db.crmReminders)..where((t) => t.id.equals(id))).go();
+  }
+
   /// 单号生成：前缀 + YYYYMMDD + 当日自增 3 位（QT/HT/AS）
   Future<String> _nextSequenceNo(String prefix) async {
     final now = DateTime.now();
@@ -1739,6 +1821,54 @@ class CrmLocalRepository {
     status: row.status,
     scheduledAt: row.scheduledAt,
     completedAt: row.completedAt,
+    createdAt: row.createdAt,
+  );
+
+  CrmAttachmentsCompanion _attachmentCompanion(LocalAttachment a) {
+    return CrmAttachmentsCompanion(
+      id: Value(a.id),
+      relatedType: Value(a.relatedType),
+      relatedId: Value(a.relatedId),
+      fileName: Value(a.fileName),
+      filePath: Value(a.filePath),
+      mimeType: Value(a.mimeType),
+      fileSize: Value(a.fileSize),
+      createdAt: Value(a.createdAt),
+    );
+  }
+
+  LocalAttachment _attachmentFromRow(CrmAttachmentRow row) => LocalAttachment(
+    id: row.id,
+    relatedType: row.relatedType,
+    relatedId: row.relatedId,
+    fileName: row.fileName,
+    filePath: row.filePath,
+    mimeType: row.mimeType,
+    fileSize: row.fileSize,
+    createdAt: row.createdAt,
+  );
+
+  CrmRemindersCompanion _reminderCompanion(LocalReminder r) {
+    return CrmRemindersCompanion(
+      id: Value(r.id),
+      relatedType: Value(r.relatedType),
+      relatedId: Value(r.relatedId),
+      type: Value(r.type),
+      title: Value(r.title),
+      remindAt: Value(r.remindAt),
+      isCompleted: Value(r.isCompleted),
+      createdAt: Value(r.createdAt),
+    );
+  }
+
+  LocalReminder _reminderFromRow(CrmReminderRow row) => LocalReminder(
+    id: row.id,
+    relatedType: row.relatedType,
+    relatedId: row.relatedId,
+    type: row.type,
+    title: row.title,
+    remindAt: row.remindAt,
+    isCompleted: row.isCompleted,
     createdAt: row.createdAt,
   );
 }

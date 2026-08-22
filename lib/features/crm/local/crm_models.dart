@@ -544,6 +544,53 @@ class LocalTag {
   });
 }
 
+/// 附件
+class LocalAttachment {
+  String id;
+  String relatedType;
+  String relatedId;
+  String fileName;
+  String filePath;
+  String? mimeType;
+  int? fileSize;
+  DateTime createdAt;
+
+  LocalAttachment({
+    required this.id,
+    required this.relatedType,
+    required this.relatedId,
+    required this.fileName,
+    required this.filePath,
+    this.mimeType,
+    this.fileSize,
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+}
+
+/// 提醒
+class LocalReminder {
+  String id;
+  String? relatedType;
+  String? relatedId;
+  String type;
+  String title;
+  DateTime remindAt;
+  bool isCompleted;
+  DateTime createdAt;
+
+  LocalReminder({
+    required this.id,
+    this.relatedType,
+    this.relatedId,
+    this.type = 'custom',
+    this.title = '',
+    DateTime? remindAt,
+    this.isCompleted = false,
+    DateTime? createdAt,
+  }) : remindAt = remindAt ?? DateTime.now(),
+       createdAt = createdAt ?? DateTime.now();
+}
+
 /// 自定义数据对象定义
 class LocalCustomObject {
   String id;

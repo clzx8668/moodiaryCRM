@@ -63,6 +63,7 @@ class CalendarLogic extends GetxController {
 
   /// 勾选/取消本地待办后刷新
   Future<void> toggleTodo(TodoItem item) async {
+    if (item.source == TodoSource.crmEvent) return; // CRM 日程只读
     await TodoAggregator.toggleLocal(item);
     await loadTodos();
   }

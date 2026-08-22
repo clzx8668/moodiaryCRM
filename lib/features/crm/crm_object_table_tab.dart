@@ -30,6 +30,7 @@ const List<CrmTabDef> kCrmTabs = [
   CrmTabDef('warranty', '质保'),
   CrmTabDef('afterSales', '售后'),
   CrmTabDef('activity', '跟进'),
+  CrmTabDef('reminder', '提醒'),
 ];
 
 String crmTypeLabel(String type) {
@@ -46,6 +47,7 @@ String crmTypeLabel(String type) {
     'warranty': '质保',
     'afterSales': '售后',
     'activity': '跟进',
+    'reminder': '提醒',
   };
   return labels[type] ?? type;
 }
@@ -76,6 +78,8 @@ IconData crmTypeIcon(String type) {
       return Icons.support_agent_rounded;
     case 'activity':
       return Icons.history_rounded;
+    case 'reminder':
+      return Icons.alarm_rounded;
     default:
       return Icons.folder_rounded;
   }
@@ -107,6 +111,8 @@ Color crmTypeColor(String type) {
       return Colors.deepOrange.shade400;
     case 'activity':
       return Colors.brown.shade400;
+    case 'reminder':
+      return Colors.orange.shade800;
     default:
       return Colors.grey;
   }
@@ -400,6 +406,18 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                 ..name = a.subject.isEmpty ? '（跟进）' : a.subject
                 ..setData(activityToDataMap(a))
                 ..updatedAt = a.createdAt,
+            )
+            .toList();
+      case 'reminder':
+        return (await repo.listReminders(includeCompleted: true))
+            .map(
+              (r) => CrmEntityCache()
+                ..id = r.id
+                ..twentyId = r.id
+                ..entityType = 'reminder'
+                ..name = r.title.isEmpty ? '（提醒）' : r.title
+                ..setData(reminderToDataMap(r))
+                ..updatedAt = r.createdAt,
             )
             .toList();
       default:
@@ -945,6 +963,16 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             content: data['content']?.toString() ?? '',
           ),
         );
+      case 'reminder':
+        await repo.createReminder(
+          LocalReminder(
+            id: '',
+            title: data['title']?.toString() ?? '',
+            type: data['type']?.toString() ?? 'custom',
+            remindAt: _parseDate(data['remindAt']) ?? DateTime.now(),
+            isCompleted: data['isCompleted']?.toString() == 'true',
+          ),
+        );
       default:
         final objectId = widget.objectType.startsWith('custom:')
             ? widget.objectType.substring(7)
@@ -1027,6 +1055,11 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         if (a == null) return;
         _assign(a, field, value);
         await repo.updateActivity(a);
+      case 'reminder':
+        final r = await repo.getReminder(id);
+        if (r == null) return;
+        _assign(r, field, value);
+        await repo.updateReminder(r);
       default:
         final r = await repo.getCustomRecord(id);
         if (r == null) return;
@@ -1161,6 +1194,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         entity.direction = value?.toString();
       case 'scheduledAt':
         entity.scheduledAt = _parseDate(value);
+      case 'remindAt':
+        entity.remindAt = _parseDate(value) ?? DateTime.now();
+      case 'isCompleted':
+        entity.isCompleted = value?.toString() == 'true';
     }
   }
 

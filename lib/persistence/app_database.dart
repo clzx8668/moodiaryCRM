@@ -520,6 +520,39 @@ class CrmEntityTags extends Table {
   Set<Column> get primaryKey => {entityType, entityId, tagId};
 }
 
+/// 附件（多态关联；文件存应用文档目录，表内记录路径）
+@DataClassName('CrmAttachmentRow')
+class CrmAttachments extends Table {
+  TextColumn get id => text()();
+  TextColumn get relatedType => text()();
+  TextColumn get relatedId => text()();
+  TextColumn get fileName => text()();
+  TextColumn get filePath => text()();
+  TextColumn get mimeType => text().nullable()();
+  IntColumn get fileSize => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 提醒（手动/自定义；系统到期提醒由 dueReminders 计算 + 日历聚合）
+@DataClassName('CrmReminderRow')
+class CrmReminders extends Table {
+  TextColumn get id => text()();
+  TextColumn get relatedType => text().nullable()();
+  TextColumn get relatedId => text().nullable()();
+  /// paymentDue/warrantyExpire/followUp/contractExpire/custom
+  TextColumn get type => text().withDefault(const Constant('custom'))();
+  TextColumn get title => text()();
+  DateTimeColumn get remindAt => dateTime()();
+  BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// 自定义数据对象定义（元数据驱动，类似 Twenty metadata）
 @DataClassName('CrmObjectDefRow')
 class CrmObjectDefs extends Table {
@@ -674,6 +707,8 @@ class AiChatMessages extends Table {
     CrmActivities,
     CrmTags,
     CrmEntityTags,
+    CrmAttachments,
+    CrmReminders,
     CrmObjectDefs,
     CrmCustomRecords,
     CrmEntityLinks,
@@ -688,7 +723,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -764,6 +799,12 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(db.crmActivities);
         await m.createTable(db.crmTags);
         await m.createTable(db.crmEntityTags);
+      }
+      // v13 → v14：附件 + 提醒
+      if (from < 14) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.crmAttachments);
+        await m.createTable(db.crmReminders);
       }
     },
     beforeOpen: (details) async {

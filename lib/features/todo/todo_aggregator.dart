@@ -1,6 +1,7 @@
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:uuid/uuid.dart';
@@ -47,12 +48,89 @@ class TodoAggregator {
   }) async {
     final blocks = await IsarUtil.getBlocksByType(BlockType.todo);
     final tasks = await IsarUtil.getCrmEntitiesByType('task');
-    return merge(
+    final items = merge(
       todoBlocks: blocks,
       tasks: tasks,
       date: date,
       includeDone: includeDone,
     );
+    // CRM 日程：提醒/跟进计划/回款计划/到期提醒 并入日历
+    items.addAll(await _loadCrmEvents(date: date, includeDone: includeDone));
+    items.sort((a, b) {
+      if (a.done != b.done) return a.done ? 1 : -1;
+      final byDate = a.effectiveDate.compareTo(b.effectiveDate);
+      if (byDate != 0) return byDate;
+      return a.text.compareTo(b.text);
+    });
+    return items;
+  }
+
+  static Future<List<TodoItem>> _loadCrmEvents({
+    DateTime? date,
+    bool includeDone = true,
+  }) async {
+    final repo = CrmLocalRepository();
+    final events = <TodoItem>[];
+    for (final reminder in await repo.listReminders(includeCompleted: false)) {
+      events.add(
+        TodoItem(
+          id: 'reminder:${reminder.id}',
+          source: TodoSource.crmEvent,
+          text: '🔔 ${reminder.title}',
+          done: false,
+          dueDate: reminder.remindAt,
+          time: reminder.createdAt,
+          title: 'CRM 提醒',
+        ),
+      );
+    }
+    for (final activity in await repo.listActivities()) {
+      final at = activity.scheduledAt;
+      if (at == null) continue;
+      events.add(
+        TodoItem(
+          id: 'activity:${activity.id}',
+          source: TodoSource.crmEvent,
+          text: '📅 ${activity.subject}',
+          done: activity.status == 'completed',
+          dueDate: at,
+          time: activity.createdAt,
+          title: 'CRM 跟进',
+        ),
+      );
+    }
+    for (final plan in await repo.listPaymentPlans()) {
+      if (plan.status == 'completed') continue;
+      events.add(
+        TodoItem(
+          id: 'plan:${plan.id}',
+          source: TodoSource.crmEvent,
+          text: '💴 ${plan.planName} ¥${plan.planAmount.toStringAsFixed(2)}',
+          done: false,
+          dueDate: plan.planDate,
+          time: plan.planDate,
+          title: '回款计划',
+        ),
+      );
+    }
+    for (final due in await repo.dueReminders()) {
+      events.add(
+        TodoItem(
+          id: 'due:${due.type}:${due.entityId}:${due.at.millisecondsSinceEpoch}',
+          source: TodoSource.crmEvent,
+          text: '⏰ ${due.title}',
+          done: false,
+          dueDate: due.at,
+          time: due.at,
+          title: 'CRM 到期',
+        ),
+      );
+    }
+    if (!includeDone) events.removeWhere((e) => e.done);
+    if (date != null) {
+      events.removeWhere((e) => !_sameDay(e.effectiveDate, date));
+    }
+    return events;
   }
 
   /// 勾选/取消本地待办：定位行号改写复选框并落库。

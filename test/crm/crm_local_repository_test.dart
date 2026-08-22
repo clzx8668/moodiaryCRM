@@ -360,4 +360,35 @@ void main() {
     // 不同实体互不影响
     expect(await repo.tagsForEntity('account', 'a2'), isEmpty);
   });
+
+  test('附件与提醒 CRUD', () async {
+    await repo.addAttachment(
+      LocalAttachment(
+        id: '',
+        relatedType: 'account',
+        relatedId: 'a1',
+        fileName: '合同扫描件.pdf',
+        filePath: '/tmp/contract.pdf',
+        fileSize: 1024,
+      ),
+    );
+    expect((await repo.listAttachments('account', 'a1')).length, 1);
+    final attachment = (await repo.listAttachments('account', 'a1')).first;
+    expect(attachment.fileName, '合同扫描件.pdf');
+    await repo.deleteAttachment(attachment.id);
+    expect(await repo.listAttachments('account', 'a1'), isEmpty);
+
+    final reminder = await repo.createReminder(
+      LocalReminder(
+        id: '',
+        title: '跟进报价',
+        type: 'followUp',
+        remindAt: DateTime.now().add(const Duration(days: 1)),
+      ),
+    );
+    expect((await repo.listReminders()).length, 1);
+    await repo.completeReminder(reminder.id);
+    expect(await repo.listReminders(), isEmpty);
+    expect((await repo.listReminders(includeCompleted: true)).length, 1);
+  });
 }

@@ -2,7 +2,7 @@
 ///
 /// 本地来源（[TodoSource.localBlock]）与 CRM 来源（[TodoSource.crmTask]）
 /// 统一投影为同一结构，日历页待办视图与后续时间轴可复用。
-enum TodoSource { localBlock, crmTask }
+enum TodoSource { localBlock, crmTask, crmEvent }
 
 class TodoItem {
   /// 稳定业务键：本地为 `blockId:lineIndex`，CRM 为 twentyId（空则本地缓存 id）

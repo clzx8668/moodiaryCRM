@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
+import 'package:moodiary/features/crm/local/crm_attachment_store.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
@@ -9,6 +11,7 @@ import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/utils/notice_util.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// 实体详情页：字段展示 + 业务下钻 + 相关日记 + 报价明细/转合同。
 class CrmEntityDetailPage extends StatefulWidget {
@@ -39,6 +42,11 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
         title: Text(_title),
         actions: [
           IconButton(
+            tooltip: '添加附件',
+            icon: const Icon(Icons.attach_file_rounded),
+            onPressed: () => _pickAttachment(context),
+          ),
+          IconButton(
             tooltip: '新增跟进',
             icon: const Icon(Icons.add_comment_rounded),
             onPressed: () => _showQuickActivity(context),
@@ -66,6 +74,8 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
         padding: const EdgeInsets.all(16),
         children: [
           _buildTags(),
+          const SizedBox(height: 16),
+          _buildAttachments(),
           const SizedBox(height: 16),
           _buildFields(),
           const SizedBox(height: 16),
@@ -256,6 +266,85 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
       ),
     );
     if (mounted) setState(() {});
+  }
+
+  // ==================== 附件 ====================
+
+  Widget _buildAttachments() {
+    return FutureBuilder<List<LocalAttachment>>(
+      future: _repo.listAttachments(widget.objectType, widget.item.twentyId),
+      builder: (context, snapshot) {
+        final attachments = snapshot.data ?? const <LocalAttachment>[];
+        return Card.outlined(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '附件（${attachments.length}）',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 6),
+                if (attachments.isEmpty)
+                  const Text('暂无附件，点击右上「回形针」添加')
+                else
+                  for (final attachment in attachments)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.insert_drive_file_outlined, size: 18),
+                      title: Text(
+                        attachment.fileName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${attachment.fileSize ?? 0} B · ${attachment.createdAt.toLocal().toString().substring(0, 10)}',
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        onPressed: () async {
+                          await CrmAttachmentStore.delete(attachment);
+                          if (mounted) setState(() {});
+                        },
+                      ),
+                      onTap: () => _openAttachment(attachment),
+                    ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAttachment(BuildContext context) async {
+    final result = await FilePicker.platform.pickFiles();
+    final path = result?.files.single.path;
+    if (path == null) return;
+    try {
+      await CrmAttachmentStore.storeAndAttach(
+        sourcePath: path,
+        relatedType: widget.objectType,
+        relatedId: widget.item.twentyId,
+      );
+      if (mounted) setState(() {});
+      toast.success(message: '附件已添加');
+    } catch (e) {
+      toast.error(message: '添加附件失败：$e');
+    }
+  }
+
+  Future<void> _openAttachment(LocalAttachment attachment) async {
+    try {
+      await launchUrl(
+        Uri.file(attachment.filePath),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      toast.error(message: '打开附件失败：$e');
+    }
   }
 
   // ==================== 字段 ====================

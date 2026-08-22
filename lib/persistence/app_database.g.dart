@@ -14915,6 +14915,1047 @@ class CrmEntityTagsCompanion extends UpdateCompanion<CrmEntityTagRow> {
   }
 }
 
+class $CrmAttachmentsTable extends CrmAttachments
+    with TableInfo<$CrmAttachmentsTable, CrmAttachmentRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmAttachmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _relatedTypeMeta = const VerificationMeta(
+    'relatedType',
+  );
+  @override
+  late final GeneratedColumn<String> relatedType = GeneratedColumn<String>(
+    'related_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _relatedIdMeta = const VerificationMeta(
+    'relatedId',
+  );
+  @override
+  late final GeneratedColumn<String> relatedId = GeneratedColumn<String>(
+    'related_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fileNameMeta = const VerificationMeta(
+    'fileName',
+  );
+  @override
+  late final GeneratedColumn<String> fileName = GeneratedColumn<String>(
+    'file_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _filePathMeta = const VerificationMeta(
+    'filePath',
+  );
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+    'file_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mimeTypeMeta = const VerificationMeta(
+    'mimeType',
+  );
+  @override
+  late final GeneratedColumn<String> mimeType = GeneratedColumn<String>(
+    'mime_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fileSizeMeta = const VerificationMeta(
+    'fileSize',
+  );
+  @override
+  late final GeneratedColumn<int> fileSize = GeneratedColumn<int>(
+    'file_size',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    relatedType,
+    relatedId,
+    fileName,
+    filePath,
+    mimeType,
+    fileSize,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_attachments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmAttachmentRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('related_type')) {
+      context.handle(
+        _relatedTypeMeta,
+        relatedType.isAcceptableOrUnknown(
+          data['related_type']!,
+          _relatedTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_relatedTypeMeta);
+    }
+    if (data.containsKey('related_id')) {
+      context.handle(
+        _relatedIdMeta,
+        relatedId.isAcceptableOrUnknown(data['related_id']!, _relatedIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_relatedIdMeta);
+    }
+    if (data.containsKey('file_name')) {
+      context.handle(
+        _fileNameMeta,
+        fileName.isAcceptableOrUnknown(data['file_name']!, _fileNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fileNameMeta);
+    }
+    if (data.containsKey('file_path')) {
+      context.handle(
+        _filePathMeta,
+        filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filePathMeta);
+    }
+    if (data.containsKey('mime_type')) {
+      context.handle(
+        _mimeTypeMeta,
+        mimeType.isAcceptableOrUnknown(data['mime_type']!, _mimeTypeMeta),
+      );
+    }
+    if (data.containsKey('file_size')) {
+      context.handle(
+        _fileSizeMeta,
+        fileSize.isAcceptableOrUnknown(data['file_size']!, _fileSizeMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmAttachmentRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmAttachmentRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      relatedType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}related_type'],
+      )!,
+      relatedId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}related_id'],
+      )!,
+      fileName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_name'],
+      )!,
+      filePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_path'],
+      )!,
+      mimeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mime_type'],
+      ),
+      fileSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}file_size'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmAttachmentsTable createAlias(String alias) {
+    return $CrmAttachmentsTable(attachedDatabase, alias);
+  }
+}
+
+class CrmAttachmentRow extends DataClass
+    implements Insertable<CrmAttachmentRow> {
+  final String id;
+  final String relatedType;
+  final String relatedId;
+  final String fileName;
+  final String filePath;
+  final String? mimeType;
+  final int? fileSize;
+  final DateTime createdAt;
+  const CrmAttachmentRow({
+    required this.id,
+    required this.relatedType,
+    required this.relatedId,
+    required this.fileName,
+    required this.filePath,
+    this.mimeType,
+    this.fileSize,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['related_type'] = Variable<String>(relatedType);
+    map['related_id'] = Variable<String>(relatedId);
+    map['file_name'] = Variable<String>(fileName);
+    map['file_path'] = Variable<String>(filePath);
+    if (!nullToAbsent || mimeType != null) {
+      map['mime_type'] = Variable<String>(mimeType);
+    }
+    if (!nullToAbsent || fileSize != null) {
+      map['file_size'] = Variable<int>(fileSize);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CrmAttachmentsCompanion toCompanion(bool nullToAbsent) {
+    return CrmAttachmentsCompanion(
+      id: Value(id),
+      relatedType: Value(relatedType),
+      relatedId: Value(relatedId),
+      fileName: Value(fileName),
+      filePath: Value(filePath),
+      mimeType: mimeType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mimeType),
+      fileSize: fileSize == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fileSize),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CrmAttachmentRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmAttachmentRow(
+      id: serializer.fromJson<String>(json['id']),
+      relatedType: serializer.fromJson<String>(json['relatedType']),
+      relatedId: serializer.fromJson<String>(json['relatedId']),
+      fileName: serializer.fromJson<String>(json['fileName']),
+      filePath: serializer.fromJson<String>(json['filePath']),
+      mimeType: serializer.fromJson<String?>(json['mimeType']),
+      fileSize: serializer.fromJson<int?>(json['fileSize']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'relatedType': serializer.toJson<String>(relatedType),
+      'relatedId': serializer.toJson<String>(relatedId),
+      'fileName': serializer.toJson<String>(fileName),
+      'filePath': serializer.toJson<String>(filePath),
+      'mimeType': serializer.toJson<String?>(mimeType),
+      'fileSize': serializer.toJson<int?>(fileSize),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  CrmAttachmentRow copyWith({
+    String? id,
+    String? relatedType,
+    String? relatedId,
+    String? fileName,
+    String? filePath,
+    Value<String?> mimeType = const Value.absent(),
+    Value<int?> fileSize = const Value.absent(),
+    DateTime? createdAt,
+  }) => CrmAttachmentRow(
+    id: id ?? this.id,
+    relatedType: relatedType ?? this.relatedType,
+    relatedId: relatedId ?? this.relatedId,
+    fileName: fileName ?? this.fileName,
+    filePath: filePath ?? this.filePath,
+    mimeType: mimeType.present ? mimeType.value : this.mimeType,
+    fileSize: fileSize.present ? fileSize.value : this.fileSize,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  CrmAttachmentRow copyWithCompanion(CrmAttachmentsCompanion data) {
+    return CrmAttachmentRow(
+      id: data.id.present ? data.id.value : this.id,
+      relatedType: data.relatedType.present
+          ? data.relatedType.value
+          : this.relatedType,
+      relatedId: data.relatedId.present ? data.relatedId.value : this.relatedId,
+      fileName: data.fileName.present ? data.fileName.value : this.fileName,
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
+      fileSize: data.fileSize.present ? data.fileSize.value : this.fileSize,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmAttachmentRow(')
+          ..write('id: $id, ')
+          ..write('relatedType: $relatedType, ')
+          ..write('relatedId: $relatedId, ')
+          ..write('fileName: $fileName, ')
+          ..write('filePath: $filePath, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('fileSize: $fileSize, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    relatedType,
+    relatedId,
+    fileName,
+    filePath,
+    mimeType,
+    fileSize,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmAttachmentRow &&
+          other.id == this.id &&
+          other.relatedType == this.relatedType &&
+          other.relatedId == this.relatedId &&
+          other.fileName == this.fileName &&
+          other.filePath == this.filePath &&
+          other.mimeType == this.mimeType &&
+          other.fileSize == this.fileSize &&
+          other.createdAt == this.createdAt);
+}
+
+class CrmAttachmentsCompanion extends UpdateCompanion<CrmAttachmentRow> {
+  final Value<String> id;
+  final Value<String> relatedType;
+  final Value<String> relatedId;
+  final Value<String> fileName;
+  final Value<String> filePath;
+  final Value<String?> mimeType;
+  final Value<int?> fileSize;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const CrmAttachmentsCompanion({
+    this.id = const Value.absent(),
+    this.relatedType = const Value.absent(),
+    this.relatedId = const Value.absent(),
+    this.fileName = const Value.absent(),
+    this.filePath = const Value.absent(),
+    this.mimeType = const Value.absent(),
+    this.fileSize = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmAttachmentsCompanion.insert({
+    required String id,
+    required String relatedType,
+    required String relatedId,
+    required String fileName,
+    required String filePath,
+    this.mimeType = const Value.absent(),
+    this.fileSize = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       relatedType = Value(relatedType),
+       relatedId = Value(relatedId),
+       fileName = Value(fileName),
+       filePath = Value(filePath),
+       createdAt = Value(createdAt);
+  static Insertable<CrmAttachmentRow> custom({
+    Expression<String>? id,
+    Expression<String>? relatedType,
+    Expression<String>? relatedId,
+    Expression<String>? fileName,
+    Expression<String>? filePath,
+    Expression<String>? mimeType,
+    Expression<int>? fileSize,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (relatedType != null) 'related_type': relatedType,
+      if (relatedId != null) 'related_id': relatedId,
+      if (fileName != null) 'file_name': fileName,
+      if (filePath != null) 'file_path': filePath,
+      if (mimeType != null) 'mime_type': mimeType,
+      if (fileSize != null) 'file_size': fileSize,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmAttachmentsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? relatedType,
+    Value<String>? relatedId,
+    Value<String>? fileName,
+    Value<String>? filePath,
+    Value<String?>? mimeType,
+    Value<int?>? fileSize,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return CrmAttachmentsCompanion(
+      id: id ?? this.id,
+      relatedType: relatedType ?? this.relatedType,
+      relatedId: relatedId ?? this.relatedId,
+      fileName: fileName ?? this.fileName,
+      filePath: filePath ?? this.filePath,
+      mimeType: mimeType ?? this.mimeType,
+      fileSize: fileSize ?? this.fileSize,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (relatedType.present) {
+      map['related_type'] = Variable<String>(relatedType.value);
+    }
+    if (relatedId.present) {
+      map['related_id'] = Variable<String>(relatedId.value);
+    }
+    if (fileName.present) {
+      map['file_name'] = Variable<String>(fileName.value);
+    }
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (mimeType.present) {
+      map['mime_type'] = Variable<String>(mimeType.value);
+    }
+    if (fileSize.present) {
+      map['file_size'] = Variable<int>(fileSize.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmAttachmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('relatedType: $relatedType, ')
+          ..write('relatedId: $relatedId, ')
+          ..write('fileName: $fileName, ')
+          ..write('filePath: $filePath, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('fileSize: $fileSize, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmRemindersTable extends CrmReminders
+    with TableInfo<$CrmRemindersTable, CrmReminderRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmRemindersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _relatedTypeMeta = const VerificationMeta(
+    'relatedType',
+  );
+  @override
+  late final GeneratedColumn<String> relatedType = GeneratedColumn<String>(
+    'related_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _relatedIdMeta = const VerificationMeta(
+    'relatedId',
+  );
+  @override
+  late final GeneratedColumn<String> relatedId = GeneratedColumn<String>(
+    'related_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('custom'),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _remindAtMeta = const VerificationMeta(
+    'remindAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> remindAt = GeneratedColumn<DateTime>(
+    'remind_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isCompletedMeta = const VerificationMeta(
+    'isCompleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isCompleted = GeneratedColumn<bool>(
+    'is_completed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_completed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    relatedType,
+    relatedId,
+    type,
+    title,
+    remindAt,
+    isCompleted,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_reminders';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmReminderRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('related_type')) {
+      context.handle(
+        _relatedTypeMeta,
+        relatedType.isAcceptableOrUnknown(
+          data['related_type']!,
+          _relatedTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('related_id')) {
+      context.handle(
+        _relatedIdMeta,
+        relatedId.isAcceptableOrUnknown(data['related_id']!, _relatedIdMeta),
+      );
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('remind_at')) {
+      context.handle(
+        _remindAtMeta,
+        remindAt.isAcceptableOrUnknown(data['remind_at']!, _remindAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_remindAtMeta);
+    }
+    if (data.containsKey('is_completed')) {
+      context.handle(
+        _isCompletedMeta,
+        isCompleted.isAcceptableOrUnknown(
+          data['is_completed']!,
+          _isCompletedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmReminderRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmReminderRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      relatedType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}related_type'],
+      ),
+      relatedId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}related_id'],
+      ),
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      remindAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}remind_at'],
+      )!,
+      isCompleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_completed'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmRemindersTable createAlias(String alias) {
+    return $CrmRemindersTable(attachedDatabase, alias);
+  }
+}
+
+class CrmReminderRow extends DataClass implements Insertable<CrmReminderRow> {
+  final String id;
+  final String? relatedType;
+  final String? relatedId;
+
+  /// paymentDue/warrantyExpire/followUp/contractExpire/custom
+  final String type;
+  final String title;
+  final DateTime remindAt;
+  final bool isCompleted;
+  final DateTime createdAt;
+  const CrmReminderRow({
+    required this.id,
+    this.relatedType,
+    this.relatedId,
+    required this.type,
+    required this.title,
+    required this.remindAt,
+    required this.isCompleted,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || relatedType != null) {
+      map['related_type'] = Variable<String>(relatedType);
+    }
+    if (!nullToAbsent || relatedId != null) {
+      map['related_id'] = Variable<String>(relatedId);
+    }
+    map['type'] = Variable<String>(type);
+    map['title'] = Variable<String>(title);
+    map['remind_at'] = Variable<DateTime>(remindAt);
+    map['is_completed'] = Variable<bool>(isCompleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CrmRemindersCompanion toCompanion(bool nullToAbsent) {
+    return CrmRemindersCompanion(
+      id: Value(id),
+      relatedType: relatedType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(relatedType),
+      relatedId: relatedId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(relatedId),
+      type: Value(type),
+      title: Value(title),
+      remindAt: Value(remindAt),
+      isCompleted: Value(isCompleted),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CrmReminderRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmReminderRow(
+      id: serializer.fromJson<String>(json['id']),
+      relatedType: serializer.fromJson<String?>(json['relatedType']),
+      relatedId: serializer.fromJson<String?>(json['relatedId']),
+      type: serializer.fromJson<String>(json['type']),
+      title: serializer.fromJson<String>(json['title']),
+      remindAt: serializer.fromJson<DateTime>(json['remindAt']),
+      isCompleted: serializer.fromJson<bool>(json['isCompleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'relatedType': serializer.toJson<String?>(relatedType),
+      'relatedId': serializer.toJson<String?>(relatedId),
+      'type': serializer.toJson<String>(type),
+      'title': serializer.toJson<String>(title),
+      'remindAt': serializer.toJson<DateTime>(remindAt),
+      'isCompleted': serializer.toJson<bool>(isCompleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  CrmReminderRow copyWith({
+    String? id,
+    Value<String?> relatedType = const Value.absent(),
+    Value<String?> relatedId = const Value.absent(),
+    String? type,
+    String? title,
+    DateTime? remindAt,
+    bool? isCompleted,
+    DateTime? createdAt,
+  }) => CrmReminderRow(
+    id: id ?? this.id,
+    relatedType: relatedType.present ? relatedType.value : this.relatedType,
+    relatedId: relatedId.present ? relatedId.value : this.relatedId,
+    type: type ?? this.type,
+    title: title ?? this.title,
+    remindAt: remindAt ?? this.remindAt,
+    isCompleted: isCompleted ?? this.isCompleted,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  CrmReminderRow copyWithCompanion(CrmRemindersCompanion data) {
+    return CrmReminderRow(
+      id: data.id.present ? data.id.value : this.id,
+      relatedType: data.relatedType.present
+          ? data.relatedType.value
+          : this.relatedType,
+      relatedId: data.relatedId.present ? data.relatedId.value : this.relatedId,
+      type: data.type.present ? data.type.value : this.type,
+      title: data.title.present ? data.title.value : this.title,
+      remindAt: data.remindAt.present ? data.remindAt.value : this.remindAt,
+      isCompleted: data.isCompleted.present
+          ? data.isCompleted.value
+          : this.isCompleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmReminderRow(')
+          ..write('id: $id, ')
+          ..write('relatedType: $relatedType, ')
+          ..write('relatedId: $relatedId, ')
+          ..write('type: $type, ')
+          ..write('title: $title, ')
+          ..write('remindAt: $remindAt, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    relatedType,
+    relatedId,
+    type,
+    title,
+    remindAt,
+    isCompleted,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmReminderRow &&
+          other.id == this.id &&
+          other.relatedType == this.relatedType &&
+          other.relatedId == this.relatedId &&
+          other.type == this.type &&
+          other.title == this.title &&
+          other.remindAt == this.remindAt &&
+          other.isCompleted == this.isCompleted &&
+          other.createdAt == this.createdAt);
+}
+
+class CrmRemindersCompanion extends UpdateCompanion<CrmReminderRow> {
+  final Value<String> id;
+  final Value<String?> relatedType;
+  final Value<String?> relatedId;
+  final Value<String> type;
+  final Value<String> title;
+  final Value<DateTime> remindAt;
+  final Value<bool> isCompleted;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const CrmRemindersCompanion({
+    this.id = const Value.absent(),
+    this.relatedType = const Value.absent(),
+    this.relatedId = const Value.absent(),
+    this.type = const Value.absent(),
+    this.title = const Value.absent(),
+    this.remindAt = const Value.absent(),
+    this.isCompleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmRemindersCompanion.insert({
+    required String id,
+    this.relatedType = const Value.absent(),
+    this.relatedId = const Value.absent(),
+    this.type = const Value.absent(),
+    required String title,
+    required DateTime remindAt,
+    this.isCompleted = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       remindAt = Value(remindAt),
+       createdAt = Value(createdAt);
+  static Insertable<CrmReminderRow> custom({
+    Expression<String>? id,
+    Expression<String>? relatedType,
+    Expression<String>? relatedId,
+    Expression<String>? type,
+    Expression<String>? title,
+    Expression<DateTime>? remindAt,
+    Expression<bool>? isCompleted,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (relatedType != null) 'related_type': relatedType,
+      if (relatedId != null) 'related_id': relatedId,
+      if (type != null) 'type': type,
+      if (title != null) 'title': title,
+      if (remindAt != null) 'remind_at': remindAt,
+      if (isCompleted != null) 'is_completed': isCompleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmRemindersCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? relatedType,
+    Value<String?>? relatedId,
+    Value<String>? type,
+    Value<String>? title,
+    Value<DateTime>? remindAt,
+    Value<bool>? isCompleted,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return CrmRemindersCompanion(
+      id: id ?? this.id,
+      relatedType: relatedType ?? this.relatedType,
+      relatedId: relatedId ?? this.relatedId,
+      type: type ?? this.type,
+      title: title ?? this.title,
+      remindAt: remindAt ?? this.remindAt,
+      isCompleted: isCompleted ?? this.isCompleted,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (relatedType.present) {
+      map['related_type'] = Variable<String>(relatedType.value);
+    }
+    if (relatedId.present) {
+      map['related_id'] = Variable<String>(relatedId.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (remindAt.present) {
+      map['remind_at'] = Variable<DateTime>(remindAt.value);
+    }
+    if (isCompleted.present) {
+      map['is_completed'] = Variable<bool>(isCompleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmRemindersCompanion(')
+          ..write('id: $id, ')
+          ..write('relatedType: $relatedType, ')
+          ..write('relatedId: $relatedId, ')
+          ..write('type: $type, ')
+          ..write('title: $title, ')
+          ..write('remindAt: $remindAt, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CrmObjectDefsTable extends CrmObjectDefs
     with TableInfo<$CrmObjectDefsTable, CrmObjectDefRow> {
   @override
@@ -18344,6 +19385,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CrmActivitiesTable crmActivities = $CrmActivitiesTable(this);
   late final $CrmTagsTable crmTags = $CrmTagsTable(this);
   late final $CrmEntityTagsTable crmEntityTags = $CrmEntityTagsTable(this);
+  late final $CrmAttachmentsTable crmAttachments = $CrmAttachmentsTable(this);
+  late final $CrmRemindersTable crmReminders = $CrmRemindersTable(this);
   late final $CrmObjectDefsTable crmObjectDefs = $CrmObjectDefsTable(this);
   late final $CrmCustomRecordsTable crmCustomRecords = $CrmCustomRecordsTable(
     this,
@@ -18385,6 +19428,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     crmActivities,
     crmTags,
     crmEntityTags,
+    crmAttachments,
+    crmReminders,
     crmObjectDefs,
     crmCustomRecords,
     crmEntityLinks,
@@ -25785,6 +26830,532 @@ typedef $$CrmEntityTagsTableProcessedTableManager =
       CrmEntityTagRow,
       PrefetchHooks Function()
     >;
+typedef $$CrmAttachmentsTableCreateCompanionBuilder =
+    CrmAttachmentsCompanion Function({
+      required String id,
+      required String relatedType,
+      required String relatedId,
+      required String fileName,
+      required String filePath,
+      Value<String?> mimeType,
+      Value<int?> fileSize,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$CrmAttachmentsTableUpdateCompanionBuilder =
+    CrmAttachmentsCompanion Function({
+      Value<String> id,
+      Value<String> relatedType,
+      Value<String> relatedId,
+      Value<String> fileName,
+      Value<String> filePath,
+      Value<String?> mimeType,
+      Value<int?> fileSize,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$CrmAttachmentsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmAttachmentsTable> {
+  $$CrmAttachmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relatedType => $composableBuilder(
+    column: $table.relatedType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relatedId => $composableBuilder(
+    column: $table.relatedId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fileSize => $composableBuilder(
+    column: $table.fileSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmAttachmentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmAttachmentsTable> {
+  $$CrmAttachmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relatedType => $composableBuilder(
+    column: $table.relatedType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relatedId => $composableBuilder(
+    column: $table.relatedId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fileSize => $composableBuilder(
+    column: $table.fileSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmAttachmentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmAttachmentsTable> {
+  $$CrmAttachmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get relatedType => $composableBuilder(
+    column: $table.relatedType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get relatedId =>
+      $composableBuilder(column: $table.relatedId, builder: (column) => column);
+
+  GeneratedColumn<String> get fileName =>
+      $composableBuilder(column: $table.fileName, builder: (column) => column);
+
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<String> get mimeType =>
+      $composableBuilder(column: $table.mimeType, builder: (column) => column);
+
+  GeneratedColumn<int> get fileSize =>
+      $composableBuilder(column: $table.fileSize, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CrmAttachmentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmAttachmentsTable,
+          CrmAttachmentRow,
+          $$CrmAttachmentsTableFilterComposer,
+          $$CrmAttachmentsTableOrderingComposer,
+          $$CrmAttachmentsTableAnnotationComposer,
+          $$CrmAttachmentsTableCreateCompanionBuilder,
+          $$CrmAttachmentsTableUpdateCompanionBuilder,
+          (
+            CrmAttachmentRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CrmAttachmentsTable,
+              CrmAttachmentRow
+            >,
+          ),
+          CrmAttachmentRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmAttachmentsTableTableManager(
+    _$AppDatabase db,
+    $CrmAttachmentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmAttachmentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmAttachmentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmAttachmentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> relatedType = const Value.absent(),
+                Value<String> relatedId = const Value.absent(),
+                Value<String> fileName = const Value.absent(),
+                Value<String> filePath = const Value.absent(),
+                Value<String?> mimeType = const Value.absent(),
+                Value<int?> fileSize = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmAttachmentsCompanion(
+                id: id,
+                relatedType: relatedType,
+                relatedId: relatedId,
+                fileName: fileName,
+                filePath: filePath,
+                mimeType: mimeType,
+                fileSize: fileSize,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String relatedType,
+                required String relatedId,
+                required String fileName,
+                required String filePath,
+                Value<String?> mimeType = const Value.absent(),
+                Value<int?> fileSize = const Value.absent(),
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CrmAttachmentsCompanion.insert(
+                id: id,
+                relatedType: relatedType,
+                relatedId: relatedId,
+                fileName: fileName,
+                filePath: filePath,
+                mimeType: mimeType,
+                fileSize: fileSize,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmAttachmentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmAttachmentsTable,
+      CrmAttachmentRow,
+      $$CrmAttachmentsTableFilterComposer,
+      $$CrmAttachmentsTableOrderingComposer,
+      $$CrmAttachmentsTableAnnotationComposer,
+      $$CrmAttachmentsTableCreateCompanionBuilder,
+      $$CrmAttachmentsTableUpdateCompanionBuilder,
+      (
+        CrmAttachmentRow,
+        BaseReferences<_$AppDatabase, $CrmAttachmentsTable, CrmAttachmentRow>,
+      ),
+      CrmAttachmentRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmRemindersTableCreateCompanionBuilder =
+    CrmRemindersCompanion Function({
+      required String id,
+      Value<String?> relatedType,
+      Value<String?> relatedId,
+      Value<String> type,
+      required String title,
+      required DateTime remindAt,
+      Value<bool> isCompleted,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$CrmRemindersTableUpdateCompanionBuilder =
+    CrmRemindersCompanion Function({
+      Value<String> id,
+      Value<String?> relatedType,
+      Value<String?> relatedId,
+      Value<String> type,
+      Value<String> title,
+      Value<DateTime> remindAt,
+      Value<bool> isCompleted,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$CrmRemindersTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmRemindersTable> {
+  $$CrmRemindersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relatedType => $composableBuilder(
+    column: $table.relatedType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relatedId => $composableBuilder(
+    column: $table.relatedId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get remindAt => $composableBuilder(
+    column: $table.remindAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmRemindersTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmRemindersTable> {
+  $$CrmRemindersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relatedType => $composableBuilder(
+    column: $table.relatedType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relatedId => $composableBuilder(
+    column: $table.relatedId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get remindAt => $composableBuilder(
+    column: $table.remindAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmRemindersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmRemindersTable> {
+  $$CrmRemindersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get relatedType => $composableBuilder(
+    column: $table.relatedType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get relatedId =>
+      $composableBuilder(column: $table.relatedId, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get remindAt =>
+      $composableBuilder(column: $table.remindAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CrmRemindersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmRemindersTable,
+          CrmReminderRow,
+          $$CrmRemindersTableFilterComposer,
+          $$CrmRemindersTableOrderingComposer,
+          $$CrmRemindersTableAnnotationComposer,
+          $$CrmRemindersTableCreateCompanionBuilder,
+          $$CrmRemindersTableUpdateCompanionBuilder,
+          (
+            CrmReminderRow,
+            BaseReferences<_$AppDatabase, $CrmRemindersTable, CrmReminderRow>,
+          ),
+          CrmReminderRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmRemindersTableTableManager(_$AppDatabase db, $CrmRemindersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmRemindersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmRemindersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmRemindersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> relatedType = const Value.absent(),
+                Value<String?> relatedId = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<DateTime> remindAt = const Value.absent(),
+                Value<bool> isCompleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmRemindersCompanion(
+                id: id,
+                relatedType: relatedType,
+                relatedId: relatedId,
+                type: type,
+                title: title,
+                remindAt: remindAt,
+                isCompleted: isCompleted,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> relatedType = const Value.absent(),
+                Value<String?> relatedId = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                required String title,
+                required DateTime remindAt,
+                Value<bool> isCompleted = const Value.absent(),
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CrmRemindersCompanion.insert(
+                id: id,
+                relatedType: relatedType,
+                relatedId: relatedId,
+                type: type,
+                title: title,
+                remindAt: remindAt,
+                isCompleted: isCompleted,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmRemindersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmRemindersTable,
+      CrmReminderRow,
+      $$CrmRemindersTableFilterComposer,
+      $$CrmRemindersTableOrderingComposer,
+      $$CrmRemindersTableAnnotationComposer,
+      $$CrmRemindersTableCreateCompanionBuilder,
+      $$CrmRemindersTableUpdateCompanionBuilder,
+      (
+        CrmReminderRow,
+        BaseReferences<_$AppDatabase, $CrmRemindersTable, CrmReminderRow>,
+      ),
+      CrmReminderRow,
+      PrefetchHooks Function()
+    >;
 typedef $$CrmObjectDefsTableCreateCompanionBuilder =
     CrmObjectDefsCompanion Function({
       required String id,
@@ -27671,6 +29242,10 @@ class $AppDatabaseManager {
       $$CrmTagsTableTableManager(_db, _db.crmTags);
   $$CrmEntityTagsTableTableManager get crmEntityTags =>
       $$CrmEntityTagsTableTableManager(_db, _db.crmEntityTags);
+  $$CrmAttachmentsTableTableManager get crmAttachments =>
+      $$CrmAttachmentsTableTableManager(_db, _db.crmAttachments);
+  $$CrmRemindersTableTableManager get crmReminders =>
+      $$CrmRemindersTableTableManager(_db, _db.crmReminders);
   $$CrmObjectDefsTableTableManager get crmObjectDefs =>
       $$CrmObjectDefsTableTableManager(_db, _db.crmObjectDefs);
   $$CrmCustomRecordsTableTableManager get crmCustomRecords =>

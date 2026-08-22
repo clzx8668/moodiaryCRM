@@ -32,6 +32,7 @@ const Map<String, String> kLocalLabelFields = {
   'warranty': 'serialNo',
   'afterSales': 'ticketNo',
   'activity': 'subject',
+  'reminder': 'title',
 };
 
 /// 商机阶段（doc 枚举键，先以中文标签存储展示；S6 看板再做键值化）
@@ -291,6 +292,22 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('content', '内容', type: 'textarea'),
     LocalObjectField('createdAt', '创建时间', type: 'date'),
   ],
+  'reminder': [
+    LocalObjectField('title', '标题'),
+    LocalObjectField('type', '类型', type: 'select', options: [
+      'paymentDue',
+      'warrantyExpire',
+      'followUp',
+      'contractExpire',
+      'custom',
+    ]),
+    LocalObjectField('remindAt', '提醒时间', type: 'date'),
+    LocalObjectField('isCompleted', '已完成', type: 'select', options: [
+      'true',
+      'false',
+    ]),
+    LocalObjectField('createdAt', '创建时间', type: 'date'),
+  ],
 };
 
 /// 基础对象字段的展示值格式化（typed → data map）
@@ -509,4 +526,12 @@ Map<String, dynamic> activityToDataMap(LocalActivity a) => {
   'completedAt': a.completedAt?.toIso8601String(),
   'content': a.content,
   'createdAt': a.createdAt.toIso8601String(),
+};
+
+Map<String, dynamic> reminderToDataMap(LocalReminder r) => {
+  'title': r.title,
+  'type': r.type,
+  'remindAt': r.remindAt.toIso8601String(),
+  'isCompleted': r.isCompleted,
+  'createdAt': r.createdAt.toIso8601String(),
 };
