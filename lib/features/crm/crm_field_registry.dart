@@ -177,7 +177,8 @@ class CrmFieldRegistry {
     final cachedMeta = _cache[objectKey];
     if (cachedMeta != null) return cachedMeta;
     final metaName = objectMetaName[objectKey];
-    final cacheKey = 'crmFieldMeta_$objectKey';
+    // v2：避免旧版本缓存的残缺字段列表（schema 合并前）长期生效
+    final cacheKey = 'crmFieldMeta_v2_$objectKey';
     if (metaName == null) return null;
     try {
       final data = await client.metadataGraphql(
@@ -313,6 +314,23 @@ query ListObjects {
       }
     }
     if (label != null) result.insert(0, label);
+    return result;
+  }
+
+  /// 自定义列与新增默认字段合并：
+  /// 保留用户既有顺序，把 meta 默认字段中「可用但未在自定义列表」的追加到末尾，
+  /// 保证 Twenty 新增字段自动出现在表格中（对齐 Twenty 视图行为）。
+  static List<String> mergeCustomizedWithDefaults(
+    List<String> customized,
+    CrmObjectMeta meta,
+    Set<String> available,
+  ) {
+    final result = customized.where(available.contains).toList();
+    for (final field in defaultDisplayFields(meta)) {
+      if (available.contains(field.name) && !result.contains(field.name)) {
+        result.add(field.name);
+      }
+    }
     return result;
   }
 

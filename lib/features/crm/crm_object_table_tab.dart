@@ -263,6 +263,15 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   /// 当前展示列：自定义时用持久化顺序，否则用 Twenty 默认字段
   List<String> _effectiveColumns(List<CrmEntityCache> items, List<String> all) {
     if (_customized && _columns.isNotEmpty) {
+      final meta = _meta;
+      if (meta != null) {
+        // 保留用户自定义顺序，并自动追加新增默认字段
+        return CrmFieldRegistry.mergeCustomizedWithDefaults(
+          _columns,
+          meta,
+          all.toSet(),
+        );
+      }
       return _columns.where(all.contains).toList();
     }
     final meta = _meta;
