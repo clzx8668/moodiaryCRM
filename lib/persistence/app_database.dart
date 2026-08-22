@@ -471,6 +471,55 @@ class CrmAfterSales extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 跟进记录/活动（多态关联任意实体）
+@DataClassName('CrmActivityRow')
+class CrmActivities extends Table {
+  TextColumn get id => text()();
+  /// call/meeting/email/wechat/visit/task/note
+  TextColumn get type => text().withDefault(const Constant('note'))();
+  /// inbound/outbound
+  TextColumn get direction => text().nullable()();
+  TextColumn get relatedType => text()();
+  TextColumn get relatedId => text()();
+  TextColumn get subject => text()();
+  TextColumn get content => text().withDefault(const Constant(''))();
+  /// planned/completed/canceled
+  TextColumn get status => text().withDefault(const Constant('completed'))();
+  DateTimeColumn get scheduledAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 标签
+@DataClassName('CrmTagRow')
+class CrmTags extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get color => text().withDefault(const Constant('#4CAF50'))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {name},
+  ];
+}
+
+/// 实体-标签关联（多态）
+@DataClassName('CrmEntityTagRow')
+class CrmEntityTags extends Table {
+  TextColumn get entityType => text()();
+  TextColumn get entityId => text()();
+  TextColumn get tagId => text()();
+
+  @override
+  Set<Column> get primaryKey => {entityType, entityId, tagId};
+}
+
 /// 自定义数据对象定义（元数据驱动，类似 Twenty metadata）
 @DataClassName('CrmObjectDefRow')
 class CrmObjectDefs extends Table {
@@ -622,6 +671,9 @@ class AiChatMessages extends Table {
     CrmInvoices,
     CrmWarranties,
     CrmAfterSales,
+    CrmActivities,
+    CrmTags,
+    CrmEntityTags,
     CrmObjectDefs,
     CrmCustomRecords,
     CrmEntityLinks,
@@ -636,7 +688,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -705,6 +757,13 @@ class AppDatabase extends _$AppDatabase {
         final db = m.database as AppDatabase;
         await m.createTable(db.crmWarranties);
         await m.createTable(db.crmAfterSales);
+      }
+      // v12 → v13：跟进记录 + 标签 + 实体标签
+      if (from < 13) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.crmActivities);
+        await m.createTable(db.crmTags);
+        await m.createTable(db.crmEntityTags);
       }
     },
     beforeOpen: (details) async {

@@ -13723,6 +13723,1198 @@ class CrmAfterSalesCompanion extends UpdateCompanion<CrmAfterSalesRow> {
   }
 }
 
+class $CrmActivitiesTable extends CrmActivities
+    with TableInfo<$CrmActivitiesTable, CrmActivityRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmActivitiesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('note'),
+  );
+  static const VerificationMeta _directionMeta = const VerificationMeta(
+    'direction',
+  );
+  @override
+  late final GeneratedColumn<String> direction = GeneratedColumn<String>(
+    'direction',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _relatedTypeMeta = const VerificationMeta(
+    'relatedType',
+  );
+  @override
+  late final GeneratedColumn<String> relatedType = GeneratedColumn<String>(
+    'related_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _relatedIdMeta = const VerificationMeta(
+    'relatedId',
+  );
+  @override
+  late final GeneratedColumn<String> relatedId = GeneratedColumn<String>(
+    'related_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subjectMeta = const VerificationMeta(
+    'subject',
+  );
+  @override
+  late final GeneratedColumn<String> subject = GeneratedColumn<String>(
+    'subject',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('completed'),
+  );
+  static const VerificationMeta _scheduledAtMeta = const VerificationMeta(
+    'scheduledAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> scheduledAt = GeneratedColumn<DateTime>(
+    'scheduled_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    type,
+    direction,
+    relatedType,
+    relatedId,
+    subject,
+    content,
+    status,
+    scheduledAt,
+    completedAt,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_activities';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmActivityRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    }
+    if (data.containsKey('direction')) {
+      context.handle(
+        _directionMeta,
+        direction.isAcceptableOrUnknown(data['direction']!, _directionMeta),
+      );
+    }
+    if (data.containsKey('related_type')) {
+      context.handle(
+        _relatedTypeMeta,
+        relatedType.isAcceptableOrUnknown(
+          data['related_type']!,
+          _relatedTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_relatedTypeMeta);
+    }
+    if (data.containsKey('related_id')) {
+      context.handle(
+        _relatedIdMeta,
+        relatedId.isAcceptableOrUnknown(data['related_id']!, _relatedIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_relatedIdMeta);
+    }
+    if (data.containsKey('subject')) {
+      context.handle(
+        _subjectMeta,
+        subject.isAcceptableOrUnknown(data['subject']!, _subjectMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('scheduled_at')) {
+      context.handle(
+        _scheduledAtMeta,
+        scheduledAt.isAcceptableOrUnknown(
+          data['scheduled_at']!,
+          _scheduledAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmActivityRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmActivityRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      direction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}direction'],
+      ),
+      relatedType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}related_type'],
+      )!,
+      relatedId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}related_id'],
+      )!,
+      subject: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      scheduledAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}scheduled_at'],
+      ),
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmActivitiesTable createAlias(String alias) {
+    return $CrmActivitiesTable(attachedDatabase, alias);
+  }
+}
+
+class CrmActivityRow extends DataClass implements Insertable<CrmActivityRow> {
+  final String id;
+
+  /// call/meeting/email/wechat/visit/task/note
+  final String type;
+
+  /// inbound/outbound
+  final String? direction;
+  final String relatedType;
+  final String relatedId;
+  final String subject;
+  final String content;
+
+  /// planned/completed/canceled
+  final String status;
+  final DateTime? scheduledAt;
+  final DateTime? completedAt;
+  final DateTime createdAt;
+  const CrmActivityRow({
+    required this.id,
+    required this.type,
+    this.direction,
+    required this.relatedType,
+    required this.relatedId,
+    required this.subject,
+    required this.content,
+    required this.status,
+    this.scheduledAt,
+    this.completedAt,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['type'] = Variable<String>(type);
+    if (!nullToAbsent || direction != null) {
+      map['direction'] = Variable<String>(direction);
+    }
+    map['related_type'] = Variable<String>(relatedType);
+    map['related_id'] = Variable<String>(relatedId);
+    map['subject'] = Variable<String>(subject);
+    map['content'] = Variable<String>(content);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || scheduledAt != null) {
+      map['scheduled_at'] = Variable<DateTime>(scheduledAt);
+    }
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CrmActivitiesCompanion toCompanion(bool nullToAbsent) {
+    return CrmActivitiesCompanion(
+      id: Value(id),
+      type: Value(type),
+      direction: direction == null && nullToAbsent
+          ? const Value.absent()
+          : Value(direction),
+      relatedType: Value(relatedType),
+      relatedId: Value(relatedId),
+      subject: Value(subject),
+      content: Value(content),
+      status: Value(status),
+      scheduledAt: scheduledAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scheduledAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CrmActivityRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmActivityRow(
+      id: serializer.fromJson<String>(json['id']),
+      type: serializer.fromJson<String>(json['type']),
+      direction: serializer.fromJson<String?>(json['direction']),
+      relatedType: serializer.fromJson<String>(json['relatedType']),
+      relatedId: serializer.fromJson<String>(json['relatedId']),
+      subject: serializer.fromJson<String>(json['subject']),
+      content: serializer.fromJson<String>(json['content']),
+      status: serializer.fromJson<String>(json['status']),
+      scheduledAt: serializer.fromJson<DateTime?>(json['scheduledAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'type': serializer.toJson<String>(type),
+      'direction': serializer.toJson<String?>(direction),
+      'relatedType': serializer.toJson<String>(relatedType),
+      'relatedId': serializer.toJson<String>(relatedId),
+      'subject': serializer.toJson<String>(subject),
+      'content': serializer.toJson<String>(content),
+      'status': serializer.toJson<String>(status),
+      'scheduledAt': serializer.toJson<DateTime?>(scheduledAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  CrmActivityRow copyWith({
+    String? id,
+    String? type,
+    Value<String?> direction = const Value.absent(),
+    String? relatedType,
+    String? relatedId,
+    String? subject,
+    String? content,
+    String? status,
+    Value<DateTime?> scheduledAt = const Value.absent(),
+    Value<DateTime?> completedAt = const Value.absent(),
+    DateTime? createdAt,
+  }) => CrmActivityRow(
+    id: id ?? this.id,
+    type: type ?? this.type,
+    direction: direction.present ? direction.value : this.direction,
+    relatedType: relatedType ?? this.relatedType,
+    relatedId: relatedId ?? this.relatedId,
+    subject: subject ?? this.subject,
+    content: content ?? this.content,
+    status: status ?? this.status,
+    scheduledAt: scheduledAt.present ? scheduledAt.value : this.scheduledAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  CrmActivityRow copyWithCompanion(CrmActivitiesCompanion data) {
+    return CrmActivityRow(
+      id: data.id.present ? data.id.value : this.id,
+      type: data.type.present ? data.type.value : this.type,
+      direction: data.direction.present ? data.direction.value : this.direction,
+      relatedType: data.relatedType.present
+          ? data.relatedType.value
+          : this.relatedType,
+      relatedId: data.relatedId.present ? data.relatedId.value : this.relatedId,
+      subject: data.subject.present ? data.subject.value : this.subject,
+      content: data.content.present ? data.content.value : this.content,
+      status: data.status.present ? data.status.value : this.status,
+      scheduledAt: data.scheduledAt.present
+          ? data.scheduledAt.value
+          : this.scheduledAt,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmActivityRow(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('direction: $direction, ')
+          ..write('relatedType: $relatedType, ')
+          ..write('relatedId: $relatedId, ')
+          ..write('subject: $subject, ')
+          ..write('content: $content, ')
+          ..write('status: $status, ')
+          ..write('scheduledAt: $scheduledAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    type,
+    direction,
+    relatedType,
+    relatedId,
+    subject,
+    content,
+    status,
+    scheduledAt,
+    completedAt,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmActivityRow &&
+          other.id == this.id &&
+          other.type == this.type &&
+          other.direction == this.direction &&
+          other.relatedType == this.relatedType &&
+          other.relatedId == this.relatedId &&
+          other.subject == this.subject &&
+          other.content == this.content &&
+          other.status == this.status &&
+          other.scheduledAt == this.scheduledAt &&
+          other.completedAt == this.completedAt &&
+          other.createdAt == this.createdAt);
+}
+
+class CrmActivitiesCompanion extends UpdateCompanion<CrmActivityRow> {
+  final Value<String> id;
+  final Value<String> type;
+  final Value<String?> direction;
+  final Value<String> relatedType;
+  final Value<String> relatedId;
+  final Value<String> subject;
+  final Value<String> content;
+  final Value<String> status;
+  final Value<DateTime?> scheduledAt;
+  final Value<DateTime?> completedAt;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const CrmActivitiesCompanion({
+    this.id = const Value.absent(),
+    this.type = const Value.absent(),
+    this.direction = const Value.absent(),
+    this.relatedType = const Value.absent(),
+    this.relatedId = const Value.absent(),
+    this.subject = const Value.absent(),
+    this.content = const Value.absent(),
+    this.status = const Value.absent(),
+    this.scheduledAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmActivitiesCompanion.insert({
+    required String id,
+    this.type = const Value.absent(),
+    this.direction = const Value.absent(),
+    required String relatedType,
+    required String relatedId,
+    required String subject,
+    this.content = const Value.absent(),
+    this.status = const Value.absent(),
+    this.scheduledAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       relatedType = Value(relatedType),
+       relatedId = Value(relatedId),
+       subject = Value(subject),
+       createdAt = Value(createdAt);
+  static Insertable<CrmActivityRow> custom({
+    Expression<String>? id,
+    Expression<String>? type,
+    Expression<String>? direction,
+    Expression<String>? relatedType,
+    Expression<String>? relatedId,
+    Expression<String>? subject,
+    Expression<String>? content,
+    Expression<String>? status,
+    Expression<DateTime>? scheduledAt,
+    Expression<DateTime>? completedAt,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (type != null) 'type': type,
+      if (direction != null) 'direction': direction,
+      if (relatedType != null) 'related_type': relatedType,
+      if (relatedId != null) 'related_id': relatedId,
+      if (subject != null) 'subject': subject,
+      if (content != null) 'content': content,
+      if (status != null) 'status': status,
+      if (scheduledAt != null) 'scheduled_at': scheduledAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmActivitiesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? type,
+    Value<String?>? direction,
+    Value<String>? relatedType,
+    Value<String>? relatedId,
+    Value<String>? subject,
+    Value<String>? content,
+    Value<String>? status,
+    Value<DateTime?>? scheduledAt,
+    Value<DateTime?>? completedAt,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return CrmActivitiesCompanion(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      direction: direction ?? this.direction,
+      relatedType: relatedType ?? this.relatedType,
+      relatedId: relatedId ?? this.relatedId,
+      subject: subject ?? this.subject,
+      content: content ?? this.content,
+      status: status ?? this.status,
+      scheduledAt: scheduledAt ?? this.scheduledAt,
+      completedAt: completedAt ?? this.completedAt,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (direction.present) {
+      map['direction'] = Variable<String>(direction.value);
+    }
+    if (relatedType.present) {
+      map['related_type'] = Variable<String>(relatedType.value);
+    }
+    if (relatedId.present) {
+      map['related_id'] = Variable<String>(relatedId.value);
+    }
+    if (subject.present) {
+      map['subject'] = Variable<String>(subject.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (scheduledAt.present) {
+      map['scheduled_at'] = Variable<DateTime>(scheduledAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmActivitiesCompanion(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('direction: $direction, ')
+          ..write('relatedType: $relatedType, ')
+          ..write('relatedId: $relatedId, ')
+          ..write('subject: $subject, ')
+          ..write('content: $content, ')
+          ..write('status: $status, ')
+          ..write('scheduledAt: $scheduledAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmTagsTable extends CrmTags with TableInfo<$CrmTagsTable, CrmTagRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('#4CAF50'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, color];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmTagRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {name},
+  ];
+  @override
+  CrmTagRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmTagRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmTagsTable createAlias(String alias) {
+    return $CrmTagsTable(attachedDatabase, alias);
+  }
+}
+
+class CrmTagRow extends DataClass implements Insertable<CrmTagRow> {
+  final String id;
+  final String name;
+  final String color;
+  const CrmTagRow({required this.id, required this.name, required this.color});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['color'] = Variable<String>(color);
+    return map;
+  }
+
+  CrmTagsCompanion toCompanion(bool nullToAbsent) {
+    return CrmTagsCompanion(
+      id: Value(id),
+      name: Value(name),
+      color: Value(color),
+    );
+  }
+
+  factory CrmTagRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmTagRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      color: serializer.fromJson<String>(json['color']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'color': serializer.toJson<String>(color),
+    };
+  }
+
+  CrmTagRow copyWith({String? id, String? name, String? color}) => CrmTagRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    color: color ?? this.color,
+  );
+  CrmTagRow copyWithCompanion(CrmTagsCompanion data) {
+    return CrmTagRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      color: data.color.present ? data.color.value : this.color,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmTagRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('color: $color')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, color);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmTagRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.color == this.color);
+}
+
+class CrmTagsCompanion extends UpdateCompanion<CrmTagRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> color;
+  final Value<int> rowid;
+  const CrmTagsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.color = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmTagsCompanion.insert({
+    required String id,
+    required String name,
+    this.color = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name);
+  static Insertable<CrmTagRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? color,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (color != null) 'color': color,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmTagsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? color,
+    Value<int>? rowid,
+  }) {
+    return CrmTagsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      color: color ?? this.color,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmTagsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrmEntityTagsTable extends CrmEntityTags
+    with TableInfo<$CrmEntityTagsTable, CrmEntityTagRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmEntityTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _entityTypeMeta = const VerificationMeta(
+    'entityType',
+  );
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+    'entity_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entityIdMeta = const VerificationMeta(
+    'entityId',
+  );
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+    'entity_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
+  @override
+  late final GeneratedColumn<String> tagId = GeneratedColumn<String>(
+    'tag_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [entityType, entityId, tagId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_entity_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmEntityTagRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('entity_type')) {
+      context.handle(
+        _entityTypeMeta,
+        entityType.isAcceptableOrUnknown(data['entity_type']!, _entityTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityTypeMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(
+        _entityIdMeta,
+        entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('tag_id')) {
+      context.handle(
+        _tagIdMeta,
+        tagId.isAcceptableOrUnknown(data['tag_id']!, _tagIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {entityType, entityId, tagId};
+  @override
+  CrmEntityTagRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmEntityTagRow(
+      entityType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_type'],
+      )!,
+      entityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_id'],
+      )!,
+      tagId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tag_id'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmEntityTagsTable createAlias(String alias) {
+    return $CrmEntityTagsTable(attachedDatabase, alias);
+  }
+}
+
+class CrmEntityTagRow extends DataClass implements Insertable<CrmEntityTagRow> {
+  final String entityType;
+  final String entityId;
+  final String tagId;
+  const CrmEntityTagRow({
+    required this.entityType,
+    required this.entityId,
+    required this.tagId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['entity_type'] = Variable<String>(entityType);
+    map['entity_id'] = Variable<String>(entityId);
+    map['tag_id'] = Variable<String>(tagId);
+    return map;
+  }
+
+  CrmEntityTagsCompanion toCompanion(bool nullToAbsent) {
+    return CrmEntityTagsCompanion(
+      entityType: Value(entityType),
+      entityId: Value(entityId),
+      tagId: Value(tagId),
+    );
+  }
+
+  factory CrmEntityTagRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmEntityTagRow(
+      entityType: serializer.fromJson<String>(json['entityType']),
+      entityId: serializer.fromJson<String>(json['entityId']),
+      tagId: serializer.fromJson<String>(json['tagId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'entityType': serializer.toJson<String>(entityType),
+      'entityId': serializer.toJson<String>(entityId),
+      'tagId': serializer.toJson<String>(tagId),
+    };
+  }
+
+  CrmEntityTagRow copyWith({
+    String? entityType,
+    String? entityId,
+    String? tagId,
+  }) => CrmEntityTagRow(
+    entityType: entityType ?? this.entityType,
+    entityId: entityId ?? this.entityId,
+    tagId: tagId ?? this.tagId,
+  );
+  CrmEntityTagRow copyWithCompanion(CrmEntityTagsCompanion data) {
+    return CrmEntityTagRow(
+      entityType: data.entityType.present
+          ? data.entityType.value
+          : this.entityType,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      tagId: data.tagId.present ? data.tagId.value : this.tagId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmEntityTagRow(')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('tagId: $tagId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(entityType, entityId, tagId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmEntityTagRow &&
+          other.entityType == this.entityType &&
+          other.entityId == this.entityId &&
+          other.tagId == this.tagId);
+}
+
+class CrmEntityTagsCompanion extends UpdateCompanion<CrmEntityTagRow> {
+  final Value<String> entityType;
+  final Value<String> entityId;
+  final Value<String> tagId;
+  final Value<int> rowid;
+  const CrmEntityTagsCompanion({
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.tagId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmEntityTagsCompanion.insert({
+    required String entityType,
+    required String entityId,
+    required String tagId,
+    this.rowid = const Value.absent(),
+  }) : entityType = Value(entityType),
+       entityId = Value(entityId),
+       tagId = Value(tagId);
+  static Insertable<CrmEntityTagRow> custom({
+    Expression<String>? entityType,
+    Expression<String>? entityId,
+    Expression<String>? tagId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (entityType != null) 'entity_type': entityType,
+      if (entityId != null) 'entity_id': entityId,
+      if (tagId != null) 'tag_id': tagId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmEntityTagsCompanion copyWith({
+    Value<String>? entityType,
+    Value<String>? entityId,
+    Value<String>? tagId,
+    Value<int>? rowid,
+  }) {
+    return CrmEntityTagsCompanion(
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
+      tagId: tagId ?? this.tagId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (tagId.present) {
+      map['tag_id'] = Variable<String>(tagId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmEntityTagsCompanion(')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('tagId: $tagId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CrmObjectDefsTable extends CrmObjectDefs
     with TableInfo<$CrmObjectDefsTable, CrmObjectDefRow> {
   @override
@@ -17149,6 +18341,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CrmInvoicesTable crmInvoices = $CrmInvoicesTable(this);
   late final $CrmWarrantiesTable crmWarranties = $CrmWarrantiesTable(this);
   late final $CrmAfterSalesTable crmAfterSales = $CrmAfterSalesTable(this);
+  late final $CrmActivitiesTable crmActivities = $CrmActivitiesTable(this);
+  late final $CrmTagsTable crmTags = $CrmTagsTable(this);
+  late final $CrmEntityTagsTable crmEntityTags = $CrmEntityTagsTable(this);
   late final $CrmObjectDefsTable crmObjectDefs = $CrmObjectDefsTable(this);
   late final $CrmCustomRecordsTable crmCustomRecords = $CrmCustomRecordsTable(
     this,
@@ -17187,6 +18382,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     crmInvoices,
     crmWarranties,
     crmAfterSales,
+    crmActivities,
+    crmTags,
+    crmEntityTags,
     crmObjectDefs,
     crmCustomRecords,
     crmEntityLinks,
@@ -23947,6 +25145,646 @@ typedef $$CrmAfterSalesTableProcessedTableManager =
       CrmAfterSalesRow,
       PrefetchHooks Function()
     >;
+typedef $$CrmActivitiesTableCreateCompanionBuilder =
+    CrmActivitiesCompanion Function({
+      required String id,
+      Value<String> type,
+      Value<String?> direction,
+      required String relatedType,
+      required String relatedId,
+      required String subject,
+      Value<String> content,
+      Value<String> status,
+      Value<DateTime?> scheduledAt,
+      Value<DateTime?> completedAt,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$CrmActivitiesTableUpdateCompanionBuilder =
+    CrmActivitiesCompanion Function({
+      Value<String> id,
+      Value<String> type,
+      Value<String?> direction,
+      Value<String> relatedType,
+      Value<String> relatedId,
+      Value<String> subject,
+      Value<String> content,
+      Value<String> status,
+      Value<DateTime?> scheduledAt,
+      Value<DateTime?> completedAt,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$CrmActivitiesTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmActivitiesTable> {
+  $$CrmActivitiesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get direction => $composableBuilder(
+    column: $table.direction,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relatedType => $composableBuilder(
+    column: $table.relatedType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relatedId => $composableBuilder(
+    column: $table.relatedId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get subject => $composableBuilder(
+    column: $table.subject,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get scheduledAt => $composableBuilder(
+    column: $table.scheduledAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmActivitiesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmActivitiesTable> {
+  $$CrmActivitiesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get direction => $composableBuilder(
+    column: $table.direction,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relatedType => $composableBuilder(
+    column: $table.relatedType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relatedId => $composableBuilder(
+    column: $table.relatedId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get subject => $composableBuilder(
+    column: $table.subject,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get scheduledAt => $composableBuilder(
+    column: $table.scheduledAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmActivitiesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmActivitiesTable> {
+  $$CrmActivitiesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get direction =>
+      $composableBuilder(column: $table.direction, builder: (column) => column);
+
+  GeneratedColumn<String> get relatedType => $composableBuilder(
+    column: $table.relatedType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get relatedId =>
+      $composableBuilder(column: $table.relatedId, builder: (column) => column);
+
+  GeneratedColumn<String> get subject =>
+      $composableBuilder(column: $table.subject, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get scheduledAt => $composableBuilder(
+    column: $table.scheduledAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CrmActivitiesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmActivitiesTable,
+          CrmActivityRow,
+          $$CrmActivitiesTableFilterComposer,
+          $$CrmActivitiesTableOrderingComposer,
+          $$CrmActivitiesTableAnnotationComposer,
+          $$CrmActivitiesTableCreateCompanionBuilder,
+          $$CrmActivitiesTableUpdateCompanionBuilder,
+          (
+            CrmActivityRow,
+            BaseReferences<_$AppDatabase, $CrmActivitiesTable, CrmActivityRow>,
+          ),
+          CrmActivityRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmActivitiesTableTableManager(_$AppDatabase db, $CrmActivitiesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmActivitiesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmActivitiesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmActivitiesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String?> direction = const Value.absent(),
+                Value<String> relatedType = const Value.absent(),
+                Value<String> relatedId = const Value.absent(),
+                Value<String> subject = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> scheduledAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmActivitiesCompanion(
+                id: id,
+                type: type,
+                direction: direction,
+                relatedType: relatedType,
+                relatedId: relatedId,
+                subject: subject,
+                content: content,
+                status: status,
+                scheduledAt: scheduledAt,
+                completedAt: completedAt,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String> type = const Value.absent(),
+                Value<String?> direction = const Value.absent(),
+                required String relatedType,
+                required String relatedId,
+                required String subject,
+                Value<String> content = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> scheduledAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CrmActivitiesCompanion.insert(
+                id: id,
+                type: type,
+                direction: direction,
+                relatedType: relatedType,
+                relatedId: relatedId,
+                subject: subject,
+                content: content,
+                status: status,
+                scheduledAt: scheduledAt,
+                completedAt: completedAt,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmActivitiesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmActivitiesTable,
+      CrmActivityRow,
+      $$CrmActivitiesTableFilterComposer,
+      $$CrmActivitiesTableOrderingComposer,
+      $$CrmActivitiesTableAnnotationComposer,
+      $$CrmActivitiesTableCreateCompanionBuilder,
+      $$CrmActivitiesTableUpdateCompanionBuilder,
+      (
+        CrmActivityRow,
+        BaseReferences<_$AppDatabase, $CrmActivitiesTable, CrmActivityRow>,
+      ),
+      CrmActivityRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmTagsTableCreateCompanionBuilder =
+    CrmTagsCompanion Function({
+      required String id,
+      required String name,
+      Value<String> color,
+      Value<int> rowid,
+    });
+typedef $$CrmTagsTableUpdateCompanionBuilder =
+    CrmTagsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> color,
+      Value<int> rowid,
+    });
+
+class $$CrmTagsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmTagsTable> {
+  $$CrmTagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmTagsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmTagsTable> {
+  $$CrmTagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmTagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmTagsTable> {
+  $$CrmTagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+}
+
+class $$CrmTagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmTagsTable,
+          CrmTagRow,
+          $$CrmTagsTableFilterComposer,
+          $$CrmTagsTableOrderingComposer,
+          $$CrmTagsTableAnnotationComposer,
+          $$CrmTagsTableCreateCompanionBuilder,
+          $$CrmTagsTableUpdateCompanionBuilder,
+          (CrmTagRow, BaseReferences<_$AppDatabase, $CrmTagsTable, CrmTagRow>),
+          CrmTagRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmTagsTableTableManager(_$AppDatabase db, $CrmTagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmTagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmTagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmTagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmTagsCompanion(
+                id: id,
+                name: name,
+                color: color,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<String> color = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmTagsCompanion.insert(
+                id: id,
+                name: name,
+                color: color,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmTagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmTagsTable,
+      CrmTagRow,
+      $$CrmTagsTableFilterComposer,
+      $$CrmTagsTableOrderingComposer,
+      $$CrmTagsTableAnnotationComposer,
+      $$CrmTagsTableCreateCompanionBuilder,
+      $$CrmTagsTableUpdateCompanionBuilder,
+      (CrmTagRow, BaseReferences<_$AppDatabase, $CrmTagsTable, CrmTagRow>),
+      CrmTagRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CrmEntityTagsTableCreateCompanionBuilder =
+    CrmEntityTagsCompanion Function({
+      required String entityType,
+      required String entityId,
+      required String tagId,
+      Value<int> rowid,
+    });
+typedef $$CrmEntityTagsTableUpdateCompanionBuilder =
+    CrmEntityTagsCompanion Function({
+      Value<String> entityType,
+      Value<String> entityId,
+      Value<String> tagId,
+      Value<int> rowid,
+    });
+
+class $$CrmEntityTagsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmEntityTagsTable> {
+  $$CrmEntityTagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tagId => $composableBuilder(
+    column: $table.tagId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmEntityTagsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmEntityTagsTable> {
+  $$CrmEntityTagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tagId => $composableBuilder(
+    column: $table.tagId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmEntityTagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmEntityTagsTable> {
+  $$CrmEntityTagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<String> get tagId =>
+      $composableBuilder(column: $table.tagId, builder: (column) => column);
+}
+
+class $$CrmEntityTagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmEntityTagsTable,
+          CrmEntityTagRow,
+          $$CrmEntityTagsTableFilterComposer,
+          $$CrmEntityTagsTableOrderingComposer,
+          $$CrmEntityTagsTableAnnotationComposer,
+          $$CrmEntityTagsTableCreateCompanionBuilder,
+          $$CrmEntityTagsTableUpdateCompanionBuilder,
+          (
+            CrmEntityTagRow,
+            BaseReferences<_$AppDatabase, $CrmEntityTagsTable, CrmEntityTagRow>,
+          ),
+          CrmEntityTagRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmEntityTagsTableTableManager(_$AppDatabase db, $CrmEntityTagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmEntityTagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmEntityTagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmEntityTagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> entityType = const Value.absent(),
+                Value<String> entityId = const Value.absent(),
+                Value<String> tagId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmEntityTagsCompanion(
+                entityType: entityType,
+                entityId: entityId,
+                tagId: tagId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String entityType,
+                required String entityId,
+                required String tagId,
+                Value<int> rowid = const Value.absent(),
+              }) => CrmEntityTagsCompanion.insert(
+                entityType: entityType,
+                entityId: entityId,
+                tagId: tagId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmEntityTagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmEntityTagsTable,
+      CrmEntityTagRow,
+      $$CrmEntityTagsTableFilterComposer,
+      $$CrmEntityTagsTableOrderingComposer,
+      $$CrmEntityTagsTableAnnotationComposer,
+      $$CrmEntityTagsTableCreateCompanionBuilder,
+      $$CrmEntityTagsTableUpdateCompanionBuilder,
+      (
+        CrmEntityTagRow,
+        BaseReferences<_$AppDatabase, $CrmEntityTagsTable, CrmEntityTagRow>,
+      ),
+      CrmEntityTagRow,
+      PrefetchHooks Function()
+    >;
 typedef $$CrmObjectDefsTableCreateCompanionBuilder =
     CrmObjectDefsCompanion Function({
       required String id,
@@ -25827,6 +27665,12 @@ class $AppDatabaseManager {
       $$CrmWarrantiesTableTableManager(_db, _db.crmWarranties);
   $$CrmAfterSalesTableTableManager get crmAfterSales =>
       $$CrmAfterSalesTableTableManager(_db, _db.crmAfterSales);
+  $$CrmActivitiesTableTableManager get crmActivities =>
+      $$CrmActivitiesTableTableManager(_db, _db.crmActivities);
+  $$CrmTagsTableTableManager get crmTags =>
+      $$CrmTagsTableTableManager(_db, _db.crmTags);
+  $$CrmEntityTagsTableTableManager get crmEntityTags =>
+      $$CrmEntityTagsTableTableManager(_db, _db.crmEntityTags);
   $$CrmObjectDefsTableTableManager get crmObjectDefs =>
       $$CrmObjectDefsTableTableManager(_db, _db.crmObjectDefs);
   $$CrmCustomRecordsTableTableManager get crmCustomRecords =>

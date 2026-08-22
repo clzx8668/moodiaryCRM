@@ -29,6 +29,7 @@ const List<CrmTabDef> kCrmTabs = [
   CrmTabDef('invoice', '发票'),
   CrmTabDef('warranty', '质保'),
   CrmTabDef('afterSales', '售后'),
+  CrmTabDef('activity', '跟进'),
 ];
 
 String crmTypeLabel(String type) {
@@ -44,6 +45,7 @@ String crmTypeLabel(String type) {
     'invoice': '发票',
     'warranty': '质保',
     'afterSales': '售后',
+    'activity': '跟进',
   };
   return labels[type] ?? type;
 }
@@ -72,6 +74,8 @@ IconData crmTypeIcon(String type) {
       return Icons.verified_rounded;
     case 'afterSales':
       return Icons.support_agent_rounded;
+    case 'activity':
+      return Icons.history_rounded;
     default:
       return Icons.folder_rounded;
   }
@@ -101,6 +105,8 @@ Color crmTypeColor(String type) {
       return Colors.cyan.shade400;
     case 'afterSales':
       return Colors.deepOrange.shade400;
+    case 'activity':
+      return Colors.brown.shade400;
     default:
       return Colors.grey;
   }
@@ -382,6 +388,18 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                   ),
                 )
                 ..updatedAt = t.updatedAt,
+            )
+            .toList();
+      case 'activity':
+        return (await repo.listActivities())
+            .map(
+              (a) => CrmEntityCache()
+                ..id = a.id
+                ..twentyId = a.id
+                ..entityType = 'activity'
+                ..name = a.subject.isEmpty ? '（跟进）' : a.subject
+                ..setData(activityToDataMap(a))
+                ..updatedAt = a.createdAt,
             )
             .toList();
       default:
@@ -915,6 +933,18 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             note: data['note']?.toString() ?? '',
           ),
         );
+      case 'activity':
+        await repo.createActivity(
+          LocalActivity(
+            id: '',
+            subject: data['subject']?.toString() ?? '',
+            type: data['type']?.toString() ?? 'note',
+            direction: data['direction']?.toString(),
+            status: data['status']?.toString() ?? 'completed',
+            scheduledAt: _parseDate(data['scheduledAt']),
+            content: data['content']?.toString() ?? '',
+          ),
+        );
       default:
         final objectId = widget.objectType.startsWith('custom:')
             ? widget.objectType.substring(7)
@@ -992,6 +1022,11 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         if (t == null) return;
         _assign(t, field, value);
         await repo.updateAfterSales(t);
+      case 'activity':
+        final a = await repo.getActivity(id);
+        if (a == null) return;
+        _assign(a, field, value);
+        await repo.updateActivity(a);
       default:
         final r = await repo.getCustomRecord(id);
         if (r == null) return;
@@ -1122,6 +1157,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         entity.description = value?.toString() ?? '';
       case 'resolution':
         entity.resolution = value?.toString() ?? '';
+      case 'direction':
+        entity.direction = value?.toString();
+      case 'scheduledAt':
+        entity.scheduledAt = _parseDate(value);
     }
   }
 

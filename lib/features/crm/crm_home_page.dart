@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/features/crm/local/crm_demo_data.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
@@ -49,6 +50,11 @@ class _CrmHomePageState extends State<CrmHomePage> {
             children: [
               Text('CRM', style: context.textTheme.titleLarge),
               const Spacer(),
+              IconButton(
+                tooltip: '生成演示数据（每表 5–10 条，验证功能）',
+                icon: const Icon(Icons.auto_awesome_rounded),
+                onPressed: _seedDemoData,
+              ),
               IconButton(
                 tooltip: '刷新',
                 onPressed: () {
@@ -100,5 +106,46 @@ class _CrmHomePageState extends State<CrmHomePage> {
           ),
       ],
     );
+  }
+
+  Future<void> _seedDemoData() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('生成演示数据'),
+        content: const Text(
+          '将为每个 CRM 表追加 5–10 条带关联的演示数据'
+          '（不删除现有数据），用于功能验证。确认继续？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('生成'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      final counts = await CrmDemoData.seed(CrmLocalRepository());
+      if (mounted) {
+        setState(() {
+          _reloadToken++;
+        });
+        await _loadCustomObjects();
+        Get.snackbar(
+          '演示数据已生成',
+          counts.entries.map((e) => '${e.key}:${e.value}').join(' · '),
+          snackPosition: SnackPosition.bottom,
+          duration: const Duration(seconds: 4),
+        );
+      }
+    } catch (e) {
+      Get.snackbar('生成失败', '$e', snackPosition: SnackPosition.bottom);
+    }
   }
 }

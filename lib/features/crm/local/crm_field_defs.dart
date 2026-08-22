@@ -31,6 +31,7 @@ const Map<String, String> kLocalLabelFields = {
   'invoice': 'invoiceNo',
   'warranty': 'serialNo',
   'afterSales': 'ticketNo',
+  'activity': 'subject',
 };
 
 /// 商机阶段（doc 枚举键，先以中文标签存储展示；S6 看板再做键值化）
@@ -266,6 +267,30 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('createdAt', '创建时间', type: 'date'),
     LocalObjectField('updatedAt', '更新时间', type: 'date'),
   ],
+  'activity': [
+    LocalObjectField('subject', '主题'),
+    LocalObjectField('type', '类型', type: 'select', options: [
+      'call',
+      'meeting',
+      'email',
+      'wechat',
+      'visit',
+      'task',
+      'note',
+    ]),
+    LocalObjectField('direction', '方向', type: 'select', options: [
+      'inbound',
+      'outbound',
+    ]),
+    LocalObjectField('status', '状态', type: 'select', options: [
+      'planned',
+      'completed',
+      'canceled',
+    ]),
+    LocalObjectField('scheduledAt', '计划时间', type: 'date'),
+    LocalObjectField('content', '内容', type: 'textarea'),
+    LocalObjectField('createdAt', '创建时间', type: 'date'),
+  ],
 };
 
 /// 基础对象字段的展示值格式化（typed → data map）
@@ -473,4 +498,15 @@ Map<String, dynamic> afterSalesToDataMap(
   'note': t.note,
   'createdAt': t.createdAt.toIso8601String(),
   'updatedAt': t.updatedAt.toIso8601String(),
+};
+
+Map<String, dynamic> activityToDataMap(LocalActivity a) => {
+  'subject': a.subject,
+  'type': a.type,
+  'direction': a.direction ?? '',
+  'status': a.status,
+  'scheduledAt': a.scheduledAt?.toIso8601String(),
+  'completedAt': a.completedAt?.toIso8601String(),
+  'content': a.content,
+  'createdAt': a.createdAt.toIso8601String(),
 };

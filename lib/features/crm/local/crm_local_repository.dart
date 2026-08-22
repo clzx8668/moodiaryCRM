@@ -867,6 +867,131 @@ class CrmLocalRepository {
 
   Future<int> countAfterSales() async => (await listAfterSales()).length;
 
+  // ==================== 跟进记录 / 标签 ====================
+
+  Future<List<LocalActivity>> listActivities({
+    String? relatedType,
+    String? relatedId,
+  }) async {
+    final query = db.select(db.crmActivities);
+    if (relatedType != null && relatedId != null) {
+      query.where(
+        (t) => t.relatedType.equals(relatedType) & t.relatedId.equals(relatedId),
+      );
+    }
+    query.orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
+    final rows = await query.get();
+    return rows.map(_activityFromRow).toList();
+  }
+
+  Future<LocalActivity?> getActivity(String id) async {
+    final row = await (db.select(db.crmActivities)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _activityFromRow(row);
+  }
+
+  Future<LocalActivity> createActivity(LocalActivity activity) async {
+    final entity = activity
+      ..id = activity.id.isEmpty ? const Uuid().v7() : activity.id;
+    await db.into(db.crmActivities).insert(_activityCompanion(entity));
+    return entity;
+  }
+
+  Future<LocalActivity> updateActivity(LocalActivity activity) async {
+    await (db.update(db.crmActivities)
+          ..where((t) => t.id.equals(activity.id)))
+        .write(_activityCompanion(activity));
+    return activity;
+  }
+
+  Future<void> deleteActivity(String id) async {
+    await (db.delete(db.crmActivities)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<List<LocalTag>> listTags() async {
+    final rows = await db.select(db.crmTags).get();
+    return rows.map((r) => LocalTag(id: r.id, name: r.name, color: r.color)).toList();
+  }
+
+  Future<LocalTag> createTag(String name) async {
+    final trimmed = name.trim();
+    final existing = await (db.select(db.crmTags)
+          ..where((t) => t.name.equals(trimmed)))
+        .getSingleOrNull();
+    if (existing != null) {
+      return LocalTag(id: existing.id, name: existing.name, color: existing.color);
+    }
+    final tag = LocalTag(id: const Uuid().v7(), name: trimmed);
+    await db.into(db.crmTags).insert(
+      CrmTagsCompanion.insert(id: tag.id, name: tag.name, color: Value(tag.color)),
+    );
+    return tag;
+  }
+
+  Future<void> deleteTag(String id) async {
+    await db.transaction(() async {
+      await (db.delete(db.crmEntityTags)..where((t) => t.tagId.equals(id))).go();
+      await (db.delete(db.crmTags)..where((t) => t.id.equals(id))).go();
+    });
+  }
+
+  /// 设置实体标签（差异同步：新增缺失、断开移除的关联）。
+  Future<List<String>> setEntityTags(
+    String entityType,
+    String entityId,
+    List<String> names,
+  ) async {
+    final cleaned = names.map((n) => n.trim()).where((n) => n.isNotEmpty).toSet();
+    await db.transaction(() async {
+      final current = await tagsForEntity(entityType, entityId);
+      final currentIds = current.map((t) => t.id).toSet();
+      final desiredIds = <String>{};
+      for (final name in cleaned) {
+        final tag = await createTag(name);
+        desiredIds.add(tag.id);
+        if (!currentIds.contains(tag.id)) {
+          await db.into(db.crmEntityTags).insert(
+            CrmEntityTagsCompanion.insert(
+              entityType: entityType,
+              entityId: entityId,
+              tagId: tag.id,
+            ),
+          );
+        }
+      }
+      for (final id in currentIds.difference(desiredIds)) {
+        await (db.delete(db.crmEntityTags)
+              ..where(
+                (t) =>
+                    t.entityType.equals(entityType) &
+                    t.entityId.equals(entityId) &
+                    t.tagId.equals(id),
+              ))
+            .go();
+      }
+    });
+    return (await tagsForEntity(entityType, entityId)).map((t) => t.name).toList();
+  }
+
+  Future<List<LocalTag>> tagsForEntity(String entityType, String entityId) async {
+    final rows = await (db.select(db.crmEntityTags)
+          ..where(
+            (t) => t.entityType.equals(entityType) & t.entityId.equals(entityId),
+          ))
+        .get();
+    final tags = <LocalTag>[];
+    for (final row in rows) {
+      final tag = await (db.select(db.crmTags)
+            ..where((t) => t.id.equals(row.tagId)))
+          .getSingleOrNull();
+      if (tag != null) {
+        tags.add(LocalTag(id: tag.id, name: tag.name, color: tag.color));
+      }
+    }
+    return tags;
+  }
+
   /// 单号生成：前缀 + YYYYMMDD + 当日自增 3 位（QT/HT/AS）
   Future<String> _nextSequenceNo(String prefix) async {
     final now = DateTime.now();
@@ -1585,5 +1710,35 @@ class CrmLocalRepository {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deleted: row.deleted,
+  );
+
+  CrmActivitiesCompanion _activityCompanion(LocalActivity a) {
+    return CrmActivitiesCompanion(
+      id: Value(a.id),
+      type: Value(a.type),
+      direction: Value(a.direction),
+      relatedType: Value(a.relatedType),
+      relatedId: Value(a.relatedId),
+      subject: Value(a.subject),
+      content: Value(a.content),
+      status: Value(a.status),
+      scheduledAt: Value(a.scheduledAt),
+      completedAt: Value(a.completedAt),
+      createdAt: Value(a.createdAt),
+    );
+  }
+
+  LocalActivity _activityFromRow(CrmActivityRow row) => LocalActivity(
+    id: row.id,
+    type: row.type,
+    direction: row.direction,
+    relatedType: row.relatedType,
+    relatedId: row.relatedId,
+    subject: row.subject,
+    content: row.content,
+    status: row.status,
+    scheduledAt: row.scheduledAt,
+    completedAt: row.completedAt,
+    createdAt: row.createdAt,
   );
 }

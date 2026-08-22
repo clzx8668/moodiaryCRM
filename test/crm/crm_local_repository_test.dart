@@ -322,4 +322,42 @@ void main() {
     final reminders = await repo.dueReminders();
     expect(reminders.any((r) => r.type == 'warrantyExpire'), isTrue);
   });
+
+  test('跟进记录多态关联与标签差异同步', () async {
+    await repo.createActivity(
+      LocalActivity(
+        id: '',
+        type: 'call',
+        relatedType: 'account',
+        relatedId: 'a1',
+        subject: '初次电话沟通',
+        status: 'completed',
+        completedAt: DateTime.now(),
+      ),
+    );
+    await repo.createActivity(
+      LocalActivity(
+        id: '',
+        type: 'visit',
+        relatedType: 'account',
+        relatedId: 'a1',
+        subject: '客户拜访',
+        status: 'planned',
+        scheduledAt: DateTime.now().add(const Duration(days: 2)),
+      ),
+    );
+    expect(
+      (await repo.listActivities(relatedType: 'account', relatedId: 'a1')).length,
+      2,
+    );
+
+    final tags = await repo.setEntityTags('account', 'a1', ['重点客户', '待跟进']);
+    expect(tags, containsAll(['重点客户', '待跟进']));
+    // 幂等 + 移除
+    await repo.setEntityTags('account', 'a1', ['重点客户']);
+    final updated = await repo.tagsForEntity('account', 'a1');
+    expect(updated.map((t) => t.name), ['重点客户']);
+    // 不同实体互不影响
+    expect(await repo.tagsForEntity('account', 'a2'), isEmpty);
+  });
 }

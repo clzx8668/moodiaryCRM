@@ -39,6 +39,11 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
         title: Text(_title),
         actions: [
           IconButton(
+            tooltip: '新增跟进',
+            icon: const Icon(Icons.add_comment_rounded),
+            onPressed: () => _showQuickActivity(context),
+          ),
+          IconButton(
             tooltip: '删除',
             icon: const Icon(Icons.delete_outline),
             onPressed: () => _deleteEntity(context),
@@ -60,6 +65,8 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _buildTags(),
+          const SizedBox(height: 16),
           _buildFields(),
           const SizedBox(height: 16),
           if (widget.objectType == 'account') _buildAccountDrilldown(),
@@ -69,10 +76,186 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
           if (widget.objectType == 'contract') _buildContractWarranties(),
           if (widget.objectType == 'quote') _buildQuoteItems(),
           const SizedBox(height: 16),
-          _buildRelatedDiaries(),
+          _buildTimeline(),
         ],
       ),
     );
+  }
+
+  // ==================== 标签 ====================
+
+  Widget _buildTags() {
+    return FutureBuilder<List<LocalTag>>(
+      future: _repo.tagsForEntity(widget.objectType, widget.item.twentyId),
+      builder: (context, snapshot) {
+        final tags = snapshot.data ?? const <LocalTag>[];
+        return Card.outlined(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('标签', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (final tag in tags)
+                      InputChip(
+                        label: Text(tag.name),
+                        visualDensity: VisualDensity.compact,
+                        onDeleted: () => _removeTag(tag.name),
+                      ),
+                    ActionChip(
+                      avatar: const Icon(Icons.add, size: 16),
+                      label: const Text('添加'),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _addTag(context),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _addTag(BuildContext context) async {
+    final controller = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('添加标签'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: '标签名',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('添加'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || controller.text.trim().isEmpty) return;
+    final tags = await _repo.tagsForEntity(widget.objectType, widget.item.twentyId);
+    await _repo.setEntityTags(
+      widget.objectType,
+      widget.item.twentyId,
+      [...tags.map((t) => t.name), controller.text.trim()],
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _removeTag(String name) async {
+    final tags = await _repo.tagsForEntity(widget.objectType, widget.item.twentyId);
+    await _repo.setEntityTags(
+      widget.objectType,
+      widget.item.twentyId,
+      tags.map((t) => t.name).where((n) => n != name).toList(),
+    );
+    if (mounted) setState(() {});
+  }
+
+  // ==================== 快速跟进 ====================
+
+  Future<void> _showQuickActivity(BuildContext context) async {
+    final subject = TextEditingController();
+    var type = 'call';
+    var status = 'completed';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('新增跟进'),
+          content: SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: subject,
+                  decoration: const InputDecoration(
+                    labelText: '主题',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: type,
+                  decoration: const InputDecoration(
+                    labelText: '类型',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'call', child: Text('电话')),
+                    DropdownMenuItem(value: 'meeting', child: Text('会议')),
+                    DropdownMenuItem(value: 'email', child: Text('邮件')),
+                    DropdownMenuItem(value: 'wechat', child: Text('微信')),
+                    DropdownMenuItem(value: 'visit', child: Text('拜访')),
+                    DropdownMenuItem(value: 'task', child: Text('任务')),
+                    DropdownMenuItem(value: 'note', child: Text('备注')),
+                  ],
+                  onChanged: (v) => setDialogState(() => type = v ?? 'call'),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: status,
+                  decoration: const InputDecoration(
+                    labelText: '状态',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'planned', child: Text('计划')),
+                    DropdownMenuItem(value: 'completed', child: Text('已完成')),
+                    DropdownMenuItem(value: 'canceled', child: Text('已取消')),
+                  ],
+                  onChanged: (v) => setDialogState(() => status = v ?? 'completed'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('保存'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true || subject.text.trim().isEmpty) return;
+    await _repo.createActivity(
+      LocalActivity(
+        id: '',
+        type: type,
+        relatedType: widget.objectType,
+        relatedId: widget.item.twentyId,
+        subject: subject.text.trim(),
+        status: status,
+        completedAt: status == 'completed' ? DateTime.now() : null,
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   // ==================== 字段 ====================
@@ -634,26 +817,66 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
     }
   }
 
-  Widget _buildRelatedDiaries() {
-    return FutureBuilder<List<Diary>>(
+  Widget _buildTimeline() {
+    return FutureBuilder<List<_TimelineEntry>>(
       future: () async {
+        final entries = <_TimelineEntry>[];
+        final activities = await _repo.listActivities(
+          relatedType: widget.objectType,
+          relatedId: widget.item.twentyId,
+        );
+        for (final activity in activities) {
+          entries.add(
+            _TimelineEntry(
+              time:
+                  activity.completedAt ??
+                  activity.scheduledAt ??
+                  activity.createdAt,
+              title: activity.subject,
+              subtitle: '${activity.type} · ${activity.status}',
+              icon: Icons.event_available_rounded,
+              diary: null,
+            ),
+          );
+        }
         final links = await _repo.linksForEntity(
           widget.objectType,
           widget.item.twentyId,
         );
-        final diaries = <Diary>[];
         for (final link in links) {
           if (link.localType != 'diary') continue;
           final diary = await IsarUtil.getDiaryById(link.localId);
-          if (diary != null) diaries.add(diary);
+          if (diary != null) {
+            entries.add(
+              _TimelineEntry(
+                time: diary.time,
+                title: diary.title.isEmpty ? '未命名日记' : diary.title,
+                subtitle: '日记',
+                icon: Icons.article_outlined,
+                diary: diary,
+              ),
+            );
+          }
         }
-        if (diaries.isEmpty) {
-          diaries.addAll(await IsarUtil.searchDiariesByText(widget.item.name));
+        if (entries.isEmpty) {
+          final fallback = await IsarUtil.searchDiariesByText(widget.item.name);
+          for (final diary in fallback.take(10)) {
+            entries.add(
+              _TimelineEntry(
+                time: diary.time,
+                title: diary.title.isEmpty ? '未命名日记' : diary.title,
+                subtitle: '日记（名称匹配）',
+                icon: Icons.article_outlined,
+                diary: diary,
+              ),
+            );
+          }
         }
-        return diaries.take(20).toList();
+        entries.sort((a, b) => b.time.compareTo(a.time));
+        return entries.take(50).toList();
       }(),
       builder: (context, snapshot) {
-        final diaries = snapshot.data ?? const <Diary>[];
+        final entries = snapshot.data ?? const <_TimelineEntry>[];
         return Card.outlined(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -661,28 +884,32 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '相关日记（${diaries.length}）',
+                  '时间线（${entries.length}）',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 6),
-                if (diaries.isEmpty)
-                  const Text('暂无相关日记')
+                if (entries.isEmpty)
+                  const Text('暂无跟进与相关日记')
                 else
-                  for (final diary in diaries)
+                  for (final entry in entries)
                     ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.article_outlined, size: 18),
+                      leading: Icon(entry.icon, size: 18),
                       title: Text(
-                        diary.title,
+                        entry.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      subtitle: Text('${diary.time.toLocal()}'),
-                      onTap: () => Get.toNamed(
-                        AppRoutes.diaryPage,
-                        arguments: [diary, true],
+                      subtitle: Text(
+                        '${entry.time.toLocal()} · ${entry.subtitle}',
                       ),
+                      onTap: entry.diary == null
+                          ? null
+                          : () => Get.toNamed(
+                              AppRoutes.diaryPage,
+                              arguments: [entry.diary, true],
+                            ),
                     ),
               ],
             ),
@@ -691,4 +918,20 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
       },
     );
   }
+}
+
+class _TimelineEntry {
+  final DateTime time;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Diary? diary;
+
+  const _TimelineEntry({
+    required this.time,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.diary,
+  });
 }

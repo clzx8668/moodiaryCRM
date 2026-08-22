@@ -502,6 +502,48 @@ class LocalAfterSales {
        updatedAt = updatedAt ?? DateTime.now();
 }
 
+/// 跟进记录/活动
+class LocalActivity {
+  String id;
+  String type;
+  String? direction;
+  String relatedType;
+  String relatedId;
+  String subject;
+  String content;
+  String status;
+  DateTime? scheduledAt;
+  DateTime? completedAt;
+  DateTime createdAt;
+
+  LocalActivity({
+    required this.id,
+    this.type = 'note',
+    this.direction,
+    this.relatedType = '',
+    this.relatedId = '',
+    this.subject = '',
+    this.content = '',
+    this.status = 'completed',
+    this.scheduledAt,
+    this.completedAt,
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+}
+
+/// 标签
+class LocalTag {
+  String id;
+  String name;
+  String color;
+
+  LocalTag({
+    required this.id,
+    required this.name,
+    this.color = '#4CAF50',
+  });
+}
+
 /// 自定义数据对象定义
 class LocalCustomObject {
   String id;
