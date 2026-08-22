@@ -154,6 +154,15 @@ class SettingPage extends StatelessWidget {
                   leading: const Icon(Icons.sync_rounded),
                 ),
                 AdaptiveListTile(
+                  title: const Text('数据健康度'),
+                  subtitle: const Text('统计概览 / 附件清理 / 重建向量索引 / CRM 对账'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    logic.toHealthPage();
+                  },
+                  leading: const Icon(Icons.monitor_heart_rounded),
+                ),
+                AdaptiveListTile(
                   title: Text(context.l10n.settingClean),
                   leading: const Icon(Icons.cleaning_services_rounded),
                   trailing: GetBuilder<SettingLogic>(

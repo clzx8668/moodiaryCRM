@@ -159,6 +159,10 @@ class SettingLogic extends GetxController {
     Get.toNamed(AppRoutes.backupSyncPage);
   }
 
+  void toHealthPage() {
+    Get.toNamed(AppRoutes.healthPage);
+  }
+
   Future<void> setCustomTitle({required String title}) async {
     state.customTitle = title.trim();
     update(['CustomTitle']);
