@@ -147,11 +147,14 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   bool _saving = false;
   String _query = '';
   List<String> _columns = [];
+  List<String> _hidden = [];
   CrmEntityCache? _selected;
 
   CrmLocalRepository get _repo => CrmLocalRepository();
 
   String get _columnPrefKey => 'crmTableColumns_${widget.objectType}';
+
+  String get _hiddenPrefKey => 'crmTableHidden_${widget.objectType}';
 
   bool get _customized =>
       PrefUtil.getValue<bool>(
@@ -181,6 +184,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   void initState() {
     super.initState();
     _columns = PrefUtil.getValue<List<String>>(_columnPrefKey) ?? [];
+    _hidden = PrefUtil.getValue<List<String>>(_hiddenPrefKey) ?? [];
     _reload();
   }
 
@@ -201,6 +205,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   // ==================== 数据加载（本地仓储 → 表格视图） ====================
 
   Future<List<CrmEntityCache>> _loadItems() async {
+    await _ensureNewDefaults();
     final repo = _repo;
     switch (widget.objectType) {
       case 'account':
@@ -524,11 +529,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   List<String> _effectiveColumns(List<String> all) {
     final defaults = _fields.map((f) => f.name).where(all.contains).toList();
     if (_customized && _columns.isNotEmpty) {
-      final persisted = _columns.where(all.contains).toList();
-      for (final d in defaults) {
-        if (!persisted.contains(d)) persisted.add(d);
-      }
-      return persisted;
+      return _columns.where(all.contains).toList();
     }
     return defaults.isEmpty ? [_labelField] : defaults;
   }
@@ -579,7 +580,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
-          final hidden = all.where((f) => !visible.contains(f)).toList();
+          final hiddenChips = all.where((f) => !visible.contains(f)).toList();
           return AlertDialog(
             title: const Text('列设置（显示 / 顺序）'),
             content: SizedBox(
@@ -634,7 +635,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                       },
                     ),
                   ),
-                  if (hidden.isNotEmpty) ...[
+                  if (hiddenChips.isNotEmpty) ...[
                     const Divider(height: 8),
                     Text(
                       '隐藏字段（点击恢复显示）',
@@ -645,7 +646,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                       spacing: 6,
                       runSpacing: 4,
                       children: [
-                        for (final field in hidden)
+                        for (final field in hiddenChips)
                           ActionChip(
                             label: Text(
                               _fieldLabel(field),
@@ -686,7 +687,14 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     );
     if (ok == true) {
       setState(() => _columns = visible);
+      setState(() {
+        _hidden = all.where((f) => !visible.contains(f)).toList();
+      });
       await PrefUtil.setValue<List<String>>(_columnPrefKey, visible);
+      await PrefUtil.setValue<List<String>>(
+        _hiddenPrefKey,
+        _hidden,
+      );
       await PrefUtil.setValue<bool>(
         'crmTableColumnsCustomized_${widget.objectType}',
         customized,
@@ -784,6 +792,23 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
           fields: _fields,
         ),
       );
+    }
+  }
+
+  /// 追加「用户从未决定过」的新默认字段（显式隐藏的除外）：
+  /// 保证 Twenty 新增字段自动出现，同时尊重用户显式取消勾选。
+  Future<void> _ensureNewDefaults() async {
+    if (!_customized) return;
+    final hidden = _hidden.toSet();
+    var changed = false;
+    for (final d in _fields.map((f) => f.name)) {
+      if (!_columns.contains(d) && !hidden.contains(d)) {
+        _columns.add(d);
+        changed = true;
+      }
+    }
+    if (changed) {
+      await PrefUtil.setValue<List<String>>(_columnPrefKey, _columns);
     }
   }
 

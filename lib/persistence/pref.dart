@@ -108,6 +108,7 @@ class PrefUtil {
     'crmTableColumns_',
     'crmTabVisible_',
     'crmTableColumnsCustomized_',
+    'crmTableHidden_',
     'crmFieldMeta_',
   };
 
