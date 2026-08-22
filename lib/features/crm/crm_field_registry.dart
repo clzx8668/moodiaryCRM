@@ -100,6 +100,17 @@ class CrmFieldRegistry {
     'commissionsTiChengJieSuan': 'commission',
   };
 
+  /// metadata 字段列表偶发缺失的已知字段补充（GraphQL 实际可用；
+  /// 目前仅 moodiaryGeneric 受 Twenty metadata 缓存怪癖影响）
+  static const Map<String, List<CrmFieldMeta>> extraObjectFields = {
+    'moodiaryGeneric': [
+      CrmFieldMeta(name: 'title', label: 'Title', type: 'TEXT'),
+      CrmFieldMeta(name: 'content', label: 'Content', type: 'TEXT'),
+      CrmFieldMeta(name: 'sourceType', label: 'Source Type', type: 'SELECT'),
+      CrmFieldMeta(name: 'status', label: 'Status', type: 'SELECT'),
+    ],
+  };
+
   /// 系统/审计字段（默认不展示）
   static const Set<String> _auditFields = {
     'id',
@@ -196,6 +207,12 @@ query ListObjects {
             isCustom: fn['isCustom'] as bool? ?? false,
           );
           fields.add(meta);
+        }
+        // 补充 metadata 缺失的应用已知字段
+        for (final extra in extraObjectFields[objectKey] ?? const []) {
+          if (!fields.any((f) => f.name == extra.name)) {
+            fields.add(extra);
+          }
         }
         final labelField = _guessLabelField(
           node['nameSingular'] as String,

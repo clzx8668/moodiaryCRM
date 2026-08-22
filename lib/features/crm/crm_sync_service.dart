@@ -82,6 +82,11 @@ class CrmSyncService {
     'commissionsTiChengJieSuan',
   };
 
+  /// 通用数据表（无关联内容收件箱；需按对接指导在 Twenty 创建）
+  static const Set<String> genericObjects = {
+    'moodiaryGeneric',
+  };
+
   CrmSyncService({required this.client, SyncLogService? log})
     : log = log ?? SyncLogService.instance;
 
@@ -142,13 +147,25 @@ class CrmSyncService {
   Future<CrmSyncResult> fullPull({
     Set<String>? objects,
   }) async {
-    final targets = objects ?? {...defaultObjects, ...customObjects};
+    final targets = objects ??
+        {...defaultObjects, ...customObjects, ...genericObjects};
     final pulledByObject = <String, int>{};
     var total = 0;
     for (final object in targets) {
-      final count = await pullObject(object);
-      pulledByObject[object] = count;
-      total += count;
+      try {
+        final count = await pullObject(object);
+        pulledByObject[object] = count;
+        total += count;
+      } catch (e) {
+        // 单个对象失败（如目标实例未创建通用表）不阻断全量同步
+        await log.write(
+          level: SyncLogLevel.warn,
+          operation: 'pull',
+          target: object,
+          detail: '对象拉取失败，已跳过',
+          error: e.toString(),
+        );
+      }
     }
     final result = CrmSyncResult(
       syncedAt: DateTime.now(),
@@ -358,7 +375,11 @@ class CrmSyncService {
   /// 本地缓存统计
   Future<Map<String, int>> localStats() async {
     final stats = <String, int>{};
-    for (final object in {...defaultObjects, ...customObjects}) {
+    for (final object in {
+      ...defaultObjects,
+      ...customObjects,
+      ...genericObjects,
+    }) {
       stats[object] = await IsarUtil.countCrmEntitiesByType(object);
     }
     return stats;
