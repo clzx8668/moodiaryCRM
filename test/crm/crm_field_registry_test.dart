@@ -88,6 +88,56 @@ void main() {
         isFalse,
       );
     });
+
+    test('schema 风格：复合标量可展示，关系对象排除', () {
+      expect(
+        CrmFieldRegistry.isDisplayableField(
+          const CrmFieldMeta(name: 'domainName', label: 'Domain', type: 'Links'),
+        ),
+        isTrue,
+      );
+      expect(
+        CrmFieldRegistry.isDisplayableField(
+          const CrmFieldMeta(
+            name: 'annualRecurringRevenue',
+            label: 'ARR',
+            type: 'Currency',
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        CrmFieldRegistry.isDisplayableField(
+          const CrmFieldMeta(
+            name: 'people',
+            label: 'People',
+            type: 'PersonConnection',
+          ),
+        ),
+        isFalse,
+      );
+      expect(
+        CrmFieldRegistry.isDisplayableField(
+          const CrmFieldMeta(
+            name: 'accountOwner',
+            label: 'Owner',
+            type: 'WorkspaceMember',
+          ),
+        ),
+        isFalse,
+      );
+      // 枚举（schema ENUM → SELECT）
+      expect(
+        CrmFieldRegistry.isDisplayableField(
+          const CrmFieldMeta(
+            name: 'customerstatus',
+            label: 'Customer Status',
+            type: 'SELECT',
+          ),
+        ),
+        isTrue,
+      );
+    });
   });
 
   group('CrmFieldRegistry.objectMetaName', () {

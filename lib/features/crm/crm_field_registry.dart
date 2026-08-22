@@ -124,6 +124,7 @@ class CrmFieldRegistry {
     'attachments',
     'timelineActivities',
     'favorites',
+    'avatarFile',
     'noteTargets',
     'taskTargets',
     'people',
@@ -146,6 +147,27 @@ class CrmFieldRegistry {
     'POSITION',
     'ACTOR',
   };
+
+  /// 复合标量对象类型（GraphQL schema 形态，可整字段查询并展示）
+  static const Set<String> _compositeScalarTypes = {
+    'Links',
+    'Address',
+    'Currency',
+    'Emails',
+    'Phones',
+    'FullName',
+    'String',
+    'Float',
+    'Int',
+    'Boolean',
+    'DateTime',
+    'Date',
+    'Number',
+    'UUID',
+  };
+
+  /// metadata 类型形态（UPPER_SNAKE，如 TEXT/DATE_TIME/RELATION）
+  static final RegExp _metaTypePattern = RegExp(r'^[A-Z0-9_]+$');
 
   /// 拉取对象元数据（网络优先，失败回退本地缓存）。
   static Future<CrmObjectMeta?> fetchObjectMeta(
@@ -214,6 +236,37 @@ query ListObjects {
             fields.add(extra);
           }
         }
+        // 合并 GraphQL schema 字段（权威）：metadata 缺失的字段补充进来
+        try {
+          final schemaFields = await client.typeFields(
+            _capitalize(metaName),
+          );
+          final metaByName = {
+            for (final f in fields) f.name: f,
+          };
+          final merged = <CrmFieldMeta>[];
+          for (final sf in schemaFields) {
+            final existing = metaByName[sf.name];
+            merged.add(
+              existing ??
+                  CrmFieldMeta(
+                    name: sf.name,
+                    label: existing?.label ?? sf.name,
+                    // 枚举按 SELECT 处理（schema 类型名不可枚举）
+                    type: sf.kind == 'ENUM' ? 'SELECT' : sf.type,
+                  ),
+            );
+          }
+          // metadata 独有字段（含 extraObjectFields 补充）保留
+          for (final f in fields) {
+            if (!merged.any((m) => m.name == f.name)) merged.add(f);
+          }
+          fields
+            ..clear()
+            ..addAll(merged);
+        } catch (_) {
+          // schema 拉取失败时使用 metadata + 补充字段
+        }
         final labelField = _guessLabelField(
           node['nameSingular'] as String,
           fields,
@@ -266,12 +319,18 @@ query ListObjects {
   /// 字段是否可展示（非系统、非审计、非关系）
   static bool isDisplayableField(CrmFieldMeta field) {
     if (field.isSystem) return false;
-    if (field.isRelation) return false;
-    if (_excludedTypes.contains(field.type)) return false;
     if (_auditFields.contains(field.name)) return false;
     if (field.name.endsWith('Id')) return false;
     if (field.name.startsWith('__')) return false;
-    return true;
+    final type = field.type;
+    if (type.isEmpty) return true;
+    if (_excludedTypes.contains(type)) return false;
+    if (_metaTypePattern.hasMatch(type)) {
+      // metadata 风格（UPPER_SNAKE）：仅排除关系类型
+      return type != 'RELATION' && type != 'MORPH_RELATION';
+    }
+    // schema 风格（PascalCase）：复合标量白名单，其余对象视为关系
+    return _compositeScalarTypes.contains(type);
   }
 
   /// 标签字段命名规则兜底（与 Twenty label identifier 对齐）
@@ -295,5 +354,10 @@ query ListObjects {
       if (isDisplayableField(f)) return f.name;
     }
     return 'name';
+  }
+
+  static String _capitalize(String value) {
+    if (value.isEmpty) return value;
+    return value[0].toUpperCase() + value.substring(1);
   }
 }

@@ -40,12 +40,23 @@ void main() {
     final companies = await IsarUtil.getCrmEntitiesByType('company');
     expect(companies, isNotEmpty);
     // 全字段拉取：快照应包含 Twenty 默认展示字段（address/xLink 等），
-    // 保证 CRM 表格不止渲染名称一列
+    // 保证 CRM 表格展示完整（含域名/员工数/年收入/客户状态等关键字段）
+    const criticalFields = {
+      'domainName',
+      'address',
+      'employees',
+      'linkedinLink',
+      'xLink',
+      'annualRecurringRevenue',
+      'customerstatus',
+    };
+    final present = criticalFields
+        .where(companies.first.data.containsKey)
+        .toList();
     expect(
-      companies.first.data.containsKey('address') ||
-          companies.first.data.containsKey('xLink'),
-      isTrue,
-      reason: '公司快照应包含完整字段：${companies.first.data.keys}',
+      present.length,
+      greaterThanOrEqualTo(3),
+      reason: '公司快照应包含关键 CRM 字段（实际：${companies.first.data.keys}）',
     );
 
     // 对账：全量拉取后本地与远端应基本一致

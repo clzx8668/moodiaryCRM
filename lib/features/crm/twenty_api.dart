@@ -35,6 +35,19 @@ class TwentyEntity {
   const TwentyEntity({required this.id, required this.data});
 }
 
+/// GraphQL 类型字段信息（introspection）
+class TwentyFieldInfo {
+  final String name;
+  final String type;
+  final String kind;
+
+  const TwentyFieldInfo({
+    required this.name,
+    required this.type,
+    required this.kind,
+  });
+}
+
 /// 分页结果
 class TwentyPage {
   final List<TwentyEntity> items;
@@ -154,6 +167,44 @@ class TwentyApiClient {
       if (data['__type'] is Map<String, dynamic>) return true;
     }
     return false;
+  }
+
+  /// 拉取对象的 GraphQL 字段清单（权威字段来源；metadata 缓存偶发缺失字段）。
+  /// [typeName] 为 GraphQL 类型名（首字母大写，如 Company / MoodiaryGeneric）。
+  Future<List<TwentyFieldInfo>> typeFields(String typeName) async {
+    final data = await graphql(
+      '''
+query TypeFields {
+  __type(name: "$typeName") {
+    fields {
+      name
+      type { name kind ofType { name kind } }
+    }
+  }
+}''',
+    );
+    final fields = (data['__type'] as Map<String, dynamic>?)?['fields'] as List?;
+    if (fields == null) return const [];
+    final result = <TwentyFieldInfo>[];
+    for (final raw in fields) {
+      final field = raw as Map<String, dynamic>;
+      var type = (field['type'] as Map<String, dynamic>?)?['name']?.toString() ?? '';
+      var kind = (field['type'] as Map<String, dynamic>?)?['kind']?.toString() ?? '';
+      if (kind == 'NON_NULL') {
+        final inner = (field['type'] as Map<String, dynamic>?)?['ofType']
+            as Map<String, dynamic>?;
+        type = inner?['name']?.toString() ?? type;
+        kind = inner?['kind']?.toString() ?? kind;
+      }
+      result.add(
+        TwentyFieldInfo(
+          name: field['name'] as String,
+          type: type,
+          kind: kind,
+        ),
+      );
+    }
+    return result;
   }
 
   /// Metadata API 通用调用（对象/字段元数据管理）。
