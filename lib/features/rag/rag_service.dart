@@ -51,6 +51,26 @@ class RagService {
   Future<int> countEmbeddings(String kbId) =>
       IsarUtil.countEmbeddingsByKnowledgeBase(kbId);
 
+  /// 重建全部知识库向量索引（P4.3 数据健康度），返回 (知识库数, 成功索引块数)
+  Future<ReindexAllResult> reindexAll() async {
+    final knowledgeBases = await IsarUtil.getAllKnowledgeBases();
+    var indexed = 0;
+    var succeeded = 0;
+    for (final kb in knowledgeBases) {
+      try {
+        indexed += await indexBlocks(knowledgeBaseId: kb.id);
+        succeeded++;
+      } catch (_) {
+        // 单库失败（如 Embedding 模型未配置/网络错误）不中断其余库
+      }
+    }
+    return ReindexAllResult(
+      knowledgeBases: knowledgeBases.length,
+      succeeded: succeeded,
+      indexed: indexed,
+    );
+  }
+
   // ==================== 增量索引（P3.3） ====================
 
   /// 索引指定日记（或全部）的 Text / 完成态 AI Block。
@@ -239,5 +259,18 @@ class RagContextResult {
     required this.query,
     required this.context,
     required this.hits,
+  });
+}
+
+/// 全量重建向量索引结果（P4.3 数据健康度）
+class ReindexAllResult {
+  final int knowledgeBases;
+  final int succeeded;
+  final int indexed;
+
+  const ReindexAllResult({
+    required this.knowledgeBases,
+    required this.succeeded,
+    required this.indexed,
   });
 }

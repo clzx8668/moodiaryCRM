@@ -23,6 +23,7 @@ import 'package:moodiary/pages/edit/edit_logic.dart';
 import 'package:moodiary/pages/edit/edit_view.dart';
 import 'package:moodiary/pages/font/font_logic.dart';
 import 'package:moodiary/pages/font/font_view.dart';
+import 'package:moodiary/features/health/health_tools_page.dart';
 import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/pages/home/home_view.dart';
 import 'package:moodiary/pages/laboratory/laboratory_logic.dart';
@@ -168,6 +169,10 @@ class AppPages {
       name: AppRoutes.assistantPage,
       page: () => const AssistantPage(),
       binds: [Bind.lazyPut(fenix: true, () => AssistantLogic())],
+    ),
+    MoodiaryGetPage(
+      name: AppRoutes.healthPage,
+      page: () => const HealthToolsPage(),
     ),
     MoodiaryGetPage(
       name: AppRoutes.sponsorPage,
