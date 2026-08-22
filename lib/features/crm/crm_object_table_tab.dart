@@ -596,6 +596,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                   Flexible(
                     child: ReorderableListView.builder(
                       shrinkWrap: true,
+                      // 关闭默认右侧拖拽把手，避免与复选框重叠（左侧已自定义拖拽把手）
+                      buildDefaultDragHandles: false,
                       itemCount: visible.length,
                       onReorder: (oldIndex, newIndex) {
                         setDialogState(() {
