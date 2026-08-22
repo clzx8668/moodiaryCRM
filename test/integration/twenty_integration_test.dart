@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:moodiary/features/crm/crm_field_registry.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
 import 'package:moodiary/persistence/app_database.dart';
@@ -71,6 +72,21 @@ void main() {
         isNotEmpty,
         reason: '联系人快照应包含关键字段（实际：${people.first.data.keys}）',
       );
+      // 名称不应退化为记录 ID；公司关系标签可读
+      expect(people.first.name, isNotEmpty);
+      expect(
+        people.first.name,
+        isNot(people.first.twentyId),
+        reason: '联系人名称不应显示为 Twenty ID',
+      );
+      final companyValue = people.first.data['company'];
+      if (companyValue is Map) {
+        expect(
+          CrmFieldRegistry.formatValue(companyValue),
+          isNotEmpty,
+          reason: '联系人公司列应显示关联公司名称',
+        );
+      }
     }
     final opportunities = await IsarUtil.getCrmEntitiesByType('opportunity');
     if (opportunities.isNotEmpty) {
