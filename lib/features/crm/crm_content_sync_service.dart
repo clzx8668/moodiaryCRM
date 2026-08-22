@@ -242,7 +242,7 @@ class CrmContentSyncService {
             data: {
               'title': title,
               'content': body,
-              'sourceType': 'note',
+              'sourceType': 'NOTE',
             },
             fields: ['id', 'title'],
           )).id;
@@ -257,7 +257,7 @@ class CrmContentSyncService {
           await client.update(
             object: genericObjectName,
             id: remoteId,
-            data: {'title': title, 'content': body, 'sourceType': 'note'},
+            data: {'title': title, 'content': body, 'sourceType': 'NOTE'},
           );
         }
         link
@@ -359,7 +359,7 @@ class CrmContentSyncService {
             data: {
               'title': title,
               'content': body,
-              'sourceType': 'todo',
+              'sourceType': 'TODO',
               if (dueAt != null) 'dueAt': dueAt.toUtc().toIso8601String(),
               if (status.isNotEmpty) 'status': status,
             },
@@ -378,7 +378,7 @@ class CrmContentSyncService {
             data: {
               'title': title,
               'content': body,
-              'sourceType': 'todo',
+              'sourceType': 'TODO',
               if (dueAt != null) 'dueAt': dueAt.toUtc().toIso8601String(),
               if (status.isNotEmpty) 'status': status,
             },
@@ -512,15 +512,23 @@ class CrmContentSyncService {
             : 'noteTarget';
     final targets = await client.listAll(
       object: targetObject,
-      fields: const ['id', 'taskId', 'noteId', 'companyId', 'personId', 'opportunityId'],
+      fields: const [
+        'id',
+        'taskId',
+        'noteId',
+        'targetCompanyId',
+        'targetPersonId',
+        'targetOpportunityId',
+      ],
     );
     for (final t in targets) {
       final belongs =
           t.data['taskId']?.toString() == link.remoteId ||
           t.data['noteId']?.toString() == link.remoteId;
-      final matchesTarget = t.data['companyId']?.toString() == link.targetId ||
-          t.data['personId']?.toString() == link.targetId ||
-          t.data['opportunityId']?.toString() == link.targetId;
+      final matchesTarget =
+          t.data['targetCompanyId']?.toString() == link.targetId ||
+          t.data['targetPersonId']?.toString() == link.targetId ||
+          t.data['targetOpportunityId']?.toString() == link.targetId;
       if (belongs && matchesTarget) {
         await client.delete(object: targetObject, id: t.id);
       }

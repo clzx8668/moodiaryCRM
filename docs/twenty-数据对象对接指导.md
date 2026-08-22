@@ -68,7 +68,7 @@
 | :-- | :-- | :-- | :-- |
 | title | TEXT | ✅ | 标题（日记标题 / 待办首行） |
 | content | TEXT | – | 完整内容（Markdown 或任务行） |
-| sourceType | SELECT | ✅ | `note` / `todo`，认领时决定升级为 note 还是 task |
+| sourceType | SELECT | ✅ | `NOTE` / `TODO`（Twenty 枚举要求大写蛇形），认领时决定升级为 note 还是 task |
 | dueAt | DATE_TIME | – | 待办到期时间 |
 | status | SELECT | – | TODO / IN_PROGRESS / DONE |
 | 内置 createdAt / updatedAt / createdBy | – | – | Twenty 自动维护 |
@@ -83,29 +83,33 @@
 3. 添加字段：
    - `title` → 文本（Text），默认作为标签标识符；
    - `content` → 多行文本；
-   - `sourceType` → 单选（Select），选项 `note`（笔记）/ `todo`（待办），默认 `note`；
+   - `sourceType` → 单选（Select），选项 `NOTE`（笔记）/ `TODO`（待办），默认 `NOTE`；
    - `dueAt` → 日期时间（DateTime），可空；
    - `status` → 单选（Select），选项 `TODO` / `IN_PROGRESS` / `DONE`，默认 `TODO`；
 4. **Save**。Twenty 自动执行 workspace migration，对象即刻可用。
 
 #### 创建方式 B：Metadata GraphQL API（可脚本化）
 
-Metadata 端点：`{TWENTY_BASE_URL}/metadata/graphql`，请求头 `Authorization: Bearer <API Key>`。
+Metadata 端点：`{TWENTY_BASE_URL}/metadata`（部分版本为 `/metadata/graphql`，
+以实例实际路由为准；本测试环境 2026-08-22 为 `/metadata`），
+请求头 `Authorization: Bearer <API Key>`。
 
 ```bash
 # 1) 创建对象
-curl -X POST http://10.200.245.54:3000/metadata/graphql \
+curl -X POST http://10.200.245.54:3000/metadata \
   -H "Authorization: Bearer $TWENTY_TOKEN" -H "Content-Type: application/json" \
   -d '{
     "query": "mutation CreateObject($input: CreateOneObjectInput!) { createOneObject(input: $input) { id nameSingular namePlural labelSingular labelPlural } }",
     "variables": {
       "input": {
-        "nameSingular": "moodiaryGeneric",
-        "namePlural": "moodiaryGenerics",
-        "labelSingular": "Moodiary 通用记录",
-        "labelPlural": "Moodiary 通用记录",
-        "description": "未关联笔记/待办的通用数据表，认领后升级为标准对象",
-        "icon": "IconInbox"
+        "object": {
+          "nameSingular": "moodiaryGeneric",
+          "namePlural": "moodiaryGenerics",
+          "labelSingular": "Moodiary 通用记录",
+          "labelPlural": "Moodiary 通用记录",
+          "description": "未关联笔记/待办的通用数据表，认领后升级为标准对象",
+          "icon": "IconInbox"
+        }
       }
     }
   }'
@@ -115,7 +119,7 @@ curl -X POST http://10.200.245.54:3000/metadata/graphql \
 
 ```bash
 # 2) 创建字段 title（TEXT）
-curl -X POST http://10.200.245.54:3000/metadata/graphql \
+curl -X POST http://10.200.245.54:3000/metadata \
   -H "Authorization: Bearer $TWENTY_TOKEN" -H "Content-Type: application/json" \
   -d '{
     "query": "mutation CreateField($input: CreateOneFieldMetadataInput!) { createOneField(input: $input) { id name label type } }",
@@ -134,16 +138,17 @@ curl -X POST http://10.200.245.54:3000/metadata/graphql \
 # 3) content（TEXT）
 #    同上，type: "TEXT", name: "content", label: "Content"
 
-# 4) sourceType（SELECT，带选项）
+# 4) sourceType（SELECT，带选项；注意 SELECT 默认值需带引号字符串，如 "'NOTE'"）
 #    同上，type: "SELECT", name: "sourceType", label: "Source Type",
-#    settings: { "options": [{"value":"note","label":"笔记","position":0,"color":"sky"},
-#                            {"value":"todo","label":"待办","position":1,"color":"green"}] }
+#    options: [{"value":"NOTE","label":"笔记","position":0,"color":"sky"},
+#              {"value":"TODO","label":"待办","position":1,"color":"green"}],
+#    defaultValue: "'NOTE'"
 
 # 5) dueAt（DATE_TIME）
 #    同上，type: "DATE_TIME", name: "dueAt", label: "Due At"
 
 # 6) status（SELECT）
-#    settings.options: TODO / IN_PROGRESS / DONE，默认 "TODO"
+#    options: TODO / IN_PROGRESS / DONE，默认值 "'TODO'"
 ```
 
 > 权限要求：调用 `/metadata/graphql` 需要 API Key 具备 **Data model** 管理权限
@@ -207,7 +212,7 @@ mutation CreateGeneric {
   createMoodiaryGeneric(data: {
     title: "灵感片段",
     content: "周末想清楚的产品方向",
-    sourceType: "note"
+    sourceType: "NOTE"
   }) { id title sourceType }
 }
 ```
@@ -228,7 +233,7 @@ query ListNotes($first: Int!) {
 1. **权限**：业务端点 `/graphql` 的 API Key 需可读可写 `note`、`task`、
    `noteTarget`、`taskTarget` 及自定义对象；metadata 端点权限见 2.2；
 2. **命名约定**：自定义对象固定为 `moodiaryGeneric`（代码常量，勿改）；
-   `sourceType` 取值固定 `note` / `todo`；`status` 取值对齐 Twenty 任务枚举；
+   `sourceType` 取值固定 `NOTE` / `TODO`（Twenty SELECT 枚举要求大写蛇形）；`status` 取值对齐 Twenty 任务枚举；
 3. **幂等**：本地 `crm_content_links` 表以 `(localType, localId)` 唯一约束，
    同一本地记录重复推送只会更新远端对象，不会重复创建；
 4. **冲突策略**：沿用 LWW（Last-Write-Wins）+ 对账；内容以本地最近修改为准，
