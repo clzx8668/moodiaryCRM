@@ -138,6 +138,65 @@ void main() {
         isTrue,
       );
     });
+
+    test('mergeCustomizedWithDefaults 追加新增默认字段且保留自定义顺序', () {
+      const meta = CrmObjectMeta(
+        nameSingular: 'company',
+        namePlural: 'companies',
+        labelSingular: 'Company',
+        labelField: 'name',
+        fields: [
+          CrmFieldMeta(name: 'name', label: 'Name', type: 'TEXT'),
+          CrmFieldMeta(name: 'address', label: 'Address', type: 'ADDRESS'),
+          CrmFieldMeta(name: 'xLink', label: 'X', type: 'Links'),
+          CrmFieldMeta(name: 'linkedinLink', label: 'Linkedin', type: 'Links'),
+          CrmFieldMeta(name: 'domainName', label: 'Domain Name', type: 'Links'),
+          CrmFieldMeta(name: 'employees', label: 'Employees', type: 'Float'),
+          CrmFieldMeta(
+            name: 'annualRecurringRevenue',
+            label: 'ARR',
+            type: 'Currency',
+          ),
+          CrmFieldMeta(
+            name: 'customerstatus',
+            label: 'CustomerStatus',
+            type: 'SELECT',
+          ),
+          CrmFieldMeta(name: 'people', label: 'People', type: 'RELATION'),
+        ],
+      );
+      // 旧自定义只保留了 3 个字段（历史列设置保存的）
+      const customized = ['name', 'address', 'xLink', 'linkedinLink'];
+      final available = {
+        'name',
+        'address',
+        'xLink',
+        'linkedinLink',
+        'domainName',
+        'employees',
+        'annualRecurringRevenue',
+        'customerstatus',
+        'people',
+      };
+
+      final merged = CrmFieldRegistry.mergeCustomizedWithDefaults(
+        customized,
+        meta,
+        available,
+      );
+
+      expect(merged, [
+        'name',
+        'address',
+        'xLink',
+        'linkedinLink',
+        'domainName',
+        'employees',
+        'annualRecurringRevenue',
+        'customerstatus',
+      ]);
+      expect(merged, isNot(contains('people')));
+    });
   });
 
   group('CrmFieldRegistry.objectMetaName', () {
