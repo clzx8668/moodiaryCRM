@@ -139,7 +139,9 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   }
 
   void _reload() {
-    setState(() => _future = _loadItems());
+    setState(() {
+      _future = _loadItems();
+    });
   }
 
   // ==================== 数据加载（本地仓储 → 表格视图） ====================
