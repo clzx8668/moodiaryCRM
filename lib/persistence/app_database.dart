@@ -173,20 +173,25 @@ class CrmContentLinks extends Table {
   ];
 }
 
-/// 本地 CRM 公司表（本地优先 CRM，参考成熟 CRM 数据模型）
-@DataClassName('CrmCompanyRow')
-class CrmCompanies extends Table {
+/// 本地 CRM 客户/账户表（统一承载 company / person / org，Contact 从属于此）
+@DataClassName('CrmAccountRow')
+class CrmAccounts extends Table {
   TextColumn get id => text()();
   TextColumn get name => text().withDefault(const Constant(''))();
-  TextColumn get domainName => text().withDefault(const Constant(''))();
-  TextColumn get addressJson =>
-      text().map(const MapConverter()).withDefault(const Constant('{}'))();
-  IntColumn get employees => integer().nullable()();
-  TextColumn get linkedinLink => text().withDefault(const Constant(''))();
-  TextColumn get xLink => text().withDefault(const Constant(''))();
-  IntColumn get arrMicros => integer().nullable()();
-  TextColumn get icp => text().withDefault(const Constant(''))();
-  TextColumn get customerStatus => text().withDefault(const Constant(''))();
+  /// company / person / org
+  TextColumn get type => text().withDefault(const Constant('company'))();
+  TextColumn get industry => text().withDefault(const Constant(''))();
+  /// vip / normal / potential
+  TextColumn get level => text().withDefault(const Constant('normal'))();
+  TextColumn get source => text().withDefault(const Constant(''))();
+  TextColumn get phone => text().withDefault(const Constant(''))();
+  TextColumn get email => text().withDefault(const Constant(''))();
+  TextColumn get address => text().withDefault(const Constant(''))();
+  TextColumn get website => text().withDefault(const Constant(''))();
+  TextColumn get creditCode => text().withDefault(const Constant(''))();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  /// active / inactive / blacklist
+  TextColumn get status => text().withDefault(const Constant('active'))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
@@ -195,23 +200,20 @@ class CrmCompanies extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-/// 本地 CRM 联系人表
-@DataClassName('CrmPersonRow')
-class CrmPeople extends Table {
+/// 本地 CRM 联系人表（从属 Account）
+@DataClassName('CrmContactRow')
+class CrmContacts extends Table {
   TextColumn get id => text()();
-  TextColumn get companyId => text().nullable()();
-  TextColumn get firstName => text().withDefault(const Constant(''))();
-  TextColumn get lastName => text().withDefault(const Constant(''))();
-  TextColumn get jobTitle => text().withDefault(const Constant(''))();
-  TextColumn get emailsJson =>
-      text().map(const MapConverter()).withDefault(const Constant('{}'))();
-  TextColumn get phonesJson =>
-      text().map(const MapConverter()).withDefault(const Constant('{}'))();
-  TextColumn get city => text().withDefault(const Constant(''))();
+  TextColumn get accountId => text().nullable()();
+  TextColumn get name => text().withDefault(const Constant(''))();
+  TextColumn get title => text().withDefault(const Constant(''))();
+  TextColumn get department => text().withDefault(const Constant(''))();
+  TextColumn get phone => text().withDefault(const Constant(''))();
+  TextColumn get email => text().withDefault(const Constant(''))();
   TextColumn get wechat => text().withDefault(const Constant(''))();
-  TextColumn get avatarUrl => text().withDefault(const Constant(''))();
-  TextColumn get linkedinLink => text().withDefault(const Constant(''))();
-  TextColumn get xLink => text().withDefault(const Constant(''))();
+  BoolColumn get isPrimary => boolean().withDefault(const Constant(false))();
+  BoolColumn get isDecisionMaker => boolean().withDefault(const Constant(false))();
+  TextColumn get note => text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
@@ -220,17 +222,26 @@ class CrmPeople extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-/// 本地 CRM 机会/线索表
+/// 本地 CRM 机会/线索表（stage 覆盖全生命周期，合并线索）
 @DataClassName('CrmOpportunityRow')
 class CrmOpportunities extends Table {
   TextColumn get id => text()();
-  TextColumn get companyId => text().nullable()();
-  TextColumn get pointOfContactId => text().nullable()();
   TextColumn get name => text().withDefault(const Constant(''))();
-  IntColumn get amountMicros => integer().nullable()();
-  DateTimeColumn get closeDate => dateTime().nullable()();
-  TextColumn get stage => text().withDefault(const Constant(''))();
-  TextColumn get customStatus => text().withDefault(const Constant(''))();
+  TextColumn get accountId => text().nullable()();
+  TextColumn get contactId => text().nullable()();
+  /// newLead/contacted/qualified/proposal/negotiation/closedWon/closedLost/abandoned
+  TextColumn get stage => text().withDefault(const Constant('newLead'))();
+  IntColumn get probability => integer().withDefault(const Constant(0))();
+  RealColumn get amount => real().withDefault(const Constant(0))();
+  TextColumn get currency => text().withDefault(const Constant('CNY'))();
+  TextColumn get source => text().withDefault(const Constant(''))();
+  TextColumn get leadContactName => text().withDefault(const Constant(''))();
+  TextColumn get leadPhone => text().withDefault(const Constant(''))();
+  TextColumn get leadEmail => text().withDefault(const Constant(''))();
+  DateTimeColumn get expectedCloseDate => dateTime().nullable()();
+  DateTimeColumn get actualCloseDate => dateTime().nullable()();
+  TextColumn get lossReason => text().withDefault(const Constant(''))();
+  TextColumn get note => text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
@@ -239,17 +250,26 @@ class CrmOpportunities extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-/// 本地 CRM 合同表
+/// 本地 CRM 合同表（含冗余已回款/已开票金额）
 @DataClassName('CrmContractRow')
 class CrmContracts extends Table {
   TextColumn get id => text()();
-  TextColumn get companyId => text().nullable()();
+  TextColumn get contractNo => text().withDefault(const Constant(''))();
   TextColumn get name => text().withDefault(const Constant(''))();
-  IntColumn get amountMicros => integer().nullable()();
-  TextColumn get currency => text().withDefault(const Constant('CNY'))();
-  TextColumn get status => text().withDefault(const Constant(''))();
-  DateTimeColumn get dueDate => dateTime().nullable()();
-  TextColumn get terms => text().withDefault(const Constant(''))();
+  TextColumn get accountId => text().nullable()();
+  TextColumn get contactId => text().nullable()();
+  TextColumn get opportunityId => text().nullable()();
+  TextColumn get quoteId => text().nullable()();
+  /// draft/active/completed/terminated/expired
+  TextColumn get status => text().withDefault(const Constant('draft'))();
+  RealColumn get totalAmount => real().withDefault(const Constant(0))();
+  RealColumn get paidAmount => real().withDefault(const Constant(0))();
+  RealColumn get invoicedAmount => real().withDefault(const Constant(0))();
+  DateTimeColumn get signDate => dateTime().nullable()();
+  DateTimeColumn get startDate => dateTime().nullable()();
+  DateTimeColumn get endDate => dateTime().nullable()();
+  DateTimeColumn get warrantyEndDate => dateTime().nullable()();
+  TextColumn get note => text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
@@ -395,8 +415,8 @@ class AiChatMessages extends Table {
     AppMetadata,
     CrmEntityCaches,
     CrmContentLinks,
-    CrmCompanies,
-    CrmPeople,
+    CrmAccounts,
+    CrmContacts,
     CrmOpportunities,
     CrmContracts,
     CrmObjectDefs,
@@ -413,7 +433,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -444,13 +464,22 @@ class AppDatabase extends _$AppDatabase {
       // v7 → v8：本地优先 CRM（基础对象 + 自定义对象引擎 + 实体关联）
       if (from < 8) {
         final db = m.database as AppDatabase;
-        await m.createTable(db.crmCompanies);
-        await m.createTable(db.crmPeople);
-        await m.createTable(db.crmOpportunities);
-        await m.createTable(db.crmContracts);
         await m.createTable(db.crmObjectDefs);
         await m.createTable(db.crmCustomRecords);
         await m.createTable(db.crmEntityLinks);
+      }
+      // v8 → v9：R1 决策 —— Account 统一承载客户，Contact 从属；
+      // 机会/合同按 19 表设计文档重建（v8 CRM 表仅测试数据，直接重建）
+      if (from < 9) {
+        final db = m.database as AppDatabase;
+        await db.customStatement('DROP TABLE IF EXISTS crm_companies');
+        await db.customStatement('DROP TABLE IF EXISTS crm_people');
+        await db.customStatement('DROP TABLE IF EXISTS crm_opportunities');
+        await db.customStatement('DROP TABLE IF EXISTS crm_contracts');
+        await m.createTable(db.crmAccounts);
+        await m.createTable(db.crmContacts);
+        await m.createTable(db.crmOpportunities);
+        await m.createTable(db.crmContracts);
       }
     },
     beforeOpen: (details) async {

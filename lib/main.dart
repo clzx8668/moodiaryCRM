@@ -17,6 +17,7 @@ import 'package:moodiary/components/frosted_glass_overlay/frosted_glass_overlay_
 import 'package:moodiary/components/window_buttons/window_buttons.dart';
 import 'package:moodiary/config/env.dart';
 import 'package:moodiary/features/sync_events/sync_event_service.dart';
+import 'package:moodiary/features/sync_log/sync_log.dart';
 import 'package:moodiary/l10n/app_localizations.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/hive.dart';
@@ -29,12 +30,15 @@ import 'package:moodiary/utils/log_util.dart';
 import 'package:moodiary/utils/media_util.dart';
 import 'package:moodiary/utils/theme_util.dart';
 import 'package:moodiary/utils/webdav_util.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 Future<void> _initSystem() async {
   WidgetsFlutterBinding.ensureInitialized();
   await PrefUtil.initPref();
   await IsarUtil.initIsar();
   await HiveUtil().init();
+  unawaited(_initSyncLogFile());
   unawaited(_initRustAndEventStream());
   unawaited(_platFormOption());
   WebDavUtil().initWebDav();
@@ -47,6 +51,17 @@ Future<void> _initSystem() async {
       systemNavigationBarContrastEnforced: false,
     ),
   );
+}
+
+/// 同步日志落盘（应用支持目录 logs/sync.log），重启后仍可追溯。
+Future<void> _initSyncLogFile() async {
+  try {
+    final dir = await getApplicationSupportDirectory();
+    final file = File(p.join(dir.path, 'logs', 'sync.log'));
+    await SyncLogService.instance.loadFromFile(file);
+  } catch (e) {
+    logger.e('同步日志文件初始化失败', error: e);
+  }
 }
 
 /// 串行初始化 Rust 运行时与 FFI 事件流订阅。

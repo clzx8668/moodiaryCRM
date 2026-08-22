@@ -3752,12 +3752,12 @@ class CrmContentLinksCompanion extends UpdateCompanion<CrmContentLinkRow> {
   }
 }
 
-class $CrmCompaniesTable extends CrmCompanies
-    with TableInfo<$CrmCompaniesTable, CrmCompanyRow> {
+class $CrmAccountsTable extends CrmAccounts
+    with TableInfo<$CrmAccountsTable, CrmAccountRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $CrmCompaniesTable(this.attachedDatabase, [this._alias]);
+  $CrmAccountsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -3777,96 +3777,123 @@ class $CrmCompaniesTable extends CrmCompanies
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
-  static const VerificationMeta _domainNameMeta = const VerificationMeta(
-    'domainName',
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('company'),
+  );
+  static const VerificationMeta _industryMeta = const VerificationMeta(
+    'industry',
   );
   @override
-  late final GeneratedColumn<String> domainName = GeneratedColumn<String>(
-    'domain_name',
+  late final GeneratedColumn<String> industry = GeneratedColumn<String>(
+    'industry',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
   @override
-  late final GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
-  addressJson =
-      GeneratedColumn<String>(
-        'address_json',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-        defaultValue: const Constant('{}'),
-      ).withConverter<Map<String, dynamic>>(
-        $CrmCompaniesTable.$converteraddressJson,
-      );
-  static const VerificationMeta _employeesMeta = const VerificationMeta(
-    'employees',
-  );
-  @override
-  late final GeneratedColumn<int> employees = GeneratedColumn<int>(
-    'employees',
+  late final GeneratedColumn<String> level = GeneratedColumn<String>(
+    'level',
     aliasedName,
-    true,
-    type: DriftSqlType.int,
+    false,
+    type: DriftSqlType.string,
     requiredDuringInsert: false,
+    defaultValue: const Constant('normal'),
   );
-  static const VerificationMeta _linkedinLinkMeta = const VerificationMeta(
-    'linkedinLink',
-  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
   @override
-  late final GeneratedColumn<String> linkedinLink = GeneratedColumn<String>(
-    'linkedin_link',
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
-  static const VerificationMeta _xLinkMeta = const VerificationMeta('xLink');
+  static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
   @override
-  late final GeneratedColumn<String> xLink = GeneratedColumn<String>(
-    'x_link',
+  late final GeneratedColumn<String> phone = GeneratedColumn<String>(
+    'phone',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
-  static const VerificationMeta _arrMicrosMeta = const VerificationMeta(
-    'arrMicros',
-  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
   @override
-  late final GeneratedColumn<int> arrMicros = GeneratedColumn<int>(
-    'arr_micros',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _icpMeta = const VerificationMeta('icp');
-  @override
-  late final GeneratedColumn<String> icp = GeneratedColumn<String>(
-    'icp',
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
-  static const VerificationMeta _customerStatusMeta = const VerificationMeta(
-    'customerStatus',
+  static const VerificationMeta _addressMeta = const VerificationMeta(
+    'address',
   );
   @override
-  late final GeneratedColumn<String> customerStatus = GeneratedColumn<String>(
-    'customer_status',
+  late final GeneratedColumn<String> address = GeneratedColumn<String>(
+    'address',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _websiteMeta = const VerificationMeta(
+    'website',
+  );
+  @override
+  late final GeneratedColumn<String> website = GeneratedColumn<String>(
+    'website',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _creditCodeMeta = const VerificationMeta(
+    'creditCode',
+  );
+  @override
+  late final GeneratedColumn<String> creditCode = GeneratedColumn<String>(
+    'credit_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('active'),
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
@@ -3909,14 +3936,17 @@ class $CrmCompaniesTable extends CrmCompanies
   List<GeneratedColumn> get $columns => [
     id,
     name,
-    domainName,
-    addressJson,
-    employees,
-    linkedinLink,
-    xLink,
-    arrMicros,
-    icp,
-    customerStatus,
+    type,
+    industry,
+    level,
+    source,
+    phone,
+    email,
+    address,
+    website,
+    creditCode,
+    note,
+    status,
     createdAt,
     updatedAt,
     deleted,
@@ -3925,10 +3955,10 @@ class $CrmCompaniesTable extends CrmCompanies
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'crm_companies';
+  static const String $name = 'crm_accounts';
   @override
   VerificationContext validateIntegrity(
-    Insertable<CrmCompanyRow> instance, {
+    Insertable<CrmAccountRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -3944,52 +3974,70 @@ class $CrmCompaniesTable extends CrmCompanies
         name.isAcceptableOrUnknown(data['name']!, _nameMeta),
       );
     }
-    if (data.containsKey('domain_name')) {
+    if (data.containsKey('type')) {
       context.handle(
-        _domainNameMeta,
-        domainName.isAcceptableOrUnknown(data['domain_name']!, _domainNameMeta),
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
       );
     }
-    if (data.containsKey('employees')) {
+    if (data.containsKey('industry')) {
       context.handle(
-        _employeesMeta,
-        employees.isAcceptableOrUnknown(data['employees']!, _employeesMeta),
+        _industryMeta,
+        industry.isAcceptableOrUnknown(data['industry']!, _industryMeta),
       );
     }
-    if (data.containsKey('linkedin_link')) {
+    if (data.containsKey('level')) {
       context.handle(
-        _linkedinLinkMeta,
-        linkedinLink.isAcceptableOrUnknown(
-          data['linkedin_link']!,
-          _linkedinLinkMeta,
-        ),
+        _levelMeta,
+        level.isAcceptableOrUnknown(data['level']!, _levelMeta),
       );
     }
-    if (data.containsKey('x_link')) {
+    if (data.containsKey('source')) {
       context.handle(
-        _xLinkMeta,
-        xLink.isAcceptableOrUnknown(data['x_link']!, _xLinkMeta),
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
       );
     }
-    if (data.containsKey('arr_micros')) {
+    if (data.containsKey('phone')) {
       context.handle(
-        _arrMicrosMeta,
-        arrMicros.isAcceptableOrUnknown(data['arr_micros']!, _arrMicrosMeta),
+        _phoneMeta,
+        phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta),
       );
     }
-    if (data.containsKey('icp')) {
+    if (data.containsKey('email')) {
       context.handle(
-        _icpMeta,
-        icp.isAcceptableOrUnknown(data['icp']!, _icpMeta),
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
       );
     }
-    if (data.containsKey('customer_status')) {
+    if (data.containsKey('address')) {
       context.handle(
-        _customerStatusMeta,
-        customerStatus.isAcceptableOrUnknown(
-          data['customer_status']!,
-          _customerStatusMeta,
-        ),
+        _addressMeta,
+        address.isAcceptableOrUnknown(data['address']!, _addressMeta),
+      );
+    }
+    if (data.containsKey('website')) {
+      context.handle(
+        _websiteMeta,
+        website.isAcceptableOrUnknown(data['website']!, _websiteMeta),
+      );
+    }
+    if (data.containsKey('credit_code')) {
+      context.handle(
+        _creditCodeMeta,
+        creditCode.isAcceptableOrUnknown(data['credit_code']!, _creditCodeMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -4020,9 +4068,9 @@ class $CrmCompaniesTable extends CrmCompanies
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  CrmCompanyRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+  CrmAccountRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CrmCompanyRow(
+    return CrmAccountRow(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -4031,39 +4079,49 @@ class $CrmCompaniesTable extends CrmCompanies
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
-      domainName: attachedDatabase.typeMapping.read(
+      type: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}domain_name'],
+        data['${effectivePrefix}type'],
       )!,
-      addressJson: $CrmCompaniesTable.$converteraddressJson.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}address_json'],
-        )!,
-      ),
-      employees: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}employees'],
-      ),
-      linkedinLink: attachedDatabase.typeMapping.read(
+      industry: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}linkedin_link'],
+        data['${effectivePrefix}industry'],
       )!,
-      xLink: attachedDatabase.typeMapping.read(
+      level: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}x_link'],
+        data['${effectivePrefix}level'],
       )!,
-      arrMicros: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}arr_micros'],
-      ),
-      icp: attachedDatabase.typeMapping.read(
+      source: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}icp'],
+        data['${effectivePrefix}source'],
       )!,
-      customerStatus: attachedDatabase.typeMapping.read(
+      phone: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}customer_status'],
+        data['${effectivePrefix}phone'],
+      )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      )!,
+      address: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}address'],
+      )!,
+      website: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}website'],
+      )!,
+      creditCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}credit_code'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
       )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -4081,39 +4139,48 @@ class $CrmCompaniesTable extends CrmCompanies
   }
 
   @override
-  $CrmCompaniesTable createAlias(String alias) {
-    return $CrmCompaniesTable(attachedDatabase, alias);
+  $CrmAccountsTable createAlias(String alias) {
+    return $CrmAccountsTable(attachedDatabase, alias);
   }
-
-  static TypeConverter<Map<String, dynamic>, String> $converteraddressJson =
-      const MapConverter();
 }
 
-class CrmCompanyRow extends DataClass implements Insertable<CrmCompanyRow> {
+class CrmAccountRow extends DataClass implements Insertable<CrmAccountRow> {
   final String id;
   final String name;
-  final String domainName;
-  final Map<String, dynamic> addressJson;
-  final int? employees;
-  final String linkedinLink;
-  final String xLink;
-  final int? arrMicros;
-  final String icp;
-  final String customerStatus;
+
+  /// company / person / org
+  final String type;
+  final String industry;
+
+  /// vip / normal / potential
+  final String level;
+  final String source;
+  final String phone;
+  final String email;
+  final String address;
+  final String website;
+  final String creditCode;
+  final String note;
+
+  /// active / inactive / blacklist
+  final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool deleted;
-  const CrmCompanyRow({
+  const CrmAccountRow({
     required this.id,
     required this.name,
-    required this.domainName,
-    required this.addressJson,
-    this.employees,
-    required this.linkedinLink,
-    required this.xLink,
-    this.arrMicros,
-    required this.icp,
-    required this.customerStatus,
+    required this.type,
+    required this.industry,
+    required this.level,
+    required this.source,
+    required this.phone,
+    required this.email,
+    required this.address,
+    required this.website,
+    required this.creditCode,
+    required this.note,
+    required this.status,
     required this.createdAt,
     required this.updatedAt,
     required this.deleted,
@@ -4123,68 +4190,63 @@ class CrmCompanyRow extends DataClass implements Insertable<CrmCompanyRow> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
-    map['domain_name'] = Variable<String>(domainName);
-    {
-      map['address_json'] = Variable<String>(
-        $CrmCompaniesTable.$converteraddressJson.toSql(addressJson),
-      );
-    }
-    if (!nullToAbsent || employees != null) {
-      map['employees'] = Variable<int>(employees);
-    }
-    map['linkedin_link'] = Variable<String>(linkedinLink);
-    map['x_link'] = Variable<String>(xLink);
-    if (!nullToAbsent || arrMicros != null) {
-      map['arr_micros'] = Variable<int>(arrMicros);
-    }
-    map['icp'] = Variable<String>(icp);
-    map['customer_status'] = Variable<String>(customerStatus);
+    map['type'] = Variable<String>(type);
+    map['industry'] = Variable<String>(industry);
+    map['level'] = Variable<String>(level);
+    map['source'] = Variable<String>(source);
+    map['phone'] = Variable<String>(phone);
+    map['email'] = Variable<String>(email);
+    map['address'] = Variable<String>(address);
+    map['website'] = Variable<String>(website);
+    map['credit_code'] = Variable<String>(creditCode);
+    map['note'] = Variable<String>(note);
+    map['status'] = Variable<String>(status);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['deleted'] = Variable<bool>(deleted);
     return map;
   }
 
-  CrmCompaniesCompanion toCompanion(bool nullToAbsent) {
-    return CrmCompaniesCompanion(
+  CrmAccountsCompanion toCompanion(bool nullToAbsent) {
+    return CrmAccountsCompanion(
       id: Value(id),
       name: Value(name),
-      domainName: Value(domainName),
-      addressJson: Value(addressJson),
-      employees: employees == null && nullToAbsent
-          ? const Value.absent()
-          : Value(employees),
-      linkedinLink: Value(linkedinLink),
-      xLink: Value(xLink),
-      arrMicros: arrMicros == null && nullToAbsent
-          ? const Value.absent()
-          : Value(arrMicros),
-      icp: Value(icp),
-      customerStatus: Value(customerStatus),
+      type: Value(type),
+      industry: Value(industry),
+      level: Value(level),
+      source: Value(source),
+      phone: Value(phone),
+      email: Value(email),
+      address: Value(address),
+      website: Value(website),
+      creditCode: Value(creditCode),
+      note: Value(note),
+      status: Value(status),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deleted: Value(deleted),
     );
   }
 
-  factory CrmCompanyRow.fromJson(
+  factory CrmAccountRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CrmCompanyRow(
+    return CrmAccountRow(
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
-      domainName: serializer.fromJson<String>(json['domainName']),
-      addressJson: serializer.fromJson<Map<String, dynamic>>(
-        json['addressJson'],
-      ),
-      employees: serializer.fromJson<int?>(json['employees']),
-      linkedinLink: serializer.fromJson<String>(json['linkedinLink']),
-      xLink: serializer.fromJson<String>(json['xLink']),
-      arrMicros: serializer.fromJson<int?>(json['arrMicros']),
-      icp: serializer.fromJson<String>(json['icp']),
-      customerStatus: serializer.fromJson<String>(json['customerStatus']),
+      type: serializer.fromJson<String>(json['type']),
+      industry: serializer.fromJson<String>(json['industry']),
+      level: serializer.fromJson<String>(json['level']),
+      source: serializer.fromJson<String>(json['source']),
+      phone: serializer.fromJson<String>(json['phone']),
+      email: serializer.fromJson<String>(json['email']),
+      address: serializer.fromJson<String>(json['address']),
+      website: serializer.fromJson<String>(json['website']),
+      creditCode: serializer.fromJson<String>(json['creditCode']),
+      note: serializer.fromJson<String>(json['note']),
+      status: serializer.fromJson<String>(json['status']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deleted: serializer.fromJson<bool>(json['deleted']),
@@ -4196,69 +4258,75 @@ class CrmCompanyRow extends DataClass implements Insertable<CrmCompanyRow> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
-      'domainName': serializer.toJson<String>(domainName),
-      'addressJson': serializer.toJson<Map<String, dynamic>>(addressJson),
-      'employees': serializer.toJson<int?>(employees),
-      'linkedinLink': serializer.toJson<String>(linkedinLink),
-      'xLink': serializer.toJson<String>(xLink),
-      'arrMicros': serializer.toJson<int?>(arrMicros),
-      'icp': serializer.toJson<String>(icp),
-      'customerStatus': serializer.toJson<String>(customerStatus),
+      'type': serializer.toJson<String>(type),
+      'industry': serializer.toJson<String>(industry),
+      'level': serializer.toJson<String>(level),
+      'source': serializer.toJson<String>(source),
+      'phone': serializer.toJson<String>(phone),
+      'email': serializer.toJson<String>(email),
+      'address': serializer.toJson<String>(address),
+      'website': serializer.toJson<String>(website),
+      'creditCode': serializer.toJson<String>(creditCode),
+      'note': serializer.toJson<String>(note),
+      'status': serializer.toJson<String>(status),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deleted': serializer.toJson<bool>(deleted),
     };
   }
 
-  CrmCompanyRow copyWith({
+  CrmAccountRow copyWith({
     String? id,
     String? name,
-    String? domainName,
-    Map<String, dynamic>? addressJson,
-    Value<int?> employees = const Value.absent(),
-    String? linkedinLink,
-    String? xLink,
-    Value<int?> arrMicros = const Value.absent(),
-    String? icp,
-    String? customerStatus,
+    String? type,
+    String? industry,
+    String? level,
+    String? source,
+    String? phone,
+    String? email,
+    String? address,
+    String? website,
+    String? creditCode,
+    String? note,
+    String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? deleted,
-  }) => CrmCompanyRow(
+  }) => CrmAccountRow(
     id: id ?? this.id,
     name: name ?? this.name,
-    domainName: domainName ?? this.domainName,
-    addressJson: addressJson ?? this.addressJson,
-    employees: employees.present ? employees.value : this.employees,
-    linkedinLink: linkedinLink ?? this.linkedinLink,
-    xLink: xLink ?? this.xLink,
-    arrMicros: arrMicros.present ? arrMicros.value : this.arrMicros,
-    icp: icp ?? this.icp,
-    customerStatus: customerStatus ?? this.customerStatus,
+    type: type ?? this.type,
+    industry: industry ?? this.industry,
+    level: level ?? this.level,
+    source: source ?? this.source,
+    phone: phone ?? this.phone,
+    email: email ?? this.email,
+    address: address ?? this.address,
+    website: website ?? this.website,
+    creditCode: creditCode ?? this.creditCode,
+    note: note ?? this.note,
+    status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deleted: deleted ?? this.deleted,
   );
-  CrmCompanyRow copyWithCompanion(CrmCompaniesCompanion data) {
-    return CrmCompanyRow(
+  CrmAccountRow copyWithCompanion(CrmAccountsCompanion data) {
+    return CrmAccountRow(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
-      domainName: data.domainName.present
-          ? data.domainName.value
-          : this.domainName,
-      addressJson: data.addressJson.present
-          ? data.addressJson.value
-          : this.addressJson,
-      employees: data.employees.present ? data.employees.value : this.employees,
-      linkedinLink: data.linkedinLink.present
-          ? data.linkedinLink.value
-          : this.linkedinLink,
-      xLink: data.xLink.present ? data.xLink.value : this.xLink,
-      arrMicros: data.arrMicros.present ? data.arrMicros.value : this.arrMicros,
-      icp: data.icp.present ? data.icp.value : this.icp,
-      customerStatus: data.customerStatus.present
-          ? data.customerStatus.value
-          : this.customerStatus,
+      type: data.type.present ? data.type.value : this.type,
+      industry: data.industry.present ? data.industry.value : this.industry,
+      level: data.level.present ? data.level.value : this.level,
+      source: data.source.present ? data.source.value : this.source,
+      phone: data.phone.present ? data.phone.value : this.phone,
+      email: data.email.present ? data.email.value : this.email,
+      address: data.address.present ? data.address.value : this.address,
+      website: data.website.present ? data.website.value : this.website,
+      creditCode: data.creditCode.present
+          ? data.creditCode.value
+          : this.creditCode,
+      note: data.note.present ? data.note.value : this.note,
+      status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
@@ -4267,17 +4335,20 @@ class CrmCompanyRow extends DataClass implements Insertable<CrmCompanyRow> {
 
   @override
   String toString() {
-    return (StringBuffer('CrmCompanyRow(')
+    return (StringBuffer('CrmAccountRow(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('domainName: $domainName, ')
-          ..write('addressJson: $addressJson, ')
-          ..write('employees: $employees, ')
-          ..write('linkedinLink: $linkedinLink, ')
-          ..write('xLink: $xLink, ')
-          ..write('arrMicros: $arrMicros, ')
-          ..write('icp: $icp, ')
-          ..write('customerStatus: $customerStatus, ')
+          ..write('type: $type, ')
+          ..write('industry: $industry, ')
+          ..write('level: $level, ')
+          ..write('source: $source, ')
+          ..write('phone: $phone, ')
+          ..write('email: $email, ')
+          ..write('address: $address, ')
+          ..write('website: $website, ')
+          ..write('creditCode: $creditCode, ')
+          ..write('note: $note, ')
+          ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted')
@@ -4289,14 +4360,17 @@ class CrmCompanyRow extends DataClass implements Insertable<CrmCompanyRow> {
   int get hashCode => Object.hash(
     id,
     name,
-    domainName,
-    addressJson,
-    employees,
-    linkedinLink,
-    xLink,
-    arrMicros,
-    icp,
-    customerStatus,
+    type,
+    industry,
+    level,
+    source,
+    phone,
+    email,
+    address,
+    website,
+    creditCode,
+    note,
+    status,
     createdAt,
     updatedAt,
     deleted,
@@ -4304,64 +4378,76 @@ class CrmCompanyRow extends DataClass implements Insertable<CrmCompanyRow> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is CrmCompanyRow &&
+      (other is CrmAccountRow &&
           other.id == this.id &&
           other.name == this.name &&
-          other.domainName == this.domainName &&
-          other.addressJson == this.addressJson &&
-          other.employees == this.employees &&
-          other.linkedinLink == this.linkedinLink &&
-          other.xLink == this.xLink &&
-          other.arrMicros == this.arrMicros &&
-          other.icp == this.icp &&
-          other.customerStatus == this.customerStatus &&
+          other.type == this.type &&
+          other.industry == this.industry &&
+          other.level == this.level &&
+          other.source == this.source &&
+          other.phone == this.phone &&
+          other.email == this.email &&
+          other.address == this.address &&
+          other.website == this.website &&
+          other.creditCode == this.creditCode &&
+          other.note == this.note &&
+          other.status == this.status &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deleted == this.deleted);
 }
 
-class CrmCompaniesCompanion extends UpdateCompanion<CrmCompanyRow> {
+class CrmAccountsCompanion extends UpdateCompanion<CrmAccountRow> {
   final Value<String> id;
   final Value<String> name;
-  final Value<String> domainName;
-  final Value<Map<String, dynamic>> addressJson;
-  final Value<int?> employees;
-  final Value<String> linkedinLink;
-  final Value<String> xLink;
-  final Value<int?> arrMicros;
-  final Value<String> icp;
-  final Value<String> customerStatus;
+  final Value<String> type;
+  final Value<String> industry;
+  final Value<String> level;
+  final Value<String> source;
+  final Value<String> phone;
+  final Value<String> email;
+  final Value<String> address;
+  final Value<String> website;
+  final Value<String> creditCode;
+  final Value<String> note;
+  final Value<String> status;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> deleted;
   final Value<int> rowid;
-  const CrmCompaniesCompanion({
+  const CrmAccountsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
-    this.domainName = const Value.absent(),
-    this.addressJson = const Value.absent(),
-    this.employees = const Value.absent(),
-    this.linkedinLink = const Value.absent(),
-    this.xLink = const Value.absent(),
-    this.arrMicros = const Value.absent(),
-    this.icp = const Value.absent(),
-    this.customerStatus = const Value.absent(),
+    this.type = const Value.absent(),
+    this.industry = const Value.absent(),
+    this.level = const Value.absent(),
+    this.source = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.email = const Value.absent(),
+    this.address = const Value.absent(),
+    this.website = const Value.absent(),
+    this.creditCode = const Value.absent(),
+    this.note = const Value.absent(),
+    this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  CrmCompaniesCompanion.insert({
+  CrmAccountsCompanion.insert({
     required String id,
     this.name = const Value.absent(),
-    this.domainName = const Value.absent(),
-    this.addressJson = const Value.absent(),
-    this.employees = const Value.absent(),
-    this.linkedinLink = const Value.absent(),
-    this.xLink = const Value.absent(),
-    this.arrMicros = const Value.absent(),
-    this.icp = const Value.absent(),
-    this.customerStatus = const Value.absent(),
+    this.type = const Value.absent(),
+    this.industry = const Value.absent(),
+    this.level = const Value.absent(),
+    this.source = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.email = const Value.absent(),
+    this.address = const Value.absent(),
+    this.website = const Value.absent(),
+    this.creditCode = const Value.absent(),
+    this.note = const Value.absent(),
+    this.status = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deleted = const Value.absent(),
@@ -4369,17 +4455,20 @@ class CrmCompaniesCompanion extends UpdateCompanion<CrmCompanyRow> {
   }) : id = Value(id),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
-  static Insertable<CrmCompanyRow> custom({
+  static Insertable<CrmAccountRow> custom({
     Expression<String>? id,
     Expression<String>? name,
-    Expression<String>? domainName,
-    Expression<String>? addressJson,
-    Expression<int>? employees,
-    Expression<String>? linkedinLink,
-    Expression<String>? xLink,
-    Expression<int>? arrMicros,
-    Expression<String>? icp,
-    Expression<String>? customerStatus,
+    Expression<String>? type,
+    Expression<String>? industry,
+    Expression<String>? level,
+    Expression<String>? source,
+    Expression<String>? phone,
+    Expression<String>? email,
+    Expression<String>? address,
+    Expression<String>? website,
+    Expression<String>? creditCode,
+    Expression<String>? note,
+    Expression<String>? status,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? deleted,
@@ -4388,14 +4477,17 @@ class CrmCompaniesCompanion extends UpdateCompanion<CrmCompanyRow> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
-      if (domainName != null) 'domain_name': domainName,
-      if (addressJson != null) 'address_json': addressJson,
-      if (employees != null) 'employees': employees,
-      if (linkedinLink != null) 'linkedin_link': linkedinLink,
-      if (xLink != null) 'x_link': xLink,
-      if (arrMicros != null) 'arr_micros': arrMicros,
-      if (icp != null) 'icp': icp,
-      if (customerStatus != null) 'customer_status': customerStatus,
+      if (type != null) 'type': type,
+      if (industry != null) 'industry': industry,
+      if (level != null) 'level': level,
+      if (source != null) 'source': source,
+      if (phone != null) 'phone': phone,
+      if (email != null) 'email': email,
+      if (address != null) 'address': address,
+      if (website != null) 'website': website,
+      if (creditCode != null) 'credit_code': creditCode,
+      if (note != null) 'note': note,
+      if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deleted != null) 'deleted': deleted,
@@ -4403,33 +4495,39 @@ class CrmCompaniesCompanion extends UpdateCompanion<CrmCompanyRow> {
     });
   }
 
-  CrmCompaniesCompanion copyWith({
+  CrmAccountsCompanion copyWith({
     Value<String>? id,
     Value<String>? name,
-    Value<String>? domainName,
-    Value<Map<String, dynamic>>? addressJson,
-    Value<int?>? employees,
-    Value<String>? linkedinLink,
-    Value<String>? xLink,
-    Value<int?>? arrMicros,
-    Value<String>? icp,
-    Value<String>? customerStatus,
+    Value<String>? type,
+    Value<String>? industry,
+    Value<String>? level,
+    Value<String>? source,
+    Value<String>? phone,
+    Value<String>? email,
+    Value<String>? address,
+    Value<String>? website,
+    Value<String>? creditCode,
+    Value<String>? note,
+    Value<String>? status,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<bool>? deleted,
     Value<int>? rowid,
   }) {
-    return CrmCompaniesCompanion(
+    return CrmAccountsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
-      domainName: domainName ?? this.domainName,
-      addressJson: addressJson ?? this.addressJson,
-      employees: employees ?? this.employees,
-      linkedinLink: linkedinLink ?? this.linkedinLink,
-      xLink: xLink ?? this.xLink,
-      arrMicros: arrMicros ?? this.arrMicros,
-      icp: icp ?? this.icp,
-      customerStatus: customerStatus ?? this.customerStatus,
+      type: type ?? this.type,
+      industry: industry ?? this.industry,
+      level: level ?? this.level,
+      source: source ?? this.source,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      address: address ?? this.address,
+      website: website ?? this.website,
+      creditCode: creditCode ?? this.creditCode,
+      note: note ?? this.note,
+      status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deleted: deleted ?? this.deleted,
@@ -4446,31 +4544,38 @@ class CrmCompaniesCompanion extends UpdateCompanion<CrmCompanyRow> {
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
-    if (domainName.present) {
-      map['domain_name'] = Variable<String>(domainName.value);
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
     }
-    if (addressJson.present) {
-      map['address_json'] = Variable<String>(
-        $CrmCompaniesTable.$converteraddressJson.toSql(addressJson.value),
-      );
+    if (industry.present) {
+      map['industry'] = Variable<String>(industry.value);
     }
-    if (employees.present) {
-      map['employees'] = Variable<int>(employees.value);
+    if (level.present) {
+      map['level'] = Variable<String>(level.value);
     }
-    if (linkedinLink.present) {
-      map['linkedin_link'] = Variable<String>(linkedinLink.value);
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
     }
-    if (xLink.present) {
-      map['x_link'] = Variable<String>(xLink.value);
+    if (phone.present) {
+      map['phone'] = Variable<String>(phone.value);
     }
-    if (arrMicros.present) {
-      map['arr_micros'] = Variable<int>(arrMicros.value);
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
     }
-    if (icp.present) {
-      map['icp'] = Variable<String>(icp.value);
+    if (address.present) {
+      map['address'] = Variable<String>(address.value);
     }
-    if (customerStatus.present) {
-      map['customer_status'] = Variable<String>(customerStatus.value);
+    if (website.present) {
+      map['website'] = Variable<String>(website.value);
+    }
+    if (creditCode.present) {
+      map['credit_code'] = Variable<String>(creditCode.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -4489,17 +4594,20 @@ class CrmCompaniesCompanion extends UpdateCompanion<CrmCompanyRow> {
 
   @override
   String toString() {
-    return (StringBuffer('CrmCompaniesCompanion(')
+    return (StringBuffer('CrmAccountsCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('domainName: $domainName, ')
-          ..write('addressJson: $addressJson, ')
-          ..write('employees: $employees, ')
-          ..write('linkedinLink: $linkedinLink, ')
-          ..write('xLink: $xLink, ')
-          ..write('arrMicros: $arrMicros, ')
-          ..write('icp: $icp, ')
-          ..write('customerStatus: $customerStatus, ')
+          ..write('type: $type, ')
+          ..write('industry: $industry, ')
+          ..write('level: $level, ')
+          ..write('source: $source, ')
+          ..write('phone: $phone, ')
+          ..write('email: $email, ')
+          ..write('address: $address, ')
+          ..write('website: $website, ')
+          ..write('creditCode: $creditCode, ')
+          ..write('note: $note, ')
+          ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted, ')
@@ -4509,12 +4617,12 @@ class CrmCompaniesCompanion extends UpdateCompanion<CrmCompanyRow> {
   }
 }
 
-class $CrmPeopleTable extends CrmPeople
-    with TableInfo<$CrmPeopleTable, CrmPersonRow> {
+class $CrmContactsTable extends CrmContacts
+    with TableInfo<$CrmContactsTable, CrmContactRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $CrmPeopleTable(this.attachedDatabase, [this._alias]);
+  $CrmContactsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -4524,77 +4632,63 @@ class $CrmPeopleTable extends CrmPeople
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _companyIdMeta = const VerificationMeta(
-    'companyId',
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
   );
   @override
-  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
-    'company_id',
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
     aliasedName,
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _firstNameMeta = const VerificationMeta(
-    'firstName',
-  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
-  late final GeneratedColumn<String> firstName = GeneratedColumn<String>(
-    'first_name',
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
-  static const VerificationMeta _lastNameMeta = const VerificationMeta(
-    'lastName',
-  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
-  late final GeneratedColumn<String> lastName = GeneratedColumn<String>(
-    'last_name',
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
-  static const VerificationMeta _jobTitleMeta = const VerificationMeta(
-    'jobTitle',
+  static const VerificationMeta _departmentMeta = const VerificationMeta(
+    'department',
   );
   @override
-  late final GeneratedColumn<String> jobTitle = GeneratedColumn<String>(
-    'job_title',
+  late final GeneratedColumn<String> department = GeneratedColumn<String>(
+    'department',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
   @override
-  late final GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
-  emailsJson = GeneratedColumn<String>(
-    'emails_json',
+  late final GeneratedColumn<String> phone = GeneratedColumn<String>(
+    'phone',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('{}'),
-  ).withConverter<Map<String, dynamic>>($CrmPeopleTable.$converteremailsJson);
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
   @override
-  late final GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
-  phonesJson = GeneratedColumn<String>(
-    'phones_json',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('{}'),
-  ).withConverter<Map<String, dynamic>>($CrmPeopleTable.$converterphonesJson);
-  static const VerificationMeta _cityMeta = const VerificationMeta('city');
-  @override
-  late final GeneratedColumn<String> city = GeneratedColumn<String>(
-    'city',
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -4611,34 +4705,40 @@ class $CrmPeopleTable extends CrmPeople
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
-  static const VerificationMeta _avatarUrlMeta = const VerificationMeta(
-    'avatarUrl',
+  static const VerificationMeta _isPrimaryMeta = const VerificationMeta(
+    'isPrimary',
   );
   @override
-  late final GeneratedColumn<String> avatarUrl = GeneratedColumn<String>(
-    'avatar_url',
+  late final GeneratedColumn<bool> isPrimary = GeneratedColumn<bool>(
+    'is_primary',
     aliasedName,
     false,
-    type: DriftSqlType.string,
+    type: DriftSqlType.bool,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_primary" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
   );
-  static const VerificationMeta _linkedinLinkMeta = const VerificationMeta(
-    'linkedinLink',
+  static const VerificationMeta _isDecisionMakerMeta = const VerificationMeta(
+    'isDecisionMaker',
   );
   @override
-  late final GeneratedColumn<String> linkedinLink = GeneratedColumn<String>(
-    'linkedin_link',
+  late final GeneratedColumn<bool> isDecisionMaker = GeneratedColumn<bool>(
+    'is_decision_maker',
     aliasedName,
     false,
-    type: DriftSqlType.string,
+    type: DriftSqlType.bool,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_decision_maker" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
   );
-  static const VerificationMeta _xLinkMeta = const VerificationMeta('xLink');
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
   @override
-  late final GeneratedColumn<String> xLink = GeneratedColumn<String>(
-    'x_link',
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -4685,17 +4785,16 @@ class $CrmPeopleTable extends CrmPeople
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    companyId,
-    firstName,
-    lastName,
-    jobTitle,
-    emailsJson,
-    phonesJson,
-    city,
+    accountId,
+    name,
+    title,
+    department,
+    phone,
+    email,
     wechat,
-    avatarUrl,
-    linkedinLink,
-    xLink,
+    isPrimary,
+    isDecisionMaker,
+    note,
     createdAt,
     updatedAt,
     deleted,
@@ -4704,10 +4803,10 @@ class $CrmPeopleTable extends CrmPeople
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'crm_people';
+  static const String $name = 'crm_contacts';
   @override
   VerificationContext validateIntegrity(
-    Insertable<CrmPersonRow> instance, {
+    Insertable<CrmContactRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -4717,34 +4816,40 @@ class $CrmPeopleTable extends CrmPeople
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    if (data.containsKey('company_id')) {
+    if (data.containsKey('account_id')) {
       context.handle(
-        _companyIdMeta,
-        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
       );
     }
-    if (data.containsKey('first_name')) {
+    if (data.containsKey('name')) {
       context.handle(
-        _firstNameMeta,
-        firstName.isAcceptableOrUnknown(data['first_name']!, _firstNameMeta),
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
       );
     }
-    if (data.containsKey('last_name')) {
+    if (data.containsKey('title')) {
       context.handle(
-        _lastNameMeta,
-        lastName.isAcceptableOrUnknown(data['last_name']!, _lastNameMeta),
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
       );
     }
-    if (data.containsKey('job_title')) {
+    if (data.containsKey('department')) {
       context.handle(
-        _jobTitleMeta,
-        jobTitle.isAcceptableOrUnknown(data['job_title']!, _jobTitleMeta),
+        _departmentMeta,
+        department.isAcceptableOrUnknown(data['department']!, _departmentMeta),
       );
     }
-    if (data.containsKey('city')) {
+    if (data.containsKey('phone')) {
       context.handle(
-        _cityMeta,
-        city.isAcceptableOrUnknown(data['city']!, _cityMeta),
+        _phoneMeta,
+        phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta),
+      );
+    }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
       );
     }
     if (data.containsKey('wechat')) {
@@ -4753,25 +4858,25 @@ class $CrmPeopleTable extends CrmPeople
         wechat.isAcceptableOrUnknown(data['wechat']!, _wechatMeta),
       );
     }
-    if (data.containsKey('avatar_url')) {
+    if (data.containsKey('is_primary')) {
       context.handle(
-        _avatarUrlMeta,
-        avatarUrl.isAcceptableOrUnknown(data['avatar_url']!, _avatarUrlMeta),
+        _isPrimaryMeta,
+        isPrimary.isAcceptableOrUnknown(data['is_primary']!, _isPrimaryMeta),
       );
     }
-    if (data.containsKey('linkedin_link')) {
+    if (data.containsKey('is_decision_maker')) {
       context.handle(
-        _linkedinLinkMeta,
-        linkedinLink.isAcceptableOrUnknown(
-          data['linkedin_link']!,
-          _linkedinLinkMeta,
+        _isDecisionMakerMeta,
+        isDecisionMaker.isAcceptableOrUnknown(
+          data['is_decision_maker']!,
+          _isDecisionMakerMeta,
         ),
       );
     }
-    if (data.containsKey('x_link')) {
+    if (data.containsKey('note')) {
       context.handle(
-        _xLinkMeta,
-        xLink.isAcceptableOrUnknown(data['x_link']!, _xLinkMeta),
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -4802,60 +4907,52 @@ class $CrmPeopleTable extends CrmPeople
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  CrmPersonRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+  CrmContactRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CrmPersonRow(
+    return CrmContactRow(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
-      companyId: attachedDatabase.typeMapping.read(
+      accountId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}company_id'],
+        data['${effectivePrefix}account_id'],
       ),
-      firstName: attachedDatabase.typeMapping.read(
+      name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}first_name'],
+        data['${effectivePrefix}name'],
       )!,
-      lastName: attachedDatabase.typeMapping.read(
+      title: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}last_name'],
+        data['${effectivePrefix}title'],
       )!,
-      jobTitle: attachedDatabase.typeMapping.read(
+      department: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}job_title'],
+        data['${effectivePrefix}department'],
       )!,
-      emailsJson: $CrmPeopleTable.$converteremailsJson.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}emails_json'],
-        )!,
-      ),
-      phonesJson: $CrmPeopleTable.$converterphonesJson.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}phones_json'],
-        )!,
-      ),
-      city: attachedDatabase.typeMapping.read(
+      phone: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}city'],
+        data['${effectivePrefix}phone'],
+      )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
       )!,
       wechat: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}wechat'],
       )!,
-      avatarUrl: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}avatar_url'],
+      isPrimary: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_primary'],
       )!,
-      linkedinLink: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}linkedin_link'],
+      isDecisionMaker: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_decision_maker'],
       )!,
-      xLink: attachedDatabase.typeMapping.read(
+      note: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}x_link'],
+        data['${effectivePrefix}note'],
       )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -4873,45 +4970,38 @@ class $CrmPeopleTable extends CrmPeople
   }
 
   @override
-  $CrmPeopleTable createAlias(String alias) {
-    return $CrmPeopleTable(attachedDatabase, alias);
+  $CrmContactsTable createAlias(String alias) {
+    return $CrmContactsTable(attachedDatabase, alias);
   }
-
-  static TypeConverter<Map<String, dynamic>, String> $converteremailsJson =
-      const MapConverter();
-  static TypeConverter<Map<String, dynamic>, String> $converterphonesJson =
-      const MapConverter();
 }
 
-class CrmPersonRow extends DataClass implements Insertable<CrmPersonRow> {
+class CrmContactRow extends DataClass implements Insertable<CrmContactRow> {
   final String id;
-  final String? companyId;
-  final String firstName;
-  final String lastName;
-  final String jobTitle;
-  final Map<String, dynamic> emailsJson;
-  final Map<String, dynamic> phonesJson;
-  final String city;
+  final String? accountId;
+  final String name;
+  final String title;
+  final String department;
+  final String phone;
+  final String email;
   final String wechat;
-  final String avatarUrl;
-  final String linkedinLink;
-  final String xLink;
+  final bool isPrimary;
+  final bool isDecisionMaker;
+  final String note;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool deleted;
-  const CrmPersonRow({
+  const CrmContactRow({
     required this.id,
-    this.companyId,
-    required this.firstName,
-    required this.lastName,
-    required this.jobTitle,
-    required this.emailsJson,
-    required this.phonesJson,
-    required this.city,
+    this.accountId,
+    required this.name,
+    required this.title,
+    required this.department,
+    required this.phone,
+    required this.email,
     required this.wechat,
-    required this.avatarUrl,
-    required this.linkedinLink,
-    required this.xLink,
+    required this.isPrimary,
+    required this.isDecisionMaker,
+    required this.note,
     required this.createdAt,
     required this.updatedAt,
     required this.deleted,
@@ -4920,73 +5010,62 @@ class CrmPersonRow extends DataClass implements Insertable<CrmPersonRow> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    if (!nullToAbsent || companyId != null) {
-      map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<String>(accountId);
     }
-    map['first_name'] = Variable<String>(firstName);
-    map['last_name'] = Variable<String>(lastName);
-    map['job_title'] = Variable<String>(jobTitle);
-    {
-      map['emails_json'] = Variable<String>(
-        $CrmPeopleTable.$converteremailsJson.toSql(emailsJson),
-      );
-    }
-    {
-      map['phones_json'] = Variable<String>(
-        $CrmPeopleTable.$converterphonesJson.toSql(phonesJson),
-      );
-    }
-    map['city'] = Variable<String>(city);
+    map['name'] = Variable<String>(name);
+    map['title'] = Variable<String>(title);
+    map['department'] = Variable<String>(department);
+    map['phone'] = Variable<String>(phone);
+    map['email'] = Variable<String>(email);
     map['wechat'] = Variable<String>(wechat);
-    map['avatar_url'] = Variable<String>(avatarUrl);
-    map['linkedin_link'] = Variable<String>(linkedinLink);
-    map['x_link'] = Variable<String>(xLink);
+    map['is_primary'] = Variable<bool>(isPrimary);
+    map['is_decision_maker'] = Variable<bool>(isDecisionMaker);
+    map['note'] = Variable<String>(note);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['deleted'] = Variable<bool>(deleted);
     return map;
   }
 
-  CrmPeopleCompanion toCompanion(bool nullToAbsent) {
-    return CrmPeopleCompanion(
+  CrmContactsCompanion toCompanion(bool nullToAbsent) {
+    return CrmContactsCompanion(
       id: Value(id),
-      companyId: companyId == null && nullToAbsent
+      accountId: accountId == null && nullToAbsent
           ? const Value.absent()
-          : Value(companyId),
-      firstName: Value(firstName),
-      lastName: Value(lastName),
-      jobTitle: Value(jobTitle),
-      emailsJson: Value(emailsJson),
-      phonesJson: Value(phonesJson),
-      city: Value(city),
+          : Value(accountId),
+      name: Value(name),
+      title: Value(title),
+      department: Value(department),
+      phone: Value(phone),
+      email: Value(email),
       wechat: Value(wechat),
-      avatarUrl: Value(avatarUrl),
-      linkedinLink: Value(linkedinLink),
-      xLink: Value(xLink),
+      isPrimary: Value(isPrimary),
+      isDecisionMaker: Value(isDecisionMaker),
+      note: Value(note),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deleted: Value(deleted),
     );
   }
 
-  factory CrmPersonRow.fromJson(
+  factory CrmContactRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CrmPersonRow(
+    return CrmContactRow(
       id: serializer.fromJson<String>(json['id']),
-      companyId: serializer.fromJson<String?>(json['companyId']),
-      firstName: serializer.fromJson<String>(json['firstName']),
-      lastName: serializer.fromJson<String>(json['lastName']),
-      jobTitle: serializer.fromJson<String>(json['jobTitle']),
-      emailsJson: serializer.fromJson<Map<String, dynamic>>(json['emailsJson']),
-      phonesJson: serializer.fromJson<Map<String, dynamic>>(json['phonesJson']),
-      city: serializer.fromJson<String>(json['city']),
+      accountId: serializer.fromJson<String?>(json['accountId']),
+      name: serializer.fromJson<String>(json['name']),
+      title: serializer.fromJson<String>(json['title']),
+      department: serializer.fromJson<String>(json['department']),
+      phone: serializer.fromJson<String>(json['phone']),
+      email: serializer.fromJson<String>(json['email']),
       wechat: serializer.fromJson<String>(json['wechat']),
-      avatarUrl: serializer.fromJson<String>(json['avatarUrl']),
-      linkedinLink: serializer.fromJson<String>(json['linkedinLink']),
-      xLink: serializer.fromJson<String>(json['xLink']),
+      isPrimary: serializer.fromJson<bool>(json['isPrimary']),
+      isDecisionMaker: serializer.fromJson<bool>(json['isDecisionMaker']),
+      note: serializer.fromJson<String>(json['note']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deleted: serializer.fromJson<bool>(json['deleted']),
@@ -4997,76 +5076,70 @@ class CrmPersonRow extends DataClass implements Insertable<CrmPersonRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
-      'companyId': serializer.toJson<String?>(companyId),
-      'firstName': serializer.toJson<String>(firstName),
-      'lastName': serializer.toJson<String>(lastName),
-      'jobTitle': serializer.toJson<String>(jobTitle),
-      'emailsJson': serializer.toJson<Map<String, dynamic>>(emailsJson),
-      'phonesJson': serializer.toJson<Map<String, dynamic>>(phonesJson),
-      'city': serializer.toJson<String>(city),
+      'accountId': serializer.toJson<String?>(accountId),
+      'name': serializer.toJson<String>(name),
+      'title': serializer.toJson<String>(title),
+      'department': serializer.toJson<String>(department),
+      'phone': serializer.toJson<String>(phone),
+      'email': serializer.toJson<String>(email),
       'wechat': serializer.toJson<String>(wechat),
-      'avatarUrl': serializer.toJson<String>(avatarUrl),
-      'linkedinLink': serializer.toJson<String>(linkedinLink),
-      'xLink': serializer.toJson<String>(xLink),
+      'isPrimary': serializer.toJson<bool>(isPrimary),
+      'isDecisionMaker': serializer.toJson<bool>(isDecisionMaker),
+      'note': serializer.toJson<String>(note),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deleted': serializer.toJson<bool>(deleted),
     };
   }
 
-  CrmPersonRow copyWith({
+  CrmContactRow copyWith({
     String? id,
-    Value<String?> companyId = const Value.absent(),
-    String? firstName,
-    String? lastName,
-    String? jobTitle,
-    Map<String, dynamic>? emailsJson,
-    Map<String, dynamic>? phonesJson,
-    String? city,
+    Value<String?> accountId = const Value.absent(),
+    String? name,
+    String? title,
+    String? department,
+    String? phone,
+    String? email,
     String? wechat,
-    String? avatarUrl,
-    String? linkedinLink,
-    String? xLink,
+    bool? isPrimary,
+    bool? isDecisionMaker,
+    String? note,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? deleted,
-  }) => CrmPersonRow(
+  }) => CrmContactRow(
     id: id ?? this.id,
-    companyId: companyId.present ? companyId.value : this.companyId,
-    firstName: firstName ?? this.firstName,
-    lastName: lastName ?? this.lastName,
-    jobTitle: jobTitle ?? this.jobTitle,
-    emailsJson: emailsJson ?? this.emailsJson,
-    phonesJson: phonesJson ?? this.phonesJson,
-    city: city ?? this.city,
+    accountId: accountId.present ? accountId.value : this.accountId,
+    name: name ?? this.name,
+    title: title ?? this.title,
+    department: department ?? this.department,
+    phone: phone ?? this.phone,
+    email: email ?? this.email,
     wechat: wechat ?? this.wechat,
-    avatarUrl: avatarUrl ?? this.avatarUrl,
-    linkedinLink: linkedinLink ?? this.linkedinLink,
-    xLink: xLink ?? this.xLink,
+    isPrimary: isPrimary ?? this.isPrimary,
+    isDecisionMaker: isDecisionMaker ?? this.isDecisionMaker,
+    note: note ?? this.note,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deleted: deleted ?? this.deleted,
   );
-  CrmPersonRow copyWithCompanion(CrmPeopleCompanion data) {
-    return CrmPersonRow(
+  CrmContactRow copyWithCompanion(CrmContactsCompanion data) {
+    return CrmContactRow(
       id: data.id.present ? data.id.value : this.id,
-      companyId: data.companyId.present ? data.companyId.value : this.companyId,
-      firstName: data.firstName.present ? data.firstName.value : this.firstName,
-      lastName: data.lastName.present ? data.lastName.value : this.lastName,
-      jobTitle: data.jobTitle.present ? data.jobTitle.value : this.jobTitle,
-      emailsJson: data.emailsJson.present
-          ? data.emailsJson.value
-          : this.emailsJson,
-      phonesJson: data.phonesJson.present
-          ? data.phonesJson.value
-          : this.phonesJson,
-      city: data.city.present ? data.city.value : this.city,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      name: data.name.present ? data.name.value : this.name,
+      title: data.title.present ? data.title.value : this.title,
+      department: data.department.present
+          ? data.department.value
+          : this.department,
+      phone: data.phone.present ? data.phone.value : this.phone,
+      email: data.email.present ? data.email.value : this.email,
       wechat: data.wechat.present ? data.wechat.value : this.wechat,
-      avatarUrl: data.avatarUrl.present ? data.avatarUrl.value : this.avatarUrl,
-      linkedinLink: data.linkedinLink.present
-          ? data.linkedinLink.value
-          : this.linkedinLink,
-      xLink: data.xLink.present ? data.xLink.value : this.xLink,
+      isPrimary: data.isPrimary.present ? data.isPrimary.value : this.isPrimary,
+      isDecisionMaker: data.isDecisionMaker.present
+          ? data.isDecisionMaker.value
+          : this.isDecisionMaker,
+      note: data.note.present ? data.note.value : this.note,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
@@ -5075,19 +5148,18 @@ class CrmPersonRow extends DataClass implements Insertable<CrmPersonRow> {
 
   @override
   String toString() {
-    return (StringBuffer('CrmPersonRow(')
+    return (StringBuffer('CrmContactRow(')
           ..write('id: $id, ')
-          ..write('companyId: $companyId, ')
-          ..write('firstName: $firstName, ')
-          ..write('lastName: $lastName, ')
-          ..write('jobTitle: $jobTitle, ')
-          ..write('emailsJson: $emailsJson, ')
-          ..write('phonesJson: $phonesJson, ')
-          ..write('city: $city, ')
+          ..write('accountId: $accountId, ')
+          ..write('name: $name, ')
+          ..write('title: $title, ')
+          ..write('department: $department, ')
+          ..write('phone: $phone, ')
+          ..write('email: $email, ')
           ..write('wechat: $wechat, ')
-          ..write('avatarUrl: $avatarUrl, ')
-          ..write('linkedinLink: $linkedinLink, ')
-          ..write('xLink: $xLink, ')
+          ..write('isPrimary: $isPrimary, ')
+          ..write('isDecisionMaker: $isDecisionMaker, ')
+          ..write('note: $note, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted')
@@ -5098,17 +5170,16 @@ class CrmPersonRow extends DataClass implements Insertable<CrmPersonRow> {
   @override
   int get hashCode => Object.hash(
     id,
-    companyId,
-    firstName,
-    lastName,
-    jobTitle,
-    emailsJson,
-    phonesJson,
-    city,
+    accountId,
+    name,
+    title,
+    department,
+    phone,
+    email,
     wechat,
-    avatarUrl,
-    linkedinLink,
-    xLink,
+    isPrimary,
+    isDecisionMaker,
+    note,
     createdAt,
     updatedAt,
     deleted,
@@ -5116,72 +5187,68 @@ class CrmPersonRow extends DataClass implements Insertable<CrmPersonRow> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is CrmPersonRow &&
+      (other is CrmContactRow &&
           other.id == this.id &&
-          other.companyId == this.companyId &&
-          other.firstName == this.firstName &&
-          other.lastName == this.lastName &&
-          other.jobTitle == this.jobTitle &&
-          other.emailsJson == this.emailsJson &&
-          other.phonesJson == this.phonesJson &&
-          other.city == this.city &&
+          other.accountId == this.accountId &&
+          other.name == this.name &&
+          other.title == this.title &&
+          other.department == this.department &&
+          other.phone == this.phone &&
+          other.email == this.email &&
           other.wechat == this.wechat &&
-          other.avatarUrl == this.avatarUrl &&
-          other.linkedinLink == this.linkedinLink &&
-          other.xLink == this.xLink &&
+          other.isPrimary == this.isPrimary &&
+          other.isDecisionMaker == this.isDecisionMaker &&
+          other.note == this.note &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deleted == this.deleted);
 }
 
-class CrmPeopleCompanion extends UpdateCompanion<CrmPersonRow> {
+class CrmContactsCompanion extends UpdateCompanion<CrmContactRow> {
   final Value<String> id;
-  final Value<String?> companyId;
-  final Value<String> firstName;
-  final Value<String> lastName;
-  final Value<String> jobTitle;
-  final Value<Map<String, dynamic>> emailsJson;
-  final Value<Map<String, dynamic>> phonesJson;
-  final Value<String> city;
+  final Value<String?> accountId;
+  final Value<String> name;
+  final Value<String> title;
+  final Value<String> department;
+  final Value<String> phone;
+  final Value<String> email;
   final Value<String> wechat;
-  final Value<String> avatarUrl;
-  final Value<String> linkedinLink;
-  final Value<String> xLink;
+  final Value<bool> isPrimary;
+  final Value<bool> isDecisionMaker;
+  final Value<String> note;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> deleted;
   final Value<int> rowid;
-  const CrmPeopleCompanion({
+  const CrmContactsCompanion({
     this.id = const Value.absent(),
-    this.companyId = const Value.absent(),
-    this.firstName = const Value.absent(),
-    this.lastName = const Value.absent(),
-    this.jobTitle = const Value.absent(),
-    this.emailsJson = const Value.absent(),
-    this.phonesJson = const Value.absent(),
-    this.city = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.title = const Value.absent(),
+    this.department = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.email = const Value.absent(),
     this.wechat = const Value.absent(),
-    this.avatarUrl = const Value.absent(),
-    this.linkedinLink = const Value.absent(),
-    this.xLink = const Value.absent(),
+    this.isPrimary = const Value.absent(),
+    this.isDecisionMaker = const Value.absent(),
+    this.note = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deleted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  CrmPeopleCompanion.insert({
+  CrmContactsCompanion.insert({
     required String id,
-    this.companyId = const Value.absent(),
-    this.firstName = const Value.absent(),
-    this.lastName = const Value.absent(),
-    this.jobTitle = const Value.absent(),
-    this.emailsJson = const Value.absent(),
-    this.phonesJson = const Value.absent(),
-    this.city = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.title = const Value.absent(),
+    this.department = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.email = const Value.absent(),
     this.wechat = const Value.absent(),
-    this.avatarUrl = const Value.absent(),
-    this.linkedinLink = const Value.absent(),
-    this.xLink = const Value.absent(),
+    this.isPrimary = const Value.absent(),
+    this.isDecisionMaker = const Value.absent(),
+    this.note = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deleted = const Value.absent(),
@@ -5189,19 +5256,18 @@ class CrmPeopleCompanion extends UpdateCompanion<CrmPersonRow> {
   }) : id = Value(id),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
-  static Insertable<CrmPersonRow> custom({
+  static Insertable<CrmContactRow> custom({
     Expression<String>? id,
-    Expression<String>? companyId,
-    Expression<String>? firstName,
-    Expression<String>? lastName,
-    Expression<String>? jobTitle,
-    Expression<String>? emailsJson,
-    Expression<String>? phonesJson,
-    Expression<String>? city,
+    Expression<String>? accountId,
+    Expression<String>? name,
+    Expression<String>? title,
+    Expression<String>? department,
+    Expression<String>? phone,
+    Expression<String>? email,
     Expression<String>? wechat,
-    Expression<String>? avatarUrl,
-    Expression<String>? linkedinLink,
-    Expression<String>? xLink,
+    Expression<bool>? isPrimary,
+    Expression<bool>? isDecisionMaker,
+    Expression<String>? note,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? deleted,
@@ -5209,17 +5275,16 @@ class CrmPeopleCompanion extends UpdateCompanion<CrmPersonRow> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (companyId != null) 'company_id': companyId,
-      if (firstName != null) 'first_name': firstName,
-      if (lastName != null) 'last_name': lastName,
-      if (jobTitle != null) 'job_title': jobTitle,
-      if (emailsJson != null) 'emails_json': emailsJson,
-      if (phonesJson != null) 'phones_json': phonesJson,
-      if (city != null) 'city': city,
+      if (accountId != null) 'account_id': accountId,
+      if (name != null) 'name': name,
+      if (title != null) 'title': title,
+      if (department != null) 'department': department,
+      if (phone != null) 'phone': phone,
+      if (email != null) 'email': email,
       if (wechat != null) 'wechat': wechat,
-      if (avatarUrl != null) 'avatar_url': avatarUrl,
-      if (linkedinLink != null) 'linkedin_link': linkedinLink,
-      if (xLink != null) 'x_link': xLink,
+      if (isPrimary != null) 'is_primary': isPrimary,
+      if (isDecisionMaker != null) 'is_decision_maker': isDecisionMaker,
+      if (note != null) 'note': note,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deleted != null) 'deleted': deleted,
@@ -5227,37 +5292,35 @@ class CrmPeopleCompanion extends UpdateCompanion<CrmPersonRow> {
     });
   }
 
-  CrmPeopleCompanion copyWith({
+  CrmContactsCompanion copyWith({
     Value<String>? id,
-    Value<String?>? companyId,
-    Value<String>? firstName,
-    Value<String>? lastName,
-    Value<String>? jobTitle,
-    Value<Map<String, dynamic>>? emailsJson,
-    Value<Map<String, dynamic>>? phonesJson,
-    Value<String>? city,
+    Value<String?>? accountId,
+    Value<String>? name,
+    Value<String>? title,
+    Value<String>? department,
+    Value<String>? phone,
+    Value<String>? email,
     Value<String>? wechat,
-    Value<String>? avatarUrl,
-    Value<String>? linkedinLink,
-    Value<String>? xLink,
+    Value<bool>? isPrimary,
+    Value<bool>? isDecisionMaker,
+    Value<String>? note,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<bool>? deleted,
     Value<int>? rowid,
   }) {
-    return CrmPeopleCompanion(
+    return CrmContactsCompanion(
       id: id ?? this.id,
-      companyId: companyId ?? this.companyId,
-      firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
-      jobTitle: jobTitle ?? this.jobTitle,
-      emailsJson: emailsJson ?? this.emailsJson,
-      phonesJson: phonesJson ?? this.phonesJson,
-      city: city ?? this.city,
+      accountId: accountId ?? this.accountId,
+      name: name ?? this.name,
+      title: title ?? this.title,
+      department: department ?? this.department,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
       wechat: wechat ?? this.wechat,
-      avatarUrl: avatarUrl ?? this.avatarUrl,
-      linkedinLink: linkedinLink ?? this.linkedinLink,
-      xLink: xLink ?? this.xLink,
+      isPrimary: isPrimary ?? this.isPrimary,
+      isDecisionMaker: isDecisionMaker ?? this.isDecisionMaker,
+      note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deleted: deleted ?? this.deleted,
@@ -5271,42 +5334,35 @@ class CrmPeopleCompanion extends UpdateCompanion<CrmPersonRow> {
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
-    if (companyId.present) {
-      map['company_id'] = Variable<String>(companyId.value);
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
     }
-    if (firstName.present) {
-      map['first_name'] = Variable<String>(firstName.value);
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
     }
-    if (lastName.present) {
-      map['last_name'] = Variable<String>(lastName.value);
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
     }
-    if (jobTitle.present) {
-      map['job_title'] = Variable<String>(jobTitle.value);
+    if (department.present) {
+      map['department'] = Variable<String>(department.value);
     }
-    if (emailsJson.present) {
-      map['emails_json'] = Variable<String>(
-        $CrmPeopleTable.$converteremailsJson.toSql(emailsJson.value),
-      );
+    if (phone.present) {
+      map['phone'] = Variable<String>(phone.value);
     }
-    if (phonesJson.present) {
-      map['phones_json'] = Variable<String>(
-        $CrmPeopleTable.$converterphonesJson.toSql(phonesJson.value),
-      );
-    }
-    if (city.present) {
-      map['city'] = Variable<String>(city.value);
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
     }
     if (wechat.present) {
       map['wechat'] = Variable<String>(wechat.value);
     }
-    if (avatarUrl.present) {
-      map['avatar_url'] = Variable<String>(avatarUrl.value);
+    if (isPrimary.present) {
+      map['is_primary'] = Variable<bool>(isPrimary.value);
     }
-    if (linkedinLink.present) {
-      map['linkedin_link'] = Variable<String>(linkedinLink.value);
+    if (isDecisionMaker.present) {
+      map['is_decision_maker'] = Variable<bool>(isDecisionMaker.value);
     }
-    if (xLink.present) {
-      map['x_link'] = Variable<String>(xLink.value);
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -5325,19 +5381,18 @@ class CrmPeopleCompanion extends UpdateCompanion<CrmPersonRow> {
 
   @override
   String toString() {
-    return (StringBuffer('CrmPeopleCompanion(')
+    return (StringBuffer('CrmContactsCompanion(')
           ..write('id: $id, ')
-          ..write('companyId: $companyId, ')
-          ..write('firstName: $firstName, ')
-          ..write('lastName: $lastName, ')
-          ..write('jobTitle: $jobTitle, ')
-          ..write('emailsJson: $emailsJson, ')
-          ..write('phonesJson: $phonesJson, ')
-          ..write('city: $city, ')
+          ..write('accountId: $accountId, ')
+          ..write('name: $name, ')
+          ..write('title: $title, ')
+          ..write('department: $department, ')
+          ..write('phone: $phone, ')
+          ..write('email: $email, ')
           ..write('wechat: $wechat, ')
-          ..write('avatarUrl: $avatarUrl, ')
-          ..write('linkedinLink: $linkedinLink, ')
-          ..write('xLink: $xLink, ')
+          ..write('isPrimary: $isPrimary, ')
+          ..write('isDecisionMaker: $isDecisionMaker, ')
+          ..write('note: $note, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted, ')
@@ -5362,28 +5417,6 @@ class $CrmOpportunitiesTable extends CrmOpportunities
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _companyIdMeta = const VerificationMeta(
-    'companyId',
-  );
-  @override
-  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
-    'company_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _pointOfContactIdMeta = const VerificationMeta(
-    'pointOfContactId',
-  );
-  @override
-  late final GeneratedColumn<String> pointOfContactId = GeneratedColumn<String>(
-    'point_of_contact_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -5394,26 +5427,26 @@ class $CrmOpportunitiesTable extends CrmOpportunities
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
-  static const VerificationMeta _amountMicrosMeta = const VerificationMeta(
-    'amountMicros',
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
   );
   @override
-  late final GeneratedColumn<int> amountMicros = GeneratedColumn<int>(
-    'amount_micros',
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
     aliasedName,
     true,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _closeDateMeta = const VerificationMeta(
-    'closeDate',
+  static const VerificationMeta _contactIdMeta = const VerificationMeta(
+    'contactId',
   );
   @override
-  late final GeneratedColumn<DateTime> closeDate = GeneratedColumn<DateTime>(
-    'close_date',
+  late final GeneratedColumn<String> contactId = GeneratedColumn<String>(
+    'contact_id',
     aliasedName,
     true,
-    type: DriftSqlType.dateTime,
+    type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
   static const VerificationMeta _stageMeta = const VerificationMeta('stage');
@@ -5424,14 +5457,128 @@ class $CrmOpportunitiesTable extends CrmOpportunities
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant('newLead'),
   );
-  static const VerificationMeta _customStatusMeta = const VerificationMeta(
-    'customStatus',
+  static const VerificationMeta _probabilityMeta = const VerificationMeta(
+    'probability',
   );
   @override
-  late final GeneratedColumn<String> customStatus = GeneratedColumn<String>(
-    'custom_status',
+  late final GeneratedColumn<int> probability = GeneratedColumn<int>(
+    'probability',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('CNY'),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _leadContactNameMeta = const VerificationMeta(
+    'leadContactName',
+  );
+  @override
+  late final GeneratedColumn<String> leadContactName = GeneratedColumn<String>(
+    'lead_contact_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _leadPhoneMeta = const VerificationMeta(
+    'leadPhone',
+  );
+  @override
+  late final GeneratedColumn<String> leadPhone = GeneratedColumn<String>(
+    'lead_phone',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _leadEmailMeta = const VerificationMeta(
+    'leadEmail',
+  );
+  @override
+  late final GeneratedColumn<String> leadEmail = GeneratedColumn<String>(
+    'lead_email',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _expectedCloseDateMeta = const VerificationMeta(
+    'expectedCloseDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expectedCloseDate =
+      GeneratedColumn<DateTime>(
+        'expected_close_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _actualCloseDateMeta = const VerificationMeta(
+    'actualCloseDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> actualCloseDate =
+      GeneratedColumn<DateTime>(
+        'actual_close_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lossReasonMeta = const VerificationMeta(
+    'lossReason',
+  );
+  @override
+  late final GeneratedColumn<String> lossReason = GeneratedColumn<String>(
+    'loss_reason',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -5478,13 +5625,21 @@ class $CrmOpportunitiesTable extends CrmOpportunities
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    companyId,
-    pointOfContactId,
     name,
-    amountMicros,
-    closeDate,
+    accountId,
+    contactId,
     stage,
-    customStatus,
+    probability,
+    amount,
+    currency,
+    source,
+    leadContactName,
+    leadPhone,
+    leadEmail,
+    expectedCloseDate,
+    actualCloseDate,
+    lossReason,
+    note,
     createdAt,
     updatedAt,
     deleted,
@@ -5506,40 +5661,22 @@ class $CrmOpportunitiesTable extends CrmOpportunities
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    if (data.containsKey('company_id')) {
-      context.handle(
-        _companyIdMeta,
-        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
-      );
-    }
-    if (data.containsKey('point_of_contact_id')) {
-      context.handle(
-        _pointOfContactIdMeta,
-        pointOfContactId.isAcceptableOrUnknown(
-          data['point_of_contact_id']!,
-          _pointOfContactIdMeta,
-        ),
-      );
-    }
     if (data.containsKey('name')) {
       context.handle(
         _nameMeta,
         name.isAcceptableOrUnknown(data['name']!, _nameMeta),
       );
     }
-    if (data.containsKey('amount_micros')) {
+    if (data.containsKey('account_id')) {
       context.handle(
-        _amountMicrosMeta,
-        amountMicros.isAcceptableOrUnknown(
-          data['amount_micros']!,
-          _amountMicrosMeta,
-        ),
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
       );
     }
-    if (data.containsKey('close_date')) {
+    if (data.containsKey('contact_id')) {
       context.handle(
-        _closeDateMeta,
-        closeDate.isAcceptableOrUnknown(data['close_date']!, _closeDateMeta),
+        _contactIdMeta,
+        contactId.isAcceptableOrUnknown(data['contact_id']!, _contactIdMeta),
       );
     }
     if (data.containsKey('stage')) {
@@ -5548,13 +5685,82 @@ class $CrmOpportunitiesTable extends CrmOpportunities
         stage.isAcceptableOrUnknown(data['stage']!, _stageMeta),
       );
     }
-    if (data.containsKey('custom_status')) {
+    if (data.containsKey('probability')) {
       context.handle(
-        _customStatusMeta,
-        customStatus.isAcceptableOrUnknown(
-          data['custom_status']!,
-          _customStatusMeta,
+        _probabilityMeta,
+        probability.isAcceptableOrUnknown(
+          data['probability']!,
+          _probabilityMeta,
         ),
+      );
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('lead_contact_name')) {
+      context.handle(
+        _leadContactNameMeta,
+        leadContactName.isAcceptableOrUnknown(
+          data['lead_contact_name']!,
+          _leadContactNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('lead_phone')) {
+      context.handle(
+        _leadPhoneMeta,
+        leadPhone.isAcceptableOrUnknown(data['lead_phone']!, _leadPhoneMeta),
+      );
+    }
+    if (data.containsKey('lead_email')) {
+      context.handle(
+        _leadEmailMeta,
+        leadEmail.isAcceptableOrUnknown(data['lead_email']!, _leadEmailMeta),
+      );
+    }
+    if (data.containsKey('expected_close_date')) {
+      context.handle(
+        _expectedCloseDateMeta,
+        expectedCloseDate.isAcceptableOrUnknown(
+          data['expected_close_date']!,
+          _expectedCloseDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('actual_close_date')) {
+      context.handle(
+        _actualCloseDateMeta,
+        actualCloseDate.isAcceptableOrUnknown(
+          data['actual_close_date']!,
+          _actualCloseDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('loss_reason')) {
+      context.handle(
+        _lossReasonMeta,
+        lossReason.isAcceptableOrUnknown(data['loss_reason']!, _lossReasonMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -5592,33 +5798,65 @@ class $CrmOpportunitiesTable extends CrmOpportunities
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
-      companyId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}company_id'],
-      ),
-      pointOfContactId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}point_of_contact_id'],
-      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
-      amountMicros: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}amount_micros'],
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
       ),
-      closeDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}close_date'],
+      contactId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contact_id'],
       ),
       stage: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}stage'],
       )!,
-      customStatus: attachedDatabase.typeMapping.read(
+      probability: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}probability'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      currency: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}custom_status'],
+        data['${effectivePrefix}currency'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      leadContactName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lead_contact_name'],
+      )!,
+      leadPhone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lead_phone'],
+      )!,
+      leadEmail: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lead_email'],
+      )!,
+      expectedCloseDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expected_close_date'],
+      ),
+      actualCloseDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}actual_close_date'],
+      ),
+      lossReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}loss_reason'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
       )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -5644,25 +5882,43 @@ class $CrmOpportunitiesTable extends CrmOpportunities
 class CrmOpportunityRow extends DataClass
     implements Insertable<CrmOpportunityRow> {
   final String id;
-  final String? companyId;
-  final String? pointOfContactId;
   final String name;
-  final int? amountMicros;
-  final DateTime? closeDate;
+  final String? accountId;
+  final String? contactId;
+
+  /// newLead/contacted/qualified/proposal/negotiation/closedWon/closedLost/abandoned
   final String stage;
-  final String customStatus;
+  final int probability;
+  final double amount;
+  final String currency;
+  final String source;
+  final String leadContactName;
+  final String leadPhone;
+  final String leadEmail;
+  final DateTime? expectedCloseDate;
+  final DateTime? actualCloseDate;
+  final String lossReason;
+  final String note;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool deleted;
   const CrmOpportunityRow({
     required this.id,
-    this.companyId,
-    this.pointOfContactId,
     required this.name,
-    this.amountMicros,
-    this.closeDate,
+    this.accountId,
+    this.contactId,
     required this.stage,
-    required this.customStatus,
+    required this.probability,
+    required this.amount,
+    required this.currency,
+    required this.source,
+    required this.leadContactName,
+    required this.leadPhone,
+    required this.leadEmail,
+    this.expectedCloseDate,
+    this.actualCloseDate,
+    required this.lossReason,
+    required this.note,
     required this.createdAt,
     required this.updatedAt,
     required this.deleted,
@@ -5671,21 +5927,29 @@ class CrmOpportunityRow extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    if (!nullToAbsent || companyId != null) {
-      map['company_id'] = Variable<String>(companyId);
-    }
-    if (!nullToAbsent || pointOfContactId != null) {
-      map['point_of_contact_id'] = Variable<String>(pointOfContactId);
-    }
     map['name'] = Variable<String>(name);
-    if (!nullToAbsent || amountMicros != null) {
-      map['amount_micros'] = Variable<int>(amountMicros);
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<String>(accountId);
     }
-    if (!nullToAbsent || closeDate != null) {
-      map['close_date'] = Variable<DateTime>(closeDate);
+    if (!nullToAbsent || contactId != null) {
+      map['contact_id'] = Variable<String>(contactId);
     }
     map['stage'] = Variable<String>(stage);
-    map['custom_status'] = Variable<String>(customStatus);
+    map['probability'] = Variable<int>(probability);
+    map['amount'] = Variable<double>(amount);
+    map['currency'] = Variable<String>(currency);
+    map['source'] = Variable<String>(source);
+    map['lead_contact_name'] = Variable<String>(leadContactName);
+    map['lead_phone'] = Variable<String>(leadPhone);
+    map['lead_email'] = Variable<String>(leadEmail);
+    if (!nullToAbsent || expectedCloseDate != null) {
+      map['expected_close_date'] = Variable<DateTime>(expectedCloseDate);
+    }
+    if (!nullToAbsent || actualCloseDate != null) {
+      map['actual_close_date'] = Variable<DateTime>(actualCloseDate);
+    }
+    map['loss_reason'] = Variable<String>(lossReason);
+    map['note'] = Variable<String>(note);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['deleted'] = Variable<bool>(deleted);
@@ -5695,21 +5959,29 @@ class CrmOpportunityRow extends DataClass
   CrmOpportunitiesCompanion toCompanion(bool nullToAbsent) {
     return CrmOpportunitiesCompanion(
       id: Value(id),
-      companyId: companyId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(companyId),
-      pointOfContactId: pointOfContactId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(pointOfContactId),
       name: Value(name),
-      amountMicros: amountMicros == null && nullToAbsent
+      accountId: accountId == null && nullToAbsent
           ? const Value.absent()
-          : Value(amountMicros),
-      closeDate: closeDate == null && nullToAbsent
+          : Value(accountId),
+      contactId: contactId == null && nullToAbsent
           ? const Value.absent()
-          : Value(closeDate),
+          : Value(contactId),
       stage: Value(stage),
-      customStatus: Value(customStatus),
+      probability: Value(probability),
+      amount: Value(amount),
+      currency: Value(currency),
+      source: Value(source),
+      leadContactName: Value(leadContactName),
+      leadPhone: Value(leadPhone),
+      leadEmail: Value(leadEmail),
+      expectedCloseDate: expectedCloseDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expectedCloseDate),
+      actualCloseDate: actualCloseDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(actualCloseDate),
+      lossReason: Value(lossReason),
+      note: Value(note),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deleted: Value(deleted),
@@ -5723,13 +5995,23 @@ class CrmOpportunityRow extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CrmOpportunityRow(
       id: serializer.fromJson<String>(json['id']),
-      companyId: serializer.fromJson<String?>(json['companyId']),
-      pointOfContactId: serializer.fromJson<String?>(json['pointOfContactId']),
       name: serializer.fromJson<String>(json['name']),
-      amountMicros: serializer.fromJson<int?>(json['amountMicros']),
-      closeDate: serializer.fromJson<DateTime?>(json['closeDate']),
+      accountId: serializer.fromJson<String?>(json['accountId']),
+      contactId: serializer.fromJson<String?>(json['contactId']),
       stage: serializer.fromJson<String>(json['stage']),
-      customStatus: serializer.fromJson<String>(json['customStatus']),
+      probability: serializer.fromJson<int>(json['probability']),
+      amount: serializer.fromJson<double>(json['amount']),
+      currency: serializer.fromJson<String>(json['currency']),
+      source: serializer.fromJson<String>(json['source']),
+      leadContactName: serializer.fromJson<String>(json['leadContactName']),
+      leadPhone: serializer.fromJson<String>(json['leadPhone']),
+      leadEmail: serializer.fromJson<String>(json['leadEmail']),
+      expectedCloseDate: serializer.fromJson<DateTime?>(
+        json['expectedCloseDate'],
+      ),
+      actualCloseDate: serializer.fromJson<DateTime?>(json['actualCloseDate']),
+      lossReason: serializer.fromJson<String>(json['lossReason']),
+      note: serializer.fromJson<String>(json['note']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deleted: serializer.fromJson<bool>(json['deleted']),
@@ -5740,13 +6022,21 @@ class CrmOpportunityRow extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
-      'companyId': serializer.toJson<String?>(companyId),
-      'pointOfContactId': serializer.toJson<String?>(pointOfContactId),
       'name': serializer.toJson<String>(name),
-      'amountMicros': serializer.toJson<int?>(amountMicros),
-      'closeDate': serializer.toJson<DateTime?>(closeDate),
+      'accountId': serializer.toJson<String?>(accountId),
+      'contactId': serializer.toJson<String?>(contactId),
       'stage': serializer.toJson<String>(stage),
-      'customStatus': serializer.toJson<String>(customStatus),
+      'probability': serializer.toJson<int>(probability),
+      'amount': serializer.toJson<double>(amount),
+      'currency': serializer.toJson<String>(currency),
+      'source': serializer.toJson<String>(source),
+      'leadContactName': serializer.toJson<String>(leadContactName),
+      'leadPhone': serializer.toJson<String>(leadPhone),
+      'leadEmail': serializer.toJson<String>(leadEmail),
+      'expectedCloseDate': serializer.toJson<DateTime?>(expectedCloseDate),
+      'actualCloseDate': serializer.toJson<DateTime?>(actualCloseDate),
+      'lossReason': serializer.toJson<String>(lossReason),
+      'note': serializer.toJson<String>(note),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deleted': serializer.toJson<bool>(deleted),
@@ -5755,27 +6045,45 @@ class CrmOpportunityRow extends DataClass
 
   CrmOpportunityRow copyWith({
     String? id,
-    Value<String?> companyId = const Value.absent(),
-    Value<String?> pointOfContactId = const Value.absent(),
     String? name,
-    Value<int?> amountMicros = const Value.absent(),
-    Value<DateTime?> closeDate = const Value.absent(),
+    Value<String?> accountId = const Value.absent(),
+    Value<String?> contactId = const Value.absent(),
     String? stage,
-    String? customStatus,
+    int? probability,
+    double? amount,
+    String? currency,
+    String? source,
+    String? leadContactName,
+    String? leadPhone,
+    String? leadEmail,
+    Value<DateTime?> expectedCloseDate = const Value.absent(),
+    Value<DateTime?> actualCloseDate = const Value.absent(),
+    String? lossReason,
+    String? note,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? deleted,
   }) => CrmOpportunityRow(
     id: id ?? this.id,
-    companyId: companyId.present ? companyId.value : this.companyId,
-    pointOfContactId: pointOfContactId.present
-        ? pointOfContactId.value
-        : this.pointOfContactId,
     name: name ?? this.name,
-    amountMicros: amountMicros.present ? amountMicros.value : this.amountMicros,
-    closeDate: closeDate.present ? closeDate.value : this.closeDate,
+    accountId: accountId.present ? accountId.value : this.accountId,
+    contactId: contactId.present ? contactId.value : this.contactId,
     stage: stage ?? this.stage,
-    customStatus: customStatus ?? this.customStatus,
+    probability: probability ?? this.probability,
+    amount: amount ?? this.amount,
+    currency: currency ?? this.currency,
+    source: source ?? this.source,
+    leadContactName: leadContactName ?? this.leadContactName,
+    leadPhone: leadPhone ?? this.leadPhone,
+    leadEmail: leadEmail ?? this.leadEmail,
+    expectedCloseDate: expectedCloseDate.present
+        ? expectedCloseDate.value
+        : this.expectedCloseDate,
+    actualCloseDate: actualCloseDate.present
+        ? actualCloseDate.value
+        : this.actualCloseDate,
+    lossReason: lossReason ?? this.lossReason,
+    note: note ?? this.note,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deleted: deleted ?? this.deleted,
@@ -5783,19 +6091,31 @@ class CrmOpportunityRow extends DataClass
   CrmOpportunityRow copyWithCompanion(CrmOpportunitiesCompanion data) {
     return CrmOpportunityRow(
       id: data.id.present ? data.id.value : this.id,
-      companyId: data.companyId.present ? data.companyId.value : this.companyId,
-      pointOfContactId: data.pointOfContactId.present
-          ? data.pointOfContactId.value
-          : this.pointOfContactId,
       name: data.name.present ? data.name.value : this.name,
-      amountMicros: data.amountMicros.present
-          ? data.amountMicros.value
-          : this.amountMicros,
-      closeDate: data.closeDate.present ? data.closeDate.value : this.closeDate,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      contactId: data.contactId.present ? data.contactId.value : this.contactId,
       stage: data.stage.present ? data.stage.value : this.stage,
-      customStatus: data.customStatus.present
-          ? data.customStatus.value
-          : this.customStatus,
+      probability: data.probability.present
+          ? data.probability.value
+          : this.probability,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      source: data.source.present ? data.source.value : this.source,
+      leadContactName: data.leadContactName.present
+          ? data.leadContactName.value
+          : this.leadContactName,
+      leadPhone: data.leadPhone.present ? data.leadPhone.value : this.leadPhone,
+      leadEmail: data.leadEmail.present ? data.leadEmail.value : this.leadEmail,
+      expectedCloseDate: data.expectedCloseDate.present
+          ? data.expectedCloseDate.value
+          : this.expectedCloseDate,
+      actualCloseDate: data.actualCloseDate.present
+          ? data.actualCloseDate.value
+          : this.actualCloseDate,
+      lossReason: data.lossReason.present
+          ? data.lossReason.value
+          : this.lossReason,
+      note: data.note.present ? data.note.value : this.note,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
@@ -5806,13 +6126,21 @@ class CrmOpportunityRow extends DataClass
   String toString() {
     return (StringBuffer('CrmOpportunityRow(')
           ..write('id: $id, ')
-          ..write('companyId: $companyId, ')
-          ..write('pointOfContactId: $pointOfContactId, ')
           ..write('name: $name, ')
-          ..write('amountMicros: $amountMicros, ')
-          ..write('closeDate: $closeDate, ')
+          ..write('accountId: $accountId, ')
+          ..write('contactId: $contactId, ')
           ..write('stage: $stage, ')
-          ..write('customStatus: $customStatus, ')
+          ..write('probability: $probability, ')
+          ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
+          ..write('source: $source, ')
+          ..write('leadContactName: $leadContactName, ')
+          ..write('leadPhone: $leadPhone, ')
+          ..write('leadEmail: $leadEmail, ')
+          ..write('expectedCloseDate: $expectedCloseDate, ')
+          ..write('actualCloseDate: $actualCloseDate, ')
+          ..write('lossReason: $lossReason, ')
+          ..write('note: $note, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted')
@@ -5823,13 +6151,21 @@ class CrmOpportunityRow extends DataClass
   @override
   int get hashCode => Object.hash(
     id,
-    companyId,
-    pointOfContactId,
     name,
-    amountMicros,
-    closeDate,
+    accountId,
+    contactId,
     stage,
-    customStatus,
+    probability,
+    amount,
+    currency,
+    source,
+    leadContactName,
+    leadPhone,
+    leadEmail,
+    expectedCloseDate,
+    actualCloseDate,
+    lossReason,
+    note,
     createdAt,
     updatedAt,
     deleted,
@@ -5839,13 +6175,21 @@ class CrmOpportunityRow extends DataClass
       identical(this, other) ||
       (other is CrmOpportunityRow &&
           other.id == this.id &&
-          other.companyId == this.companyId &&
-          other.pointOfContactId == this.pointOfContactId &&
           other.name == this.name &&
-          other.amountMicros == this.amountMicros &&
-          other.closeDate == this.closeDate &&
+          other.accountId == this.accountId &&
+          other.contactId == this.contactId &&
           other.stage == this.stage &&
-          other.customStatus == this.customStatus &&
+          other.probability == this.probability &&
+          other.amount == this.amount &&
+          other.currency == this.currency &&
+          other.source == this.source &&
+          other.leadContactName == this.leadContactName &&
+          other.leadPhone == this.leadPhone &&
+          other.leadEmail == this.leadEmail &&
+          other.expectedCloseDate == this.expectedCloseDate &&
+          other.actualCloseDate == this.actualCloseDate &&
+          other.lossReason == this.lossReason &&
+          other.note == this.note &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deleted == this.deleted);
@@ -5853,26 +6197,42 @@ class CrmOpportunityRow extends DataClass
 
 class CrmOpportunitiesCompanion extends UpdateCompanion<CrmOpportunityRow> {
   final Value<String> id;
-  final Value<String?> companyId;
-  final Value<String?> pointOfContactId;
   final Value<String> name;
-  final Value<int?> amountMicros;
-  final Value<DateTime?> closeDate;
+  final Value<String?> accountId;
+  final Value<String?> contactId;
   final Value<String> stage;
-  final Value<String> customStatus;
+  final Value<int> probability;
+  final Value<double> amount;
+  final Value<String> currency;
+  final Value<String> source;
+  final Value<String> leadContactName;
+  final Value<String> leadPhone;
+  final Value<String> leadEmail;
+  final Value<DateTime?> expectedCloseDate;
+  final Value<DateTime?> actualCloseDate;
+  final Value<String> lossReason;
+  final Value<String> note;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> deleted;
   final Value<int> rowid;
   const CrmOpportunitiesCompanion({
     this.id = const Value.absent(),
-    this.companyId = const Value.absent(),
-    this.pointOfContactId = const Value.absent(),
     this.name = const Value.absent(),
-    this.amountMicros = const Value.absent(),
-    this.closeDate = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.contactId = const Value.absent(),
     this.stage = const Value.absent(),
-    this.customStatus = const Value.absent(),
+    this.probability = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.source = const Value.absent(),
+    this.leadContactName = const Value.absent(),
+    this.leadPhone = const Value.absent(),
+    this.leadEmail = const Value.absent(),
+    this.expectedCloseDate = const Value.absent(),
+    this.actualCloseDate = const Value.absent(),
+    this.lossReason = const Value.absent(),
+    this.note = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deleted = const Value.absent(),
@@ -5880,13 +6240,21 @@ class CrmOpportunitiesCompanion extends UpdateCompanion<CrmOpportunityRow> {
   });
   CrmOpportunitiesCompanion.insert({
     required String id,
-    this.companyId = const Value.absent(),
-    this.pointOfContactId = const Value.absent(),
     this.name = const Value.absent(),
-    this.amountMicros = const Value.absent(),
-    this.closeDate = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.contactId = const Value.absent(),
     this.stage = const Value.absent(),
-    this.customStatus = const Value.absent(),
+    this.probability = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.source = const Value.absent(),
+    this.leadContactName = const Value.absent(),
+    this.leadPhone = const Value.absent(),
+    this.leadEmail = const Value.absent(),
+    this.expectedCloseDate = const Value.absent(),
+    this.actualCloseDate = const Value.absent(),
+    this.lossReason = const Value.absent(),
+    this.note = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deleted = const Value.absent(),
@@ -5896,13 +6264,21 @@ class CrmOpportunitiesCompanion extends UpdateCompanion<CrmOpportunityRow> {
        updatedAt = Value(updatedAt);
   static Insertable<CrmOpportunityRow> custom({
     Expression<String>? id,
-    Expression<String>? companyId,
-    Expression<String>? pointOfContactId,
     Expression<String>? name,
-    Expression<int>? amountMicros,
-    Expression<DateTime>? closeDate,
+    Expression<String>? accountId,
+    Expression<String>? contactId,
     Expression<String>? stage,
-    Expression<String>? customStatus,
+    Expression<int>? probability,
+    Expression<double>? amount,
+    Expression<String>? currency,
+    Expression<String>? source,
+    Expression<String>? leadContactName,
+    Expression<String>? leadPhone,
+    Expression<String>? leadEmail,
+    Expression<DateTime>? expectedCloseDate,
+    Expression<DateTime>? actualCloseDate,
+    Expression<String>? lossReason,
+    Expression<String>? note,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? deleted,
@@ -5910,13 +6286,21 @@ class CrmOpportunitiesCompanion extends UpdateCompanion<CrmOpportunityRow> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (companyId != null) 'company_id': companyId,
-      if (pointOfContactId != null) 'point_of_contact_id': pointOfContactId,
       if (name != null) 'name': name,
-      if (amountMicros != null) 'amount_micros': amountMicros,
-      if (closeDate != null) 'close_date': closeDate,
+      if (accountId != null) 'account_id': accountId,
+      if (contactId != null) 'contact_id': contactId,
       if (stage != null) 'stage': stage,
-      if (customStatus != null) 'custom_status': customStatus,
+      if (probability != null) 'probability': probability,
+      if (amount != null) 'amount': amount,
+      if (currency != null) 'currency': currency,
+      if (source != null) 'source': source,
+      if (leadContactName != null) 'lead_contact_name': leadContactName,
+      if (leadPhone != null) 'lead_phone': leadPhone,
+      if (leadEmail != null) 'lead_email': leadEmail,
+      if (expectedCloseDate != null) 'expected_close_date': expectedCloseDate,
+      if (actualCloseDate != null) 'actual_close_date': actualCloseDate,
+      if (lossReason != null) 'loss_reason': lossReason,
+      if (note != null) 'note': note,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deleted != null) 'deleted': deleted,
@@ -5926,13 +6310,21 @@ class CrmOpportunitiesCompanion extends UpdateCompanion<CrmOpportunityRow> {
 
   CrmOpportunitiesCompanion copyWith({
     Value<String>? id,
-    Value<String?>? companyId,
-    Value<String?>? pointOfContactId,
     Value<String>? name,
-    Value<int?>? amountMicros,
-    Value<DateTime?>? closeDate,
+    Value<String?>? accountId,
+    Value<String?>? contactId,
     Value<String>? stage,
-    Value<String>? customStatus,
+    Value<int>? probability,
+    Value<double>? amount,
+    Value<String>? currency,
+    Value<String>? source,
+    Value<String>? leadContactName,
+    Value<String>? leadPhone,
+    Value<String>? leadEmail,
+    Value<DateTime?>? expectedCloseDate,
+    Value<DateTime?>? actualCloseDate,
+    Value<String>? lossReason,
+    Value<String>? note,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<bool>? deleted,
@@ -5940,13 +6332,21 @@ class CrmOpportunitiesCompanion extends UpdateCompanion<CrmOpportunityRow> {
   }) {
     return CrmOpportunitiesCompanion(
       id: id ?? this.id,
-      companyId: companyId ?? this.companyId,
-      pointOfContactId: pointOfContactId ?? this.pointOfContactId,
       name: name ?? this.name,
-      amountMicros: amountMicros ?? this.amountMicros,
-      closeDate: closeDate ?? this.closeDate,
+      accountId: accountId ?? this.accountId,
+      contactId: contactId ?? this.contactId,
       stage: stage ?? this.stage,
-      customStatus: customStatus ?? this.customStatus,
+      probability: probability ?? this.probability,
+      amount: amount ?? this.amount,
+      currency: currency ?? this.currency,
+      source: source ?? this.source,
+      leadContactName: leadContactName ?? this.leadContactName,
+      leadPhone: leadPhone ?? this.leadPhone,
+      leadEmail: leadEmail ?? this.leadEmail,
+      expectedCloseDate: expectedCloseDate ?? this.expectedCloseDate,
+      actualCloseDate: actualCloseDate ?? this.actualCloseDate,
+      lossReason: lossReason ?? this.lossReason,
+      note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deleted: deleted ?? this.deleted,
@@ -5960,26 +6360,50 @@ class CrmOpportunitiesCompanion extends UpdateCompanion<CrmOpportunityRow> {
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
-    if (companyId.present) {
-      map['company_id'] = Variable<String>(companyId.value);
-    }
-    if (pointOfContactId.present) {
-      map['point_of_contact_id'] = Variable<String>(pointOfContactId.value);
-    }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
-    if (amountMicros.present) {
-      map['amount_micros'] = Variable<int>(amountMicros.value);
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
     }
-    if (closeDate.present) {
-      map['close_date'] = Variable<DateTime>(closeDate.value);
+    if (contactId.present) {
+      map['contact_id'] = Variable<String>(contactId.value);
     }
     if (stage.present) {
       map['stage'] = Variable<String>(stage.value);
     }
-    if (customStatus.present) {
-      map['custom_status'] = Variable<String>(customStatus.value);
+    if (probability.present) {
+      map['probability'] = Variable<int>(probability.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (leadContactName.present) {
+      map['lead_contact_name'] = Variable<String>(leadContactName.value);
+    }
+    if (leadPhone.present) {
+      map['lead_phone'] = Variable<String>(leadPhone.value);
+    }
+    if (leadEmail.present) {
+      map['lead_email'] = Variable<String>(leadEmail.value);
+    }
+    if (expectedCloseDate.present) {
+      map['expected_close_date'] = Variable<DateTime>(expectedCloseDate.value);
+    }
+    if (actualCloseDate.present) {
+      map['actual_close_date'] = Variable<DateTime>(actualCloseDate.value);
+    }
+    if (lossReason.present) {
+      map['loss_reason'] = Variable<String>(lossReason.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -6000,13 +6424,21 @@ class CrmOpportunitiesCompanion extends UpdateCompanion<CrmOpportunityRow> {
   String toString() {
     return (StringBuffer('CrmOpportunitiesCompanion(')
           ..write('id: $id, ')
-          ..write('companyId: $companyId, ')
-          ..write('pointOfContactId: $pointOfContactId, ')
           ..write('name: $name, ')
-          ..write('amountMicros: $amountMicros, ')
-          ..write('closeDate: $closeDate, ')
+          ..write('accountId: $accountId, ')
+          ..write('contactId: $contactId, ')
           ..write('stage: $stage, ')
-          ..write('customStatus: $customStatus, ')
+          ..write('probability: $probability, ')
+          ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
+          ..write('source: $source, ')
+          ..write('leadContactName: $leadContactName, ')
+          ..write('leadPhone: $leadPhone, ')
+          ..write('leadEmail: $leadEmail, ')
+          ..write('expectedCloseDate: $expectedCloseDate, ')
+          ..write('actualCloseDate: $actualCloseDate, ')
+          ..write('lossReason: $lossReason, ')
+          ..write('note: $note, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted, ')
@@ -6031,16 +6463,17 @@ class $CrmContractsTable extends CrmContracts
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _companyIdMeta = const VerificationMeta(
-    'companyId',
+  static const VerificationMeta _contractNoMeta = const VerificationMeta(
+    'contractNo',
   );
   @override
-  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
-    'company_id',
+  late final GeneratedColumn<String> contractNo = GeneratedColumn<String>(
+    'contract_no',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+    defaultValue: const Constant(''),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -6052,28 +6485,49 @@ class $CrmContractsTable extends CrmContracts
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
-  static const VerificationMeta _amountMicrosMeta = const VerificationMeta(
-    'amountMicros',
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
   );
   @override
-  late final GeneratedColumn<int> amountMicros = GeneratedColumn<int>(
-    'amount_micros',
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
     aliasedName,
     true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _currencyMeta = const VerificationMeta(
-    'currency',
-  );
-  @override
-  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
-    'currency',
-    aliasedName,
-    false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('CNY'),
+  );
+  static const VerificationMeta _contactIdMeta = const VerificationMeta(
+    'contactId',
+  );
+  @override
+  late final GeneratedColumn<String> contactId = GeneratedColumn<String>(
+    'contact_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _opportunityIdMeta = const VerificationMeta(
+    'opportunityId',
+  );
+  @override
+  late final GeneratedColumn<String> opportunityId = GeneratedColumn<String>(
+    'opportunity_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _quoteIdMeta = const VerificationMeta(
+    'quoteId',
+  );
+  @override
+  late final GeneratedColumn<String> quoteId = GeneratedColumn<String>(
+    'quote_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
@@ -6083,23 +6537,93 @@ class $CrmContractsTable extends CrmContracts
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant('draft'),
   );
-  static const VerificationMeta _dueDateMeta = const VerificationMeta(
-    'dueDate',
+  static const VerificationMeta _totalAmountMeta = const VerificationMeta(
+    'totalAmount',
   );
   @override
-  late final GeneratedColumn<DateTime> dueDate = GeneratedColumn<DateTime>(
-    'due_date',
+  late final GeneratedColumn<double> totalAmount = GeneratedColumn<double>(
+    'total_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _paidAmountMeta = const VerificationMeta(
+    'paidAmount',
+  );
+  @override
+  late final GeneratedColumn<double> paidAmount = GeneratedColumn<double>(
+    'paid_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _invoicedAmountMeta = const VerificationMeta(
+    'invoicedAmount',
+  );
+  @override
+  late final GeneratedColumn<double> invoicedAmount = GeneratedColumn<double>(
+    'invoiced_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _signDateMeta = const VerificationMeta(
+    'signDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> signDate = GeneratedColumn<DateTime>(
+    'sign_date',
     aliasedName,
     true,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _termsMeta = const VerificationMeta('terms');
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
   @override
-  late final GeneratedColumn<String> terms = GeneratedColumn<String>(
-    'terms',
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+    'end_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _warrantyEndDateMeta = const VerificationMeta(
+    'warrantyEndDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> warrantyEndDate =
+      GeneratedColumn<DateTime>(
+        'warranty_end_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -6146,13 +6670,21 @@ class $CrmContractsTable extends CrmContracts
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    companyId,
+    contractNo,
     name,
-    amountMicros,
-    currency,
+    accountId,
+    contactId,
+    opportunityId,
+    quoteId,
     status,
-    dueDate,
-    terms,
+    totalAmount,
+    paidAmount,
+    invoicedAmount,
+    signDate,
+    startDate,
+    endDate,
+    warrantyEndDate,
+    note,
     createdAt,
     updatedAt,
     deleted,
@@ -6174,10 +6706,10 @@ class $CrmContractsTable extends CrmContracts
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    if (data.containsKey('company_id')) {
+    if (data.containsKey('contract_no')) {
       context.handle(
-        _companyIdMeta,
-        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+        _contractNoMeta,
+        contractNo.isAcceptableOrUnknown(data['contract_no']!, _contractNoMeta),
       );
     }
     if (data.containsKey('name')) {
@@ -6186,19 +6718,31 @@ class $CrmContractsTable extends CrmContracts
         name.isAcceptableOrUnknown(data['name']!, _nameMeta),
       );
     }
-    if (data.containsKey('amount_micros')) {
+    if (data.containsKey('account_id')) {
       context.handle(
-        _amountMicrosMeta,
-        amountMicros.isAcceptableOrUnknown(
-          data['amount_micros']!,
-          _amountMicrosMeta,
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    }
+    if (data.containsKey('contact_id')) {
+      context.handle(
+        _contactIdMeta,
+        contactId.isAcceptableOrUnknown(data['contact_id']!, _contactIdMeta),
+      );
+    }
+    if (data.containsKey('opportunity_id')) {
+      context.handle(
+        _opportunityIdMeta,
+        opportunityId.isAcceptableOrUnknown(
+          data['opportunity_id']!,
+          _opportunityIdMeta,
         ),
       );
     }
-    if (data.containsKey('currency')) {
+    if (data.containsKey('quote_id')) {
       context.handle(
-        _currencyMeta,
-        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+        _quoteIdMeta,
+        quoteId.isAcceptableOrUnknown(data['quote_id']!, _quoteIdMeta),
       );
     }
     if (data.containsKey('status')) {
@@ -6207,16 +6751,61 @@ class $CrmContractsTable extends CrmContracts
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
       );
     }
-    if (data.containsKey('due_date')) {
+    if (data.containsKey('total_amount')) {
       context.handle(
-        _dueDateMeta,
-        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+        _totalAmountMeta,
+        totalAmount.isAcceptableOrUnknown(
+          data['total_amount']!,
+          _totalAmountMeta,
+        ),
       );
     }
-    if (data.containsKey('terms')) {
+    if (data.containsKey('paid_amount')) {
       context.handle(
-        _termsMeta,
-        terms.isAcceptableOrUnknown(data['terms']!, _termsMeta),
+        _paidAmountMeta,
+        paidAmount.isAcceptableOrUnknown(data['paid_amount']!, _paidAmountMeta),
+      );
+    }
+    if (data.containsKey('invoiced_amount')) {
+      context.handle(
+        _invoicedAmountMeta,
+        invoicedAmount.isAcceptableOrUnknown(
+          data['invoiced_amount']!,
+          _invoicedAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sign_date')) {
+      context.handle(
+        _signDateMeta,
+        signDate.isAcceptableOrUnknown(data['sign_date']!, _signDateMeta),
+      );
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    }
+    if (data.containsKey('warranty_end_date')) {
+      context.handle(
+        _warrantyEndDateMeta,
+        warrantyEndDate.isAcceptableOrUnknown(
+          data['warranty_end_date']!,
+          _warrantyEndDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -6254,33 +6843,65 @@ class $CrmContractsTable extends CrmContracts
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
-      companyId: attachedDatabase.typeMapping.read(
+      contractNo: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}company_id'],
-      ),
+        data['${effectivePrefix}contract_no'],
+      )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
-      amountMicros: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}amount_micros'],
-      ),
-      currency: attachedDatabase.typeMapping.read(
+      accountId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}currency'],
-      )!,
+        data['${effectivePrefix}account_id'],
+      ),
+      contactId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contact_id'],
+      ),
+      opportunityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}opportunity_id'],
+      ),
+      quoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quote_id'],
+      ),
       status: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
-      dueDate: attachedDatabase.typeMapping.read(
+      totalAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}total_amount'],
+      )!,
+      paidAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}paid_amount'],
+      )!,
+      invoicedAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}invoiced_amount'],
+      )!,
+      signDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
-        data['${effectivePrefix}due_date'],
+        data['${effectivePrefix}sign_date'],
       ),
-      terms: attachedDatabase.typeMapping.read(
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      ),
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_date'],
+      ),
+      warrantyEndDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}warranty_end_date'],
+      ),
+      note: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}terms'],
+        data['${effectivePrefix}note'],
       )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -6305,25 +6926,43 @@ class $CrmContractsTable extends CrmContracts
 
 class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
   final String id;
-  final String? companyId;
+  final String contractNo;
   final String name;
-  final int? amountMicros;
-  final String currency;
+  final String? accountId;
+  final String? contactId;
+  final String? opportunityId;
+  final String? quoteId;
+
+  /// draft/active/completed/terminated/expired
   final String status;
-  final DateTime? dueDate;
-  final String terms;
+  final double totalAmount;
+  final double paidAmount;
+  final double invoicedAmount;
+  final DateTime? signDate;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final DateTime? warrantyEndDate;
+  final String note;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool deleted;
   const CrmContractRow({
     required this.id,
-    this.companyId,
+    required this.contractNo,
     required this.name,
-    this.amountMicros,
-    required this.currency,
+    this.accountId,
+    this.contactId,
+    this.opportunityId,
+    this.quoteId,
     required this.status,
-    this.dueDate,
-    required this.terms,
+    required this.totalAmount,
+    required this.paidAmount,
+    required this.invoicedAmount,
+    this.signDate,
+    this.startDate,
+    this.endDate,
+    this.warrantyEndDate,
+    required this.note,
     required this.createdAt,
     required this.updatedAt,
     required this.deleted,
@@ -6332,19 +6971,37 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    if (!nullToAbsent || companyId != null) {
-      map['company_id'] = Variable<String>(companyId);
-    }
+    map['contract_no'] = Variable<String>(contractNo);
     map['name'] = Variable<String>(name);
-    if (!nullToAbsent || amountMicros != null) {
-      map['amount_micros'] = Variable<int>(amountMicros);
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<String>(accountId);
     }
-    map['currency'] = Variable<String>(currency);
+    if (!nullToAbsent || contactId != null) {
+      map['contact_id'] = Variable<String>(contactId);
+    }
+    if (!nullToAbsent || opportunityId != null) {
+      map['opportunity_id'] = Variable<String>(opportunityId);
+    }
+    if (!nullToAbsent || quoteId != null) {
+      map['quote_id'] = Variable<String>(quoteId);
+    }
     map['status'] = Variable<String>(status);
-    if (!nullToAbsent || dueDate != null) {
-      map['due_date'] = Variable<DateTime>(dueDate);
+    map['total_amount'] = Variable<double>(totalAmount);
+    map['paid_amount'] = Variable<double>(paidAmount);
+    map['invoiced_amount'] = Variable<double>(invoicedAmount);
+    if (!nullToAbsent || signDate != null) {
+      map['sign_date'] = Variable<DateTime>(signDate);
     }
-    map['terms'] = Variable<String>(terms);
+    if (!nullToAbsent || startDate != null) {
+      map['start_date'] = Variable<DateTime>(startDate);
+    }
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<DateTime>(endDate);
+    }
+    if (!nullToAbsent || warrantyEndDate != null) {
+      map['warranty_end_date'] = Variable<DateTime>(warrantyEndDate);
+    }
+    map['note'] = Variable<String>(note);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['deleted'] = Variable<bool>(deleted);
@@ -6354,19 +7011,37 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
   CrmContractsCompanion toCompanion(bool nullToAbsent) {
     return CrmContractsCompanion(
       id: Value(id),
-      companyId: companyId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(companyId),
+      contractNo: Value(contractNo),
       name: Value(name),
-      amountMicros: amountMicros == null && nullToAbsent
+      accountId: accountId == null && nullToAbsent
           ? const Value.absent()
-          : Value(amountMicros),
-      currency: Value(currency),
+          : Value(accountId),
+      contactId: contactId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contactId),
+      opportunityId: opportunityId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(opportunityId),
+      quoteId: quoteId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quoteId),
       status: Value(status),
-      dueDate: dueDate == null && nullToAbsent
+      totalAmount: Value(totalAmount),
+      paidAmount: Value(paidAmount),
+      invoicedAmount: Value(invoicedAmount),
+      signDate: signDate == null && nullToAbsent
           ? const Value.absent()
-          : Value(dueDate),
-      terms: Value(terms),
+          : Value(signDate),
+      startDate: startDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startDate),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
+      warrantyEndDate: warrantyEndDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(warrantyEndDate),
+      note: Value(note),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deleted: Value(deleted),
@@ -6380,13 +7055,21 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CrmContractRow(
       id: serializer.fromJson<String>(json['id']),
-      companyId: serializer.fromJson<String?>(json['companyId']),
+      contractNo: serializer.fromJson<String>(json['contractNo']),
       name: serializer.fromJson<String>(json['name']),
-      amountMicros: serializer.fromJson<int?>(json['amountMicros']),
-      currency: serializer.fromJson<String>(json['currency']),
+      accountId: serializer.fromJson<String?>(json['accountId']),
+      contactId: serializer.fromJson<String?>(json['contactId']),
+      opportunityId: serializer.fromJson<String?>(json['opportunityId']),
+      quoteId: serializer.fromJson<String?>(json['quoteId']),
       status: serializer.fromJson<String>(json['status']),
-      dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
-      terms: serializer.fromJson<String>(json['terms']),
+      totalAmount: serializer.fromJson<double>(json['totalAmount']),
+      paidAmount: serializer.fromJson<double>(json['paidAmount']),
+      invoicedAmount: serializer.fromJson<double>(json['invoicedAmount']),
+      signDate: serializer.fromJson<DateTime?>(json['signDate']),
+      startDate: serializer.fromJson<DateTime?>(json['startDate']),
+      endDate: serializer.fromJson<DateTime?>(json['endDate']),
+      warrantyEndDate: serializer.fromJson<DateTime?>(json['warrantyEndDate']),
+      note: serializer.fromJson<String>(json['note']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deleted: serializer.fromJson<bool>(json['deleted']),
@@ -6397,13 +7080,21 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
-      'companyId': serializer.toJson<String?>(companyId),
+      'contractNo': serializer.toJson<String>(contractNo),
       'name': serializer.toJson<String>(name),
-      'amountMicros': serializer.toJson<int?>(amountMicros),
-      'currency': serializer.toJson<String>(currency),
+      'accountId': serializer.toJson<String?>(accountId),
+      'contactId': serializer.toJson<String?>(contactId),
+      'opportunityId': serializer.toJson<String?>(opportunityId),
+      'quoteId': serializer.toJson<String?>(quoteId),
       'status': serializer.toJson<String>(status),
-      'dueDate': serializer.toJson<DateTime?>(dueDate),
-      'terms': serializer.toJson<String>(terms),
+      'totalAmount': serializer.toJson<double>(totalAmount),
+      'paidAmount': serializer.toJson<double>(paidAmount),
+      'invoicedAmount': serializer.toJson<double>(invoicedAmount),
+      'signDate': serializer.toJson<DateTime?>(signDate),
+      'startDate': serializer.toJson<DateTime?>(startDate),
+      'endDate': serializer.toJson<DateTime?>(endDate),
+      'warrantyEndDate': serializer.toJson<DateTime?>(warrantyEndDate),
+      'note': serializer.toJson<String>(note),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deleted': serializer.toJson<bool>(deleted),
@@ -6412,25 +7103,45 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
 
   CrmContractRow copyWith({
     String? id,
-    Value<String?> companyId = const Value.absent(),
+    String? contractNo,
     String? name,
-    Value<int?> amountMicros = const Value.absent(),
-    String? currency,
+    Value<String?> accountId = const Value.absent(),
+    Value<String?> contactId = const Value.absent(),
+    Value<String?> opportunityId = const Value.absent(),
+    Value<String?> quoteId = const Value.absent(),
     String? status,
-    Value<DateTime?> dueDate = const Value.absent(),
-    String? terms,
+    double? totalAmount,
+    double? paidAmount,
+    double? invoicedAmount,
+    Value<DateTime?> signDate = const Value.absent(),
+    Value<DateTime?> startDate = const Value.absent(),
+    Value<DateTime?> endDate = const Value.absent(),
+    Value<DateTime?> warrantyEndDate = const Value.absent(),
+    String? note,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? deleted,
   }) => CrmContractRow(
     id: id ?? this.id,
-    companyId: companyId.present ? companyId.value : this.companyId,
+    contractNo: contractNo ?? this.contractNo,
     name: name ?? this.name,
-    amountMicros: amountMicros.present ? amountMicros.value : this.amountMicros,
-    currency: currency ?? this.currency,
+    accountId: accountId.present ? accountId.value : this.accountId,
+    contactId: contactId.present ? contactId.value : this.contactId,
+    opportunityId: opportunityId.present
+        ? opportunityId.value
+        : this.opportunityId,
+    quoteId: quoteId.present ? quoteId.value : this.quoteId,
     status: status ?? this.status,
-    dueDate: dueDate.present ? dueDate.value : this.dueDate,
-    terms: terms ?? this.terms,
+    totalAmount: totalAmount ?? this.totalAmount,
+    paidAmount: paidAmount ?? this.paidAmount,
+    invoicedAmount: invoicedAmount ?? this.invoicedAmount,
+    signDate: signDate.present ? signDate.value : this.signDate,
+    startDate: startDate.present ? startDate.value : this.startDate,
+    endDate: endDate.present ? endDate.value : this.endDate,
+    warrantyEndDate: warrantyEndDate.present
+        ? warrantyEndDate.value
+        : this.warrantyEndDate,
+    note: note ?? this.note,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deleted: deleted ?? this.deleted,
@@ -6438,15 +7149,33 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
   CrmContractRow copyWithCompanion(CrmContractsCompanion data) {
     return CrmContractRow(
       id: data.id.present ? data.id.value : this.id,
-      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      contractNo: data.contractNo.present
+          ? data.contractNo.value
+          : this.contractNo,
       name: data.name.present ? data.name.value : this.name,
-      amountMicros: data.amountMicros.present
-          ? data.amountMicros.value
-          : this.amountMicros,
-      currency: data.currency.present ? data.currency.value : this.currency,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      contactId: data.contactId.present ? data.contactId.value : this.contactId,
+      opportunityId: data.opportunityId.present
+          ? data.opportunityId.value
+          : this.opportunityId,
+      quoteId: data.quoteId.present ? data.quoteId.value : this.quoteId,
       status: data.status.present ? data.status.value : this.status,
-      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
-      terms: data.terms.present ? data.terms.value : this.terms,
+      totalAmount: data.totalAmount.present
+          ? data.totalAmount.value
+          : this.totalAmount,
+      paidAmount: data.paidAmount.present
+          ? data.paidAmount.value
+          : this.paidAmount,
+      invoicedAmount: data.invoicedAmount.present
+          ? data.invoicedAmount.value
+          : this.invoicedAmount,
+      signDate: data.signDate.present ? data.signDate.value : this.signDate,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      warrantyEndDate: data.warrantyEndDate.present
+          ? data.warrantyEndDate.value
+          : this.warrantyEndDate,
+      note: data.note.present ? data.note.value : this.note,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deleted: data.deleted.present ? data.deleted.value : this.deleted,
@@ -6457,13 +7186,21 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
   String toString() {
     return (StringBuffer('CrmContractRow(')
           ..write('id: $id, ')
-          ..write('companyId: $companyId, ')
+          ..write('contractNo: $contractNo, ')
           ..write('name: $name, ')
-          ..write('amountMicros: $amountMicros, ')
-          ..write('currency: $currency, ')
+          ..write('accountId: $accountId, ')
+          ..write('contactId: $contactId, ')
+          ..write('opportunityId: $opportunityId, ')
+          ..write('quoteId: $quoteId, ')
           ..write('status: $status, ')
-          ..write('dueDate: $dueDate, ')
-          ..write('terms: $terms, ')
+          ..write('totalAmount: $totalAmount, ')
+          ..write('paidAmount: $paidAmount, ')
+          ..write('invoicedAmount: $invoicedAmount, ')
+          ..write('signDate: $signDate, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('warrantyEndDate: $warrantyEndDate, ')
+          ..write('note: $note, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted')
@@ -6474,13 +7211,21 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
   @override
   int get hashCode => Object.hash(
     id,
-    companyId,
+    contractNo,
     name,
-    amountMicros,
-    currency,
+    accountId,
+    contactId,
+    opportunityId,
+    quoteId,
     status,
-    dueDate,
-    terms,
+    totalAmount,
+    paidAmount,
+    invoicedAmount,
+    signDate,
+    startDate,
+    endDate,
+    warrantyEndDate,
+    note,
     createdAt,
     updatedAt,
     deleted,
@@ -6490,13 +7235,21 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
       identical(this, other) ||
       (other is CrmContractRow &&
           other.id == this.id &&
-          other.companyId == this.companyId &&
+          other.contractNo == this.contractNo &&
           other.name == this.name &&
-          other.amountMicros == this.amountMicros &&
-          other.currency == this.currency &&
+          other.accountId == this.accountId &&
+          other.contactId == this.contactId &&
+          other.opportunityId == this.opportunityId &&
+          other.quoteId == this.quoteId &&
           other.status == this.status &&
-          other.dueDate == this.dueDate &&
-          other.terms == this.terms &&
+          other.totalAmount == this.totalAmount &&
+          other.paidAmount == this.paidAmount &&
+          other.invoicedAmount == this.invoicedAmount &&
+          other.signDate == this.signDate &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.warrantyEndDate == this.warrantyEndDate &&
+          other.note == this.note &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deleted == this.deleted);
@@ -6504,26 +7257,42 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
 
 class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
   final Value<String> id;
-  final Value<String?> companyId;
+  final Value<String> contractNo;
   final Value<String> name;
-  final Value<int?> amountMicros;
-  final Value<String> currency;
+  final Value<String?> accountId;
+  final Value<String?> contactId;
+  final Value<String?> opportunityId;
+  final Value<String?> quoteId;
   final Value<String> status;
-  final Value<DateTime?> dueDate;
-  final Value<String> terms;
+  final Value<double> totalAmount;
+  final Value<double> paidAmount;
+  final Value<double> invoicedAmount;
+  final Value<DateTime?> signDate;
+  final Value<DateTime?> startDate;
+  final Value<DateTime?> endDate;
+  final Value<DateTime?> warrantyEndDate;
+  final Value<String> note;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> deleted;
   final Value<int> rowid;
   const CrmContractsCompanion({
     this.id = const Value.absent(),
-    this.companyId = const Value.absent(),
+    this.contractNo = const Value.absent(),
     this.name = const Value.absent(),
-    this.amountMicros = const Value.absent(),
-    this.currency = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.contactId = const Value.absent(),
+    this.opportunityId = const Value.absent(),
+    this.quoteId = const Value.absent(),
     this.status = const Value.absent(),
-    this.dueDate = const Value.absent(),
-    this.terms = const Value.absent(),
+    this.totalAmount = const Value.absent(),
+    this.paidAmount = const Value.absent(),
+    this.invoicedAmount = const Value.absent(),
+    this.signDate = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.warrantyEndDate = const Value.absent(),
+    this.note = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deleted = const Value.absent(),
@@ -6531,13 +7300,21 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
   });
   CrmContractsCompanion.insert({
     required String id,
-    this.companyId = const Value.absent(),
+    this.contractNo = const Value.absent(),
     this.name = const Value.absent(),
-    this.amountMicros = const Value.absent(),
-    this.currency = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.contactId = const Value.absent(),
+    this.opportunityId = const Value.absent(),
+    this.quoteId = const Value.absent(),
     this.status = const Value.absent(),
-    this.dueDate = const Value.absent(),
-    this.terms = const Value.absent(),
+    this.totalAmount = const Value.absent(),
+    this.paidAmount = const Value.absent(),
+    this.invoicedAmount = const Value.absent(),
+    this.signDate = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.warrantyEndDate = const Value.absent(),
+    this.note = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deleted = const Value.absent(),
@@ -6547,13 +7324,21 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
        updatedAt = Value(updatedAt);
   static Insertable<CrmContractRow> custom({
     Expression<String>? id,
-    Expression<String>? companyId,
+    Expression<String>? contractNo,
     Expression<String>? name,
-    Expression<int>? amountMicros,
-    Expression<String>? currency,
+    Expression<String>? accountId,
+    Expression<String>? contactId,
+    Expression<String>? opportunityId,
+    Expression<String>? quoteId,
     Expression<String>? status,
-    Expression<DateTime>? dueDate,
-    Expression<String>? terms,
+    Expression<double>? totalAmount,
+    Expression<double>? paidAmount,
+    Expression<double>? invoicedAmount,
+    Expression<DateTime>? signDate,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? endDate,
+    Expression<DateTime>? warrantyEndDate,
+    Expression<String>? note,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? deleted,
@@ -6561,13 +7346,21 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (companyId != null) 'company_id': companyId,
+      if (contractNo != null) 'contract_no': contractNo,
       if (name != null) 'name': name,
-      if (amountMicros != null) 'amount_micros': amountMicros,
-      if (currency != null) 'currency': currency,
+      if (accountId != null) 'account_id': accountId,
+      if (contactId != null) 'contact_id': contactId,
+      if (opportunityId != null) 'opportunity_id': opportunityId,
+      if (quoteId != null) 'quote_id': quoteId,
       if (status != null) 'status': status,
-      if (dueDate != null) 'due_date': dueDate,
-      if (terms != null) 'terms': terms,
+      if (totalAmount != null) 'total_amount': totalAmount,
+      if (paidAmount != null) 'paid_amount': paidAmount,
+      if (invoicedAmount != null) 'invoiced_amount': invoicedAmount,
+      if (signDate != null) 'sign_date': signDate,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (warrantyEndDate != null) 'warranty_end_date': warrantyEndDate,
+      if (note != null) 'note': note,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deleted != null) 'deleted': deleted,
@@ -6577,13 +7370,21 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
 
   CrmContractsCompanion copyWith({
     Value<String>? id,
-    Value<String?>? companyId,
+    Value<String>? contractNo,
     Value<String>? name,
-    Value<int?>? amountMicros,
-    Value<String>? currency,
+    Value<String?>? accountId,
+    Value<String?>? contactId,
+    Value<String?>? opportunityId,
+    Value<String?>? quoteId,
     Value<String>? status,
-    Value<DateTime?>? dueDate,
-    Value<String>? terms,
+    Value<double>? totalAmount,
+    Value<double>? paidAmount,
+    Value<double>? invoicedAmount,
+    Value<DateTime?>? signDate,
+    Value<DateTime?>? startDate,
+    Value<DateTime?>? endDate,
+    Value<DateTime?>? warrantyEndDate,
+    Value<String>? note,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<bool>? deleted,
@@ -6591,13 +7392,21 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
   }) {
     return CrmContractsCompanion(
       id: id ?? this.id,
-      companyId: companyId ?? this.companyId,
+      contractNo: contractNo ?? this.contractNo,
       name: name ?? this.name,
-      amountMicros: amountMicros ?? this.amountMicros,
-      currency: currency ?? this.currency,
+      accountId: accountId ?? this.accountId,
+      contactId: contactId ?? this.contactId,
+      opportunityId: opportunityId ?? this.opportunityId,
+      quoteId: quoteId ?? this.quoteId,
       status: status ?? this.status,
-      dueDate: dueDate ?? this.dueDate,
-      terms: terms ?? this.terms,
+      totalAmount: totalAmount ?? this.totalAmount,
+      paidAmount: paidAmount ?? this.paidAmount,
+      invoicedAmount: invoicedAmount ?? this.invoicedAmount,
+      signDate: signDate ?? this.signDate,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      warrantyEndDate: warrantyEndDate ?? this.warrantyEndDate,
+      note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deleted: deleted ?? this.deleted,
@@ -6611,26 +7420,50 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
-    if (companyId.present) {
-      map['company_id'] = Variable<String>(companyId.value);
+    if (contractNo.present) {
+      map['contract_no'] = Variable<String>(contractNo.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
-    if (amountMicros.present) {
-      map['amount_micros'] = Variable<int>(amountMicros.value);
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
     }
-    if (currency.present) {
-      map['currency'] = Variable<String>(currency.value);
+    if (contactId.present) {
+      map['contact_id'] = Variable<String>(contactId.value);
+    }
+    if (opportunityId.present) {
+      map['opportunity_id'] = Variable<String>(opportunityId.value);
+    }
+    if (quoteId.present) {
+      map['quote_id'] = Variable<String>(quoteId.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
-    if (dueDate.present) {
-      map['due_date'] = Variable<DateTime>(dueDate.value);
+    if (totalAmount.present) {
+      map['total_amount'] = Variable<double>(totalAmount.value);
     }
-    if (terms.present) {
-      map['terms'] = Variable<String>(terms.value);
+    if (paidAmount.present) {
+      map['paid_amount'] = Variable<double>(paidAmount.value);
+    }
+    if (invoicedAmount.present) {
+      map['invoiced_amount'] = Variable<double>(invoicedAmount.value);
+    }
+    if (signDate.present) {
+      map['sign_date'] = Variable<DateTime>(signDate.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (warrantyEndDate.present) {
+      map['warranty_end_date'] = Variable<DateTime>(warrantyEndDate.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -6651,13 +7484,21 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
   String toString() {
     return (StringBuffer('CrmContractsCompanion(')
           ..write('id: $id, ')
-          ..write('companyId: $companyId, ')
+          ..write('contractNo: $contractNo, ')
           ..write('name: $name, ')
-          ..write('amountMicros: $amountMicros, ')
-          ..write('currency: $currency, ')
+          ..write('accountId: $accountId, ')
+          ..write('contactId: $contactId, ')
+          ..write('opportunityId: $opportunityId, ')
+          ..write('quoteId: $quoteId, ')
           ..write('status: $status, ')
-          ..write('dueDate: $dueDate, ')
-          ..write('terms: $terms, ')
+          ..write('totalAmount: $totalAmount, ')
+          ..write('paidAmount: $paidAmount, ')
+          ..write('invoicedAmount: $invoicedAmount, ')
+          ..write('signDate: $signDate, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('warrantyEndDate: $warrantyEndDate, ')
+          ..write('note: $note, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deleted: $deleted, ')
@@ -7860,7 +8701,7 @@ class CrmEntityLinkRow extends DataClass
     implements Insertable<CrmEntityLinkRow> {
   final String id;
 
-  /// entityType：company / person / opportunity / contract / custom:<objectId>
+  /// entityType：company / person / opportunity / contract / `custom:<objectId>`
   final String entityType;
   final String entityId;
 
@@ -10072,8 +10913,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CrmContentLinksTable crmContentLinks = $CrmContentLinksTable(
     this,
   );
-  late final $CrmCompaniesTable crmCompanies = $CrmCompaniesTable(this);
-  late final $CrmPeopleTable crmPeople = $CrmPeopleTable(this);
+  late final $CrmAccountsTable crmAccounts = $CrmAccountsTable(this);
+  late final $CrmContactsTable crmContacts = $CrmContactsTable(this);
   late final $CrmOpportunitiesTable crmOpportunities = $CrmOpportunitiesTable(
     this,
   );
@@ -10102,8 +10943,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     appMetadata,
     crmEntityCaches,
     crmContentLinks,
-    crmCompanies,
-    crmPeople,
+    crmAccounts,
+    crmContacts,
     crmOpportunities,
     crmContracts,
     crmObjectDefs,
@@ -12025,44 +12866,50 @@ typedef $$CrmContentLinksTableProcessedTableManager =
       CrmContentLinkRow,
       PrefetchHooks Function()
     >;
-typedef $$CrmCompaniesTableCreateCompanionBuilder =
-    CrmCompaniesCompanion Function({
+typedef $$CrmAccountsTableCreateCompanionBuilder =
+    CrmAccountsCompanion Function({
       required String id,
       Value<String> name,
-      Value<String> domainName,
-      Value<Map<String, dynamic>> addressJson,
-      Value<int?> employees,
-      Value<String> linkedinLink,
-      Value<String> xLink,
-      Value<int?> arrMicros,
-      Value<String> icp,
-      Value<String> customerStatus,
+      Value<String> type,
+      Value<String> industry,
+      Value<String> level,
+      Value<String> source,
+      Value<String> phone,
+      Value<String> email,
+      Value<String> address,
+      Value<String> website,
+      Value<String> creditCode,
+      Value<String> note,
+      Value<String> status,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<bool> deleted,
       Value<int> rowid,
     });
-typedef $$CrmCompaniesTableUpdateCompanionBuilder =
-    CrmCompaniesCompanion Function({
+typedef $$CrmAccountsTableUpdateCompanionBuilder =
+    CrmAccountsCompanion Function({
       Value<String> id,
       Value<String> name,
-      Value<String> domainName,
-      Value<Map<String, dynamic>> addressJson,
-      Value<int?> employees,
-      Value<String> linkedinLink,
-      Value<String> xLink,
-      Value<int?> arrMicros,
-      Value<String> icp,
-      Value<String> customerStatus,
+      Value<String> type,
+      Value<String> industry,
+      Value<String> level,
+      Value<String> source,
+      Value<String> phone,
+      Value<String> email,
+      Value<String> address,
+      Value<String> website,
+      Value<String> creditCode,
+      Value<String> note,
+      Value<String> status,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> deleted,
       Value<int> rowid,
     });
 
-class $$CrmCompaniesTableFilterComposer
-    extends Composer<_$AppDatabase, $CrmCompaniesTable> {
-  $$CrmCompaniesTableFilterComposer({
+class $$CrmAccountsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmAccountsTable> {
+  $$CrmAccountsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12079,48 +12926,58 @@ class $$CrmCompaniesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get domainName => $composableBuilder(
-    column: $table.domainName,
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<
-    Map<String, dynamic>,
-    Map<String, dynamic>,
-    String
-  >
-  get addressJson => $composableBuilder(
-    column: $table.addressJson,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
-
-  ColumnFilters<int> get employees => $composableBuilder(
-    column: $table.employees,
+  ColumnFilters<String> get industry => $composableBuilder(
+    column: $table.industry,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get linkedinLink => $composableBuilder(
-    column: $table.linkedinLink,
+  ColumnFilters<String> get level => $composableBuilder(
+    column: $table.level,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get xLink => $composableBuilder(
-    column: $table.xLink,
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get arrMicros => $composableBuilder(
-    column: $table.arrMicros,
+  ColumnFilters<String> get phone => $composableBuilder(
+    column: $table.phone,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get icp => $composableBuilder(
-    column: $table.icp,
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get customerStatus => $composableBuilder(
-    column: $table.customerStatus,
+  ColumnFilters<String> get address => $composableBuilder(
+    column: $table.address,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get website => $composableBuilder(
+    column: $table.website,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get creditCode => $composableBuilder(
+    column: $table.creditCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12140,9 +12997,9 @@ class $$CrmCompaniesTableFilterComposer
   );
 }
 
-class $$CrmCompaniesTableOrderingComposer
-    extends Composer<_$AppDatabase, $CrmCompaniesTable> {
-  $$CrmCompaniesTableOrderingComposer({
+class $$CrmAccountsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmAccountsTable> {
+  $$CrmAccountsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12159,43 +13016,58 @@ class $$CrmCompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get domainName => $composableBuilder(
-    column: $table.domainName,
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get addressJson => $composableBuilder(
-    column: $table.addressJson,
+  ColumnOrderings<String> get industry => $composableBuilder(
+    column: $table.industry,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get employees => $composableBuilder(
-    column: $table.employees,
+  ColumnOrderings<String> get level => $composableBuilder(
+    column: $table.level,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get linkedinLink => $composableBuilder(
-    column: $table.linkedinLink,
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get xLink => $composableBuilder(
-    column: $table.xLink,
+  ColumnOrderings<String> get phone => $composableBuilder(
+    column: $table.phone,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get arrMicros => $composableBuilder(
-    column: $table.arrMicros,
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get icp => $composableBuilder(
-    column: $table.icp,
+  ColumnOrderings<String> get address => $composableBuilder(
+    column: $table.address,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get customerStatus => $composableBuilder(
-    column: $table.customerStatus,
+  ColumnOrderings<String> get website => $composableBuilder(
+    column: $table.website,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get creditCode => $composableBuilder(
+    column: $table.creditCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -12215,9 +13087,9 @@ class $$CrmCompaniesTableOrderingComposer
   );
 }
 
-class $$CrmCompaniesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $CrmCompaniesTable> {
-  $$CrmCompaniesTableAnnotationComposer({
+class $$CrmAccountsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmAccountsTable> {
+  $$CrmAccountsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12230,38 +13102,40 @@ class $$CrmCompaniesTableAnnotationComposer
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
-  GeneratedColumn<String> get domainName => $composableBuilder(
-    column: $table.domainName,
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get industry =>
+      $composableBuilder(column: $table.industry, builder: (column) => column);
+
+  GeneratedColumn<String> get level =>
+      $composableBuilder(column: $table.level, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get phone =>
+      $composableBuilder(column: $table.phone, builder: (column) => column);
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get address =>
+      $composableBuilder(column: $table.address, builder: (column) => column);
+
+  GeneratedColumn<String> get website =>
+      $composableBuilder(column: $table.website, builder: (column) => column);
+
+  GeneratedColumn<String> get creditCode => $composableBuilder(
+    column: $table.creditCode,
     builder: (column) => column,
   );
 
-  GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
-  get addressJson => $composableBuilder(
-    column: $table.addressJson,
-    builder: (column) => column,
-  );
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
 
-  GeneratedColumn<int> get employees =>
-      $composableBuilder(column: $table.employees, builder: (column) => column);
-
-  GeneratedColumn<String> get linkedinLink => $composableBuilder(
-    column: $table.linkedinLink,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get xLink =>
-      $composableBuilder(column: $table.xLink, builder: (column) => column);
-
-  GeneratedColumn<int> get arrMicros =>
-      $composableBuilder(column: $table.arrMicros, builder: (column) => column);
-
-  GeneratedColumn<String> get icp =>
-      $composableBuilder(column: $table.icp, builder: (column) => column);
-
-  GeneratedColumn<String> get customerStatus => $composableBuilder(
-    column: $table.customerStatus,
-    builder: (column) => column,
-  );
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -12273,62 +13147,68 @@ class $$CrmCompaniesTableAnnotationComposer
       $composableBuilder(column: $table.deleted, builder: (column) => column);
 }
 
-class $$CrmCompaniesTableTableManager
+class $$CrmAccountsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $CrmCompaniesTable,
-          CrmCompanyRow,
-          $$CrmCompaniesTableFilterComposer,
-          $$CrmCompaniesTableOrderingComposer,
-          $$CrmCompaniesTableAnnotationComposer,
-          $$CrmCompaniesTableCreateCompanionBuilder,
-          $$CrmCompaniesTableUpdateCompanionBuilder,
+          $CrmAccountsTable,
+          CrmAccountRow,
+          $$CrmAccountsTableFilterComposer,
+          $$CrmAccountsTableOrderingComposer,
+          $$CrmAccountsTableAnnotationComposer,
+          $$CrmAccountsTableCreateCompanionBuilder,
+          $$CrmAccountsTableUpdateCompanionBuilder,
           (
-            CrmCompanyRow,
-            BaseReferences<_$AppDatabase, $CrmCompaniesTable, CrmCompanyRow>,
+            CrmAccountRow,
+            BaseReferences<_$AppDatabase, $CrmAccountsTable, CrmAccountRow>,
           ),
-          CrmCompanyRow,
+          CrmAccountRow,
           PrefetchHooks Function()
         > {
-  $$CrmCompaniesTableTableManager(_$AppDatabase db, $CrmCompaniesTable table)
+  $$CrmAccountsTableTableManager(_$AppDatabase db, $CrmAccountsTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$CrmCompaniesTableFilterComposer($db: db, $table: table),
+              $$CrmAccountsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$CrmCompaniesTableOrderingComposer($db: db, $table: table),
+              $$CrmAccountsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$CrmCompaniesTableAnnotationComposer($db: db, $table: table),
+              $$CrmAccountsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<String> domainName = const Value.absent(),
-                Value<Map<String, dynamic>> addressJson = const Value.absent(),
-                Value<int?> employees = const Value.absent(),
-                Value<String> linkedinLink = const Value.absent(),
-                Value<String> xLink = const Value.absent(),
-                Value<int?> arrMicros = const Value.absent(),
-                Value<String> icp = const Value.absent(),
-                Value<String> customerStatus = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> industry = const Value.absent(),
+                Value<String> level = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String> phone = const Value.absent(),
+                Value<String> email = const Value.absent(),
+                Value<String> address = const Value.absent(),
+                Value<String> website = const Value.absent(),
+                Value<String> creditCode = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<String> status = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => CrmCompaniesCompanion(
+              }) => CrmAccountsCompanion(
                 id: id,
                 name: name,
-                domainName: domainName,
-                addressJson: addressJson,
-                employees: employees,
-                linkedinLink: linkedinLink,
-                xLink: xLink,
-                arrMicros: arrMicros,
-                icp: icp,
-                customerStatus: customerStatus,
+                type: type,
+                industry: industry,
+                level: level,
+                source: source,
+                phone: phone,
+                email: email,
+                address: address,
+                website: website,
+                creditCode: creditCode,
+                note: note,
+                status: status,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deleted: deleted,
@@ -12338,29 +13218,35 @@ class $$CrmCompaniesTableTableManager
               ({
                 required String id,
                 Value<String> name = const Value.absent(),
-                Value<String> domainName = const Value.absent(),
-                Value<Map<String, dynamic>> addressJson = const Value.absent(),
-                Value<int?> employees = const Value.absent(),
-                Value<String> linkedinLink = const Value.absent(),
-                Value<String> xLink = const Value.absent(),
-                Value<int?> arrMicros = const Value.absent(),
-                Value<String> icp = const Value.absent(),
-                Value<String> customerStatus = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> industry = const Value.absent(),
+                Value<String> level = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String> phone = const Value.absent(),
+                Value<String> email = const Value.absent(),
+                Value<String> address = const Value.absent(),
+                Value<String> website = const Value.absent(),
+                Value<String> creditCode = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<String> status = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => CrmCompaniesCompanion.insert(
+              }) => CrmAccountsCompanion.insert(
                 id: id,
                 name: name,
-                domainName: domainName,
-                addressJson: addressJson,
-                employees: employees,
-                linkedinLink: linkedinLink,
-                xLink: xLink,
-                arrMicros: arrMicros,
-                icp: icp,
-                customerStatus: customerStatus,
+                type: type,
+                industry: industry,
+                level: level,
+                source: source,
+                phone: phone,
+                email: email,
+                address: address,
+                website: website,
+                creditCode: creditCode,
+                note: note,
+                status: status,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deleted: deleted,
@@ -12374,65 +13260,63 @@ class $$CrmCompaniesTableTableManager
       );
 }
 
-typedef $$CrmCompaniesTableProcessedTableManager =
+typedef $$CrmAccountsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $CrmCompaniesTable,
-      CrmCompanyRow,
-      $$CrmCompaniesTableFilterComposer,
-      $$CrmCompaniesTableOrderingComposer,
-      $$CrmCompaniesTableAnnotationComposer,
-      $$CrmCompaniesTableCreateCompanionBuilder,
-      $$CrmCompaniesTableUpdateCompanionBuilder,
+      $CrmAccountsTable,
+      CrmAccountRow,
+      $$CrmAccountsTableFilterComposer,
+      $$CrmAccountsTableOrderingComposer,
+      $$CrmAccountsTableAnnotationComposer,
+      $$CrmAccountsTableCreateCompanionBuilder,
+      $$CrmAccountsTableUpdateCompanionBuilder,
       (
-        CrmCompanyRow,
-        BaseReferences<_$AppDatabase, $CrmCompaniesTable, CrmCompanyRow>,
+        CrmAccountRow,
+        BaseReferences<_$AppDatabase, $CrmAccountsTable, CrmAccountRow>,
       ),
-      CrmCompanyRow,
+      CrmAccountRow,
       PrefetchHooks Function()
     >;
-typedef $$CrmPeopleTableCreateCompanionBuilder =
-    CrmPeopleCompanion Function({
+typedef $$CrmContactsTableCreateCompanionBuilder =
+    CrmContactsCompanion Function({
       required String id,
-      Value<String?> companyId,
-      Value<String> firstName,
-      Value<String> lastName,
-      Value<String> jobTitle,
-      Value<Map<String, dynamic>> emailsJson,
-      Value<Map<String, dynamic>> phonesJson,
-      Value<String> city,
+      Value<String?> accountId,
+      Value<String> name,
+      Value<String> title,
+      Value<String> department,
+      Value<String> phone,
+      Value<String> email,
       Value<String> wechat,
-      Value<String> avatarUrl,
-      Value<String> linkedinLink,
-      Value<String> xLink,
+      Value<bool> isPrimary,
+      Value<bool> isDecisionMaker,
+      Value<String> note,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<bool> deleted,
       Value<int> rowid,
     });
-typedef $$CrmPeopleTableUpdateCompanionBuilder =
-    CrmPeopleCompanion Function({
+typedef $$CrmContactsTableUpdateCompanionBuilder =
+    CrmContactsCompanion Function({
       Value<String> id,
-      Value<String?> companyId,
-      Value<String> firstName,
-      Value<String> lastName,
-      Value<String> jobTitle,
-      Value<Map<String, dynamic>> emailsJson,
-      Value<Map<String, dynamic>> phonesJson,
-      Value<String> city,
+      Value<String?> accountId,
+      Value<String> name,
+      Value<String> title,
+      Value<String> department,
+      Value<String> phone,
+      Value<String> email,
       Value<String> wechat,
-      Value<String> avatarUrl,
-      Value<String> linkedinLink,
-      Value<String> xLink,
+      Value<bool> isPrimary,
+      Value<bool> isDecisionMaker,
+      Value<String> note,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> deleted,
       Value<int> rowid,
     });
 
-class $$CrmPeopleTableFilterComposer
-    extends Composer<_$AppDatabase, $CrmPeopleTable> {
-  $$CrmPeopleTableFilterComposer({
+class $$CrmContactsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmContactsTable> {
+  $$CrmContactsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12444,48 +13328,33 @@ class $$CrmPeopleTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get companyId => $composableBuilder(
-    column: $table.companyId,
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get firstName => $composableBuilder(
-    column: $table.firstName,
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get lastName => $composableBuilder(
-    column: $table.lastName,
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get jobTitle => $composableBuilder(
-    column: $table.jobTitle,
+  ColumnFilters<String> get department => $composableBuilder(
+    column: $table.department,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<
-    Map<String, dynamic>,
-    Map<String, dynamic>,
-    String
-  >
-  get emailsJson => $composableBuilder(
-    column: $table.emailsJson,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
+  ColumnFilters<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<
-    Map<String, dynamic>,
-    Map<String, dynamic>,
-    String
-  >
-  get phonesJson => $composableBuilder(
-    column: $table.phonesJson,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
-
-  ColumnFilters<String> get city => $composableBuilder(
-    column: $table.city,
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12494,18 +13363,18 @@ class $$CrmPeopleTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get avatarUrl => $composableBuilder(
-    column: $table.avatarUrl,
+  ColumnFilters<bool> get isPrimary => $composableBuilder(
+    column: $table.isPrimary,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get linkedinLink => $composableBuilder(
-    column: $table.linkedinLink,
+  ColumnFilters<bool> get isDecisionMaker => $composableBuilder(
+    column: $table.isDecisionMaker,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get xLink => $composableBuilder(
-    column: $table.xLink,
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12525,9 +13394,9 @@ class $$CrmPeopleTableFilterComposer
   );
 }
 
-class $$CrmPeopleTableOrderingComposer
-    extends Composer<_$AppDatabase, $CrmPeopleTable> {
-  $$CrmPeopleTableOrderingComposer({
+class $$CrmContactsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmContactsTable> {
+  $$CrmContactsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12539,38 +13408,33 @@ class $$CrmPeopleTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get companyId => $composableBuilder(
-    column: $table.companyId,
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get firstName => $composableBuilder(
-    column: $table.firstName,
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get lastName => $composableBuilder(
-    column: $table.lastName,
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get jobTitle => $composableBuilder(
-    column: $table.jobTitle,
+  ColumnOrderings<String> get department => $composableBuilder(
+    column: $table.department,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get emailsJson => $composableBuilder(
-    column: $table.emailsJson,
+  ColumnOrderings<String> get phone => $composableBuilder(
+    column: $table.phone,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get phonesJson => $composableBuilder(
-    column: $table.phonesJson,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get city => $composableBuilder(
-    column: $table.city,
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -12579,18 +13443,18 @@ class $$CrmPeopleTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get avatarUrl => $composableBuilder(
-    column: $table.avatarUrl,
+  ColumnOrderings<bool> get isPrimary => $composableBuilder(
+    column: $table.isPrimary,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get linkedinLink => $composableBuilder(
-    column: $table.linkedinLink,
+  ColumnOrderings<bool> get isDecisionMaker => $composableBuilder(
+    column: $table.isDecisionMaker,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get xLink => $composableBuilder(
-    column: $table.xLink,
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -12610,9 +13474,9 @@ class $$CrmPeopleTableOrderingComposer
   );
 }
 
-class $$CrmPeopleTableAnnotationComposer
-    extends Composer<_$AppDatabase, $CrmPeopleTable> {
-  $$CrmPeopleTableAnnotationComposer({
+class $$CrmContactsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmContactsTable> {
+  $$CrmContactsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12622,46 +13486,39 @@ class $$CrmPeopleTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get companyId =>
-      $composableBuilder(column: $table.companyId, builder: (column) => column);
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
 
-  GeneratedColumn<String> get firstName =>
-      $composableBuilder(column: $table.firstName, builder: (column) => column);
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
 
-  GeneratedColumn<String> get lastName =>
-      $composableBuilder(column: $table.lastName, builder: (column) => column);
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
 
-  GeneratedColumn<String> get jobTitle =>
-      $composableBuilder(column: $table.jobTitle, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
-  get emailsJson => $composableBuilder(
-    column: $table.emailsJson,
+  GeneratedColumn<String> get department => $composableBuilder(
+    column: $table.department,
     builder: (column) => column,
   );
 
-  GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
-  get phonesJson => $composableBuilder(
-    column: $table.phonesJson,
-    builder: (column) => column,
-  );
+  GeneratedColumn<String> get phone =>
+      $composableBuilder(column: $table.phone, builder: (column) => column);
 
-  GeneratedColumn<String> get city =>
-      $composableBuilder(column: $table.city, builder: (column) => column);
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
 
   GeneratedColumn<String> get wechat =>
       $composableBuilder(column: $table.wechat, builder: (column) => column);
 
-  GeneratedColumn<String> get avatarUrl =>
-      $composableBuilder(column: $table.avatarUrl, builder: (column) => column);
+  GeneratedColumn<bool> get isPrimary =>
+      $composableBuilder(column: $table.isPrimary, builder: (column) => column);
 
-  GeneratedColumn<String> get linkedinLink => $composableBuilder(
-    column: $table.linkedinLink,
+  GeneratedColumn<bool> get isDecisionMaker => $composableBuilder(
+    column: $table.isDecisionMaker,
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get xLink =>
-      $composableBuilder(column: $table.xLink, builder: (column) => column);
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -12673,66 +13530,64 @@ class $$CrmPeopleTableAnnotationComposer
       $composableBuilder(column: $table.deleted, builder: (column) => column);
 }
 
-class $$CrmPeopleTableTableManager
+class $$CrmContactsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $CrmPeopleTable,
-          CrmPersonRow,
-          $$CrmPeopleTableFilterComposer,
-          $$CrmPeopleTableOrderingComposer,
-          $$CrmPeopleTableAnnotationComposer,
-          $$CrmPeopleTableCreateCompanionBuilder,
-          $$CrmPeopleTableUpdateCompanionBuilder,
+          $CrmContactsTable,
+          CrmContactRow,
+          $$CrmContactsTableFilterComposer,
+          $$CrmContactsTableOrderingComposer,
+          $$CrmContactsTableAnnotationComposer,
+          $$CrmContactsTableCreateCompanionBuilder,
+          $$CrmContactsTableUpdateCompanionBuilder,
           (
-            CrmPersonRow,
-            BaseReferences<_$AppDatabase, $CrmPeopleTable, CrmPersonRow>,
+            CrmContactRow,
+            BaseReferences<_$AppDatabase, $CrmContactsTable, CrmContactRow>,
           ),
-          CrmPersonRow,
+          CrmContactRow,
           PrefetchHooks Function()
         > {
-  $$CrmPeopleTableTableManager(_$AppDatabase db, $CrmPeopleTable table)
+  $$CrmContactsTableTableManager(_$AppDatabase db, $CrmContactsTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$CrmPeopleTableFilterComposer($db: db, $table: table),
+              $$CrmContactsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$CrmPeopleTableOrderingComposer($db: db, $table: table),
+              $$CrmContactsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$CrmPeopleTableAnnotationComposer($db: db, $table: table),
+              $$CrmContactsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
-                Value<String?> companyId = const Value.absent(),
-                Value<String> firstName = const Value.absent(),
-                Value<String> lastName = const Value.absent(),
-                Value<String> jobTitle = const Value.absent(),
-                Value<Map<String, dynamic>> emailsJson = const Value.absent(),
-                Value<Map<String, dynamic>> phonesJson = const Value.absent(),
-                Value<String> city = const Value.absent(),
+                Value<String?> accountId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> department = const Value.absent(),
+                Value<String> phone = const Value.absent(),
+                Value<String> email = const Value.absent(),
                 Value<String> wechat = const Value.absent(),
-                Value<String> avatarUrl = const Value.absent(),
-                Value<String> linkedinLink = const Value.absent(),
-                Value<String> xLink = const Value.absent(),
+                Value<bool> isPrimary = const Value.absent(),
+                Value<bool> isDecisionMaker = const Value.absent(),
+                Value<String> note = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => CrmPeopleCompanion(
+              }) => CrmContactsCompanion(
                 id: id,
-                companyId: companyId,
-                firstName: firstName,
-                lastName: lastName,
-                jobTitle: jobTitle,
-                emailsJson: emailsJson,
-                phonesJson: phonesJson,
-                city: city,
+                accountId: accountId,
+                name: name,
+                title: title,
+                department: department,
+                phone: phone,
+                email: email,
                 wechat: wechat,
-                avatarUrl: avatarUrl,
-                linkedinLink: linkedinLink,
-                xLink: xLink,
+                isPrimary: isPrimary,
+                isDecisionMaker: isDecisionMaker,
+                note: note,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deleted: deleted,
@@ -12741,34 +13596,32 @@ class $$CrmPeopleTableTableManager
           createCompanionCallback:
               ({
                 required String id,
-                Value<String?> companyId = const Value.absent(),
-                Value<String> firstName = const Value.absent(),
-                Value<String> lastName = const Value.absent(),
-                Value<String> jobTitle = const Value.absent(),
-                Value<Map<String, dynamic>> emailsJson = const Value.absent(),
-                Value<Map<String, dynamic>> phonesJson = const Value.absent(),
-                Value<String> city = const Value.absent(),
+                Value<String?> accountId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> department = const Value.absent(),
+                Value<String> phone = const Value.absent(),
+                Value<String> email = const Value.absent(),
                 Value<String> wechat = const Value.absent(),
-                Value<String> avatarUrl = const Value.absent(),
-                Value<String> linkedinLink = const Value.absent(),
-                Value<String> xLink = const Value.absent(),
+                Value<bool> isPrimary = const Value.absent(),
+                Value<bool> isDecisionMaker = const Value.absent(),
+                Value<String> note = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => CrmPeopleCompanion.insert(
+              }) => CrmContactsCompanion.insert(
                 id: id,
-                companyId: companyId,
-                firstName: firstName,
-                lastName: lastName,
-                jobTitle: jobTitle,
-                emailsJson: emailsJson,
-                phonesJson: phonesJson,
-                city: city,
+                accountId: accountId,
+                name: name,
+                title: title,
+                department: department,
+                phone: phone,
+                email: email,
                 wechat: wechat,
-                avatarUrl: avatarUrl,
-                linkedinLink: linkedinLink,
-                xLink: xLink,
+                isPrimary: isPrimary,
+                isDecisionMaker: isDecisionMaker,
+                note: note,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deleted: deleted,
@@ -12782,33 +13635,41 @@ class $$CrmPeopleTableTableManager
       );
 }
 
-typedef $$CrmPeopleTableProcessedTableManager =
+typedef $$CrmContactsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $CrmPeopleTable,
-      CrmPersonRow,
-      $$CrmPeopleTableFilterComposer,
-      $$CrmPeopleTableOrderingComposer,
-      $$CrmPeopleTableAnnotationComposer,
-      $$CrmPeopleTableCreateCompanionBuilder,
-      $$CrmPeopleTableUpdateCompanionBuilder,
+      $CrmContactsTable,
+      CrmContactRow,
+      $$CrmContactsTableFilterComposer,
+      $$CrmContactsTableOrderingComposer,
+      $$CrmContactsTableAnnotationComposer,
+      $$CrmContactsTableCreateCompanionBuilder,
+      $$CrmContactsTableUpdateCompanionBuilder,
       (
-        CrmPersonRow,
-        BaseReferences<_$AppDatabase, $CrmPeopleTable, CrmPersonRow>,
+        CrmContactRow,
+        BaseReferences<_$AppDatabase, $CrmContactsTable, CrmContactRow>,
       ),
-      CrmPersonRow,
+      CrmContactRow,
       PrefetchHooks Function()
     >;
 typedef $$CrmOpportunitiesTableCreateCompanionBuilder =
     CrmOpportunitiesCompanion Function({
       required String id,
-      Value<String?> companyId,
-      Value<String?> pointOfContactId,
       Value<String> name,
-      Value<int?> amountMicros,
-      Value<DateTime?> closeDate,
+      Value<String?> accountId,
+      Value<String?> contactId,
       Value<String> stage,
-      Value<String> customStatus,
+      Value<int> probability,
+      Value<double> amount,
+      Value<String> currency,
+      Value<String> source,
+      Value<String> leadContactName,
+      Value<String> leadPhone,
+      Value<String> leadEmail,
+      Value<DateTime?> expectedCloseDate,
+      Value<DateTime?> actualCloseDate,
+      Value<String> lossReason,
+      Value<String> note,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<bool> deleted,
@@ -12817,13 +13678,21 @@ typedef $$CrmOpportunitiesTableCreateCompanionBuilder =
 typedef $$CrmOpportunitiesTableUpdateCompanionBuilder =
     CrmOpportunitiesCompanion Function({
       Value<String> id,
-      Value<String?> companyId,
-      Value<String?> pointOfContactId,
       Value<String> name,
-      Value<int?> amountMicros,
-      Value<DateTime?> closeDate,
+      Value<String?> accountId,
+      Value<String?> contactId,
       Value<String> stage,
-      Value<String> customStatus,
+      Value<int> probability,
+      Value<double> amount,
+      Value<String> currency,
+      Value<String> source,
+      Value<String> leadContactName,
+      Value<String> leadPhone,
+      Value<String> leadEmail,
+      Value<DateTime?> expectedCloseDate,
+      Value<DateTime?> actualCloseDate,
+      Value<String> lossReason,
+      Value<String> note,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> deleted,
@@ -12844,28 +13713,18 @@ class $$CrmOpportunitiesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get companyId => $composableBuilder(
-    column: $table.companyId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get pointOfContactId => $composableBuilder(
-    column: $table.pointOfContactId,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get amountMicros => $composableBuilder(
-    column: $table.amountMicros,
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<DateTime> get closeDate => $composableBuilder(
-    column: $table.closeDate,
+  ColumnFilters<String> get contactId => $composableBuilder(
+    column: $table.contactId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12874,8 +13733,58 @@ class $$CrmOpportunitiesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get customStatus => $composableBuilder(
-    column: $table.customStatus,
+  ColumnFilters<int> get probability => $composableBuilder(
+    column: $table.probability,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get leadContactName => $composableBuilder(
+    column: $table.leadContactName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get leadPhone => $composableBuilder(
+    column: $table.leadPhone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get leadEmail => $composableBuilder(
+    column: $table.leadEmail,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expectedCloseDate => $composableBuilder(
+    column: $table.expectedCloseDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get actualCloseDate => $composableBuilder(
+    column: $table.actualCloseDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lossReason => $composableBuilder(
+    column: $table.lossReason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12909,28 +13818,18 @@ class $$CrmOpportunitiesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get companyId => $composableBuilder(
-    column: $table.companyId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get pointOfContactId => $composableBuilder(
-    column: $table.pointOfContactId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get amountMicros => $composableBuilder(
-    column: $table.amountMicros,
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<DateTime> get closeDate => $composableBuilder(
-    column: $table.closeDate,
+  ColumnOrderings<String> get contactId => $composableBuilder(
+    column: $table.contactId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -12939,8 +13838,58 @@ class $$CrmOpportunitiesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get customStatus => $composableBuilder(
-    column: $table.customStatus,
+  ColumnOrderings<int> get probability => $composableBuilder(
+    column: $table.probability,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get leadContactName => $composableBuilder(
+    column: $table.leadContactName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get leadPhone => $composableBuilder(
+    column: $table.leadPhone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get leadEmail => $composableBuilder(
+    column: $table.leadEmail,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expectedCloseDate => $composableBuilder(
+    column: $table.expectedCloseDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get actualCloseDate => $composableBuilder(
+    column: $table.actualCloseDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lossReason => $composableBuilder(
+    column: $table.lossReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -12972,32 +13921,60 @@ class $$CrmOpportunitiesTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get companyId =>
-      $composableBuilder(column: $table.companyId, builder: (column) => column);
-
-  GeneratedColumn<String> get pointOfContactId => $composableBuilder(
-    column: $table.pointOfContactId,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
-  GeneratedColumn<int> get amountMicros => $composableBuilder(
-    column: $table.amountMicros,
-    builder: (column) => column,
-  );
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
 
-  GeneratedColumn<DateTime> get closeDate =>
-      $composableBuilder(column: $table.closeDate, builder: (column) => column);
+  GeneratedColumn<String> get contactId =>
+      $composableBuilder(column: $table.contactId, builder: (column) => column);
 
   GeneratedColumn<String> get stage =>
       $composableBuilder(column: $table.stage, builder: (column) => column);
 
-  GeneratedColumn<String> get customStatus => $composableBuilder(
-    column: $table.customStatus,
+  GeneratedColumn<int> get probability => $composableBuilder(
+    column: $table.probability,
     builder: (column) => column,
   );
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get leadContactName => $composableBuilder(
+    column: $table.leadContactName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get leadPhone =>
+      $composableBuilder(column: $table.leadPhone, builder: (column) => column);
+
+  GeneratedColumn<String> get leadEmail =>
+      $composableBuilder(column: $table.leadEmail, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expectedCloseDate => $composableBuilder(
+    column: $table.expectedCloseDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get actualCloseDate => $composableBuilder(
+    column: $table.actualCloseDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lossReason => $composableBuilder(
+    column: $table.lossReason,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -13047,26 +14024,42 @@ class $$CrmOpportunitiesTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
-                Value<String?> companyId = const Value.absent(),
-                Value<String?> pointOfContactId = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<int?> amountMicros = const Value.absent(),
-                Value<DateTime?> closeDate = const Value.absent(),
+                Value<String?> accountId = const Value.absent(),
+                Value<String?> contactId = const Value.absent(),
                 Value<String> stage = const Value.absent(),
-                Value<String> customStatus = const Value.absent(),
+                Value<int> probability = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String> leadContactName = const Value.absent(),
+                Value<String> leadPhone = const Value.absent(),
+                Value<String> leadEmail = const Value.absent(),
+                Value<DateTime?> expectedCloseDate = const Value.absent(),
+                Value<DateTime?> actualCloseDate = const Value.absent(),
+                Value<String> lossReason = const Value.absent(),
+                Value<String> note = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CrmOpportunitiesCompanion(
                 id: id,
-                companyId: companyId,
-                pointOfContactId: pointOfContactId,
                 name: name,
-                amountMicros: amountMicros,
-                closeDate: closeDate,
+                accountId: accountId,
+                contactId: contactId,
                 stage: stage,
-                customStatus: customStatus,
+                probability: probability,
+                amount: amount,
+                currency: currency,
+                source: source,
+                leadContactName: leadContactName,
+                leadPhone: leadPhone,
+                leadEmail: leadEmail,
+                expectedCloseDate: expectedCloseDate,
+                actualCloseDate: actualCloseDate,
+                lossReason: lossReason,
+                note: note,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deleted: deleted,
@@ -13075,26 +14068,42 @@ class $$CrmOpportunitiesTableTableManager
           createCompanionCallback:
               ({
                 required String id,
-                Value<String?> companyId = const Value.absent(),
-                Value<String?> pointOfContactId = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<int?> amountMicros = const Value.absent(),
-                Value<DateTime?> closeDate = const Value.absent(),
+                Value<String?> accountId = const Value.absent(),
+                Value<String?> contactId = const Value.absent(),
                 Value<String> stage = const Value.absent(),
-                Value<String> customStatus = const Value.absent(),
+                Value<int> probability = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String> leadContactName = const Value.absent(),
+                Value<String> leadPhone = const Value.absent(),
+                Value<String> leadEmail = const Value.absent(),
+                Value<DateTime?> expectedCloseDate = const Value.absent(),
+                Value<DateTime?> actualCloseDate = const Value.absent(),
+                Value<String> lossReason = const Value.absent(),
+                Value<String> note = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CrmOpportunitiesCompanion.insert(
                 id: id,
-                companyId: companyId,
-                pointOfContactId: pointOfContactId,
                 name: name,
-                amountMicros: amountMicros,
-                closeDate: closeDate,
+                accountId: accountId,
+                contactId: contactId,
                 stage: stage,
-                customStatus: customStatus,
+                probability: probability,
+                amount: amount,
+                currency: currency,
+                source: source,
+                leadContactName: leadContactName,
+                leadPhone: leadPhone,
+                leadEmail: leadEmail,
+                expectedCloseDate: expectedCloseDate,
+                actualCloseDate: actualCloseDate,
+                lossReason: lossReason,
+                note: note,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deleted: deleted,
@@ -13132,13 +14141,21 @@ typedef $$CrmOpportunitiesTableProcessedTableManager =
 typedef $$CrmContractsTableCreateCompanionBuilder =
     CrmContractsCompanion Function({
       required String id,
-      Value<String?> companyId,
+      Value<String> contractNo,
       Value<String> name,
-      Value<int?> amountMicros,
-      Value<String> currency,
+      Value<String?> accountId,
+      Value<String?> contactId,
+      Value<String?> opportunityId,
+      Value<String?> quoteId,
       Value<String> status,
-      Value<DateTime?> dueDate,
-      Value<String> terms,
+      Value<double> totalAmount,
+      Value<double> paidAmount,
+      Value<double> invoicedAmount,
+      Value<DateTime?> signDate,
+      Value<DateTime?> startDate,
+      Value<DateTime?> endDate,
+      Value<DateTime?> warrantyEndDate,
+      Value<String> note,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<bool> deleted,
@@ -13147,13 +14164,21 @@ typedef $$CrmContractsTableCreateCompanionBuilder =
 typedef $$CrmContractsTableUpdateCompanionBuilder =
     CrmContractsCompanion Function({
       Value<String> id,
-      Value<String?> companyId,
+      Value<String> contractNo,
       Value<String> name,
-      Value<int?> amountMicros,
-      Value<String> currency,
+      Value<String?> accountId,
+      Value<String?> contactId,
+      Value<String?> opportunityId,
+      Value<String?> quoteId,
       Value<String> status,
-      Value<DateTime?> dueDate,
-      Value<String> terms,
+      Value<double> totalAmount,
+      Value<double> paidAmount,
+      Value<double> invoicedAmount,
+      Value<DateTime?> signDate,
+      Value<DateTime?> startDate,
+      Value<DateTime?> endDate,
+      Value<DateTime?> warrantyEndDate,
+      Value<String> note,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> deleted,
@@ -13174,8 +14199,8 @@ class $$CrmContractsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get companyId => $composableBuilder(
-    column: $table.companyId,
+  ColumnFilters<String> get contractNo => $composableBuilder(
+    column: $table.contractNo,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13184,13 +14209,23 @@ class $$CrmContractsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get amountMicros => $composableBuilder(
-    column: $table.amountMicros,
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get currency => $composableBuilder(
-    column: $table.currency,
+  ColumnFilters<String> get contactId => $composableBuilder(
+    column: $table.contactId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get opportunityId => $composableBuilder(
+    column: $table.opportunityId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quoteId => $composableBuilder(
+    column: $table.quoteId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13199,13 +14234,43 @@ class $$CrmContractsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<DateTime> get dueDate => $composableBuilder(
-    column: $table.dueDate,
+  ColumnFilters<double> get totalAmount => $composableBuilder(
+    column: $table.totalAmount,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get terms => $composableBuilder(
-    column: $table.terms,
+  ColumnFilters<double> get paidAmount => $composableBuilder(
+    column: $table.paidAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get invoicedAmount => $composableBuilder(
+    column: $table.invoicedAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get signDate => $composableBuilder(
+    column: $table.signDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get warrantyEndDate => $composableBuilder(
+    column: $table.warrantyEndDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13239,8 +14304,8 @@ class $$CrmContractsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get companyId => $composableBuilder(
-    column: $table.companyId,
+  ColumnOrderings<String> get contractNo => $composableBuilder(
+    column: $table.contractNo,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -13249,13 +14314,23 @@ class $$CrmContractsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get amountMicros => $composableBuilder(
-    column: $table.amountMicros,
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get currency => $composableBuilder(
-    column: $table.currency,
+  ColumnOrderings<String> get contactId => $composableBuilder(
+    column: $table.contactId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get opportunityId => $composableBuilder(
+    column: $table.opportunityId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quoteId => $composableBuilder(
+    column: $table.quoteId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -13264,13 +14339,43 @@ class $$CrmContractsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<DateTime> get dueDate => $composableBuilder(
-    column: $table.dueDate,
+  ColumnOrderings<double> get totalAmount => $composableBuilder(
+    column: $table.totalAmount,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get terms => $composableBuilder(
-    column: $table.terms,
+  ColumnOrderings<double> get paidAmount => $composableBuilder(
+    column: $table.paidAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get invoicedAmount => $composableBuilder(
+    column: $table.invoicedAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get signDate => $composableBuilder(
+    column: $table.signDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get warrantyEndDate => $composableBuilder(
+    column: $table.warrantyEndDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -13302,28 +14407,62 @@ class $$CrmContractsTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get companyId =>
-      $composableBuilder(column: $table.companyId, builder: (column) => column);
+  GeneratedColumn<String> get contractNo => $composableBuilder(
+    column: $table.contractNo,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
-  GeneratedColumn<int> get amountMicros => $composableBuilder(
-    column: $table.amountMicros,
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get contactId =>
+      $composableBuilder(column: $table.contactId, builder: (column) => column);
+
+  GeneratedColumn<String> get opportunityId => $composableBuilder(
+    column: $table.opportunityId,
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get currency =>
-      $composableBuilder(column: $table.currency, builder: (column) => column);
+  GeneratedColumn<String> get quoteId =>
+      $composableBuilder(column: $table.quoteId, builder: (column) => column);
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
-  GeneratedColumn<DateTime> get dueDate =>
-      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+  GeneratedColumn<double> get totalAmount => $composableBuilder(
+    column: $table.totalAmount,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<String> get terms =>
-      $composableBuilder(column: $table.terms, builder: (column) => column);
+  GeneratedColumn<double> get paidAmount => $composableBuilder(
+    column: $table.paidAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get invoicedAmount => $composableBuilder(
+    column: $table.invoicedAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get signDate =>
+      $composableBuilder(column: $table.signDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get warrantyEndDate => $composableBuilder(
+    column: $table.warrantyEndDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -13367,26 +14506,42 @@ class $$CrmContractsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
-                Value<String?> companyId = const Value.absent(),
+                Value<String> contractNo = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<int?> amountMicros = const Value.absent(),
-                Value<String> currency = const Value.absent(),
+                Value<String?> accountId = const Value.absent(),
+                Value<String?> contactId = const Value.absent(),
+                Value<String?> opportunityId = const Value.absent(),
+                Value<String?> quoteId = const Value.absent(),
                 Value<String> status = const Value.absent(),
-                Value<DateTime?> dueDate = const Value.absent(),
-                Value<String> terms = const Value.absent(),
+                Value<double> totalAmount = const Value.absent(),
+                Value<double> paidAmount = const Value.absent(),
+                Value<double> invoicedAmount = const Value.absent(),
+                Value<DateTime?> signDate = const Value.absent(),
+                Value<DateTime?> startDate = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
+                Value<DateTime?> warrantyEndDate = const Value.absent(),
+                Value<String> note = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CrmContractsCompanion(
                 id: id,
-                companyId: companyId,
+                contractNo: contractNo,
                 name: name,
-                amountMicros: amountMicros,
-                currency: currency,
+                accountId: accountId,
+                contactId: contactId,
+                opportunityId: opportunityId,
+                quoteId: quoteId,
                 status: status,
-                dueDate: dueDate,
-                terms: terms,
+                totalAmount: totalAmount,
+                paidAmount: paidAmount,
+                invoicedAmount: invoicedAmount,
+                signDate: signDate,
+                startDate: startDate,
+                endDate: endDate,
+                warrantyEndDate: warrantyEndDate,
+                note: note,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deleted: deleted,
@@ -13395,26 +14550,42 @@ class $$CrmContractsTableTableManager
           createCompanionCallback:
               ({
                 required String id,
-                Value<String?> companyId = const Value.absent(),
+                Value<String> contractNo = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<int?> amountMicros = const Value.absent(),
-                Value<String> currency = const Value.absent(),
+                Value<String?> accountId = const Value.absent(),
+                Value<String?> contactId = const Value.absent(),
+                Value<String?> opportunityId = const Value.absent(),
+                Value<String?> quoteId = const Value.absent(),
                 Value<String> status = const Value.absent(),
-                Value<DateTime?> dueDate = const Value.absent(),
-                Value<String> terms = const Value.absent(),
+                Value<double> totalAmount = const Value.absent(),
+                Value<double> paidAmount = const Value.absent(),
+                Value<double> invoicedAmount = const Value.absent(),
+                Value<DateTime?> signDate = const Value.absent(),
+                Value<DateTime?> startDate = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
+                Value<DateTime?> warrantyEndDate = const Value.absent(),
+                Value<String> note = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<bool> deleted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CrmContractsCompanion.insert(
                 id: id,
-                companyId: companyId,
+                contractNo: contractNo,
                 name: name,
-                amountMicros: amountMicros,
-                currency: currency,
+                accountId: accountId,
+                contactId: contactId,
+                opportunityId: opportunityId,
+                quoteId: quoteId,
                 status: status,
-                dueDate: dueDate,
-                terms: terms,
+                totalAmount: totalAmount,
+                paidAmount: paidAmount,
+                invoicedAmount: invoicedAmount,
+                signDate: signDate,
+                startDate: startDate,
+                endDate: endDate,
+                warrantyEndDate: warrantyEndDate,
+                note: note,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deleted: deleted,
@@ -15297,10 +16468,10 @@ class $AppDatabaseManager {
       $$CrmEntityCachesTableTableManager(_db, _db.crmEntityCaches);
   $$CrmContentLinksTableTableManager get crmContentLinks =>
       $$CrmContentLinksTableTableManager(_db, _db.crmContentLinks);
-  $$CrmCompaniesTableTableManager get crmCompanies =>
-      $$CrmCompaniesTableTableManager(_db, _db.crmCompanies);
-  $$CrmPeopleTableTableManager get crmPeople =>
-      $$CrmPeopleTableTableManager(_db, _db.crmPeople);
+  $$CrmAccountsTableTableManager get crmAccounts =>
+      $$CrmAccountsTableTableManager(_db, _db.crmAccounts);
+  $$CrmContactsTableTableManager get crmContacts =>
+      $$CrmContactsTableTableManager(_db, _db.crmContacts);
   $$CrmOpportunitiesTableTableManager get crmOpportunities =>
       $$CrmOpportunitiesTableTableManager(_db, _db.crmOpportunities);
   $$CrmContractsTableTableManager get crmContracts =>

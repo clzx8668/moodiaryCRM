@@ -39,103 +39,120 @@ class CrmFieldDef {
   );
 }
 
-class LocalCompany {
+/// 客户/账户（统一承载 company / person / org）
+class LocalAccount {
   String id;
   String name;
-  String domainName;
-  Map<String, dynamic> address;
-  int? employees;
-  String linkedinLink;
-  String xLink;
-  int? arrMicros;
-  String icp;
-  String customerStatus;
+  String type;
+  String industry;
+  String level;
+  String source;
+  String phone;
+  String email;
+  String address;
+  String website;
+  String creditCode;
+  String note;
+  String status;
   DateTime createdAt;
   DateTime updatedAt;
   bool deleted;
 
-  LocalCompany({
+  LocalAccount({
     required this.id,
     this.name = '',
-    this.domainName = '',
-    Map<String, dynamic>? address,
-    this.employees,
-    this.linkedinLink = '',
-    this.xLink = '',
-    this.arrMicros,
-    this.icp = '',
-    this.customerStatus = '',
+    this.type = 'company',
+    this.industry = '',
+    this.level = 'normal',
+    this.source = '',
+    this.phone = '',
+    this.email = '',
+    this.address = '',
+    this.website = '',
+    this.creditCode = '',
+    this.note = '',
+    this.status = 'active',
     DateTime? createdAt,
     DateTime? updatedAt,
     this.deleted = false,
-  }) : address = address ?? {},
-       createdAt = createdAt ?? DateTime.now(),
+  }) : createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 }
 
-class LocalPerson {
+/// 联系人（从属 Account）
+class LocalContact {
   String id;
-  String? companyId;
-  String firstName;
-  String lastName;
-  String jobTitle;
-  Map<String, dynamic> emails;
-  Map<String, dynamic> phones;
-  String city;
+  String? accountId;
+  String name;
+  String title;
+  String department;
+  String phone;
+  String email;
   String wechat;
-  String avatarUrl;
-  String linkedinLink;
-  String xLink;
+  bool isPrimary;
+  bool isDecisionMaker;
+  String note;
   DateTime createdAt;
   DateTime updatedAt;
   bool deleted;
 
-  LocalPerson({
+  LocalContact({
     required this.id,
-    this.companyId,
-    this.firstName = '',
-    this.lastName = '',
-    this.jobTitle = '',
-    Map<String, dynamic>? emails,
-    Map<String, dynamic>? phones,
-    this.city = '',
+    this.accountId,
+    this.name = '',
+    this.title = '',
+    this.department = '',
+    this.phone = '',
+    this.email = '',
     this.wechat = '',
-    this.avatarUrl = '',
-    this.linkedinLink = '',
-    this.xLink = '',
+    this.isPrimary = false,
+    this.isDecisionMaker = false,
+    this.note = '',
     DateTime? createdAt,
     DateTime? updatedAt,
     this.deleted = false,
-  }) : emails = emails ?? {},
-       phones = phones ?? {},
-       createdAt = createdAt ?? DateTime.now(),
+  }) : createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
-
-  String get fullName => '$firstName $lastName'.trim();
 }
 
 class LocalOpportunity {
   String id;
-  String? companyId;
-  String? pointOfContactId;
+  String? accountId;
+  String? contactId;
   String name;
-  int? amountMicros;
-  DateTime? closeDate;
   String stage;
-  String customStatus;
+  int probability;
+  double amount;
+  String currency;
+  String source;
+  String leadContactName;
+  String leadPhone;
+  String leadEmail;
+  DateTime? expectedCloseDate;
+  DateTime? actualCloseDate;
+  String lossReason;
+  String note;
   DateTime createdAt;
   DateTime updatedAt;
   bool deleted;
 
   LocalOpportunity({
     required this.id,
-    this.companyId,
-    this.pointOfContactId,
+    this.accountId,
+    this.contactId,
     this.name = '',
-    this.amountMicros,
-    this.closeDate,
-    this.stage = '',
-    this.customStatus = '',
+    this.stage = 'newLead',
+    this.probability = 0,
+    this.amount = 0,
+    this.currency = 'CNY',
+    this.source = '',
+    this.leadContactName = '',
+    this.leadPhone = '',
+    this.leadEmail = '',
+    this.expectedCloseDate,
+    this.actualCloseDate,
+    this.lossReason = '',
+    this.note = '',
     DateTime? createdAt,
     DateTime? updatedAt,
     this.deleted = false,
@@ -145,26 +162,42 @@ class LocalOpportunity {
 
 class LocalContract {
   String id;
-  String? companyId;
+  String contractNo;
   String name;
-  int? amountMicros;
-  String currency;
+  String? accountId;
+  String? contactId;
+  String? opportunityId;
+  String? quoteId;
   String status;
-  DateTime? dueDate;
-  String terms;
+  double totalAmount;
+  double paidAmount;
+  double invoicedAmount;
+  DateTime? signDate;
+  DateTime? startDate;
+  DateTime? endDate;
+  DateTime? warrantyEndDate;
+  String note;
   DateTime createdAt;
   DateTime updatedAt;
   bool deleted;
 
   LocalContract({
     required this.id,
-    this.companyId,
+    this.contractNo = '',
     this.name = '',
-    this.amountMicros,
-    this.currency = 'CNY',
-    this.status = '',
-    this.dueDate,
-    this.terms = '',
+    this.accountId,
+    this.contactId,
+    this.opportunityId,
+    this.quoteId,
+    this.status = 'draft',
+    this.totalAmount = 0,
+    this.paidAmount = 0,
+    this.invoicedAmount = 0,
+    this.signDate,
+    this.startDate,
+    this.endDate,
+    this.warrantyEndDate,
+    this.note = '',
     DateTime? createdAt,
     DateTime? updatedAt,
     this.deleted = false,

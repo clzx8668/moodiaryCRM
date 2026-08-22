@@ -22,16 +22,16 @@ class CrmTabDef {
 }
 
 const List<CrmTabDef> kCrmTabs = [
-  CrmTabDef('company', '客户'),
-  CrmTabDef('person', '联系人'),
+  CrmTabDef('account', '客户'),
+  CrmTabDef('contact', '联系人'),
   CrmTabDef('opportunity', '机会/线索'),
   CrmTabDef('contract', '合同'),
 ];
 
 String crmTypeLabel(String type) {
   const labels = {
-    'company': '客户',
-    'person': '联系人',
+    'account': '客户',
+    'contact': '联系人',
     'opportunity': '机会/线索',
     'contract': '合同',
   };
@@ -40,9 +40,9 @@ String crmTypeLabel(String type) {
 
 IconData crmTypeIcon(String type) {
   switch (type) {
-    case 'company':
+    case 'account':
       return Icons.business_rounded;
-    case 'person':
+    case 'contact':
       return Icons.person_rounded;
     case 'opportunity':
       return Icons.trending_up_rounded;
@@ -55,9 +55,9 @@ IconData crmTypeIcon(String type) {
 
 Color crmTypeColor(String type) {
   switch (type) {
-    case 'company':
+    case 'account':
       return Colors.blue.shade400;
-    case 'person':
+    case 'contact':
       return Colors.green.shade400;
     case 'opportunity':
       return Colors.orange.shade400;
@@ -147,36 +147,36 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   Future<List<CrmEntityCache>> _loadItems() async {
     final repo = _repo;
     switch (widget.objectType) {
-      case 'company':
-        return (await repo.listCompanies())
+      case 'account':
+        return (await repo.listAccounts())
+            .map(
+              (a) => CrmEntityCache()
+                ..id = a.id
+                ..twentyId = a.id
+                ..entityType = 'account'
+                ..name = a.name.isEmpty ? '（未命名客户）' : a.name
+                ..setData(accountToDataMap(a))
+                ..updatedAt = a.updatedAt,
+            )
+            .toList();
+      case 'contact':
+        final contacts = await repo.listContacts();
+        final accountNames = await _accountNameMap();
+        return contacts
             .map(
               (c) => CrmEntityCache()
                 ..id = c.id
                 ..twentyId = c.id
-                ..entityType = 'company'
-                ..name = c.name.isEmpty ? '（未命名客户）' : c.name
-                ..setData(companyToDataMap(c))
+                ..entityType = 'contact'
+                ..name = c.name.isEmpty ? '（未命名联系人）' : c.name
+                ..setData(contactToDataMap(c, accountName: accountNames[c.accountId]))
                 ..updatedAt = c.updatedAt,
-            )
-            .toList();
-      case 'person':
-        final people = await repo.listPeople();
-        final companyNames = await _companyNameMap();
-        return people
-            .map(
-              (p) => CrmEntityCache()
-                ..id = p.id
-                ..twentyId = p.id
-                ..entityType = 'person'
-                ..name = p.fullName.isEmpty ? '（未命名联系人）' : p.fullName
-                ..setData(personToDataMap(p, companyName: companyNames[p.companyId]))
-                ..updatedAt = p.updatedAt,
             )
             .toList();
       case 'opportunity':
         final opps = await repo.listOpportunities();
-        final companyNames = await _companyNameMap();
-        final contactNames = await _personNameMap();
+        final accountNames = await _accountNameMap();
+        final contactNames = await _contactNameMap();
         return opps
             .map(
               (o) => CrmEntityCache()
@@ -187,8 +187,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                 ..setData(
                   opportunityToDataMap(
                     o,
-                    companyName: companyNames[o.companyId],
-                    contactName: contactNames[o.pointOfContactId],
+                    accountName: accountNames[o.accountId],
+                    contactName: contactNames[o.contactId],
                   ),
                 )
                 ..updatedAt = o.updatedAt,
@@ -196,7 +196,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             .toList();
       case 'contract':
         final contracts = await repo.listContracts();
-        final companyNames = await _companyNameMap();
+        final accountNames = await _accountNameMap();
         return contracts
             .map(
               (c) => CrmEntityCache()
@@ -204,7 +204,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                 ..twentyId = c.id
                 ..entityType = 'contract'
                 ..name = c.name.isEmpty ? '（未命名合同）' : c.name
-                ..setData(contractToDataMap(c, companyName: companyNames[c.companyId]))
+                ..setData(contractToDataMap(c, accountName: accountNames[c.accountId]))
                 ..updatedAt = c.updatedAt,
             )
             .toList();
@@ -227,18 +227,18 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     }
   }
 
-  Future<Map<String?, String>> _companyNameMap() async {
+  Future<Map<String?, String>> _accountNameMap() async {
     final map = <String?, String>{};
-    for (final c in await _repo.listCompanies()) {
-      map[c.id] = c.name;
+    for (final a in await _repo.listAccounts()) {
+      map[a.id] = a.name;
     }
     return map;
   }
 
-  Future<Map<String?, String>> _personNameMap() async {
+  Future<Map<String?, String>> _contactNameMap() async {
     final map = <String?, String>{};
-    for (final p in await _repo.listPeople()) {
-      map[p.id] = p.fullName;
+    for (final c in await _repo.listContacts()) {
+      map[c.id] = c.name;
     }
     return map;
   }
@@ -575,33 +575,37 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   Future<void> _createEntity(Map<String, dynamic> data) async {
     final repo = _repo;
     switch (widget.objectType) {
-      case 'company':
-        await repo.createCompany(
-          LocalCompany(
+      case 'account':
+        await repo.createAccount(
+          LocalAccount(
             id: '',
             name: data['name']?.toString() ?? '',
-            domainName: data['domainName']?.toString() ?? '',
-            employees: (data['employees'] as num?)?.toInt(),
-            linkedinLink: data['linkedinLink']?.toString() ?? '',
-            xLink: data['xLink']?.toString() ?? '',
-            arrMicros: _yuanToMicros(data['arrMicros']),
-            icp: data['icp']?.toString() ?? '',
-            customerStatus: data['customerStatus']?.toString() ?? '',
+            type: data['type']?.toString() ?? 'company',
+            industry: data['industry']?.toString() ?? '',
+            level: data['level']?.toString() ?? 'normal',
+            source: data['source']?.toString() ?? '',
+            phone: data['phone']?.toString() ?? '',
+            email: data['email']?.toString() ?? '',
+            address: data['address']?.toString() ?? '',
+            website: data['website']?.toString() ?? '',
+            creditCode: data['creditCode']?.toString() ?? '',
+            note: data['note']?.toString() ?? '',
+            status: data['status']?.toString() ?? 'active',
           ),
         );
-      case 'person':
-        final name = data['name']?.toString() ?? '';
-        final parts = name.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
-        await repo.createPerson(
-          LocalPerson(
+      case 'contact':
+        await repo.createContact(
+          LocalContact(
             id: '',
-            firstName: parts.isEmpty ? '' : parts.first,
-            lastName: parts.length > 1 ? parts.sublist(1).join(' ') : '',
-            jobTitle: data['jobTitle']?.toString() ?? '',
-            emails: {'primaryEmail': data['emails']?.toString() ?? ''},
-            phones: {'primaryPhoneNumber': data['phones']?.toString() ?? ''},
-            city: data['city']?.toString() ?? '',
+            name: data['name']?.toString() ?? '',
+            title: data['title']?.toString() ?? '',
+            department: data['department']?.toString() ?? '',
+            phone: data['phone']?.toString() ?? '',
+            email: data['email']?.toString() ?? '',
             wechat: data['wechat']?.toString() ?? '',
+            isPrimary: data['isPrimary']?.toString() == 'true',
+            isDecisionMaker: data['isDecisionMaker']?.toString() == 'true',
+            note: data['note']?.toString() ?? '',
           ),
         );
       case 'opportunity':
@@ -609,22 +613,35 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
           LocalOpportunity(
             id: '',
             name: data['name']?.toString() ?? '',
-            amountMicros: _yuanToMicros(data['amountMicros']),
-            closeDate: _parseDate(data['closeDate']),
-            stage: data['stage']?.toString() ?? '',
-            customStatus: data['customStatus']?.toString() ?? '',
+            stage: data['stage']?.toString() ?? 'newLead',
+            probability: _toInt(data['probability']) ?? 0,
+            amount: _toDouble(data['amount']) ?? 0,
+            currency: data['currency']?.toString() ?? 'CNY',
+            source: data['source']?.toString() ?? '',
+            leadContactName: data['leadContactName']?.toString() ?? '',
+            leadPhone: data['leadPhone']?.toString() ?? '',
+            leadEmail: data['leadEmail']?.toString() ?? '',
+            expectedCloseDate: _parseDate(data['expectedCloseDate']),
+            actualCloseDate: _parseDate(data['actualCloseDate']),
+            lossReason: data['lossReason']?.toString() ?? '',
+            note: data['note']?.toString() ?? '',
           ),
         );
       case 'contract':
         await repo.createContract(
           LocalContract(
             id: '',
+            contractNo: data['contractNo']?.toString() ?? '',
             name: data['name']?.toString() ?? '',
-            amountMicros: _yuanToMicros(data['amountMicros']),
-            currency: data['currency']?.toString() ?? 'CNY',
             status: data['status']?.toString() ?? '',
-            dueDate: _parseDate(data['dueDate']),
-            terms: data['terms']?.toString() ?? '',
+            totalAmount: _toDouble(data['totalAmount']) ?? 0,
+            paidAmount: _toDouble(data['paidAmount']) ?? 0,
+            invoicedAmount: _toDouble(data['invoicedAmount']) ?? 0,
+            signDate: _parseDate(data['signDate']),
+            startDate: _parseDate(data['startDate']),
+            endDate: _parseDate(data['endDate']),
+            warrantyEndDate: _parseDate(data['warrantyEndDate']),
+            note: data['note']?.toString() ?? '',
           ),
         );
       default:
@@ -645,10 +662,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   Future<void> _deleteEntity(String id) async {
     final repo = _repo;
     switch (widget.objectType) {
-      case 'company':
-        await repo.deleteCompany(id);
-      case 'person':
-        await repo.deletePerson(id);
+      case 'account':
+        await repo.deleteAccount(id);
+      case 'contact':
+        await repo.deleteContact(id);
       case 'opportunity':
         await repo.deleteOpportunity(id);
       case 'contract':
@@ -665,29 +682,16 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   ) async {
     final repo = _repo;
     switch (widget.objectType) {
-      case 'company':
-        final c = await repo.getCompany(id);
+      case 'account':
+        final a = await repo.getAccount(id);
+        if (a == null) return;
+        _assign(a, field, value);
+        await repo.updateAccount(a);
+      case 'contact':
+        final c = await repo.getContact(id);
         if (c == null) return;
         _assign(c, field, value);
-        await repo.updateCompany(c);
-      case 'person':
-        final p = await repo.getPerson(id);
-        if (p == null) return;
-        if (field == 'name') {
-          final parts = (value?.toString() ?? '')
-              .split(RegExp(r'\s+'))
-              .where((s) => s.isNotEmpty)
-              .toList();
-          p.firstName = parts.isEmpty ? '' : parts.first;
-          p.lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
-        } else if (field == 'emails') {
-          p.emails = {'primaryEmail': value?.toString() ?? ''};
-        } else if (field == 'phones') {
-          p.phones = {'primaryPhoneNumber': value?.toString() ?? ''};
-        } else {
-          _assign(p, field, value);
-        }
-        await repo.updatePerson(p);
+        await repo.updateContact(c);
       case 'opportunity':
         final o = await repo.getOpportunity(id);
         if (o == null) return;
@@ -714,42 +718,74 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     switch (field) {
       case 'name':
         entity.name = value?.toString() ?? '';
-      case 'domainName':
-        entity.domainName = value?.toString() ?? '';
-      case 'employees':
-        entity.employees = (value is num) ? value.toInt() : int.tryParse(value?.toString() ?? '');
-      case 'linkedinLink':
-        entity.linkedinLink = value?.toString() ?? '';
-      case 'xLink':
-        entity.xLink = value?.toString() ?? '';
-      case 'arrMicros':
-        entity.arrMicros = _yuanToMicros(value);
-      case 'icp':
-        entity.icp = value?.toString() ?? '';
-      case 'customerStatus':
-        entity.customerStatus = value?.toString() ?? '';
-      case 'jobTitle':
-        entity.jobTitle = value?.toString() ?? '';
-      case 'city':
-        entity.city = value?.toString() ?? '';
-      case 'wechat':
-        entity.wechat = value?.toString() ?? '';
-      case 'amountMicros':
-        entity.amountMicros = _yuanToMicros(value);
-      case 'closeDate':
-        entity.closeDate = _parseDate(value);
-      case 'stage':
-        entity.stage = value?.toString() ?? '';
-      case 'customStatus':
-        entity.customStatus = value?.toString() ?? '';
-      case 'currency':
-        entity.currency = value?.toString() ?? '';
+      case 'type':
+        entity.type = value?.toString() ?? 'company';
+      case 'industry':
+        entity.industry = value?.toString() ?? '';
+      case 'level':
+        entity.level = value?.toString() ?? 'normal';
+      case 'source':
+        entity.source = value?.toString() ?? '';
+      case 'phone':
+        entity.phone = value?.toString() ?? '';
+      case 'email':
+        entity.email = value?.toString() ?? '';
+      case 'address':
+        entity.address = value?.toString() ?? '';
+      case 'website':
+        entity.website = value?.toString() ?? '';
+      case 'creditCode':
+        entity.creditCode = value?.toString() ?? '';
+      case 'note':
+        entity.note = value?.toString() ?? '';
       case 'status':
         entity.status = value?.toString() ?? '';
-      case 'dueDate':
-        entity.dueDate = _parseDate(value);
-      case 'terms':
-        entity.terms = value?.toString() ?? '';
+      case 'title':
+        entity.title = value?.toString() ?? '';
+      case 'department':
+        entity.department = value?.toString() ?? '';
+      case 'wechat':
+        entity.wechat = value?.toString() ?? '';
+      case 'isPrimary':
+        entity.isPrimary = value?.toString() == 'true';
+      case 'isDecisionMaker':
+        entity.isDecisionMaker = value?.toString() == 'true';
+      case 'stage':
+        entity.stage = value?.toString() ?? '';
+      case 'probability':
+        entity.probability = _toInt(value) ?? 0;
+      case 'amount':
+        entity.amount = _toDouble(value) ?? 0;
+      case 'currency':
+        entity.currency = value?.toString() ?? 'CNY';
+      case 'leadContactName':
+        entity.leadContactName = value?.toString() ?? '';
+      case 'leadPhone':
+        entity.leadPhone = value?.toString() ?? '';
+      case 'leadEmail':
+        entity.leadEmail = value?.toString() ?? '';
+      case 'expectedCloseDate':
+        entity.expectedCloseDate = _parseDate(value);
+      case 'actualCloseDate':
+        entity.actualCloseDate = _parseDate(value);
+      case 'lossReason':
+        entity.lossReason = value?.toString() ?? '';
+      case 'contractNo':
+        entity.contractNo = value?.toString() ?? '';
+      case 'totalAmount':
+        entity.totalAmount = _toDouble(value) ?? 0;
+      case 'paidAmount':
+        entity.paidAmount = _toDouble(value) ?? 0;
+      case 'invoicedAmount':
+        entity.invoicedAmount = _toDouble(value) ?? 0;
+      case 'signDate':
+        entity.signDate = _parseDate(value);
+      case 'startDate':
+        entity.startDate = _parseDate(value);
+      case 'endDate':
+        entity.endDate = _parseDate(value);
+      case 'warrantyEndDate':
+        entity.warrantyEndDate = _parseDate(value);
     }
   }
 
@@ -758,10 +794,16 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     return raw;
   }
 
-  int? _yuanToMicros(Object? value) {
+  int? _toInt(Object? value) {
     if (value == null) return null;
-    final yuan = double.tryParse(value.toString());
-    return yuan == null ? null : (yuan * 1000000).round();
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+
+  double? _toDouble(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString());
   }
 
   DateTime? _parseDate(Object? value) {

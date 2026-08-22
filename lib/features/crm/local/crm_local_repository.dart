@@ -6,9 +6,8 @@ import 'package:uuid/uuid.dart';
 
 /// 本地优先 CRM 仓储层（唯一读写入口）。
 ///
-/// - 基础对象（公司/联系人/机会/合同）走强类型表，保证关联查询与性能；
-/// - 自定义对象（回款/发票等）走「对象定义 + 通用记录 JSON 宽表」，
-///   与 Twenty metadata 思路一致但无运行时建表成本；
+/// - 基础对象（客户/联系人/机会/合同）走强类型表（19 表设计文档）；
+/// - 自定义对象走「对象定义 + 通用记录 JSON 宽表」（用户自建对象）；
 /// - 实体 ↔ 日记/待办关联（跟进/认领/时间线）走 CrmEntityLinks。
 class CrmLocalRepository {
   final AppDatabase db;
@@ -16,127 +15,131 @@ class CrmLocalRepository {
   CrmLocalRepository([AppDatabase? db]) : db = db ?? IsarUtil.database;
 
   static const List<String> baseObjectTypes = [
-    'company',
-    'person',
+    'account',
+    'contact',
     'opportunity',
     'contract',
   ];
 
-  // ==================== 公司 ====================
+  // ==================== 客户/账户 ====================
 
-  Future<List<LocalCompany>> listCompanies({String? keyword}) async {
-    final query = db.select(db.crmCompanies)
-      ..where((t) => t.deleted.equals(false));
-    if (keyword != null && keyword.trim().isNotEmpty) {
-      query.where(
-        (t) =>
-            t.name.contains(keyword.trim()) |
-            t.domainName.contains(keyword.trim()),
-      );
-    }
-    query.orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
-    final rows = await query.get();
-    return rows.map(_companyFromRow).toList();
-  }
-
-  Future<LocalCompany?> getCompany(String id) async {
-    final row = await (db.select(db.crmCompanies)
-          ..where((t) => t.id.equals(id)))
-        .getSingleOrNull();
-    return row == null ? null : _companyFromRow(row);
-  }
-
-  Future<LocalCompany> createCompany(LocalCompany company) async {
-    final now = DateTime.now();
-    final entity = company..id = company.id.isEmpty ? const Uuid().v7() : company.id;
-    entity.createdAt = now;
-    entity.updatedAt = now;
-    await db.into(db.crmCompanies).insert(_companyCompanion(entity));
-    return entity;
-  }
-
-  Future<LocalCompany> updateCompany(LocalCompany company) async {
-    company.updatedAt = DateTime.now();
-    await (db.update(db.crmCompanies)..where((t) => t.id.equals(company.id)))
-        .write(_companyCompanion(company));
-    return company;
-  }
-
-  Future<void> deleteCompany(String id) async {
-    await (db.update(db.crmCompanies)..where((t) => t.id.equals(id))).write(
-      CrmCompaniesCompanion(
-        deleted: const Value(true),
-        updatedAt: Value(DateTime.now()),
-      ),
-    );
-  }
-
-  Future<int> countCompanies() async =>
-      (await listCompanies()).length;
-
-  // ==================== 联系人 ====================
-
-  Future<List<LocalPerson>> listPeople({String? keyword}) async {
-    final query = db.select(db.crmPeople)
+  Future<List<LocalAccount>> listAccounts({String? keyword}) async {
+    final query = db.select(db.crmAccounts)
       ..where((t) => t.deleted.equals(false));
     if (keyword != null && keyword.trim().isNotEmpty) {
       final k = keyword.trim();
       query.where(
         (t) =>
-            t.firstName.contains(k) |
-            t.lastName.contains(k) |
-            t.jobTitle.contains(k) |
-            t.city.contains(k),
+            t.name.contains(k) |
+            t.phone.contains(k) |
+            t.email.contains(k) |
+            t.industry.contains(k),
       );
     }
     query.orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
     final rows = await query.get();
-    return rows.map(_personFromRow).toList();
+    return rows.map(_accountFromRow).toList();
   }
 
-  Future<List<LocalPerson>> peopleOfCompany(String companyId) async {
-    final rows = await (db.select(db.crmPeople)
-          ..where(
-            (t) => t.companyId.equals(companyId) & t.deleted.equals(false),
-          )
-          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
-        .get();
-    return rows.map(_personFromRow).toList();
-  }
-
-  Future<LocalPerson?> getPerson(String id) async {
-    final row = await (db.select(db.crmPeople)
+  Future<LocalAccount?> getAccount(String id) async {
+    final row = await (db.select(db.crmAccounts)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    return row == null ? null : _personFromRow(row);
+    return row == null ? null : _accountFromRow(row);
   }
 
-  Future<LocalPerson> createPerson(LocalPerson person) async {
+  Future<LocalAccount> createAccount(LocalAccount account) async {
     final now = DateTime.now();
-    final entity = person..id = person.id.isEmpty ? const Uuid().v7() : person.id;
+    final entity = account
+      ..id = account.id.isEmpty ? const Uuid().v7() : account.id;
     entity.createdAt = now;
     entity.updatedAt = now;
-    await db.into(db.crmPeople).insert(_personCompanion(entity));
+    await db.into(db.crmAccounts).insert(_accountCompanion(entity));
     return entity;
   }
 
-  Future<LocalPerson> updatePerson(LocalPerson person) async {
-    person.updatedAt = DateTime.now();
-    await (db.update(db.crmPeople)..where((t) => t.id.equals(person.id)))
-        .write(_personCompanion(person));
-    return person;
+  Future<LocalAccount> updateAccount(LocalAccount account) async {
+    account.updatedAt = DateTime.now();
+    await (db.update(db.crmAccounts)..where((t) => t.id.equals(account.id)))
+        .write(_accountCompanion(account));
+    return account;
   }
 
-  Future<void> deletePerson(String id) async {
-    await (db.update(db.crmPeople)..where((t) => t.id.equals(id))).write(
-      CrmPeopleCompanion(
+  Future<void> deleteAccount(String id) async {
+    await (db.update(db.crmAccounts)..where((t) => t.id.equals(id))).write(
+      CrmAccountsCompanion(
         deleted: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),
     );
   }
 
-  Future<int> countPeople() async => (await listPeople()).length;
+  Future<int> countAccounts() async => (await listAccounts()).length;
+
+  // ==================== 联系人 ====================
+
+  Future<List<LocalContact>> listContacts({String? keyword}) async {
+    final query = db.select(db.crmContacts)
+      ..where((t) => t.deleted.equals(false));
+    if (keyword != null && keyword.trim().isNotEmpty) {
+      final k = keyword.trim();
+      query.where(
+        (t) =>
+            t.name.contains(k) |
+            t.title.contains(k) |
+            t.phone.contains(k) |
+            t.email.contains(k),
+      );
+    }
+    query.orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
+    final rows = await query.get();
+    return rows.map(_contactFromRow).toList();
+  }
+
+  Future<List<LocalContact>> contactsOfAccount(String accountId) async {
+    final rows = await (db.select(db.crmContacts)
+          ..where(
+            (t) => t.accountId.equals(accountId) & t.deleted.equals(false),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .get();
+    return rows.map(_contactFromRow).toList();
+  }
+
+  Future<LocalContact?> getContact(String id) async {
+    final row = await (db.select(db.crmContacts)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    return row == null ? null : _contactFromRow(row);
+  }
+
+  Future<LocalContact> createContact(LocalContact contact) async {
+    final now = DateTime.now();
+    final entity = contact
+      ..id = contact.id.isEmpty ? const Uuid().v7() : contact.id;
+    entity.createdAt = now;
+    entity.updatedAt = now;
+    await db.into(db.crmContacts).insert(_contactCompanion(entity));
+    return entity;
+  }
+
+  Future<LocalContact> updateContact(LocalContact contact) async {
+    contact.updatedAt = DateTime.now();
+    await (db.update(db.crmContacts)..where((t) => t.id.equals(contact.id)))
+        .write(_contactCompanion(contact));
+    return contact;
+  }
+
+  Future<void> deleteContact(String id) async {
+    await (db.update(db.crmContacts)..where((t) => t.id.equals(id))).write(
+      CrmContactsCompanion(
+        deleted: const Value(true),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<int> countContacts() async => (await listContacts()).length;
 
   // ==================== 机会/线索 ====================
 
@@ -144,10 +147,12 @@ class CrmLocalRepository {
     final query = db.select(db.crmOpportunities)
       ..where((t) => t.deleted.equals(false));
     if (keyword != null && keyword.trim().isNotEmpty) {
+      final k = keyword.trim();
       query.where(
         (t) =>
-            t.name.contains(keyword.trim()) |
-            t.stage.contains(keyword.trim()),
+            t.name.contains(k) |
+            t.stage.contains(k) |
+            t.source.contains(k),
       );
     }
     query.orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
@@ -197,10 +202,12 @@ class CrmLocalRepository {
     final query = db.select(db.crmContracts)
       ..where((t) => t.deleted.equals(false));
     if (keyword != null && keyword.trim().isNotEmpty) {
+      final k = keyword.trim();
       query.where(
         (t) =>
-            t.name.contains(keyword.trim()) |
-            t.status.contains(keyword.trim()),
+            t.name.contains(k) |
+            t.contractNo.contains(k) |
+            t.status.contains(k),
       );
     }
     query.orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
@@ -405,8 +412,8 @@ class CrmLocalRepository {
 
   Future<Map<String, int>> stats() async {
     final result = <String, int>{};
-    result['company'] = await countCompanies();
-    result['person'] = await countPeople();
+    result['account'] = await countAccounts();
+    result['contact'] = await countContacts();
     result['opportunity'] = await countOpportunities();
     result['contract'] = await countContracts();
     for (final def in await listCustomObjects()) {
@@ -417,73 +424,77 @@ class CrmLocalRepository {
 
   // ==================== 行 ↔ 模型 ====================
 
-  CrmCompaniesCompanion _companyCompanion(LocalCompany c) {
-    return CrmCompaniesCompanion(
+  CrmAccountsCompanion _accountCompanion(LocalAccount a) {
+    return CrmAccountsCompanion(
+      id: Value(a.id),
+      name: Value(a.name),
+      type: Value(a.type),
+      industry: Value(a.industry),
+      level: Value(a.level),
+      source: Value(a.source),
+      phone: Value(a.phone),
+      email: Value(a.email),
+      address: Value(a.address),
+      website: Value(a.website),
+      creditCode: Value(a.creditCode),
+      note: Value(a.note),
+      status: Value(a.status),
+      createdAt: Value(a.createdAt),
+      updatedAt: Value(a.updatedAt),
+      deleted: Value(a.deleted),
+    );
+  }
+
+  LocalAccount _accountFromRow(CrmAccountRow row) => LocalAccount(
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    industry: row.industry,
+    level: row.level,
+    source: row.source,
+    phone: row.phone,
+    email: row.email,
+    address: row.address,
+    website: row.website,
+    creditCode: row.creditCode,
+    note: row.note,
+    status: row.status,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deleted: row.deleted,
+  );
+
+  CrmContactsCompanion _contactCompanion(LocalContact c) {
+    return CrmContactsCompanion(
       id: Value(c.id),
+      accountId: Value(c.accountId),
       name: Value(c.name),
-      domainName: Value(c.domainName),
-      addressJson: Value(c.address),
-      employees: Value(c.employees),
-      linkedinLink: Value(c.linkedinLink),
-      xLink: Value(c.xLink),
-      arrMicros: Value(c.arrMicros),
-      icp: Value(c.icp),
-      customerStatus: Value(c.customerStatus),
+      title: Value(c.title),
+      department: Value(c.department),
+      phone: Value(c.phone),
+      email: Value(c.email),
+      wechat: Value(c.wechat),
+      isPrimary: Value(c.isPrimary),
+      isDecisionMaker: Value(c.isDecisionMaker),
+      note: Value(c.note),
       createdAt: Value(c.createdAt),
       updatedAt: Value(c.updatedAt),
       deleted: Value(c.deleted),
     );
   }
 
-  LocalCompany _companyFromRow(CrmCompanyRow row) => LocalCompany(
+  LocalContact _contactFromRow(CrmContactRow row) => LocalContact(
     id: row.id,
+    accountId: row.accountId,
     name: row.name,
-    domainName: row.domainName,
-    address: row.addressJson,
-    employees: row.employees,
-    linkedinLink: row.linkedinLink,
-    xLink: row.xLink,
-    arrMicros: row.arrMicros,
-    icp: row.icp,
-    customerStatus: row.customerStatus,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    deleted: row.deleted,
-  );
-
-  CrmPeopleCompanion _personCompanion(LocalPerson p) {
-    return CrmPeopleCompanion(
-      id: Value(p.id),
-      companyId: Value(p.companyId),
-      firstName: Value(p.firstName),
-      lastName: Value(p.lastName),
-      jobTitle: Value(p.jobTitle),
-      emailsJson: Value(p.emails),
-      phonesJson: Value(p.phones),
-      city: Value(p.city),
-      wechat: Value(p.wechat),
-      avatarUrl: Value(p.avatarUrl),
-      linkedinLink: Value(p.linkedinLink),
-      xLink: Value(p.xLink),
-      createdAt: Value(p.createdAt),
-      updatedAt: Value(p.updatedAt),
-      deleted: Value(p.deleted),
-    );
-  }
-
-  LocalPerson _personFromRow(CrmPersonRow row) => LocalPerson(
-    id: row.id,
-    companyId: row.companyId,
-    firstName: row.firstName,
-    lastName: row.lastName,
-    jobTitle: row.jobTitle,
-    emails: row.emailsJson,
-    phones: row.phonesJson,
-    city: row.city,
+    title: row.title,
+    department: row.department,
+    phone: row.phone,
+    email: row.email,
     wechat: row.wechat,
-    avatarUrl: row.avatarUrl,
-    linkedinLink: row.linkedinLink,
-    xLink: row.xLink,
+    isPrimary: row.isPrimary,
+    isDecisionMaker: row.isDecisionMaker,
+    note: row.note,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deleted: row.deleted,
@@ -492,13 +503,21 @@ class CrmLocalRepository {
   CrmOpportunitiesCompanion _opportunityCompanion(LocalOpportunity o) {
     return CrmOpportunitiesCompanion(
       id: Value(o.id),
-      companyId: Value(o.companyId),
-      pointOfContactId: Value(o.pointOfContactId),
       name: Value(o.name),
-      amountMicros: Value(o.amountMicros),
-      closeDate: Value(o.closeDate),
+      accountId: Value(o.accountId),
+      contactId: Value(o.contactId),
       stage: Value(o.stage),
-      customStatus: Value(o.customStatus),
+      probability: Value(o.probability),
+      amount: Value(o.amount),
+      currency: Value(o.currency),
+      source: Value(o.source),
+      leadContactName: Value(o.leadContactName),
+      leadPhone: Value(o.leadPhone),
+      leadEmail: Value(o.leadEmail),
+      expectedCloseDate: Value(o.expectedCloseDate),
+      actualCloseDate: Value(o.actualCloseDate),
+      lossReason: Value(o.lossReason),
+      note: Value(o.note),
       createdAt: Value(o.createdAt),
       updatedAt: Value(o.updatedAt),
       deleted: Value(o.deleted),
@@ -508,13 +527,21 @@ class CrmLocalRepository {
   LocalOpportunity _opportunityFromRow(CrmOpportunityRow row) =>
       LocalOpportunity(
         id: row.id,
-        companyId: row.companyId,
-        pointOfContactId: row.pointOfContactId,
         name: row.name,
-        amountMicros: row.amountMicros,
-        closeDate: row.closeDate,
+        accountId: row.accountId,
+        contactId: row.contactId,
         stage: row.stage,
-        customStatus: row.customStatus,
+        probability: row.probability,
+        amount: row.amount,
+        currency: row.currency,
+        source: row.source,
+        leadContactName: row.leadContactName,
+        leadPhone: row.leadPhone,
+        leadEmail: row.leadEmail,
+        expectedCloseDate: row.expectedCloseDate,
+        actualCloseDate: row.actualCloseDate,
+        lossReason: row.lossReason,
+        note: row.note,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
         deleted: row.deleted,
@@ -523,13 +550,21 @@ class CrmLocalRepository {
   CrmContractsCompanion _contractCompanion(LocalContract c) {
     return CrmContractsCompanion(
       id: Value(c.id),
-      companyId: Value(c.companyId),
+      contractNo: Value(c.contractNo),
       name: Value(c.name),
-      amountMicros: Value(c.amountMicros),
-      currency: Value(c.currency),
+      accountId: Value(c.accountId),
+      contactId: Value(c.contactId),
+      opportunityId: Value(c.opportunityId),
+      quoteId: Value(c.quoteId),
       status: Value(c.status),
-      dueDate: Value(c.dueDate),
-      terms: Value(c.terms),
+      totalAmount: Value(c.totalAmount),
+      paidAmount: Value(c.paidAmount),
+      invoicedAmount: Value(c.invoicedAmount),
+      signDate: Value(c.signDate),
+      startDate: Value(c.startDate),
+      endDate: Value(c.endDate),
+      warrantyEndDate: Value(c.warrantyEndDate),
+      note: Value(c.note),
       createdAt: Value(c.createdAt),
       updatedAt: Value(c.updatedAt),
       deleted: Value(c.deleted),
@@ -538,13 +573,21 @@ class CrmLocalRepository {
 
   LocalContract _contractFromRow(CrmContractRow row) => LocalContract(
     id: row.id,
-    companyId: row.companyId,
+    contractNo: row.contractNo,
     name: row.name,
-    amountMicros: row.amountMicros,
-    currency: row.currency,
+    accountId: row.accountId,
+    contactId: row.contactId,
+    opportunityId: row.opportunityId,
+    quoteId: row.quoteId,
     status: row.status,
-    dueDate: row.dueDate,
-    terms: row.terms,
+    totalAmount: row.totalAmount,
+    paidAmount: row.paidAmount,
+    invoicedAmount: row.invoicedAmount,
+    signDate: row.signDate,
+    startDate: row.startDate,
+    endDate: row.endDate,
+    warrantyEndDate: row.warrantyEndDate,
+    note: row.note,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deleted: row.deleted,
