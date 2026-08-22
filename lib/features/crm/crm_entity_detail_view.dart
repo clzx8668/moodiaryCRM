@@ -41,6 +41,12 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, FocusNode> _focusNodes = {};
   final Set<String> _savingFields = {};
+  bool _addingTag = false;
+  bool _addingActivity = false;
+  final TextEditingController _tagController = TextEditingController();
+  final TextEditingController _activitySubject = TextEditingController();
+  String _activityType = 'call';
+  String _activityStatus = 'completed';
 
   CrmLocalRepository get _repo => CrmLocalRepository();
 
@@ -54,6 +60,8 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     for (final n in _focusNodes.values) {
       n.dispose();
     }
+    _tagController.dispose();
+    _activitySubject.dispose();
     super.dispose();
   }
 
@@ -278,8 +286,37 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
                       avatar: const Icon(Icons.add, size: 16),
                       label: const Text('添加'),
                       visualDensity: VisualDensity.compact,
-                      onPressed: () => _addTag(),
+                      onPressed: () => setState(() => _addingTag = true),
                     ),
+                    if (_addingTag)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 120,
+                            child: TextField(
+                              controller: _tagController,
+                              autofocus: true,
+                              decoration: const InputDecoration(
+                                hintText: '标签名',
+                                isDense: true,
+                              ),
+                              onSubmitted: (_) => _commitTag(),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.check_rounded, size: 18),
+                            onPressed: _commitTag,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                            onPressed: () {
+                              _tagController.clear();
+                              setState(() => _addingTag = false);
+                            },
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ],
@@ -290,40 +327,21 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     );
   }
 
-  Future<void> _addTag() async {
-    final controller = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('添加标签'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: '标签名',
-            border: OutlineInputBorder(),
-            isDense: true,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('添加'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || controller.text.trim().isEmpty) return;
+  Future<void> _commitTag() async {
+    final name = _tagController.text.trim();
+    if (name.isEmpty) return;
     final tags = await _repo.tagsForEntity(widget.objectType, _item.twentyId);
     await _repo.setEntityTags(
       widget.objectType,
       _item.twentyId,
-      [...tags.map((t) => t.name), controller.text.trim()],
+      [...tags.map((t) => t.name), name],
     );
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {
+        _tagController.clear();
+        _addingTag = false;
+      });
+    }
   }
 
   Future<void> _removeTag(String name) async {
@@ -786,91 +804,102 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     );
   }
 
-  Future<void> _showQuickActivity() async {
-    final subject = TextEditingController();
-    var type = 'call';
-    var status = 'completed';
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('新增跟进'),
-          content: SizedBox(
-            width: 360,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+  Widget _buildQuickActivityForm() {
+    return Card.outlined(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('新增跟进', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _activitySubject,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: '主题',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onSubmitted: (_) => _commitActivity(),
+            ),
+            const SizedBox(height: 8),
+            Row(
               children: [
-                TextField(
-                  controller: subject,
-                  decoration: const InputDecoration(
-                    labelText: '主题',
-                    border: OutlineInputBorder(),
-                    isDense: true,
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _activityType,
+                    decoration: const InputDecoration(
+                      labelText: '类型',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'call', child: Text('电话')),
+                      DropdownMenuItem(value: 'meeting', child: Text('会议')),
+                      DropdownMenuItem(value: 'email', child: Text('邮件')),
+                      DropdownMenuItem(value: 'wechat', child: Text('微信')),
+                      DropdownMenuItem(value: 'visit', child: Text('拜访')),
+                      DropdownMenuItem(value: 'task', child: Text('任务')),
+                      DropdownMenuItem(value: 'note', child: Text('备注')),
+                    ],
+                    onChanged: (v) => setState(() => _activityType = v ?? 'call'),
                   ),
                 ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  initialValue: type,
-                  decoration: const InputDecoration(
-                    labelText: '类型',
-                    border: OutlineInputBorder(),
-                    isDense: true,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _activityStatus,
+                    decoration: const InputDecoration(
+                      labelText: '状态',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'planned', child: Text('计划')),
+                      DropdownMenuItem(value: 'completed', child: Text('已完成')),
+                      DropdownMenuItem(value: 'canceled', child: Text('已取消')),
+                    ],
+                    onChanged: (v) => setState(() => _activityStatus = v ?? 'completed'),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'call', child: Text('电话')),
-                    DropdownMenuItem(value: 'meeting', child: Text('会议')),
-                    DropdownMenuItem(value: 'email', child: Text('邮件')),
-                    DropdownMenuItem(value: 'wechat', child: Text('微信')),
-                    DropdownMenuItem(value: 'visit', child: Text('拜访')),
-                    DropdownMenuItem(value: 'task', child: Text('任务')),
-                    DropdownMenuItem(value: 'note', child: Text('备注')),
-                  ],
-                  onChanged: (v) => setDialogState(() => type = v ?? 'call'),
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  initialValue: status,
-                  decoration: const InputDecoration(
-                    labelText: '状态',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'planned', child: Text('计划')),
-                    DropdownMenuItem(value: 'completed', child: Text('已完成')),
-                    DropdownMenuItem(value: 'canceled', child: Text('已取消')),
-                  ],
-                  onChanged: (v) => setDialogState(() => status = v ?? 'completed'),
                 ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('保存'),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.tonal(
+                onPressed: _commitActivity,
+                child: const Text('保存'),
+              ),
             ),
           ],
         ),
       ),
     );
-    if (ok != true || subject.text.trim().isEmpty) return;
+  }
+
+  Future<void> _commitActivity() async {
+    final subject = _activitySubject.text.trim();
+    if (subject.isEmpty) return;
     await _repo.createActivity(
       LocalActivity(
         id: '',
-        type: type,
+        type: _activityType,
         relatedType: widget.objectType,
         relatedId: _item.twentyId,
-        subject: subject.text.trim(),
-        status: status,
-        completedAt: status == 'completed' ? DateTime.now() : null,
+        subject: subject,
+        status: _activityStatus,
+        completedAt: _activityStatus == 'completed' ? DateTime.now() : null,
       ),
     );
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {
+        _activitySubject.clear();
+        _addingActivity = false;
+      });
+    }
+    widget.onChanged?.call();
   }
 
   // ==================== 组装 ====================
@@ -883,6 +912,10 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       children: [
         _buildActions(),
         const SizedBox(height: 12),
+        if (_addingActivity) ...[
+          _buildQuickActivityForm(),
+          const SizedBox(height: 12),
+        ],
         _buildFields(),
         const SizedBox(height: 16),
         _buildTags(),
@@ -901,9 +934,9 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       runSpacing: 8,
       children: [
         FilledButton.tonalIcon(
-          onPressed: _showQuickActivity,
+          onPressed: () => setState(() => _addingActivity = !_addingActivity),
           icon: const Icon(Icons.add_comment_rounded, size: 16),
-          label: const Text('跟进'),
+          label: Text(_addingActivity ? '收起跟进' : '跟进'),
         ),
         if (widget.objectType == 'quote') ...[
           FilledButton.tonalIcon(

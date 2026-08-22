@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/crm/crm_entity_detail_page.dart';
 import 'package:moodiary/features/crm/crm_entity_side_panel.dart';
+import 'package:moodiary/features/crm/crm_column_settings_panel.dart';
+import 'package:moodiary/features/crm/crm_create_form_panel.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/local/crm_ai_assist.dart';
 import 'package:moodiary/features/crm/local/crm_entity_field_updater.dart';
@@ -122,6 +124,8 @@ Color crmTypeColor(String type) {
 }
 
 /// 单个对象 Tab：智能表格（本地数据）+ 搜索/列设置 + 增删改查 + 业务下钻。
+enum _PanelMode { none, detail, columns, create }
+
 class CrmObjectTableTab extends StatefulWidget {
   final String objectType;
   final String title;
@@ -149,6 +153,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   List<String> _columns = [];
   List<String> _hidden = [];
   CrmEntityCache? _selected;
+  List<String> _lastAll = [];
+  _PanelMode _panelMode = _PanelMode.none;
 
   CrmLocalRepository get _repo => CrmLocalRepository();
 
@@ -557,7 +563,6 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
 
   Future<void> _persistColumnOrder(List<String> order) async {
     if (order.isEmpty) return;
-    setState(() => _columns = List<String>.from(order));
     await PrefUtil.setValue<List<String>>(
       _columnPrefKey,
       List<String>.from(order),
@@ -566,6 +571,9 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       'crmTableColumnsCustomized_${widget.objectType}',
       true,
     );
+    if (mounted) {
+      setState(() => _columns = List<String>.from(order));
+    }
   }
 
   Future<void> _showColumnSettings(List<CrmEntityCache> items) async {
@@ -686,19 +694,23 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       ),
     );
     if (ok == true) {
-      setState(() => _columns = visible);
-      setState(() {
-        _hidden = all.where((f) => !visible.contains(f)).toList();
-      });
+      // 先落盘再刷新，避免重建时读取到旧的自定义标记
       await PrefUtil.setValue<List<String>>(_columnPrefKey, visible);
+      final hiddenList = all.where((f) => !visible.contains(f)).toList();
       await PrefUtil.setValue<List<String>>(
         _hiddenPrefKey,
-        _hidden,
+        hiddenList,
       );
       await PrefUtil.setValue<bool>(
         'crmTableColumnsCustomized_${widget.objectType}',
         customized,
       );
+      if (mounted) {
+        setState(() {
+          _columns = visible;
+          _hidden = hiddenList;
+        });
+      }
     }
   }
 
@@ -783,7 +795,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   Future<void> _edit(CrmEntityCache item) async {
     final desktop = MediaQuery.sizeOf(context).width >= 900;
     if (desktop) {
-      setState(() => _selected = item);
+      setState(() {
+        _selected = item;
+        _panelMode = _PanelMode.detail;
+      });
     } else {
       Get.to(
         () => CrmEntityDetailPage(
@@ -793,6 +808,58 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         ),
       );
     }
+  }
+
+  void _openColumns(List<CrmEntityCache> items) {
+    final desktop = MediaQuery.sizeOf(context).width >= 900;
+    if (desktop) {
+      setState(() {
+        _selected = null;
+        _panelMode = _PanelMode.columns;
+      });
+    } else {
+      _showColumnSettings(items);
+    }
+  }
+
+  void _openCreate(List<CrmEntityCache> items) {
+    final desktop = MediaQuery.sizeOf(context).width >= 900;
+    if (desktop) {
+      setState(() {
+        _selected = null;
+        _panelMode = _PanelMode.create;
+      });
+    } else {
+      _create(items);
+    }
+  }
+
+  void _closePanel() {
+    setState(() {
+      _panelMode = _PanelMode.none;
+      _selected = null;
+    });
+  }
+
+  Future<void> _saveColumns(List<String> visible, bool customized) async {
+    final hiddenList = _lastAll.where((f) => !visible.contains(f)).toList();
+    await PrefUtil.setValue<List<String>>(_columnPrefKey, visible);
+    await PrefUtil.setValue<List<String>>(_hiddenPrefKey, hiddenList);
+    await PrefUtil.setValue<bool>(
+      'crmTableColumnsCustomized_${widget.objectType}',
+      customized,
+    );
+    if (mounted) {
+      setState(() {
+        _columns = visible;
+        _hidden = hiddenList;
+        _panelMode = _PanelMode.none;
+      });
+    }
+  }
+
+  Future<void> _createFromPanel(Map<String, dynamic> data) async {
+    await _createEntity(data);
   }
 
   /// 追加「用户从未决定过」的新默认字段（显式隐藏的除外）：
@@ -910,6 +977,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       await CrmEntityDeleter.delete(widget.objectType, item.twentyId);
       toast.success(message: '已删除');
       setState(() => _selected = null);
+      _panelMode = _PanelMode.none;
       _reload();
     } catch (e) {
       toast.error(message: '删除失败：$e');
@@ -1186,6 +1254,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         final all = snapshot.data!;
         final items = _filtered(all);
         final fieldNames = _allFieldNames(all);
+        _lastAll = fieldNames;
         final effectiveColumns = _effectiveColumns(fieldNames);
         return Column(
           children: [
@@ -1214,7 +1283,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                   const SizedBox(width: 6),
                   IconButton(
                     tooltip: '列设置',
-                    onPressed: () => _showColumnSettings(all),
+                    onPressed: () => _openColumns(all),
                     icon: const Icon(Icons.view_column_outlined),
                   ),
                   IconButton(
@@ -1223,7 +1292,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                     icon: const Icon(Icons.refresh_rounded),
                   ),
                   FilledButton.tonalIcon(
-                    onPressed: _saving ? null : () => _create(all),
+                    onPressed: _saving ? null : () => _openCreate(all),
                     icon: const Icon(Icons.add_rounded, size: 16),
                     label: const Text('新增'),
                   ),
@@ -1270,19 +1339,36 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                             onColumnsReordered: _persistColumnOrder,
                           ),
                   ),
-                  if (_selected != null &&
+                  if (_panelMode != _PanelMode.none &&
                       MediaQuery.sizeOf(context).width >= 900) ...[
                     const VerticalDivider(width: 1),
                     SizedBox(
                       width: 420,
-                      child: CrmEntitySidePanel(
-                        objectType: widget.objectType,
-                        item: _selected!,
-                        fields: _fields,
-                        onClose: () => setState(() => _selected = null),
-                        onChanged: _reload,
-                        onDelete: _deleteSelected,
-                      ),
+                      child: switch (_panelMode) {
+                        _PanelMode.detail => CrmEntitySidePanel(
+                          objectType: widget.objectType,
+                          item: _selected!,
+                          fields: _fields,
+                          onClose: _closePanel,
+                          onChanged: _reload,
+                          onDelete: _deleteSelected,
+                        ),
+                        _PanelMode.columns => CrmColumnSettingsPanel(
+                          fields: _fields,
+                          allFieldNames: _lastAll,
+                          visible: _effectiveColumns(_lastAll),
+                          customized: _customized,
+                          onSave: _saveColumns,
+                          onClose: _closePanel,
+                        ),
+                        _PanelMode.create => CrmCreateFormPanel(
+                          title: widget.title,
+                          fields: _fields,
+                          onCreate: _createFromPanel,
+                          onClose: _closePanel,
+                        ),
+                        _PanelMode.none => const SizedBox.shrink(),
+                      },
                     ),
                   ],
                 ],
