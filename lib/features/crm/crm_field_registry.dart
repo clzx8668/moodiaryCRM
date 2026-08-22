@@ -121,11 +121,28 @@ class CrmFieldRegistry {
     'assignee',
   };
 
+  /// 会话级内存缓存（避免每个对象重复拉全量 metadata）
+  static final Map<String, CrmObjectMeta> _cache = {};
+
+  /// 默认不拉取/展示的字段类型（复合大字段或系统内部类型）
+  static const Set<String> _excludedTypes = {
+    'RELATION',
+    'MORPH_RELATION',
+    'RICH_TEXT',
+    'RICH_TEXT_V2',
+    'RAW_JSON',
+    'TS_VECTOR',
+    'POSITION',
+    'ACTOR',
+  };
+
   /// 拉取对象元数据（网络优先，失败回退本地缓存）。
   static Future<CrmObjectMeta?> fetchObjectMeta(
     TwentyApiClient client,
     String objectKey,
   ) async {
+    final cachedMeta = _cache[objectKey];
+    if (cachedMeta != null) return cachedMeta;
     final metaName = objectMetaName[objectKey];
     final cacheKey = 'crmFieldMeta_$objectKey';
     if (metaName == null) return null;
@@ -191,13 +208,21 @@ query ListObjects {
           labelField: labelField,
           fields: fields,
         );
-        await PrefUtil.setValue<String>(cacheKey, jsonEncode(meta.toJson()));
+        _cache[objectKey] = meta;
+        try {
+          await PrefUtil.setValue<String>(cacheKey, jsonEncode(meta.toJson()));
+        } catch (_) {
+          // 测试/CLI 环境未初始化 PrefUtil 时忽略缓存
+        }
         return meta;
       }
     } catch (_) {
       // 网络失败 → 回退缓存
     }
-    final cached = PrefUtil.getValue<String>(cacheKey);
+    String? cached;
+    try {
+      cached = PrefUtil.getValue<String>(cacheKey);
+    } catch (_) {}
     if (cached != null && cached.isNotEmpty) {
       try {
         return CrmObjectMeta.fromJson(jsonDecode(cached) as Map<String, dynamic>);
@@ -225,6 +250,7 @@ query ListObjects {
   static bool isDisplayableField(CrmFieldMeta field) {
     if (field.isSystem) return false;
     if (field.isRelation) return false;
+    if (_excludedTypes.contains(field.type)) return false;
     if (_auditFields.contains(field.name)) return false;
     if (field.name.endsWith('Id')) return false;
     if (field.name.startsWith('__')) return false;

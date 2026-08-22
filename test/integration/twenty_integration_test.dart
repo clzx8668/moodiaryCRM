@@ -39,6 +39,14 @@ void main() {
     // 本地缓存应有数据（测试环境至少预置了公司样例）
     final companies = await IsarUtil.getCrmEntitiesByType('company');
     expect(companies, isNotEmpty);
+    // 全字段拉取：快照应包含 Twenty 默认展示字段（address/xLink 等），
+    // 保证 CRM 表格不止渲染名称一列
+    expect(
+      companies.first.data.containsKey('address') ||
+          companies.first.data.containsKey('xLink'),
+      isTrue,
+      reason: '公司快照应包含完整字段：${companies.first.data.keys}',
+    );
 
     // 对账：全量拉取后本地与远端应基本一致
     final reconcile = await service.reconcile();

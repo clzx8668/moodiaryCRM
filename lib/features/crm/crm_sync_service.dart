@@ -1,3 +1,4 @@
+import 'package:moodiary/features/crm/crm_field_registry.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/twenty_api.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
@@ -165,7 +166,33 @@ class CrmSyncService {
 
   /// 拉取单个对象并 upsert 本地缓存
   Future<int> pullObject(String object) async {
-    final entities = await client.listAll(object: object);
+    // 优先按 Twenty 元数据拉取完整可展示字段（默认列因此能显示多列）
+    final meta = await CrmFieldRegistry.fetchObjectMeta(client, object);
+    var fields = meta == null
+        ? <String>[]
+        : CrmFieldRegistry.defaultDisplayFields(meta)
+              .map((f) => f.name)
+              .toList();
+    if (fields.isEmpty) {
+      fields = ['id', labelFieldFor(object)];
+    }
+    List<TwentyEntity> entities;
+    try {
+      entities = await client.listAll(object: object, fields: fields);
+    } on TwentyApiException catch (e) {
+      // 个别字段与 GraphQL 不一致时回退到标签字段，避免整对象拉取失败
+      await log.write(
+        level: SyncLogLevel.warn,
+        operation: 'pull',
+        target: object,
+        detail: '字段列表拉取失败，回退标签字段',
+        error: e.toString(),
+      );
+      entities = await client.listAll(
+        object: object,
+        fields: ['id', labelFieldFor(object)],
+      );
+    }
     final now = DateTime.now();
     final caches = <CrmEntityCache>[];
     for (final entity in entities) {
@@ -173,11 +200,7 @@ class CrmSyncService {
       final cache = existing ?? CrmEntityCache()..twentyId = entity.id;
       cache
         ..entityType = object
-        ..name = entity.data['name']?.toString() ??
-            entity.data['title']?.toString() ??
-            entity.data['contractName']?.toString() ??
-            entity.data['amount']?.toString() ??
-            entity.id
+        ..name = _nameOf(entity.data, object, entity.id)
         ..setData(entity.data)
         ..isDeleted = false
         ..lastSyncedAt = now
