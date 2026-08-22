@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:moodiary/features/crm/crm_entity_detail_page.dart';
 import 'package:moodiary/features/crm/crm_entity_side_panel.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
+import 'package:moodiary/features/crm/local/crm_ai_assist.dart';
 import 'package:moodiary/features/crm/local/crm_entity_field_updater.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
@@ -711,6 +712,15 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _aiFill(controllers, fields),
+                    icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+                    label: const Text('AI 填充（粘贴文本提取）'),
+                  ),
+                ),
+                const SizedBox(height: 4),
                 for (final field in fields)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -773,6 +783,76 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         ),
       );
     }
+  }
+
+  Future<void> _aiFill(
+    Map<String, TextEditingController> controllers,
+    List<LocalObjectField> fields,
+  ) async {
+    final input = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('AI 填充'),
+        content: TextField(
+          controller: input,
+          maxLines: 6,
+          decoration: const InputDecoration(
+            hintText: '粘贴客户/机会描述文本，自动提取名称、金额、电话、邮箱、日期、阶段等',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final extraction = CrmAiAssist.extractFromText(input.text);
+              _applyExtraction(extraction, controllers, fields);
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('提取并填充'),
+          ),
+        ],
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  void _applyExtraction(
+    CrmAiExtraction extraction,
+    Map<String, TextEditingController> controllers,
+    List<LocalObjectField> fields,
+  ) {
+    void setField(String name, String? value) {
+      if (value != null && value.isNotEmpty && controllers.containsKey(name)) {
+        controllers[name]!.text = value;
+      }
+    }
+
+    setField('name', extraction.name);
+    if (extraction.amount != null) {
+      final amountText = extraction.amount!.toStringAsFixed(2);
+      setField('amount', amountText);
+      setField('planAmount', amountText);
+      setField('price', amountText);
+    }
+    setField('phone', extraction.phone);
+    setField('email', extraction.email);
+    if (extraction.closeDate != null) {
+      final d = extraction.closeDate!;
+      final dateText = '${d.year}-'
+          '${d.month.toString().padLeft(2, '0')}-'
+          '${d.day.toString().padLeft(2, '0')}';
+      setField('expectedCloseDate', dateText);
+      setField('closeDate', dateText);
+      setField('issueDate', dateText);
+    }
+    setField('stage', extraction.stage);
+    setField('note', extraction.note);
+    toast.success(message: '已填充，可修改后创建');
   }
 
   Future<void> _deleteSelected() async {

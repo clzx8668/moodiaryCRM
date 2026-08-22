@@ -7,6 +7,8 @@ import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/ai/models/ai_chat_session.dart';
 import 'package:moodiary/features/block/markdown_projection.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/crm/local/crm_backup_codec.dart';
+import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/rag/models/block_embedding.dart';
 import 'package:moodiary/features/rag/models/knowledge_base.dart';
@@ -51,6 +53,9 @@ class BackupService {
     final blocks = await IsarUtil.getAllBlocks();
     final categories = await IsarUtil.getAllCategoryAsync();
     final crmEntities = await IsarUtil.getAllCrmEntities();
+    final crmLocalData = scope == BackupScope.all
+        ? await CrmBackupCodec.exportAll(CrmLocalRepository())
+        : null;
     final knowledgeBases = await IsarUtil.getAllKnowledgeBases();
     final embeddings = await IsarUtil.getAllBlockEmbeddings();
     final sessions = await IsarUtil.getAllChatSessions();
@@ -75,6 +80,7 @@ class BackupService {
           'blocks': blocks.length,
           'categories': categories.length,
           'crm': scope == BackupScope.all ? crmEntities.length : 0,
+          'crmLocal': crmLocalData?.length ?? 0,
           'knowledgeBases':
               scope == BackupScope.all ? knowledgeBases.length : 0,
           'embeddings': scope == BackupScope.all ? embeddings.length : 0,
@@ -109,6 +115,9 @@ class BackupService {
     addJson('categories.json', [for (final c in categories) c.toJson()]);
 
     if (scope == BackupScope.all) {
+      if (crmLocalData != null) {
+        addJson('crm_local.json', crmLocalData);
+      }
       for (final entity in crmEntities) {
         addJson('crm/${entity.entityType}/${entity.id}.json', entity.toJson());
       }
@@ -197,6 +206,7 @@ class BackupService {
     var diaries = 0;
     var blocks = 0;
     var crm = 0;
+    var crmLocal = 0;
     var knowledgeBases = 0;
     var embeddings = 0;
     var sessions = 0;
@@ -225,6 +235,11 @@ class BackupService {
           );
           blocks++;
         }
+      } else if (name == 'crm_local.json') {
+        final data =
+            jsonDecode(_contentToString(entry.value)) as Map<String, dynamic>;
+        await CrmBackupCodec.importAll(CrmLocalRepository(), data);
+        crmLocal++;
       } else if (name.startsWith('crm/') && name.endsWith('.json')) {
         await IsarUtil.upsertCrmEntities([
           CrmEntityCache.fromJson(
@@ -296,6 +311,7 @@ class BackupService {
       diaries: diaries,
       blocks: blocks,
       crm: crm,
+      crmLocal: crmLocal,
       knowledgeBases: knowledgeBases,
       embeddings: embeddings,
       sessions: sessions,
@@ -334,6 +350,7 @@ class BackupResult {
   final int diaries;
   final int blocks;
   final int crm;
+  final int crmLocal;
   final int knowledgeBases;
   final int embeddings;
   final int sessions;
@@ -345,6 +362,7 @@ class BackupResult {
     this.diaries = 0,
     this.blocks = 0,
     this.crm = 0,
+    this.crmLocal = 0,
     this.knowledgeBases = 0,
     this.embeddings = 0,
     this.sessions = 0,

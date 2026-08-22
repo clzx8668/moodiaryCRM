@@ -6,6 +6,7 @@ import 'package:moodiary/features/crm/local/crm_entity_field_updater.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
+import 'package:moodiary/features/crm/local/crm_pdf_export.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/router/app_routes.dart';
@@ -38,6 +39,8 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   late final CrmEntityCache _item = widget.item.clone();
   final Map<String, bool> _editing = {};
   final Map<String, TextEditingController> _controllers = {};
+  final Map<String, FocusNode> _focusNodes = {};
+  final Set<String> _savingFields = {};
 
   CrmLocalRepository get _repo => CrmLocalRepository();
 
@@ -47,6 +50,9 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   void dispose() {
     for (final c in _controllers.values) {
       c.dispose();
+    }
+    for (final n in _focusNodes.values) {
+      n.dispose();
     }
     super.dispose();
   }
@@ -74,10 +80,20 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
 
   void _startEdit(LocalObjectField field) {
     _controllers[field.name] = TextEditingController(text: _stringValue(field));
+    final focusNode = FocusNode();
+    focusNode.addListener(() {
+      // 失焦自动提交并刷新显示
+      if (!focusNode.hasFocus && _editing[field.name] == true) {
+        _commit(field);
+      }
+    });
+    _focusNodes[field.name] = focusNode;
     setState(() => _editing[field.name] = true);
   }
 
   Future<void> _commit(LocalObjectField field) async {
+    if (_savingFields.contains(field.name)) return;
+    _savingFields.add(field.name);
     final raw = _controllers[field.name]!.text.trim();
     try {
       await CrmEntityFieldUpdater.update(
@@ -95,6 +111,8 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       toast.success(message: '已保存');
     } catch (e) {
       toast.error(message: '保存失败：$e');
+    } finally {
+      _savingFields.remove(field.name);
     }
   }
 
@@ -201,11 +219,13 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       );
     }
     final controller = _controllers[field.name]!;
+    final focusNode = _focusNodes[field.name]!;
     return Row(
       children: [
         Expanded(
           child: TextField(
             controller: controller,
+            focusNode: focusNode,
             autofocus: true,
             keyboardType: field.type == 'number'
                 ? const TextInputType.numberWithOptions(decimal: true)
@@ -214,7 +234,10 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
               isDense: true,
               hintText: '输入后回车保存',
             ),
-            onSubmitted: (_) => _commit(field),
+            onSubmitted: (_) {
+              focusNode.unfocus();
+              _commit(field);
+            },
           ),
         ),
         IconButton(
@@ -894,8 +917,36 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
             label: const Text('明细'),
           ),
         ],
+        if (widget.objectType == 'quote' ||
+            widget.objectType == 'contract' ||
+            widget.objectType == 'invoice')
+          OutlinedButton.icon(
+            onPressed: _exportPdf,
+            icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+            label: const Text('导出 PDF'),
+          ),
       ],
     );
+  }
+
+  Future<void> _exportPdf() async {
+    try {
+      final String path;
+      switch (widget.objectType) {
+        case 'quote':
+          path = await CrmPdfExport.exportQuote(_repo, _item.twentyId);
+        case 'contract':
+          path = await CrmPdfExport.exportContract(_repo, _item.twentyId);
+        case 'invoice':
+          path = await CrmPdfExport.exportInvoice(_repo, _item.twentyId);
+        default:
+          return;
+      }
+      toast.success(message: '已导出：$path');
+      await launchUrl(Uri.file(path), mode: LaunchMode.externalApplication);
+    } catch (e) {
+      toast.error(message: '导出失败：$e');
+    }
   }
 
   Future<void> _quoteToContract() async {
