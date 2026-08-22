@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/features/crm/crm_dashboard_page.dart';
 import 'package:moodiary/features/crm/local/crm_demo_data.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
@@ -50,6 +51,11 @@ class _CrmHomePageState extends State<CrmHomePage> {
             children: [
               Text('CRM', style: context.textTheme.titleLarge),
               const Spacer(),
+              IconButton(
+                tooltip: '数据看板',
+                icon: const Icon(Icons.dashboard_rounded),
+                onPressed: () => Get.to(() => const CrmDashboardPage()),
+              ),
               IconButton(
                 tooltip: '生成演示数据（每表 5–10 条，验证功能）',
                 icon: const Icon(Icons.auto_awesome_rounded),
