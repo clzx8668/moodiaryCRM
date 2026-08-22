@@ -14,6 +14,8 @@ import 'package:moodiary/features/ai/models/ai_chat_session.dart'
     as chat_model;
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart'
     as crm_model;
+import 'package:moodiary/features/crm/models/crm_content_link.dart'
+    as link_model;
 import 'package:moodiary/features/rag/models/block_embedding.dart'
     as rag_model;
 import 'package:moodiary/features/rag/models/knowledge_base.dart'
@@ -1192,5 +1194,95 @@ class IsarUtil {
           ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
         .get();
     return rows.map(_crmFromRow).toList();
+  }
+
+  // ==================== 内容同步映射（CrmContentLink） ====================
+
+  static CrmContentLinksCompanion _linkCompanion(link_model.CrmContentLink l) {
+    return CrmContentLinksCompanion.insert(
+      id: l.id,
+      localType: Value(l.localType),
+      localId: Value(l.localId),
+      remoteType: Value(l.remoteType),
+      remoteId: Value(l.remoteId),
+      targetType: Value(l.targetType),
+      targetId: Value(l.targetId),
+      status: Value(l.status),
+      error: Value(l.error),
+      createdAt: l.createdAt,
+      updatedAt: l.updatedAt,
+    );
+  }
+
+  static link_model.CrmContentLink _linkFromRow(CrmContentLinkRow row) {
+    return link_model.CrmContentLink()
+      ..id = row.id
+      ..localType = row.localType
+      ..localId = row.localId
+      ..remoteType = row.remoteType
+      ..remoteId = row.remoteId
+      ..targetType = row.targetType
+      ..targetId = row.targetId
+      ..status = row.status
+      ..error = row.error
+      ..createdAt = row.createdAt
+      ..updatedAt = row.updatedAt;
+  }
+
+  static Future<void> upsertCrmContentLinks(
+    List<link_model.CrmContentLink> links,
+  ) async {
+    await _database.transaction(() async {
+      for (final link in links) {
+        await _database
+            .into(_database.crmContentLinks)
+            .insertOnConflictUpdate(_linkCompanion(link));
+      }
+    });
+  }
+
+  static Future<link_model.CrmContentLink?> getCrmContentLinkByLocal(
+    String localType,
+    String localId,
+  ) async {
+    final row = await (_database.select(_database.crmContentLinks)
+          ..where(
+            (t) => t.localType.equals(localType) & t.localId.equals(localId),
+          ))
+        .getSingleOrNull();
+    return row == null ? null : _linkFromRow(row);
+  }
+
+  static Future<List<link_model.CrmContentLink>> getCrmContentLinks({
+    String? localType,
+    String? status,
+  }) async {
+    final query = _database.select(_database.crmContentLinks);
+    if (localType != null) {
+      query.where((t) => t.localType.equals(localType));
+    }
+    if (status != null) {
+      query.where((t) => t.status.equals(status));
+    }
+    query.orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
+    final rows = await query.get();
+    return rows.map(_linkFromRow).toList();
+  }
+
+  static Future<void> removeCrmContentLink(String id) async {
+    await (_database.delete(_database.crmContentLinks)
+          ..where((t) => t.id.equals(id)))
+        .go();
+  }
+
+  static Future<void> removeCrmContentLinkByLocal(
+    String localType,
+    String localId,
+  ) async {
+    await (_database.delete(_database.crmContentLinks)
+          ..where(
+            (t) => t.localType.equals(localType) & t.localId.equals(localId),
+          ))
+        .go();
   }
 }

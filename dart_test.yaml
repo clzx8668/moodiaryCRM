@@ -1,0 +1,6 @@
+# 集成测试默认跳过：需要真实 Twenty 环境（config/twenty.local.json + 内网可达）。
+# 本地联调时显式运行：
+#   flutter test --tags integration --run-skipped test/integration/twenty_integration_test.dart
+tags:
+  integration:
+    skip: "需要真实 Twenty 环境（config/twenty.local.json 且内网可达）"

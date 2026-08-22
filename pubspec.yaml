@@ -126,6 +126,7 @@ dependencies:
       path: word_cloud
   get_it: any
   meta: 1.17.0
+  pluto_grid: ^8.1.0
 
 dev_dependencies:
   flutter_test:

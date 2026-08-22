@@ -227,6 +227,106 @@ class CrmSyncService {
     );
   }
 
+  /// 通用创建：任意对象（company/person/opportunity/task/合同/通用记录等）。
+  /// 成功后写入本地缓存，保持「本地缓存优先展示」的既有策略。
+  Future<TwentyEntity> createEntity(
+    String object,
+    Map<String, dynamic> data,
+  ) async {
+    final labelField = labelFieldFor(object);
+    final created = await client.create(
+      object: object,
+      data: data,
+      fields: ['id', labelField],
+    );
+    final now = DateTime.now();
+    final cache = CrmEntityCache()
+      ..twentyId = created.id
+      ..entityType = object
+      ..name = _nameOf(created.data, object, created.id)
+      ..setData(created.data)
+      ..lastSyncedAt = now
+      ..updatedAt = now;
+    await IsarUtil.upsertCrmEntities([cache]);
+    await log.write(
+      level: SyncLogLevel.info,
+      operation: 'push',
+      target: object,
+      detail: '创建 ${cache.name}（${created.id}）',
+    );
+    return created;
+  }
+
+  /// 通用更新：推送远端并同步本地缓存。
+  Future<TwentyEntity> updateEntity(
+    String object,
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final labelField = labelFieldFor(object);
+    final updated = await client.update(
+      object: object,
+      id: id,
+      data: data,
+      fields: ['id', labelField],
+    );
+    final now = DateTime.now();
+    final existing = await IsarUtil.getCrmEntityByTwentyId(id);
+    final cache =
+        existing ?? CrmEntityCache()..twentyId = id;
+    cache
+      ..entityType = object
+      ..name = _nameOf(updated.data, object, id)
+      ..setData(updated.data)
+      ..isDeleted = false
+      ..lastSyncedAt = now
+      ..updatedAt = now;
+    await IsarUtil.upsertCrmEntities([cache]);
+    await log.write(
+      level: SyncLogLevel.info,
+      operation: 'push',
+      target: object,
+      detail: '更新 ${cache.name}（$id）',
+    );
+    return updated;
+  }
+
+  /// 通用删除：删除远端并清理本地缓存。
+  Future<void> deleteEntity(String object, String id) async {
+    await client.delete(object: object, id: id);
+    await IsarUtil.removeCrmEntityByTwentyId(id);
+    await log.write(
+      level: SyncLogLevel.info,
+      operation: 'push',
+      target: object,
+      detail: '删除 $id',
+    );
+  }
+
+  /// 对象标签字段（Twenty 对象的 label identifier）。
+  static String labelFieldFor(String object) {
+    switch (object) {
+      case 'note':
+      case 'task':
+        return 'title';
+      case 'contractsHeTongGuanLi':
+        return 'contractName';
+      default:
+        return 'name';
+    }
+  }
+
+  /// 从远端快照提取展示名（与 pullObject 保持一致）。
+  static String _nameOf(Map<String, dynamic> data, String object, String id) {
+    final labelField = labelFieldFor(object);
+    return data[labelField]?.toString() ??
+        data['name']?.toString() ??
+        data['title']?.toString() ??
+        data['contractName']?.toString() ??
+        data['amount']?.toString() ??
+        id;
+  }
+
   /// 本地缓存搜索（跨对象）
   Future<List<CrmEntityCache>> searchLocal(String keyword) {
     return IsarUtil.searchCrmByName(keyword);

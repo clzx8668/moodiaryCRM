@@ -142,6 +142,15 @@ class TwentyApiClient {
     return response.statusCode == 200;
   }
 
+  /// 探测对象类型是否存在（标准对象 note/task 或自定义对象 moodiaryGeneric 等）。
+  /// 通过 GraphQL introspection `__type` 判断，不存在的类型返回 false。
+  Future<bool> typeExists(String typeName) async {
+    final data = await graphql(
+      'query TypeExists { __type(name: "$typeName") { name } }',
+    );
+    return data['__type'] is Map<String, dynamic>;
+  }
+
   /// 通用 GraphQL 查询/变更
   Future<Map<String, dynamic>> graphql(
     String query, [
@@ -332,6 +341,167 @@ mutation Delete$className(\$id: ID!) {
     return deleted is Map<String, dynamic>
         ? deleted['id']?.toString()
         : null;
+  }
+
+  // ==================== 笔记 / 待办 / 关联目标（内容同步） ====================
+
+  /// 创建笔记（Twenty `note`）。body 走 bodyV2.markdown 投影，兼容 Markdown 内容。
+  Future<TwentyEntity> createNote({
+    required String title,
+    String? body,
+  }) async {
+    final data = <String, dynamic>{
+      'title': title,
+      if (body != null && body.isNotEmpty)
+        'bodyV2': {
+          'blocknote': null,
+          'markdown': body,
+        },
+    };
+    return create(object: 'note', data: data, fields: ['id', 'title', 'bodyV2']);
+  }
+
+  /// 更新笔记
+  Future<TwentyEntity> updateNote({
+    required String id,
+    String? title,
+    String? body,
+  }) async {
+    final data = <String, dynamic>{
+      if (title != null) 'title': title,
+      if (body != null)
+        'bodyV2': {
+          'blocknote': null,
+          'markdown': body,
+        },
+    };
+    return update(
+      object: 'note',
+      id: id,
+      data: data,
+      fields: ['id', 'title', 'bodyV2'],
+    );
+  }
+
+  /// 创建笔记关联目标（noteTarget → 客户时间线）。target 至少填一个。
+  Future<TwentyEntity> createNoteTarget({
+    required String noteId,
+    String? companyId,
+    String? personId,
+    String? opportunityId,
+  }) async {
+    final data = <String, dynamic>{
+      'noteId': noteId,
+      if (companyId != null) 'companyId': companyId,
+      if (personId != null) 'personId': personId,
+      if (opportunityId != null) 'opportunityId': opportunityId,
+    };
+    return create(
+      object: 'noteTarget',
+      data: data,
+      fields: ['id', 'noteId', 'companyId', 'personId', 'opportunityId'],
+    );
+  }
+
+  /// 创建待办（Twenty `task`）
+  Future<TwentyEntity> createTask({
+    required String title,
+    String? body,
+    DateTime? dueAt,
+    String? status,
+  }) async {
+    final data = <String, dynamic>{
+      'title': title,
+      if (body != null && body.isNotEmpty)
+        'bodyV2': {
+          'blocknote': null,
+          'markdown': body,
+        },
+      if (dueAt != null) 'dueAt': dueAt.toUtc().toIso8601String(),
+      if (status != null && status.isNotEmpty) 'status': status,
+    };
+    return create(
+      object: 'task',
+      data: data,
+      fields: ['id', 'title', 'dueAt', 'status'],
+    );
+  }
+
+  /// 更新待办
+  Future<TwentyEntity> updateTask({
+    required String id,
+    String? title,
+    String? body,
+    DateTime? dueAt,
+    String? status,
+  }) async {
+    final data = <String, dynamic>{
+      if (title != null) 'title': title,
+      if (body != null)
+        'bodyV2': {
+          'blocknote': null,
+          'markdown': body,
+        },
+      if (dueAt != null) 'dueAt': dueAt.toUtc().toIso8601String(),
+      if (status != null) 'status': status,
+    };
+    return update(
+      object: 'task',
+      id: id,
+      data: data,
+      fields: ['id', 'title', 'dueAt', 'status'],
+    );
+  }
+
+  /// 创建待办关联目标（taskTarget → 客户时间线）
+  Future<TwentyEntity> createTaskTarget({
+    required String taskId,
+    String? companyId,
+    String? personId,
+    String? opportunityId,
+  }) async {
+    final data = <String, dynamic>{
+      'taskId': taskId,
+      if (companyId != null) 'companyId': companyId,
+      if (personId != null) 'personId': personId,
+      if (opportunityId != null) 'opportunityId': opportunityId,
+    };
+    return create(
+      object: 'taskTarget',
+      data: data,
+      fields: ['id', 'taskId', 'companyId', 'personId', 'opportunityId'],
+    );
+  }
+
+  /// 拉取笔记列表（含关联目标摘要，用于展示/对账）
+  Future<List<TwentyEntity>> listNotes({
+    List<String> fields = const ['id', 'title', 'bodyV2', 'createdAt'],
+    int pageSize = 100,
+  }) {
+    return listAll(
+      object: 'note',
+      fields: fields,
+      pageSize: pageSize,
+    );
+  }
+
+  /// 拉取待办列表（含状态/到期日）
+  Future<List<TwentyEntity>> listTasks({
+    List<String> fields = const [
+      'id',
+      'title',
+      'bodyV2',
+      'dueAt',
+      'status',
+      'createdAt',
+    ],
+    int pageSize = 100,
+  }) {
+    return listAll(
+      object: 'task',
+      fields: fields,
+      pageSize: pageSize,
+    );
   }
 
   static String _capitalize(String value) {
