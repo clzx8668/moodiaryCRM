@@ -138,6 +138,30 @@ class CrmEntityCaches extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 本地内容（Diary / Todo Block）↔ Twenty 对象同步映射表
+@DataClassName('CrmContentLinkRow')
+class CrmContentLinks extends Table {
+  TextColumn get id => text()();
+  TextColumn get localType => text().withDefault(const Constant(''))();
+  TextColumn get localId => text().withDefault(const Constant(''))();
+  TextColumn get remoteType => text().withDefault(const Constant(''))();
+  TextColumn get remoteId => text().withDefault(const Constant(''))();
+  TextColumn get targetType => text().withDefault(const Constant(''))();
+  TextColumn get targetId => text().withDefault(const Constant(''))();
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+  TextColumn get error => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {localType, localId},
+  ];
+}
+
 /// 同步记录表
 @DataClassName('SyncRecordRow')
 class SyncRecords extends Table {
@@ -216,6 +240,7 @@ class AiChatMessages extends Table {
     Blocks,
     AppMetadata,
     CrmEntityCaches,
+    CrmContentLinks,
     SyncRecords,
     KnowledgeBases,
     BlockEmbeddings,
@@ -227,7 +252,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -249,6 +274,11 @@ class AppDatabase extends _$AppDatabase {
         final db = m.database as AppDatabase;
         await m.createTable(db.aiChatSessions);
         await m.createTable(db.aiChatMessages);
+      }
+      // v6 → v7：本地内容 ↔ Twenty 对象同步映射表
+      if (from < 7) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.crmContentLinks);
       }
     },
     beforeOpen: (details) async {

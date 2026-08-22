@@ -106,6 +106,7 @@ class PrefUtil {
   /// 键前缀命中后无需逐一加入 [prefAllowList]，方便后续扩展列表级设置。
   static const Set<String> prefAllowPrefixes = {
     'crmTableColumns_',
+    'crmTabVisible_',
   };
 
   /// 键是否允许读写：精确命中白名单，或以允许前缀开头。

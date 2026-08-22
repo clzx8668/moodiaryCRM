@@ -2,12 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/features/crm/crm_content_sync_page.dart';
+import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
 import 'package:moodiary/features/crm/business_objects_page.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
 import 'package:moodiary/features/sync_log/sync_log.dart';
 import 'package:moodiary/persistence/isar.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/persistence/secure_storage.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -22,6 +25,13 @@ class CrmSyncPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('CRM 同步（Twenty）'),
         actions: [
+          IconButton(
+            tooltip: '内容同步',
+            icon: const Icon(Icons.article_outlined),
+            onPressed: () {
+              Get.to(() => const CrmContentSyncPage());
+            },
+          ),
           IconButton(
             tooltip: '业务对象',
             icon: const Icon(Icons.grid_view_rounded),
@@ -38,10 +48,47 @@ class CrmSyncPage extends StatelessWidget {
           const SizedBox(height: 16),
           _buildActionCard(context, logic),
           const SizedBox(height: 16),
+          _buildDisplayCard(context, logic),
+          const SizedBox(height: 16),
           _buildCacheCard(context, logic),
           const SizedBox(height: 16),
           _buildLogCard(context, logic),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDisplayCard(BuildContext context, CrmSyncController logic) {
+    return Card.outlined(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('页面显示管理', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              '控制 CRM 首页顶部 Tab 分页展示哪些对象页（与 Twenty 对象动态对应）',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            Obx(
+              () => Column(
+                children: [
+                  for (final tab in kCrmTabs)
+                    SwitchListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      value: logic.tabVisibility[tab.type] ?? true,
+                      title: Text(tab.label),
+                      secondary: Icon(crmTypeIcon(tab.type), size: 20),
+                      onChanged: (v) => logic.setTabVisibility(tab.type, v),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -428,6 +475,7 @@ class CrmSyncController extends GetxController {
   final cacheItems = <CrmEntityCache>[].obs;
   final logEntries = <SyncLogEntry>[].obs;
   final selectedType = 'company'.obs;
+  final tabVisibility = <String, bool>{}.obs;
 
   CrmSyncService? _service;
 
@@ -447,7 +495,20 @@ class CrmSyncController extends GetxController {
   void onInit() {
     super.onInit();
     _loadSavedConfig();
+    loadTabVisibility();
     refreshLog();
+  }
+
+  Future<void> loadTabVisibility() async {
+    for (final tab in kCrmTabs) {
+      tabVisibility[tab.type] =
+          PrefUtil.getValue<bool>('crmTabVisible_${tab.type}') ?? true;
+    }
+  }
+
+  Future<void> setTabVisibility(String type, bool value) async {
+    tabVisibility[type] = value;
+    await PrefUtil.setValue<bool>('crmTabVisible_$type', value);
   }
 
   Future<void> _loadSavedConfig() async {

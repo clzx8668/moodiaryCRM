@@ -28,6 +28,12 @@ class BlockMeta {
   /// 实体类型（smartEntity：company/person/opportunity/task/custom）
   String entityType;
 
+  /// 关联实体 Twenty ID（本地 CRM 缓存的 twentyId，认领/自动关联用）
+  String entityId;
+
+  /// 关联实体展示名（便于列表与徽标展示）
+  String entityName;
+
   /// 卡片标题（折叠态展示，可选）
   String title;
 
@@ -37,14 +43,20 @@ class BlockMeta {
   /// 到期时间（ISO 8601 文本，待办类 Block 用；空串表示无到期）
   String dueDate;
 
+  /// 内容向 Twenty 推送的状态：''（未推送）/ pending / synced / error
+  String crmSyncStatus;
+
   BlockMeta({
     this.source = sourceInitial,
     this.syncStatus = syncSynced,
     this.aiTemplate = '',
     this.entityType = '',
+    this.entityId = '',
+    this.entityName = '',
     this.title = '',
     this.sourceContent = '',
     this.dueDate = '',
+    this.crmSyncStatus = '',
   });
 
   bool get isAi => source == sourceAi;
@@ -63,9 +75,12 @@ class BlockMeta {
       syncStatus: syncStatus,
       aiTemplate: aiTemplate,
       entityType: entityType,
+      entityId: entityId,
+      entityName: entityName,
       title: title,
       sourceContent: sourceContent,
       dueDate: dueDate,
+      crmSyncStatus: crmSyncStatus,
     );
   }
 
@@ -75,9 +90,12 @@ class BlockMeta {
       'syncStatus': syncStatus,
       'aiTemplate': aiTemplate,
       'entityType': entityType,
+      'entityId': entityId,
+      'entityName': entityName,
       'title': title,
       'sourceContent': sourceContent,
       'dueDate': dueDate,
+      'crmSyncStatus': crmSyncStatus,
     };
   }
 
@@ -87,9 +105,12 @@ class BlockMeta {
       syncStatus: json['syncStatus'] as String? ?? syncSynced,
       aiTemplate: json['aiTemplate'] as String? ?? '',
       entityType: json['entityType'] as String? ?? '',
+      entityId: json['entityId'] as String? ?? '',
+      entityName: json['entityName'] as String? ?? '',
       title: json['title'] as String? ?? '',
       sourceContent: json['sourceContent'] as String? ?? '',
       dueDate: json['dueDate'] as String? ?? '',
+      crmSyncStatus: json['crmSyncStatus'] as String? ?? '',
     );
   }
 
@@ -115,9 +136,12 @@ class BlockMeta {
           syncStatus == other.syncStatus &&
           aiTemplate == other.aiTemplate &&
           entityType == other.entityType &&
+          entityId == other.entityId &&
+          entityName == other.entityName &&
           title == other.title &&
           sourceContent == other.sourceContent &&
-          dueDate == other.dueDate;
+          dueDate == other.dueDate &&
+          crmSyncStatus == other.crmSyncStatus;
 
   @override
   int get hashCode =>
@@ -126,8 +150,11 @@ class BlockMeta {
         syncStatus,
         aiTemplate,
         entityType,
+        entityId,
+        entityName,
         title,
         sourceContent,
         dueDate,
+        crmSyncStatus,
       );
 }

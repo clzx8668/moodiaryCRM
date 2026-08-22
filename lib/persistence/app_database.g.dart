@@ -3107,6 +3107,651 @@ class CrmEntityCachesCompanion extends UpdateCompanion<CrmEntityCacheRow> {
   }
 }
 
+class $CrmContentLinksTable extends CrmContentLinks
+    with TableInfo<$CrmContentLinksTable, CrmContentLinkRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmContentLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _localTypeMeta = const VerificationMeta(
+    'localType',
+  );
+  @override
+  late final GeneratedColumn<String> localType = GeneratedColumn<String>(
+    'local_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _localIdMeta = const VerificationMeta(
+    'localId',
+  );
+  @override
+  late final GeneratedColumn<String> localId = GeneratedColumn<String>(
+    'local_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _remoteTypeMeta = const VerificationMeta(
+    'remoteType',
+  );
+  @override
+  late final GeneratedColumn<String> remoteType = GeneratedColumn<String>(
+    'remote_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
+  @override
+  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
+    'remote_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _targetTypeMeta = const VerificationMeta(
+    'targetType',
+  );
+  @override
+  late final GeneratedColumn<String> targetType = GeneratedColumn<String>(
+    'target_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _targetIdMeta = const VerificationMeta(
+    'targetId',
+  );
+  @override
+  late final GeneratedColumn<String> targetId = GeneratedColumn<String>(
+    'target_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _errorMeta = const VerificationMeta('error');
+  @override
+  late final GeneratedColumn<String> error = GeneratedColumn<String>(
+    'error',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    localType,
+    localId,
+    remoteType,
+    remoteId,
+    targetType,
+    targetId,
+    status,
+    error,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_content_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmContentLinkRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('local_type')) {
+      context.handle(
+        _localTypeMeta,
+        localType.isAcceptableOrUnknown(data['local_type']!, _localTypeMeta),
+      );
+    }
+    if (data.containsKey('local_id')) {
+      context.handle(
+        _localIdMeta,
+        localId.isAcceptableOrUnknown(data['local_id']!, _localIdMeta),
+      );
+    }
+    if (data.containsKey('remote_type')) {
+      context.handle(
+        _remoteTypeMeta,
+        remoteType.isAcceptableOrUnknown(data['remote_type']!, _remoteTypeMeta),
+      );
+    }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
+    }
+    if (data.containsKey('target_type')) {
+      context.handle(
+        _targetTypeMeta,
+        targetType.isAcceptableOrUnknown(data['target_type']!, _targetTypeMeta),
+      );
+    }
+    if (data.containsKey('target_id')) {
+      context.handle(
+        _targetIdMeta,
+        targetId.isAcceptableOrUnknown(data['target_id']!, _targetIdMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('error')) {
+      context.handle(
+        _errorMeta,
+        error.isAcceptableOrUnknown(data['error']!, _errorMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {localType, localId},
+  ];
+  @override
+  CrmContentLinkRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmContentLinkRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      localType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_type'],
+      )!,
+      localId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_id'],
+      )!,
+      remoteType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_type'],
+      )!,
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_id'],
+      )!,
+      targetType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_type'],
+      )!,
+      targetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_id'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      error: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmContentLinksTable createAlias(String alias) {
+    return $CrmContentLinksTable(attachedDatabase, alias);
+  }
+}
+
+class CrmContentLinkRow extends DataClass
+    implements Insertable<CrmContentLinkRow> {
+  final String id;
+  final String localType;
+  final String localId;
+  final String remoteType;
+  final String remoteId;
+  final String targetType;
+  final String targetId;
+  final String status;
+  final String error;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const CrmContentLinkRow({
+    required this.id,
+    required this.localType,
+    required this.localId,
+    required this.remoteType,
+    required this.remoteId,
+    required this.targetType,
+    required this.targetId,
+    required this.status,
+    required this.error,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['local_type'] = Variable<String>(localType);
+    map['local_id'] = Variable<String>(localId);
+    map['remote_type'] = Variable<String>(remoteType);
+    map['remote_id'] = Variable<String>(remoteId);
+    map['target_type'] = Variable<String>(targetType);
+    map['target_id'] = Variable<String>(targetId);
+    map['status'] = Variable<String>(status);
+    map['error'] = Variable<String>(error);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CrmContentLinksCompanion toCompanion(bool nullToAbsent) {
+    return CrmContentLinksCompanion(
+      id: Value(id),
+      localType: Value(localType),
+      localId: Value(localId),
+      remoteType: Value(remoteType),
+      remoteId: Value(remoteId),
+      targetType: Value(targetType),
+      targetId: Value(targetId),
+      status: Value(status),
+      error: Value(error),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CrmContentLinkRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmContentLinkRow(
+      id: serializer.fromJson<String>(json['id']),
+      localType: serializer.fromJson<String>(json['localType']),
+      localId: serializer.fromJson<String>(json['localId']),
+      remoteType: serializer.fromJson<String>(json['remoteType']),
+      remoteId: serializer.fromJson<String>(json['remoteId']),
+      targetType: serializer.fromJson<String>(json['targetType']),
+      targetId: serializer.fromJson<String>(json['targetId']),
+      status: serializer.fromJson<String>(json['status']),
+      error: serializer.fromJson<String>(json['error']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'localType': serializer.toJson<String>(localType),
+      'localId': serializer.toJson<String>(localId),
+      'remoteType': serializer.toJson<String>(remoteType),
+      'remoteId': serializer.toJson<String>(remoteId),
+      'targetType': serializer.toJson<String>(targetType),
+      'targetId': serializer.toJson<String>(targetId),
+      'status': serializer.toJson<String>(status),
+      'error': serializer.toJson<String>(error),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CrmContentLinkRow copyWith({
+    String? id,
+    String? localType,
+    String? localId,
+    String? remoteType,
+    String? remoteId,
+    String? targetType,
+    String? targetId,
+    String? status,
+    String? error,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => CrmContentLinkRow(
+    id: id ?? this.id,
+    localType: localType ?? this.localType,
+    localId: localId ?? this.localId,
+    remoteType: remoteType ?? this.remoteType,
+    remoteId: remoteId ?? this.remoteId,
+    targetType: targetType ?? this.targetType,
+    targetId: targetId ?? this.targetId,
+    status: status ?? this.status,
+    error: error ?? this.error,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CrmContentLinkRow copyWithCompanion(CrmContentLinksCompanion data) {
+    return CrmContentLinkRow(
+      id: data.id.present ? data.id.value : this.id,
+      localType: data.localType.present ? data.localType.value : this.localType,
+      localId: data.localId.present ? data.localId.value : this.localId,
+      remoteType: data.remoteType.present
+          ? data.remoteType.value
+          : this.remoteType,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
+      targetType: data.targetType.present
+          ? data.targetType.value
+          : this.targetType,
+      targetId: data.targetId.present ? data.targetId.value : this.targetId,
+      status: data.status.present ? data.status.value : this.status,
+      error: data.error.present ? data.error.value : this.error,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmContentLinkRow(')
+          ..write('id: $id, ')
+          ..write('localType: $localType, ')
+          ..write('localId: $localId, ')
+          ..write('remoteType: $remoteType, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('targetType: $targetType, ')
+          ..write('targetId: $targetId, ')
+          ..write('status: $status, ')
+          ..write('error: $error, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    localType,
+    localId,
+    remoteType,
+    remoteId,
+    targetType,
+    targetId,
+    status,
+    error,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmContentLinkRow &&
+          other.id == this.id &&
+          other.localType == this.localType &&
+          other.localId == this.localId &&
+          other.remoteType == this.remoteType &&
+          other.remoteId == this.remoteId &&
+          other.targetType == this.targetType &&
+          other.targetId == this.targetId &&
+          other.status == this.status &&
+          other.error == this.error &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CrmContentLinksCompanion extends UpdateCompanion<CrmContentLinkRow> {
+  final Value<String> id;
+  final Value<String> localType;
+  final Value<String> localId;
+  final Value<String> remoteType;
+  final Value<String> remoteId;
+  final Value<String> targetType;
+  final Value<String> targetId;
+  final Value<String> status;
+  final Value<String> error;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const CrmContentLinksCompanion({
+    this.id = const Value.absent(),
+    this.localType = const Value.absent(),
+    this.localId = const Value.absent(),
+    this.remoteType = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.targetType = const Value.absent(),
+    this.targetId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.error = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmContentLinksCompanion.insert({
+    required String id,
+    this.localType = const Value.absent(),
+    this.localId = const Value.absent(),
+    this.remoteType = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.targetType = const Value.absent(),
+    this.targetId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.error = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CrmContentLinkRow> custom({
+    Expression<String>? id,
+    Expression<String>? localType,
+    Expression<String>? localId,
+    Expression<String>? remoteType,
+    Expression<String>? remoteId,
+    Expression<String>? targetType,
+    Expression<String>? targetId,
+    Expression<String>? status,
+    Expression<String>? error,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (localType != null) 'local_type': localType,
+      if (localId != null) 'local_id': localId,
+      if (remoteType != null) 'remote_type': remoteType,
+      if (remoteId != null) 'remote_id': remoteId,
+      if (targetType != null) 'target_type': targetType,
+      if (targetId != null) 'target_id': targetId,
+      if (status != null) 'status': status,
+      if (error != null) 'error': error,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmContentLinksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? localType,
+    Value<String>? localId,
+    Value<String>? remoteType,
+    Value<String>? remoteId,
+    Value<String>? targetType,
+    Value<String>? targetId,
+    Value<String>? status,
+    Value<String>? error,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CrmContentLinksCompanion(
+      id: id ?? this.id,
+      localType: localType ?? this.localType,
+      localId: localId ?? this.localId,
+      remoteType: remoteType ?? this.remoteType,
+      remoteId: remoteId ?? this.remoteId,
+      targetType: targetType ?? this.targetType,
+      targetId: targetId ?? this.targetId,
+      status: status ?? this.status,
+      error: error ?? this.error,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (localType.present) {
+      map['local_type'] = Variable<String>(localType.value);
+    }
+    if (localId.present) {
+      map['local_id'] = Variable<String>(localId.value);
+    }
+    if (remoteType.present) {
+      map['remote_type'] = Variable<String>(remoteType.value);
+    }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<String>(remoteId.value);
+    }
+    if (targetType.present) {
+      map['target_type'] = Variable<String>(targetType.value);
+    }
+    if (targetId.present) {
+      map['target_id'] = Variable<String>(targetId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (error.present) {
+      map['error'] = Variable<String>(error.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmContentLinksCompanion(')
+          ..write('id: $id, ')
+          ..write('localType: $localType, ')
+          ..write('localId: $localId, ')
+          ..write('remoteType: $remoteType, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('targetType: $targetType, ')
+          ..write('targetId: $targetId, ')
+          ..write('status: $status, ')
+          ..write('error: $error, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SyncRecordsTable extends SyncRecords
     with TableInfo<$SyncRecordsTable, SyncRecordRow> {
   @override
@@ -5050,6 +5695,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CrmEntityCachesTable crmEntityCaches = $CrmEntityCachesTable(
     this,
   );
+  late final $CrmContentLinksTable crmContentLinks = $CrmContentLinksTable(
+    this,
+  );
   late final $SyncRecordsTable syncRecords = $SyncRecordsTable(this);
   late final $KnowledgeBasesTable knowledgeBases = $KnowledgeBasesTable(this);
   late final $BlockEmbeddingsTable blockEmbeddings = $BlockEmbeddingsTable(
@@ -5068,6 +5716,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     blocks,
     appMetadata,
     crmEntityCaches,
+    crmContentLinks,
     syncRecords,
     knowledgeBases,
     blockEmbeddings,
@@ -6660,6 +7309,330 @@ typedef $$CrmEntityCachesTableProcessedTableManager =
       CrmEntityCacheRow,
       PrefetchHooks Function()
     >;
+typedef $$CrmContentLinksTableCreateCompanionBuilder =
+    CrmContentLinksCompanion Function({
+      required String id,
+      Value<String> localType,
+      Value<String> localId,
+      Value<String> remoteType,
+      Value<String> remoteId,
+      Value<String> targetType,
+      Value<String> targetId,
+      Value<String> status,
+      Value<String> error,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CrmContentLinksTableUpdateCompanionBuilder =
+    CrmContentLinksCompanion Function({
+      Value<String> id,
+      Value<String> localType,
+      Value<String> localId,
+      Value<String> remoteType,
+      Value<String> remoteId,
+      Value<String> targetType,
+      Value<String> targetId,
+      Value<String> status,
+      Value<String> error,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CrmContentLinksTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmContentLinksTable> {
+  $$CrmContentLinksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localType => $composableBuilder(
+    column: $table.localType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localId => $composableBuilder(
+    column: $table.localId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteType => $composableBuilder(
+    column: $table.remoteType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetType => $composableBuilder(
+    column: $table.targetType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetId => $composableBuilder(
+    column: $table.targetId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmContentLinksTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmContentLinksTable> {
+  $$CrmContentLinksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localType => $composableBuilder(
+    column: $table.localType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localId => $composableBuilder(
+    column: $table.localId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remoteType => $composableBuilder(
+    column: $table.remoteType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetType => $composableBuilder(
+    column: $table.targetType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetId => $composableBuilder(
+    column: $table.targetId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmContentLinksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmContentLinksTable> {
+  $$CrmContentLinksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get localType =>
+      $composableBuilder(column: $table.localType, builder: (column) => column);
+
+  GeneratedColumn<String> get localId =>
+      $composableBuilder(column: $table.localId, builder: (column) => column);
+
+  GeneratedColumn<String> get remoteType => $composableBuilder(
+    column: $table.remoteType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
+
+  GeneratedColumn<String> get targetType => $composableBuilder(
+    column: $table.targetType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get targetId =>
+      $composableBuilder(column: $table.targetId, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get error =>
+      $composableBuilder(column: $table.error, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CrmContentLinksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmContentLinksTable,
+          CrmContentLinkRow,
+          $$CrmContentLinksTableFilterComposer,
+          $$CrmContentLinksTableOrderingComposer,
+          $$CrmContentLinksTableAnnotationComposer,
+          $$CrmContentLinksTableCreateCompanionBuilder,
+          $$CrmContentLinksTableUpdateCompanionBuilder,
+          (
+            CrmContentLinkRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CrmContentLinksTable,
+              CrmContentLinkRow
+            >,
+          ),
+          CrmContentLinkRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmContentLinksTableTableManager(
+    _$AppDatabase db,
+    $CrmContentLinksTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmContentLinksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmContentLinksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmContentLinksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> localType = const Value.absent(),
+                Value<String> localId = const Value.absent(),
+                Value<String> remoteType = const Value.absent(),
+                Value<String> remoteId = const Value.absent(),
+                Value<String> targetType = const Value.absent(),
+                Value<String> targetId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> error = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmContentLinksCompanion(
+                id: id,
+                localType: localType,
+                localId: localId,
+                remoteType: remoteType,
+                remoteId: remoteId,
+                targetType: targetType,
+                targetId: targetId,
+                status: status,
+                error: error,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String> localType = const Value.absent(),
+                Value<String> localId = const Value.absent(),
+                Value<String> remoteType = const Value.absent(),
+                Value<String> remoteId = const Value.absent(),
+                Value<String> targetType = const Value.absent(),
+                Value<String> targetId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> error = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CrmContentLinksCompanion.insert(
+                id: id,
+                localType: localType,
+                localId: localId,
+                remoteType: remoteType,
+                remoteId: remoteId,
+                targetType: targetType,
+                targetId: targetId,
+                status: status,
+                error: error,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmContentLinksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmContentLinksTable,
+      CrmContentLinkRow,
+      $$CrmContentLinksTableFilterComposer,
+      $$CrmContentLinksTableOrderingComposer,
+      $$CrmContentLinksTableAnnotationComposer,
+      $$CrmContentLinksTableCreateCompanionBuilder,
+      $$CrmContentLinksTableUpdateCompanionBuilder,
+      (
+        CrmContentLinkRow,
+        BaseReferences<_$AppDatabase, $CrmContentLinksTable, CrmContentLinkRow>,
+      ),
+      CrmContentLinkRow,
+      PrefetchHooks Function()
+    >;
 typedef $$SyncRecordsTableCreateCompanionBuilder =
     SyncRecordsCompanion Function({
       required String syncId,
@@ -7746,6 +8719,8 @@ class $AppDatabaseManager {
       $$AppMetadataTableTableManager(_db, _db.appMetadata);
   $$CrmEntityCachesTableTableManager get crmEntityCaches =>
       $$CrmEntityCachesTableTableManager(_db, _db.crmEntityCaches);
+  $$CrmContentLinksTableTableManager get crmContentLinks =>
+      $$CrmContentLinksTableTableManager(_db, _db.crmContentLinks);
   $$SyncRecordsTableTableManager get syncRecords =>
       $$SyncRecordsTableTableManager(_db, _db.syncRecords);
   $$KnowledgeBasesTableTableManager get knowledgeBases =>
