@@ -16,7 +16,7 @@ class MigrationService {
   static const String migrationHistoryKey = 'migration_history';
 
   /// 当前代码期望的数据库版本
-  static const int currentDbVersion = 15;
+  static const int currentDbVersion = 16;
 
   static Future<String?> _getMeta(AppDatabase db, String key) async {
     final row = await (db.select(db.appMetadata)
@@ -254,6 +254,19 @@ class MigrationService {
         'time': DateTime.now().toIso8601String(),
         'durationMs': stopwatch.elapsedMilliseconds,
         'note': 'crm_quote_versions（报价版本快照）',
+      });
+    }
+
+    if (current < 16) {
+      // v15 → v16：金额实体补币种列
+      final stopwatch = Stopwatch()..start();
+      current = 16;
+      await _appendMigrationHistory(db, {
+        'from': 15,
+        'to': 16,
+        'time': DateTime.now().toIso8601String(),
+        'durationMs': stopwatch.elapsedMilliseconds,
+        'note': 'contracts/payments/invoices/quotes/products 增加 currency 列',
       });
     }
 

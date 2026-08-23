@@ -1095,6 +1095,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             contractNo: data['contractNo']?.toString() ?? '',
             name: data['name']?.toString() ?? '',
             status: data['status']?.toString() ?? '',
+            currency:
+                data['totalAmountCurrency']?.toString() ??
+                data['currency']?.toString() ??
+                'CNY',
             totalAmount: _toDouble(data['totalAmount']) ?? 0,
             paidAmount: _toDouble(data['paidAmount']) ?? 0,
             invoicedAmount: _toDouble(data['invoicedAmount']) ?? 0,
@@ -1113,6 +1117,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             sku: data['sku']?.toString() ?? '',
             type: data['type']?.toString() ?? 'product',
             unit: data['unit']?.toString() ?? '',
+            currency:
+                data['priceCurrency']?.toString() ??
+                data['currency']?.toString() ??
+                'CNY',
             price: _toDouble(data['price']) ?? 0,
             cost: _toDouble(data['cost']) ?? 0,
             warrantyMonths: _toInt(data['warrantyMonths']) ?? 0,
@@ -1125,6 +1133,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
           LocalQuote(
             id: '',
             status: data['status']?.toString() ?? 'draft',
+            currency:
+                data['totalAmountCurrency']?.toString() ??
+                data['currency']?.toString() ??
+                'CNY',
             totalAmount: _toDouble(data['totalAmount']) ?? 0,
             discountAmount: _toDouble(data['discountAmount']) ?? 0,
             validUntil: _parseDate(data['validUntil']),
@@ -1148,6 +1160,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             id: '',
             contractId: '',
             amount: _toDouble(data['amount']) ?? 0,
+            currency:
+                data['amountCurrency']?.toString() ??
+                data['currency']?.toString() ??
+                'CNY',
             paymentDate: _parseDate(data['paymentDate']) ?? DateTime.now(),
             method: data['method']?.toString() ?? 'transfer',
             note: data['note']?.toString() ?? '',
@@ -1161,6 +1177,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             invoiceNo: data['invoiceNo']?.toString() ?? '',
             type: data['type']?.toString() ?? 'vat_normal',
             amount: _toDouble(data['amount']) ?? 0,
+            currency:
+                data['amountCurrency']?.toString() ??
+                data['currency']?.toString() ??
+                'CNY',
             taxRate: _toDouble(data['taxRate']) ?? 0.13,
             issueDate: _parseDate(data['issueDate']),
             status: data['status']?.toString() ?? 'pending',
@@ -1368,7 +1388,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                   selectOptions: {
                                     for (final f in _fields)
                                       if (f.type == 'select' ||
-                                          f.type == 'currency')
+                                          (f.type == 'currency' &&
+                                              f.name == 'currency'))
                                         f.name: f.type == 'currency'
                                             ? [...kCurrencies]
                                             : f.options,

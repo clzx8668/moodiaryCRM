@@ -6539,6 +6539,18 @@ class $CrmContractsTable extends CrmContracts
     requiredDuringInsert: false,
     defaultValue: const Constant('draft'),
   );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('CNY'),
+  );
   static const VerificationMeta _totalAmountMeta = const VerificationMeta(
     'totalAmount',
   );
@@ -6677,6 +6689,7 @@ class $CrmContractsTable extends CrmContracts
     opportunityId,
     quoteId,
     status,
+    currency,
     totalAmount,
     paidAmount,
     invoicedAmount,
@@ -6749,6 +6762,12 @@ class $CrmContractsTable extends CrmContracts
       context.handle(
         _statusMeta,
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
       );
     }
     if (data.containsKey('total_amount')) {
@@ -6871,6 +6890,10 @@ class $CrmContractsTable extends CrmContracts
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
       totalAmount: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}total_amount'],
@@ -6935,6 +6958,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
 
   /// draft/active/completed/terminated/expired
   final String status;
+  final String currency;
   final double totalAmount;
   final double paidAmount;
   final double invoicedAmount;
@@ -6955,6 +6979,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
     this.opportunityId,
     this.quoteId,
     required this.status,
+    required this.currency,
     required this.totalAmount,
     required this.paidAmount,
     required this.invoicedAmount,
@@ -6986,6 +7011,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
       map['quote_id'] = Variable<String>(quoteId);
     }
     map['status'] = Variable<String>(status);
+    map['currency'] = Variable<String>(currency);
     map['total_amount'] = Variable<double>(totalAmount);
     map['paid_amount'] = Variable<double>(paidAmount);
     map['invoiced_amount'] = Variable<double>(invoicedAmount);
@@ -7026,6 +7052,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
           ? const Value.absent()
           : Value(quoteId),
       status: Value(status),
+      currency: Value(currency),
       totalAmount: Value(totalAmount),
       paidAmount: Value(paidAmount),
       invoicedAmount: Value(invoicedAmount),
@@ -7062,6 +7089,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
       opportunityId: serializer.fromJson<String?>(json['opportunityId']),
       quoteId: serializer.fromJson<String?>(json['quoteId']),
       status: serializer.fromJson<String>(json['status']),
+      currency: serializer.fromJson<String>(json['currency']),
       totalAmount: serializer.fromJson<double>(json['totalAmount']),
       paidAmount: serializer.fromJson<double>(json['paidAmount']),
       invoicedAmount: serializer.fromJson<double>(json['invoicedAmount']),
@@ -7087,6 +7115,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
       'opportunityId': serializer.toJson<String?>(opportunityId),
       'quoteId': serializer.toJson<String?>(quoteId),
       'status': serializer.toJson<String>(status),
+      'currency': serializer.toJson<String>(currency),
       'totalAmount': serializer.toJson<double>(totalAmount),
       'paidAmount': serializer.toJson<double>(paidAmount),
       'invoicedAmount': serializer.toJson<double>(invoicedAmount),
@@ -7110,6 +7139,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
     Value<String?> opportunityId = const Value.absent(),
     Value<String?> quoteId = const Value.absent(),
     String? status,
+    String? currency,
     double? totalAmount,
     double? paidAmount,
     double? invoicedAmount,
@@ -7132,6 +7162,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
         : this.opportunityId,
     quoteId: quoteId.present ? quoteId.value : this.quoteId,
     status: status ?? this.status,
+    currency: currency ?? this.currency,
     totalAmount: totalAmount ?? this.totalAmount,
     paidAmount: paidAmount ?? this.paidAmount,
     invoicedAmount: invoicedAmount ?? this.invoicedAmount,
@@ -7160,6 +7191,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
           : this.opportunityId,
       quoteId: data.quoteId.present ? data.quoteId.value : this.quoteId,
       status: data.status.present ? data.status.value : this.status,
+      currency: data.currency.present ? data.currency.value : this.currency,
       totalAmount: data.totalAmount.present
           ? data.totalAmount.value
           : this.totalAmount,
@@ -7193,6 +7225,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
           ..write('opportunityId: $opportunityId, ')
           ..write('quoteId: $quoteId, ')
           ..write('status: $status, ')
+          ..write('currency: $currency, ')
           ..write('totalAmount: $totalAmount, ')
           ..write('paidAmount: $paidAmount, ')
           ..write('invoicedAmount: $invoicedAmount, ')
@@ -7218,6 +7251,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
     opportunityId,
     quoteId,
     status,
+    currency,
     totalAmount,
     paidAmount,
     invoicedAmount,
@@ -7242,6 +7276,7 @@ class CrmContractRow extends DataClass implements Insertable<CrmContractRow> {
           other.opportunityId == this.opportunityId &&
           other.quoteId == this.quoteId &&
           other.status == this.status &&
+          other.currency == this.currency &&
           other.totalAmount == this.totalAmount &&
           other.paidAmount == this.paidAmount &&
           other.invoicedAmount == this.invoicedAmount &&
@@ -7264,6 +7299,7 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
   final Value<String?> opportunityId;
   final Value<String?> quoteId;
   final Value<String> status;
+  final Value<String> currency;
   final Value<double> totalAmount;
   final Value<double> paidAmount;
   final Value<double> invoicedAmount;
@@ -7285,6 +7321,7 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
     this.opportunityId = const Value.absent(),
     this.quoteId = const Value.absent(),
     this.status = const Value.absent(),
+    this.currency = const Value.absent(),
     this.totalAmount = const Value.absent(),
     this.paidAmount = const Value.absent(),
     this.invoicedAmount = const Value.absent(),
@@ -7307,6 +7344,7 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
     this.opportunityId = const Value.absent(),
     this.quoteId = const Value.absent(),
     this.status = const Value.absent(),
+    this.currency = const Value.absent(),
     this.totalAmount = const Value.absent(),
     this.paidAmount = const Value.absent(),
     this.invoicedAmount = const Value.absent(),
@@ -7331,6 +7369,7 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
     Expression<String>? opportunityId,
     Expression<String>? quoteId,
     Expression<String>? status,
+    Expression<String>? currency,
     Expression<double>? totalAmount,
     Expression<double>? paidAmount,
     Expression<double>? invoicedAmount,
@@ -7353,6 +7392,7 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
       if (opportunityId != null) 'opportunity_id': opportunityId,
       if (quoteId != null) 'quote_id': quoteId,
       if (status != null) 'status': status,
+      if (currency != null) 'currency': currency,
       if (totalAmount != null) 'total_amount': totalAmount,
       if (paidAmount != null) 'paid_amount': paidAmount,
       if (invoicedAmount != null) 'invoiced_amount': invoicedAmount,
@@ -7377,6 +7417,7 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
     Value<String?>? opportunityId,
     Value<String?>? quoteId,
     Value<String>? status,
+    Value<String>? currency,
     Value<double>? totalAmount,
     Value<double>? paidAmount,
     Value<double>? invoicedAmount,
@@ -7399,6 +7440,7 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
       opportunityId: opportunityId ?? this.opportunityId,
       quoteId: quoteId ?? this.quoteId,
       status: status ?? this.status,
+      currency: currency ?? this.currency,
       totalAmount: totalAmount ?? this.totalAmount,
       paidAmount: paidAmount ?? this.paidAmount,
       invoicedAmount: invoicedAmount ?? this.invoicedAmount,
@@ -7440,6 +7482,9 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
     }
     if (totalAmount.present) {
       map['total_amount'] = Variable<double>(totalAmount.value);
@@ -7491,6 +7536,7 @@ class CrmContractsCompanion extends UpdateCompanion<CrmContractRow> {
           ..write('opportunityId: $opportunityId, ')
           ..write('quoteId: $quoteId, ')
           ..write('status: $status, ')
+          ..write('currency: $currency, ')
           ..write('totalAmount: $totalAmount, ')
           ..write('paidAmount: $paidAmount, ')
           ..write('invoicedAmount: $invoicedAmount, ')
@@ -7837,6 +7883,18 @@ class $CrmProductsTable extends CrmProducts
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('CNY'),
+  );
   static const VerificationMeta _priceMeta = const VerificationMeta('price');
   @override
   late final GeneratedColumn<double> price = GeneratedColumn<double>(
@@ -7939,6 +7997,7 @@ class $CrmProductsTable extends CrmProducts
     sku,
     type,
     unit,
+    currency,
     price,
     cost,
     warrantyMonths,
@@ -7995,6 +8054,12 @@ class $CrmProductsTable extends CrmProducts
       context.handle(
         _unitMeta,
         unit.isAcceptableOrUnknown(data['unit']!, _unitMeta),
+      );
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
       );
     }
     if (data.containsKey('price')) {
@@ -8085,6 +8150,10 @@ class $CrmProductsTable extends CrmProducts
         DriftSqlType.string,
         data['${effectivePrefix}unit'],
       )!,
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
       price: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}price'],
@@ -8135,6 +8204,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
   /// product / service
   final String type;
   final String unit;
+  final String currency;
   final double price;
   final double cost;
   final int warrantyMonths;
@@ -8150,6 +8220,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
     this.sku,
     required this.type,
     required this.unit,
+    required this.currency,
     required this.price,
     required this.cost,
     required this.warrantyMonths,
@@ -8172,6 +8243,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
     }
     map['type'] = Variable<String>(type);
     map['unit'] = Variable<String>(unit);
+    map['currency'] = Variable<String>(currency);
     map['price'] = Variable<double>(price);
     map['cost'] = Variable<double>(cost);
     map['warranty_months'] = Variable<int>(warrantyMonths);
@@ -8193,6 +8265,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
       sku: sku == null && nullToAbsent ? const Value.absent() : Value(sku),
       type: Value(type),
       unit: Value(unit),
+      currency: Value(currency),
       price: Value(price),
       cost: Value(cost),
       warrantyMonths: Value(warrantyMonths),
@@ -8216,6 +8289,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
       sku: serializer.fromJson<String?>(json['sku']),
       type: serializer.fromJson<String>(json['type']),
       unit: serializer.fromJson<String>(json['unit']),
+      currency: serializer.fromJson<String>(json['currency']),
       price: serializer.fromJson<double>(json['price']),
       cost: serializer.fromJson<double>(json['cost']),
       warrantyMonths: serializer.fromJson<int>(json['warrantyMonths']),
@@ -8236,6 +8310,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
       'sku': serializer.toJson<String?>(sku),
       'type': serializer.toJson<String>(type),
       'unit': serializer.toJson<String>(unit),
+      'currency': serializer.toJson<String>(currency),
       'price': serializer.toJson<double>(price),
       'cost': serializer.toJson<double>(cost),
       'warrantyMonths': serializer.toJson<int>(warrantyMonths),
@@ -8254,6 +8329,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
     Value<String?> sku = const Value.absent(),
     String? type,
     String? unit,
+    String? currency,
     double? price,
     double? cost,
     int? warrantyMonths,
@@ -8269,6 +8345,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
     sku: sku.present ? sku.value : this.sku,
     type: type ?? this.type,
     unit: unit ?? this.unit,
+    currency: currency ?? this.currency,
     price: price ?? this.price,
     cost: cost ?? this.cost,
     warrantyMonths: warrantyMonths ?? this.warrantyMonths,
@@ -8288,6 +8365,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
       sku: data.sku.present ? data.sku.value : this.sku,
       type: data.type.present ? data.type.value : this.type,
       unit: data.unit.present ? data.unit.value : this.unit,
+      currency: data.currency.present ? data.currency.value : this.currency,
       price: data.price.present ? data.price.value : this.price,
       cost: data.cost.present ? data.cost.value : this.cost,
       warrantyMonths: data.warrantyMonths.present
@@ -8310,6 +8388,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
           ..write('sku: $sku, ')
           ..write('type: $type, ')
           ..write('unit: $unit, ')
+          ..write('currency: $currency, ')
           ..write('price: $price, ')
           ..write('cost: $cost, ')
           ..write('warrantyMonths: $warrantyMonths, ')
@@ -8330,6 +8409,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
     sku,
     type,
     unit,
+    currency,
     price,
     cost,
     warrantyMonths,
@@ -8349,6 +8429,7 @@ class CrmProductRow extends DataClass implements Insertable<CrmProductRow> {
           other.sku == this.sku &&
           other.type == this.type &&
           other.unit == this.unit &&
+          other.currency == this.currency &&
           other.price == this.price &&
           other.cost == this.cost &&
           other.warrantyMonths == this.warrantyMonths &&
@@ -8366,6 +8447,7 @@ class CrmProductsCompanion extends UpdateCompanion<CrmProductRow> {
   final Value<String?> sku;
   final Value<String> type;
   final Value<String> unit;
+  final Value<String> currency;
   final Value<double> price;
   final Value<double> cost;
   final Value<int> warrantyMonths;
@@ -8382,6 +8464,7 @@ class CrmProductsCompanion extends UpdateCompanion<CrmProductRow> {
     this.sku = const Value.absent(),
     this.type = const Value.absent(),
     this.unit = const Value.absent(),
+    this.currency = const Value.absent(),
     this.price = const Value.absent(),
     this.cost = const Value.absent(),
     this.warrantyMonths = const Value.absent(),
@@ -8399,6 +8482,7 @@ class CrmProductsCompanion extends UpdateCompanion<CrmProductRow> {
     this.sku = const Value.absent(),
     this.type = const Value.absent(),
     this.unit = const Value.absent(),
+    this.currency = const Value.absent(),
     this.price = const Value.absent(),
     this.cost = const Value.absent(),
     this.warrantyMonths = const Value.absent(),
@@ -8419,6 +8503,7 @@ class CrmProductsCompanion extends UpdateCompanion<CrmProductRow> {
     Expression<String>? sku,
     Expression<String>? type,
     Expression<String>? unit,
+    Expression<String>? currency,
     Expression<double>? price,
     Expression<double>? cost,
     Expression<int>? warrantyMonths,
@@ -8436,6 +8521,7 @@ class CrmProductsCompanion extends UpdateCompanion<CrmProductRow> {
       if (sku != null) 'sku': sku,
       if (type != null) 'type': type,
       if (unit != null) 'unit': unit,
+      if (currency != null) 'currency': currency,
       if (price != null) 'price': price,
       if (cost != null) 'cost': cost,
       if (warrantyMonths != null) 'warranty_months': warrantyMonths,
@@ -8455,6 +8541,7 @@ class CrmProductsCompanion extends UpdateCompanion<CrmProductRow> {
     Value<String?>? sku,
     Value<String>? type,
     Value<String>? unit,
+    Value<String>? currency,
     Value<double>? price,
     Value<double>? cost,
     Value<int>? warrantyMonths,
@@ -8472,6 +8559,7 @@ class CrmProductsCompanion extends UpdateCompanion<CrmProductRow> {
       sku: sku ?? this.sku,
       type: type ?? this.type,
       unit: unit ?? this.unit,
+      currency: currency ?? this.currency,
       price: price ?? this.price,
       cost: cost ?? this.cost,
       warrantyMonths: warrantyMonths ?? this.warrantyMonths,
@@ -8504,6 +8592,9 @@ class CrmProductsCompanion extends UpdateCompanion<CrmProductRow> {
     }
     if (unit.present) {
       map['unit'] = Variable<String>(unit.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
     }
     if (price.present) {
       map['price'] = Variable<double>(price.value);
@@ -8544,6 +8635,7 @@ class CrmProductsCompanion extends UpdateCompanion<CrmProductRow> {
           ..write('sku: $sku, ')
           ..write('type: $type, ')
           ..write('unit: $unit, ')
+          ..write('currency: $currency, ')
           ..write('price: $price, ')
           ..write('cost: $cost, ')
           ..write('warrantyMonths: $warrantyMonths, ')
@@ -8626,6 +8718,18 @@ class $CrmQuotesTable extends CrmQuotes
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant('draft'),
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('CNY'),
   );
   static const VerificationMeta _totalAmountMeta = const VerificationMeta(
     'totalAmount',
@@ -8717,6 +8821,7 @@ class $CrmQuotesTable extends CrmQuotes
     accountId,
     contactId,
     status,
+    currency,
     totalAmount,
     discountAmount,
     validUntil,
@@ -8775,6 +8880,12 @@ class $CrmQuotesTable extends CrmQuotes
       context.handle(
         _statusMeta,
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
       );
     }
     if (data.containsKey('total_amount')) {
@@ -8862,6 +8973,10 @@ class $CrmQuotesTable extends CrmQuotes
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
       totalAmount: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}total_amount'],
@@ -8908,6 +9023,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
 
   /// draft/sent/accepted/rejected/expired
   final String status;
+  final String currency;
   final double totalAmount;
   final double discountAmount;
   final DateTime? validUntil;
@@ -8922,6 +9038,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
     this.accountId,
     this.contactId,
     required this.status,
+    required this.currency,
     required this.totalAmount,
     required this.discountAmount,
     this.validUntil,
@@ -8945,6 +9062,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
       map['contact_id'] = Variable<String>(contactId);
     }
     map['status'] = Variable<String>(status);
+    map['currency'] = Variable<String>(currency);
     map['total_amount'] = Variable<double>(totalAmount);
     map['discount_amount'] = Variable<double>(discountAmount);
     if (!nullToAbsent || validUntil != null) {
@@ -8971,6 +9089,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
           ? const Value.absent()
           : Value(contactId),
       status: Value(status),
+      currency: Value(currency),
       totalAmount: Value(totalAmount),
       discountAmount: Value(discountAmount),
       validUntil: validUntil == null && nullToAbsent
@@ -8995,6 +9114,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
       accountId: serializer.fromJson<String?>(json['accountId']),
       contactId: serializer.fromJson<String?>(json['contactId']),
       status: serializer.fromJson<String>(json['status']),
+      currency: serializer.fromJson<String>(json['currency']),
       totalAmount: serializer.fromJson<double>(json['totalAmount']),
       discountAmount: serializer.fromJson<double>(json['discountAmount']),
       validUntil: serializer.fromJson<DateTime?>(json['validUntil']),
@@ -9014,6 +9134,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
       'accountId': serializer.toJson<String?>(accountId),
       'contactId': serializer.toJson<String?>(contactId),
       'status': serializer.toJson<String>(status),
+      'currency': serializer.toJson<String>(currency),
       'totalAmount': serializer.toJson<double>(totalAmount),
       'discountAmount': serializer.toJson<double>(discountAmount),
       'validUntil': serializer.toJson<DateTime?>(validUntil),
@@ -9031,6 +9152,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
     Value<String?> accountId = const Value.absent(),
     Value<String?> contactId = const Value.absent(),
     String? status,
+    String? currency,
     double? totalAmount,
     double? discountAmount,
     Value<DateTime?> validUntil = const Value.absent(),
@@ -9047,6 +9169,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
     accountId: accountId.present ? accountId.value : this.accountId,
     contactId: contactId.present ? contactId.value : this.contactId,
     status: status ?? this.status,
+    currency: currency ?? this.currency,
     totalAmount: totalAmount ?? this.totalAmount,
     discountAmount: discountAmount ?? this.discountAmount,
     validUntil: validUntil.present ? validUntil.value : this.validUntil,
@@ -9065,6 +9188,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
       contactId: data.contactId.present ? data.contactId.value : this.contactId,
       status: data.status.present ? data.status.value : this.status,
+      currency: data.currency.present ? data.currency.value : this.currency,
       totalAmount: data.totalAmount.present
           ? data.totalAmount.value
           : this.totalAmount,
@@ -9090,6 +9214,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
           ..write('accountId: $accountId, ')
           ..write('contactId: $contactId, ')
           ..write('status: $status, ')
+          ..write('currency: $currency, ')
           ..write('totalAmount: $totalAmount, ')
           ..write('discountAmount: $discountAmount, ')
           ..write('validUntil: $validUntil, ')
@@ -9109,6 +9234,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
     accountId,
     contactId,
     status,
+    currency,
     totalAmount,
     discountAmount,
     validUntil,
@@ -9127,6 +9253,7 @@ class CrmQuoteRow extends DataClass implements Insertable<CrmQuoteRow> {
           other.accountId == this.accountId &&
           other.contactId == this.contactId &&
           other.status == this.status &&
+          other.currency == this.currency &&
           other.totalAmount == this.totalAmount &&
           other.discountAmount == this.discountAmount &&
           other.validUntil == this.validUntil &&
@@ -9143,6 +9270,7 @@ class CrmQuotesCompanion extends UpdateCompanion<CrmQuoteRow> {
   final Value<String?> accountId;
   final Value<String?> contactId;
   final Value<String> status;
+  final Value<String> currency;
   final Value<double> totalAmount;
   final Value<double> discountAmount;
   final Value<DateTime?> validUntil;
@@ -9158,6 +9286,7 @@ class CrmQuotesCompanion extends UpdateCompanion<CrmQuoteRow> {
     this.accountId = const Value.absent(),
     this.contactId = const Value.absent(),
     this.status = const Value.absent(),
+    this.currency = const Value.absent(),
     this.totalAmount = const Value.absent(),
     this.discountAmount = const Value.absent(),
     this.validUntil = const Value.absent(),
@@ -9174,6 +9303,7 @@ class CrmQuotesCompanion extends UpdateCompanion<CrmQuoteRow> {
     this.accountId = const Value.absent(),
     this.contactId = const Value.absent(),
     this.status = const Value.absent(),
+    this.currency = const Value.absent(),
     this.totalAmount = const Value.absent(),
     this.discountAmount = const Value.absent(),
     this.validUntil = const Value.absent(),
@@ -9193,6 +9323,7 @@ class CrmQuotesCompanion extends UpdateCompanion<CrmQuoteRow> {
     Expression<String>? accountId,
     Expression<String>? contactId,
     Expression<String>? status,
+    Expression<String>? currency,
     Expression<double>? totalAmount,
     Expression<double>? discountAmount,
     Expression<DateTime>? validUntil,
@@ -9209,6 +9340,7 @@ class CrmQuotesCompanion extends UpdateCompanion<CrmQuoteRow> {
       if (accountId != null) 'account_id': accountId,
       if (contactId != null) 'contact_id': contactId,
       if (status != null) 'status': status,
+      if (currency != null) 'currency': currency,
       if (totalAmount != null) 'total_amount': totalAmount,
       if (discountAmount != null) 'discount_amount': discountAmount,
       if (validUntil != null) 'valid_until': validUntil,
@@ -9227,6 +9359,7 @@ class CrmQuotesCompanion extends UpdateCompanion<CrmQuoteRow> {
     Value<String?>? accountId,
     Value<String?>? contactId,
     Value<String>? status,
+    Value<String>? currency,
     Value<double>? totalAmount,
     Value<double>? discountAmount,
     Value<DateTime?>? validUntil,
@@ -9243,6 +9376,7 @@ class CrmQuotesCompanion extends UpdateCompanion<CrmQuoteRow> {
       accountId: accountId ?? this.accountId,
       contactId: contactId ?? this.contactId,
       status: status ?? this.status,
+      currency: currency ?? this.currency,
       totalAmount: totalAmount ?? this.totalAmount,
       discountAmount: discountAmount ?? this.discountAmount,
       validUntil: validUntil ?? this.validUntil,
@@ -9274,6 +9408,9 @@ class CrmQuotesCompanion extends UpdateCompanion<CrmQuoteRow> {
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
     }
     if (totalAmount.present) {
       map['total_amount'] = Variable<double>(totalAmount.value);
@@ -9311,6 +9448,7 @@ class CrmQuotesCompanion extends UpdateCompanion<CrmQuoteRow> {
           ..write('accountId: $accountId, ')
           ..write('contactId: $contactId, ')
           ..write('status: $status, ')
+          ..write('currency: $currency, ')
           ..write('totalAmount: $totalAmount, ')
           ..write('discountAmount: $discountAmount, ')
           ..write('validUntil: $validUntil, ')
@@ -10949,6 +11087,18 @@ class $CrmPaymentsTable extends CrmPayments
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('CNY'),
+  );
   static const VerificationMeta _paymentDateMeta = const VerificationMeta(
     'paymentDate',
   );
@@ -11008,6 +11158,7 @@ class $CrmPaymentsTable extends CrmPayments
     contractId,
     planId,
     amount,
+    currency,
     paymentDate,
     method,
     invoiceId,
@@ -11052,6 +11203,12 @@ class $CrmPaymentsTable extends CrmPayments
       );
     } else if (isInserting) {
       context.missing(_amountMeta);
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
     }
     if (data.containsKey('payment_date')) {
       context.handle(
@@ -11115,6 +11272,10 @@ class $CrmPaymentsTable extends CrmPayments
         DriftSqlType.double,
         data['${effectivePrefix}amount'],
       )!,
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
       paymentDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}payment_date'],
@@ -11149,6 +11310,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
   final String contractId;
   final String? planId;
   final double amount;
+  final String currency;
   final DateTime paymentDate;
 
   /// cash/transfer/check/wechat/alipay
@@ -11161,6 +11323,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
     required this.contractId,
     this.planId,
     required this.amount,
+    required this.currency,
     required this.paymentDate,
     required this.method,
     this.invoiceId,
@@ -11176,6 +11339,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
       map['plan_id'] = Variable<String>(planId);
     }
     map['amount'] = Variable<double>(amount);
+    map['currency'] = Variable<String>(currency);
     map['payment_date'] = Variable<DateTime>(paymentDate);
     map['method'] = Variable<String>(method);
     if (!nullToAbsent || invoiceId != null) {
@@ -11194,6 +11358,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
           ? const Value.absent()
           : Value(planId),
       amount: Value(amount),
+      currency: Value(currency),
       paymentDate: Value(paymentDate),
       method: Value(method),
       invoiceId: invoiceId == null && nullToAbsent
@@ -11214,6 +11379,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
       contractId: serializer.fromJson<String>(json['contractId']),
       planId: serializer.fromJson<String?>(json['planId']),
       amount: serializer.fromJson<double>(json['amount']),
+      currency: serializer.fromJson<String>(json['currency']),
       paymentDate: serializer.fromJson<DateTime>(json['paymentDate']),
       method: serializer.fromJson<String>(json['method']),
       invoiceId: serializer.fromJson<String?>(json['invoiceId']),
@@ -11229,6 +11395,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
       'contractId': serializer.toJson<String>(contractId),
       'planId': serializer.toJson<String?>(planId),
       'amount': serializer.toJson<double>(amount),
+      'currency': serializer.toJson<String>(currency),
       'paymentDate': serializer.toJson<DateTime>(paymentDate),
       'method': serializer.toJson<String>(method),
       'invoiceId': serializer.toJson<String?>(invoiceId),
@@ -11242,6 +11409,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
     String? contractId,
     Value<String?> planId = const Value.absent(),
     double? amount,
+    String? currency,
     DateTime? paymentDate,
     String? method,
     Value<String?> invoiceId = const Value.absent(),
@@ -11252,6 +11420,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
     contractId: contractId ?? this.contractId,
     planId: planId.present ? planId.value : this.planId,
     amount: amount ?? this.amount,
+    currency: currency ?? this.currency,
     paymentDate: paymentDate ?? this.paymentDate,
     method: method ?? this.method,
     invoiceId: invoiceId.present ? invoiceId.value : this.invoiceId,
@@ -11266,6 +11435,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
           : this.contractId,
       planId: data.planId.present ? data.planId.value : this.planId,
       amount: data.amount.present ? data.amount.value : this.amount,
+      currency: data.currency.present ? data.currency.value : this.currency,
       paymentDate: data.paymentDate.present
           ? data.paymentDate.value
           : this.paymentDate,
@@ -11283,6 +11453,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
           ..write('contractId: $contractId, ')
           ..write('planId: $planId, ')
           ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
           ..write('paymentDate: $paymentDate, ')
           ..write('method: $method, ')
           ..write('invoiceId: $invoiceId, ')
@@ -11298,6 +11469,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
     contractId,
     planId,
     amount,
+    currency,
     paymentDate,
     method,
     invoiceId,
@@ -11312,6 +11484,7 @@ class CrmPaymentRow extends DataClass implements Insertable<CrmPaymentRow> {
           other.contractId == this.contractId &&
           other.planId == this.planId &&
           other.amount == this.amount &&
+          other.currency == this.currency &&
           other.paymentDate == this.paymentDate &&
           other.method == this.method &&
           other.invoiceId == this.invoiceId &&
@@ -11324,6 +11497,7 @@ class CrmPaymentsCompanion extends UpdateCompanion<CrmPaymentRow> {
   final Value<String> contractId;
   final Value<String?> planId;
   final Value<double> amount;
+  final Value<String> currency;
   final Value<DateTime> paymentDate;
   final Value<String> method;
   final Value<String?> invoiceId;
@@ -11335,6 +11509,7 @@ class CrmPaymentsCompanion extends UpdateCompanion<CrmPaymentRow> {
     this.contractId = const Value.absent(),
     this.planId = const Value.absent(),
     this.amount = const Value.absent(),
+    this.currency = const Value.absent(),
     this.paymentDate = const Value.absent(),
     this.method = const Value.absent(),
     this.invoiceId = const Value.absent(),
@@ -11347,6 +11522,7 @@ class CrmPaymentsCompanion extends UpdateCompanion<CrmPaymentRow> {
     required String contractId,
     this.planId = const Value.absent(),
     required double amount,
+    this.currency = const Value.absent(),
     required DateTime paymentDate,
     this.method = const Value.absent(),
     this.invoiceId = const Value.absent(),
@@ -11363,6 +11539,7 @@ class CrmPaymentsCompanion extends UpdateCompanion<CrmPaymentRow> {
     Expression<String>? contractId,
     Expression<String>? planId,
     Expression<double>? amount,
+    Expression<String>? currency,
     Expression<DateTime>? paymentDate,
     Expression<String>? method,
     Expression<String>? invoiceId,
@@ -11375,6 +11552,7 @@ class CrmPaymentsCompanion extends UpdateCompanion<CrmPaymentRow> {
       if (contractId != null) 'contract_id': contractId,
       if (planId != null) 'plan_id': planId,
       if (amount != null) 'amount': amount,
+      if (currency != null) 'currency': currency,
       if (paymentDate != null) 'payment_date': paymentDate,
       if (method != null) 'method': method,
       if (invoiceId != null) 'invoice_id': invoiceId,
@@ -11389,6 +11567,7 @@ class CrmPaymentsCompanion extends UpdateCompanion<CrmPaymentRow> {
     Value<String>? contractId,
     Value<String?>? planId,
     Value<double>? amount,
+    Value<String>? currency,
     Value<DateTime>? paymentDate,
     Value<String>? method,
     Value<String?>? invoiceId,
@@ -11401,6 +11580,7 @@ class CrmPaymentsCompanion extends UpdateCompanion<CrmPaymentRow> {
       contractId: contractId ?? this.contractId,
       planId: planId ?? this.planId,
       amount: amount ?? this.amount,
+      currency: currency ?? this.currency,
       paymentDate: paymentDate ?? this.paymentDate,
       method: method ?? this.method,
       invoiceId: invoiceId ?? this.invoiceId,
@@ -11424,6 +11604,9 @@ class CrmPaymentsCompanion extends UpdateCompanion<CrmPaymentRow> {
     }
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
     }
     if (paymentDate.present) {
       map['payment_date'] = Variable<DateTime>(paymentDate.value);
@@ -11453,6 +11636,7 @@ class CrmPaymentsCompanion extends UpdateCompanion<CrmPaymentRow> {
           ..write('contractId: $contractId, ')
           ..write('planId: $planId, ')
           ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
           ..write('paymentDate: $paymentDate, ')
           ..write('method: $method, ')
           ..write('invoiceId: $invoiceId, ')
@@ -11520,6 +11704,18 @@ class $CrmInvoicesTable extends CrmInvoices
     false,
     type: DriftSqlType.double,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('CNY'),
   );
   static const VerificationMeta _taxRateMeta = const VerificationMeta(
     'taxRate',
@@ -11594,6 +11790,7 @@ class $CrmInvoicesTable extends CrmInvoices
     invoiceNo,
     type,
     amount,
+    currency,
     taxRate,
     issueDate,
     status,
@@ -11645,6 +11842,12 @@ class $CrmInvoicesTable extends CrmInvoices
       );
     } else if (isInserting) {
       context.missing(_amountMeta);
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
     }
     if (data.containsKey('tax_rate')) {
       context.handle(
@@ -11716,6 +11919,10 @@ class $CrmInvoicesTable extends CrmInvoices
         DriftSqlType.double,
         data['${effectivePrefix}amount'],
       )!,
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
       taxRate: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}tax_rate'],
@@ -11757,6 +11964,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
   /// vat_special/vat_normal/electronic
   final String type;
   final double amount;
+  final String currency;
   final double taxRate;
   final DateTime? issueDate;
 
@@ -11771,6 +11979,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
     required this.invoiceNo,
     required this.type,
     required this.amount,
+    required this.currency,
     required this.taxRate,
     this.issueDate,
     required this.status,
@@ -11786,6 +11995,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
     map['invoice_no'] = Variable<String>(invoiceNo);
     map['type'] = Variable<String>(type);
     map['amount'] = Variable<double>(amount);
+    map['currency'] = Variable<String>(currency);
     map['tax_rate'] = Variable<double>(taxRate);
     if (!nullToAbsent || issueDate != null) {
       map['issue_date'] = Variable<DateTime>(issueDate);
@@ -11804,6 +12014,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
       invoiceNo: Value(invoiceNo),
       type: Value(type),
       amount: Value(amount),
+      currency: Value(currency),
       taxRate: Value(taxRate),
       issueDate: issueDate == null && nullToAbsent
           ? const Value.absent()
@@ -11826,6 +12037,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
       invoiceNo: serializer.fromJson<String>(json['invoiceNo']),
       type: serializer.fromJson<String>(json['type']),
       amount: serializer.fromJson<double>(json['amount']),
+      currency: serializer.fromJson<String>(json['currency']),
       taxRate: serializer.fromJson<double>(json['taxRate']),
       issueDate: serializer.fromJson<DateTime?>(json['issueDate']),
       status: serializer.fromJson<String>(json['status']),
@@ -11843,6 +12055,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
       'invoiceNo': serializer.toJson<String>(invoiceNo),
       'type': serializer.toJson<String>(type),
       'amount': serializer.toJson<double>(amount),
+      'currency': serializer.toJson<String>(currency),
       'taxRate': serializer.toJson<double>(taxRate),
       'issueDate': serializer.toJson<DateTime?>(issueDate),
       'status': serializer.toJson<String>(status),
@@ -11858,6 +12071,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
     String? invoiceNo,
     String? type,
     double? amount,
+    String? currency,
     double? taxRate,
     Value<DateTime?> issueDate = const Value.absent(),
     String? status,
@@ -11870,6 +12084,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
     invoiceNo: invoiceNo ?? this.invoiceNo,
     type: type ?? this.type,
     amount: amount ?? this.amount,
+    currency: currency ?? this.currency,
     taxRate: taxRate ?? this.taxRate,
     issueDate: issueDate.present ? issueDate.value : this.issueDate,
     status: status ?? this.status,
@@ -11886,6 +12101,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
       invoiceNo: data.invoiceNo.present ? data.invoiceNo.value : this.invoiceNo,
       type: data.type.present ? data.type.value : this.type,
       amount: data.amount.present ? data.amount.value : this.amount,
+      currency: data.currency.present ? data.currency.value : this.currency,
       taxRate: data.taxRate.present ? data.taxRate.value : this.taxRate,
       issueDate: data.issueDate.present ? data.issueDate.value : this.issueDate,
       status: data.status.present ? data.status.value : this.status,
@@ -11905,6 +12121,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
           ..write('invoiceNo: $invoiceNo, ')
           ..write('type: $type, ')
           ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
           ..write('taxRate: $taxRate, ')
           ..write('issueDate: $issueDate, ')
           ..write('status: $status, ')
@@ -11922,6 +12139,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
     invoiceNo,
     type,
     amount,
+    currency,
     taxRate,
     issueDate,
     status,
@@ -11938,6 +12156,7 @@ class CrmInvoiceRow extends DataClass implements Insertable<CrmInvoiceRow> {
           other.invoiceNo == this.invoiceNo &&
           other.type == this.type &&
           other.amount == this.amount &&
+          other.currency == this.currency &&
           other.taxRate == this.taxRate &&
           other.issueDate == this.issueDate &&
           other.status == this.status &&
@@ -11952,6 +12171,7 @@ class CrmInvoicesCompanion extends UpdateCompanion<CrmInvoiceRow> {
   final Value<String> invoiceNo;
   final Value<String> type;
   final Value<double> amount;
+  final Value<String> currency;
   final Value<double> taxRate;
   final Value<DateTime?> issueDate;
   final Value<String> status;
@@ -11965,6 +12185,7 @@ class CrmInvoicesCompanion extends UpdateCompanion<CrmInvoiceRow> {
     this.invoiceNo = const Value.absent(),
     this.type = const Value.absent(),
     this.amount = const Value.absent(),
+    this.currency = const Value.absent(),
     this.taxRate = const Value.absent(),
     this.issueDate = const Value.absent(),
     this.status = const Value.absent(),
@@ -11979,6 +12200,7 @@ class CrmInvoicesCompanion extends UpdateCompanion<CrmInvoiceRow> {
     this.invoiceNo = const Value.absent(),
     this.type = const Value.absent(),
     required double amount,
+    this.currency = const Value.absent(),
     this.taxRate = const Value.absent(),
     this.issueDate = const Value.absent(),
     this.status = const Value.absent(),
@@ -11996,6 +12218,7 @@ class CrmInvoicesCompanion extends UpdateCompanion<CrmInvoiceRow> {
     Expression<String>? invoiceNo,
     Expression<String>? type,
     Expression<double>? amount,
+    Expression<String>? currency,
     Expression<double>? taxRate,
     Expression<DateTime>? issueDate,
     Expression<String>? status,
@@ -12010,6 +12233,7 @@ class CrmInvoicesCompanion extends UpdateCompanion<CrmInvoiceRow> {
       if (invoiceNo != null) 'invoice_no': invoiceNo,
       if (type != null) 'type': type,
       if (amount != null) 'amount': amount,
+      if (currency != null) 'currency': currency,
       if (taxRate != null) 'tax_rate': taxRate,
       if (issueDate != null) 'issue_date': issueDate,
       if (status != null) 'status': status,
@@ -12026,6 +12250,7 @@ class CrmInvoicesCompanion extends UpdateCompanion<CrmInvoiceRow> {
     Value<String>? invoiceNo,
     Value<String>? type,
     Value<double>? amount,
+    Value<String>? currency,
     Value<double>? taxRate,
     Value<DateTime?>? issueDate,
     Value<String>? status,
@@ -12040,6 +12265,7 @@ class CrmInvoicesCompanion extends UpdateCompanion<CrmInvoiceRow> {
       invoiceNo: invoiceNo ?? this.invoiceNo,
       type: type ?? this.type,
       amount: amount ?? this.amount,
+      currency: currency ?? this.currency,
       taxRate: taxRate ?? this.taxRate,
       issueDate: issueDate ?? this.issueDate,
       status: status ?? this.status,
@@ -12067,6 +12293,9 @@ class CrmInvoicesCompanion extends UpdateCompanion<CrmInvoiceRow> {
     }
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
     }
     if (taxRate.present) {
       map['tax_rate'] = Variable<double>(taxRate.value);
@@ -12100,6 +12329,7 @@ class CrmInvoicesCompanion extends UpdateCompanion<CrmInvoiceRow> {
           ..write('invoiceNo: $invoiceNo, ')
           ..write('type: $type, ')
           ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
           ..write('taxRate: $taxRate, ')
           ..write('issueDate: $issueDate, ')
           ..write('status: $status, ')
@@ -23006,6 +23236,7 @@ typedef $$CrmContractsTableCreateCompanionBuilder =
       Value<String?> opportunityId,
       Value<String?> quoteId,
       Value<String> status,
+      Value<String> currency,
       Value<double> totalAmount,
       Value<double> paidAmount,
       Value<double> invoicedAmount,
@@ -23029,6 +23260,7 @@ typedef $$CrmContractsTableUpdateCompanionBuilder =
       Value<String?> opportunityId,
       Value<String?> quoteId,
       Value<String> status,
+      Value<String> currency,
       Value<double> totalAmount,
       Value<double> paidAmount,
       Value<double> invoicedAmount,
@@ -23089,6 +23321,11 @@ class $$CrmContractsTableFilterComposer
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -23197,6 +23434,11 @@ class $$CrmContractsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get totalAmount => $composableBuilder(
     column: $table.totalAmount,
     builder: (column) => ColumnOrderings(column),
@@ -23290,6 +23532,9 @@ class $$CrmContractsTableAnnotationComposer
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
   GeneratedColumn<double> get totalAmount => $composableBuilder(
     column: $table.totalAmount,
     builder: (column) => column,
@@ -23371,6 +23616,7 @@ class $$CrmContractsTableTableManager
                 Value<String?> opportunityId = const Value.absent(),
                 Value<String?> quoteId = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String> currency = const Value.absent(),
                 Value<double> totalAmount = const Value.absent(),
                 Value<double> paidAmount = const Value.absent(),
                 Value<double> invoicedAmount = const Value.absent(),
@@ -23392,6 +23638,7 @@ class $$CrmContractsTableTableManager
                 opportunityId: opportunityId,
                 quoteId: quoteId,
                 status: status,
+                currency: currency,
                 totalAmount: totalAmount,
                 paidAmount: paidAmount,
                 invoicedAmount: invoicedAmount,
@@ -23415,6 +23662,7 @@ class $$CrmContractsTableTableManager
                 Value<String?> opportunityId = const Value.absent(),
                 Value<String?> quoteId = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String> currency = const Value.absent(),
                 Value<double> totalAmount = const Value.absent(),
                 Value<double> paidAmount = const Value.absent(),
                 Value<double> invoicedAmount = const Value.absent(),
@@ -23436,6 +23684,7 @@ class $$CrmContractsTableTableManager
                 opportunityId: opportunityId,
                 quoteId: quoteId,
                 status: status,
+                currency: currency,
                 totalAmount: totalAmount,
                 paidAmount: paidAmount,
                 invoicedAmount: invoicedAmount,
@@ -23660,6 +23909,7 @@ typedef $$CrmProductsTableCreateCompanionBuilder =
       Value<String?> sku,
       Value<String> type,
       Value<String> unit,
+      Value<String> currency,
       Value<double> price,
       Value<double> cost,
       Value<int> warrantyMonths,
@@ -23678,6 +23928,7 @@ typedef $$CrmProductsTableUpdateCompanionBuilder =
       Value<String?> sku,
       Value<String> type,
       Value<String> unit,
+      Value<String> currency,
       Value<double> price,
       Value<double> cost,
       Value<int> warrantyMonths,
@@ -23725,6 +23976,11 @@ class $$CrmProductsTableFilterComposer
 
   ColumnFilters<String> get unit => $composableBuilder(
     column: $table.unit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -23808,6 +24064,11 @@ class $$CrmProductsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get price => $composableBuilder(
     column: $table.price,
     builder: (column) => ColumnOrderings(column),
@@ -23878,6 +24139,9 @@ class $$CrmProductsTableAnnotationComposer
   GeneratedColumn<String> get unit =>
       $composableBuilder(column: $table.unit, builder: (column) => column);
 
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
   GeneratedColumn<double> get price =>
       $composableBuilder(column: $table.price, builder: (column) => column);
 
@@ -23942,6 +24206,7 @@ class $$CrmProductsTableTableManager
                 Value<String?> sku = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<String> unit = const Value.absent(),
+                Value<String> currency = const Value.absent(),
                 Value<double> price = const Value.absent(),
                 Value<double> cost = const Value.absent(),
                 Value<int> warrantyMonths = const Value.absent(),
@@ -23958,6 +24223,7 @@ class $$CrmProductsTableTableManager
                 sku: sku,
                 type: type,
                 unit: unit,
+                currency: currency,
                 price: price,
                 cost: cost,
                 warrantyMonths: warrantyMonths,
@@ -23976,6 +24242,7 @@ class $$CrmProductsTableTableManager
                 Value<String?> sku = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<String> unit = const Value.absent(),
+                Value<String> currency = const Value.absent(),
                 Value<double> price = const Value.absent(),
                 Value<double> cost = const Value.absent(),
                 Value<int> warrantyMonths = const Value.absent(),
@@ -23992,6 +24259,7 @@ class $$CrmProductsTableTableManager
                 sku: sku,
                 type: type,
                 unit: unit,
+                currency: currency,
                 price: price,
                 cost: cost,
                 warrantyMonths: warrantyMonths,
@@ -24035,6 +24303,7 @@ typedef $$CrmQuotesTableCreateCompanionBuilder =
       Value<String?> accountId,
       Value<String?> contactId,
       Value<String> status,
+      Value<String> currency,
       Value<double> totalAmount,
       Value<double> discountAmount,
       Value<DateTime?> validUntil,
@@ -24052,6 +24321,7 @@ typedef $$CrmQuotesTableUpdateCompanionBuilder =
       Value<String?> accountId,
       Value<String?> contactId,
       Value<String> status,
+      Value<String> currency,
       Value<double> totalAmount,
       Value<double> discountAmount,
       Value<DateTime?> validUntil,
@@ -24098,6 +24368,11 @@ class $$CrmQuotesTableFilterComposer
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24176,6 +24451,11 @@ class $$CrmQuotesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get totalAmount => $composableBuilder(
     column: $table.totalAmount,
     builder: (column) => ColumnOrderings(column),
@@ -24240,6 +24520,9 @@ class $$CrmQuotesTableAnnotationComposer
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
 
   GeneratedColumn<double> get totalAmount => $composableBuilder(
     column: $table.totalAmount,
@@ -24306,6 +24589,7 @@ class $$CrmQuotesTableTableManager
                 Value<String?> accountId = const Value.absent(),
                 Value<String?> contactId = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String> currency = const Value.absent(),
                 Value<double> totalAmount = const Value.absent(),
                 Value<double> discountAmount = const Value.absent(),
                 Value<DateTime?> validUntil = const Value.absent(),
@@ -24321,6 +24605,7 @@ class $$CrmQuotesTableTableManager
                 accountId: accountId,
                 contactId: contactId,
                 status: status,
+                currency: currency,
                 totalAmount: totalAmount,
                 discountAmount: discountAmount,
                 validUntil: validUntil,
@@ -24338,6 +24623,7 @@ class $$CrmQuotesTableTableManager
                 Value<String?> accountId = const Value.absent(),
                 Value<String?> contactId = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String> currency = const Value.absent(),
                 Value<double> totalAmount = const Value.absent(),
                 Value<double> discountAmount = const Value.absent(),
                 Value<DateTime?> validUntil = const Value.absent(),
@@ -24353,6 +24639,7 @@ class $$CrmQuotesTableTableManager
                 accountId: accountId,
                 contactId: contactId,
                 status: status,
+                currency: currency,
                 totalAmount: totalAmount,
                 discountAmount: discountAmount,
                 validUntil: validUntil,
@@ -25213,6 +25500,7 @@ typedef $$CrmPaymentsTableCreateCompanionBuilder =
       required String contractId,
       Value<String?> planId,
       required double amount,
+      Value<String> currency,
       required DateTime paymentDate,
       Value<String> method,
       Value<String?> invoiceId,
@@ -25226,6 +25514,7 @@ typedef $$CrmPaymentsTableUpdateCompanionBuilder =
       Value<String> contractId,
       Value<String?> planId,
       Value<double> amount,
+      Value<String> currency,
       Value<DateTime> paymentDate,
       Value<String> method,
       Value<String?> invoiceId,
@@ -25260,6 +25549,11 @@ class $$CrmPaymentsTableFilterComposer
 
   ColumnFilters<double> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -25318,6 +25612,11 @@ class $$CrmPaymentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get paymentDate => $composableBuilder(
     column: $table.paymentDate,
     builder: (column) => ColumnOrderings(column),
@@ -25366,6 +25665,9 @@ class $$CrmPaymentsTableAnnotationComposer
 
   GeneratedColumn<double> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
 
   GeneratedColumn<DateTime> get paymentDate => $composableBuilder(
     column: $table.paymentDate,
@@ -25420,6 +25722,7 @@ class $$CrmPaymentsTableTableManager
                 Value<String> contractId = const Value.absent(),
                 Value<String?> planId = const Value.absent(),
                 Value<double> amount = const Value.absent(),
+                Value<String> currency = const Value.absent(),
                 Value<DateTime> paymentDate = const Value.absent(),
                 Value<String> method = const Value.absent(),
                 Value<String?> invoiceId = const Value.absent(),
@@ -25431,6 +25734,7 @@ class $$CrmPaymentsTableTableManager
                 contractId: contractId,
                 planId: planId,
                 amount: amount,
+                currency: currency,
                 paymentDate: paymentDate,
                 method: method,
                 invoiceId: invoiceId,
@@ -25444,6 +25748,7 @@ class $$CrmPaymentsTableTableManager
                 required String contractId,
                 Value<String?> planId = const Value.absent(),
                 required double amount,
+                Value<String> currency = const Value.absent(),
                 required DateTime paymentDate,
                 Value<String> method = const Value.absent(),
                 Value<String?> invoiceId = const Value.absent(),
@@ -25455,6 +25760,7 @@ class $$CrmPaymentsTableTableManager
                 contractId: contractId,
                 planId: planId,
                 amount: amount,
+                currency: currency,
                 paymentDate: paymentDate,
                 method: method,
                 invoiceId: invoiceId,
@@ -25494,6 +25800,7 @@ typedef $$CrmInvoicesTableCreateCompanionBuilder =
       Value<String> invoiceNo,
       Value<String> type,
       required double amount,
+      Value<String> currency,
       Value<double> taxRate,
       Value<DateTime?> issueDate,
       Value<String> status,
@@ -25509,6 +25816,7 @@ typedef $$CrmInvoicesTableUpdateCompanionBuilder =
       Value<String> invoiceNo,
       Value<String> type,
       Value<double> amount,
+      Value<String> currency,
       Value<double> taxRate,
       Value<DateTime?> issueDate,
       Value<String> status,
@@ -25549,6 +25857,11 @@ class $$CrmInvoicesTableFilterComposer
 
   ColumnFilters<double> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -25617,6 +25930,11 @@ class $$CrmInvoicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get taxRate => $composableBuilder(
     column: $table.taxRate,
     builder: (column) => ColumnOrderings(column),
@@ -25673,6 +25991,9 @@ class $$CrmInvoicesTableAnnotationComposer
 
   GeneratedColumn<double> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
 
   GeneratedColumn<double> get taxRate =>
       $composableBuilder(column: $table.taxRate, builder: (column) => column);
@@ -25731,6 +26052,7 @@ class $$CrmInvoicesTableTableManager
                 Value<String> invoiceNo = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<double> amount = const Value.absent(),
+                Value<String> currency = const Value.absent(),
                 Value<double> taxRate = const Value.absent(),
                 Value<DateTime?> issueDate = const Value.absent(),
                 Value<String> status = const Value.absent(),
@@ -25744,6 +26066,7 @@ class $$CrmInvoicesTableTableManager
                 invoiceNo: invoiceNo,
                 type: type,
                 amount: amount,
+                currency: currency,
                 taxRate: taxRate,
                 issueDate: issueDate,
                 status: status,
@@ -25759,6 +26082,7 @@ class $$CrmInvoicesTableTableManager
                 Value<String> invoiceNo = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 required double amount,
+                Value<String> currency = const Value.absent(),
                 Value<double> taxRate = const Value.absent(),
                 Value<DateTime?> issueDate = const Value.absent(),
                 Value<String> status = const Value.absent(),
@@ -25772,6 +26096,7 @@ class $$CrmInvoicesTableTableManager
                 invoiceNo: invoiceNo,
                 type: type,
                 amount: amount,
+                currency: currency,
                 taxRate: taxRate,
                 issueDate: issueDate,
                 status: status,

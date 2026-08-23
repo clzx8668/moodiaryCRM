@@ -140,7 +140,10 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   Future<void> _commit(LocalObjectField field) async {
     if (_savingFields.contains(field.name)) return;
     _savingFields.add(field.name);
-    final raw = _controllers[field.name]!.text.trim();
+    var raw = _controllers[field.name]!.text.trim();
+    if (field.type == 'date') {
+      raw = normalizeDateInput(raw) ?? raw;
+    }
     try {
       await CrmEntityFieldUpdater.update(
         objectType: widget.objectType,
@@ -247,7 +250,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
 
   Widget _buildEditInput(LocalObjectField field) {
     if (field.type == 'select' ||
-        field.type == 'currency' ||
+        (field.type == 'currency' && field.name == 'currency') ||
         field.name == 'isActive') {
       final options = _optionsFor(field).isNotEmpty
           ? _optionsFor(field)
@@ -281,26 +284,23 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       );
     }
     if (field.type == 'date') {
-      return Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _controllers[field.name]!,
-              focusNode: _focusNodes[field.name],
-              autofocus: true,
-              decoration: const InputDecoration(isDense: true),
-              onSubmitted: (_) {
-                _focusNodes[field.name]!.unfocus();
-                _commit(field);
-              },
-            ),
-          ),
-          IconButton(
+      return TextField(
+        controller: _controllers[field.name]!,
+        focusNode: _focusNodes[field.name],
+        autofocus: true,
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: _controllers[field.name]!.text.isEmpty ? '未设置日期' : null,
+          suffixIcon: IconButton(
             tooltip: '选择日期',
             icon: const Icon(Icons.calendar_month_rounded, size: 18),
             onPressed: () => _pickDate(field),
           ),
-        ],
+        ),
+        onSubmitted: (_) {
+          _focusNodes[field.name]!.unfocus();
+          _commit(field);
+        },
       );
     }
     final controller = _controllers[field.name]!;
@@ -309,7 +309,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       controller: controller,
       focusNode: focusNode,
       autofocus: true,
-      keyboardType: field.type == 'number'
+      keyboardType: field.type == 'number' || field.type == 'currency'
           ? const TextInputType.numberWithOptions(decimal: true)
           : null,
       decoration: const InputDecoration(

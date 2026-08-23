@@ -22,6 +22,22 @@ class LocalObjectField {
 const List<String> kCurrencies = ['CNY', 'USD', 'EUR', 'GBP', 'HKD', 'JPY'];
 const String kDefaultCurrency = 'CNY';
 
+/// 日期输入归一化：支持 yyyy-MM-dd / yyyy/M/d / yyyy年M月d日 / yyyy.M.d，
+/// 统一为 yyyy-MM-dd；无法识别返回 null。
+String? normalizeDateInput(String raw) {
+  final text = raw.trim();
+  if (text.isEmpty) return null;
+  final m = RegExp(
+    r'^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$',
+  ).firstMatch(text);
+  if (m == null) return null;
+  final y = int.parse(m.group(1)!);
+  final mo = int.parse(m.group(2)!);
+  final d = int.parse(m.group(3)!);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return '$y-${mo.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}';
+}
+
 /// 各基础对象的标签标识字段
 const Map<String, String> kLocalLabelFields = {
   'account': 'name',
@@ -124,6 +140,7 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('name', '合同名称'),
     LocalObjectField('account', '客户', type: 'relation'),
     LocalObjectField('contact', '签约联系人', type: 'relation'),
+    LocalObjectField('currency', '币种', type: 'currency'),
     LocalObjectField('status', '状态', type: 'select', options: [
       'draft',
       'active',
@@ -145,6 +162,7 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
   'product': [
     LocalObjectField('name', '产品/服务名称'),
     LocalObjectField('sku', '编码'),
+    LocalObjectField('currency', '币种', type: 'currency'),
     LocalObjectField('type', '类型', type: 'select', options: [
       'product',
       'service',
@@ -166,6 +184,7 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('account', '客户', type: 'relation'),
     LocalObjectField('contact', '联系人', type: 'relation'),
     LocalObjectField('opportunity', '商机', type: 'relation'),
+    LocalObjectField('currency', '币种', type: 'currency'),
     LocalObjectField('status', '状态', type: 'select', options: [
       'draft',
       'sent',
@@ -197,6 +216,7 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('paymentDate', '回款日期', type: 'date'),
     LocalObjectField('contract', '合同', type: 'relation'),
     LocalObjectField('plan', '回款计划', type: 'relation'),
+    LocalObjectField('currency', '币种', type: 'currency'),
     LocalObjectField('amount', '金额', type: 'currency'),
     LocalObjectField('method', '方式', type: 'select', options: [
       'cash',
@@ -210,6 +230,7 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
   'invoice': [
     LocalObjectField('invoiceNo', '发票号'),
     LocalObjectField('contract', '合同', type: 'relation'),
+    LocalObjectField('currency', '币种', type: 'currency'),
     LocalObjectField('type', '类型', type: 'select', options: [
       'vat_special',
       'vat_normal',
@@ -387,6 +408,7 @@ Map<String, dynamic> contractToDataMap(
   'account': accountName == null ? c.accountId : {'name': accountName},
   'contactId': c.contactId,
   'status': c.status,
+  'currency': c.currency,
   'totalAmount': c.totalAmount,
   'paidAmount': c.paidAmount,
   'invoicedAmount': c.invoicedAmount,
@@ -402,6 +424,7 @@ Map<String, dynamic> contractToDataMap(
 Map<String, dynamic> productToDataMap(LocalProduct p) => {
   'name': p.name,
   'sku': p.sku,
+  'currency': p.currency,
   'type': p.type,
   'unit': p.unit,
   'price': p.price,
@@ -429,6 +452,7 @@ Map<String, dynamic> quoteToDataMap(
       ? q.opportunityId
       : {'name': opportunityName},
   'status': q.status,
+  'currency': q.currency,
   'totalAmount': q.totalAmount,
   'discountAmount': q.discountAmount,
   'validUntil': q.validUntil?.toIso8601String(),
@@ -461,6 +485,7 @@ Map<String, dynamic> paymentToDataMap(
   'planId': p.planId,
   'plan': planName == null ? p.planId : {'name': planName},
   'amount': p.amount,
+  'currency': p.currency,
   'method': p.method,
   'note': p.note,
 };
@@ -474,6 +499,7 @@ Map<String, dynamic> invoiceToDataMap(
   'contract': contractName == null ? i.contractId : {'name': contractName},
   'type': i.type,
   'amount': i.amount,
+  'currency': i.currency,
   'taxRate': i.taxRate,
   'issueDate': i.issueDate?.toIso8601String(),
   'status': i.status,

@@ -30,6 +30,7 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
   bool _aiOpen = false;
   bool _saving = false;
   final Map<String, List<String>> _extraOptions = {};
+  final Map<String, String> _fieldCurrencies = {};
   String? _addingOptionFor;
   final TextEditingController _optionController = TextEditingController();
 
@@ -91,7 +92,8 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
   }
 
   Widget _inputFor(LocalObjectField field) {
-    if (field.type == 'select' || field.type == 'currency') {
+    if (field.type == 'select' ||
+        (field.type == 'currency' && field.name == 'currency')) {
       final options = _optionsFor(field);
       final current = _controllers[field.name]!.text;
       return Row(
@@ -122,6 +124,56 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
                   ? null
                   : field.name;
             }),
+          ),
+        ],
+      );
+    }
+    if (field.type == 'currency') {
+      // 复合组件：币种下拉（可改）+ 金额输入（手动）
+      final hasCurrencyField = _fields.any((f) => f.name == 'currency');
+      final currency = hasCurrencyField
+          ? (_controllers['currency']!.text.isEmpty
+                ? kDefaultCurrency
+                : _controllers['currency']!.text)
+          : (_fieldCurrencies[field.name] ?? kDefaultCurrency);
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 92,
+            child: DropdownButtonFormField<String>(
+              initialValue: kCurrencies.contains(currency)
+                  ? currency
+                  : kDefaultCurrency,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: [
+                for (final c in kCurrencies)
+                  DropdownMenuItem(value: c, child: Text(c)),
+              ],
+              onChanged: (v) {
+                if (v == null) return;
+                if (hasCurrencyField) {
+                  _controllers['currency']!.text = v;
+                } else {
+                  _fieldCurrencies[field.name] = v;
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _controllers[field.name],
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: field.label,
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
           ),
         ],
       );
@@ -166,6 +218,9 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
       for (final f in _fields)
         if (_controllers[f.name]!.text.trim().isNotEmpty)
           f.name: _typed(f, _controllers[f.name]!.text.trim()),
+      // 复合币种字段：无独立 currency 字段时，币种随金额字段写入 <字段>Currency
+      for (final entry in _fieldCurrencies.entries)
+        if (entry.value.isNotEmpty) '${entry.key}Currency': entry.value,
     };
     if (data.isEmpty) {
       toast.info(message: '请至少填写一个字段');

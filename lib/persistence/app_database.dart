@@ -262,6 +262,7 @@ class CrmContracts extends Table {
   TextColumn get quoteId => text().nullable()();
   /// draft/active/completed/terminated/expired
   TextColumn get status => text().withDefault(const Constant('draft'))();
+  TextColumn get currency => text().withDefault(const Constant('CNY'))();
   RealColumn get totalAmount => real().withDefault(const Constant(0))();
   RealColumn get paidAmount => real().withDefault(const Constant(0))();
   RealColumn get invoicedAmount => real().withDefault(const Constant(0))();
@@ -299,6 +300,7 @@ class CrmProducts extends Table {
   /// product / service
   TextColumn get type => text().withDefault(const Constant('product'))();
   TextColumn get unit => text().withDefault(const Constant(''))();
+  TextColumn get currency => text().withDefault(const Constant('CNY'))();
   RealColumn get price => real().withDefault(const Constant(0))();
   RealColumn get cost => real().withDefault(const Constant(0))();
   IntColumn get warrantyMonths => integer().withDefault(const Constant(0))();
@@ -322,6 +324,7 @@ class CrmQuotes extends Table {
   TextColumn get contactId => text().nullable()();
   /// draft/sent/accepted/rejected/expired
   TextColumn get status => text().withDefault(const Constant('draft'))();
+  TextColumn get currency => text().withDefault(const Constant('CNY'))();
   RealColumn get totalAmount => real().withDefault(const Constant(0))();
   RealColumn get discountAmount => real().withDefault(const Constant(0))();
   DateTimeColumn get validUntil => dateTime().nullable()();
@@ -391,6 +394,7 @@ class CrmPayments extends Table {
   TextColumn get contractId => text()();
   TextColumn get planId => text().nullable()();
   RealColumn get amount => real()();
+  TextColumn get currency => text().withDefault(const Constant('CNY'))();
   DateTimeColumn get paymentDate => dateTime()();
   /// cash/transfer/check/wechat/alipay
   TextColumn get method => text().withDefault(const Constant('transfer'))();
@@ -411,6 +415,7 @@ class CrmInvoices extends Table {
   /// vat_special/vat_normal/electronic
   TextColumn get type => text().withDefault(const Constant('vat_normal'))();
   RealColumn get amount => real()();
+  TextColumn get currency => text().withDefault(const Constant('CNY'))();
   RealColumn get taxRate => real().withDefault(const Constant(0.13))();
   DateTimeColumn get issueDate => dateTime().nullable()();
   /// pending/issued/delivered/void
@@ -738,7 +743,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -825,6 +830,15 @@ class AppDatabase extends _$AppDatabase {
       if (from < 15) {
         final db = m.database as AppDatabase;
         await m.createTable(db.crmQuoteVersions);
+      }
+      // v15 → v16：金额实体补币种列
+      if (from < 16) {
+        final db = m.database as AppDatabase;
+        await m.addColumn(db.crmContracts, db.crmContracts.currency);
+        await m.addColumn(db.crmPayments, db.crmPayments.currency);
+        await m.addColumn(db.crmInvoices, db.crmInvoices.currency);
+        await m.addColumn(db.crmQuotes, db.crmQuotes.currency);
+        await m.addColumn(db.crmProducts, db.crmProducts.currency);
       }
     },
     beforeOpen: (details) async {

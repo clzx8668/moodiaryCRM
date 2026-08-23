@@ -169,6 +169,7 @@ class LocalContract {
   String? opportunityId;
   String? quoteId;
   String status;
+  String currency;
   double totalAmount;
   double paidAmount;
   double invoicedAmount;
@@ -190,6 +191,7 @@ class LocalContract {
     this.opportunityId,
     this.quoteId,
     this.status = 'draft',
+    this.currency = 'CNY',
     this.totalAmount = 0,
     this.paidAmount = 0,
     this.invoicedAmount = 0,
@@ -226,6 +228,7 @@ class LocalProduct {
   String sku;
   String type;
   String unit;
+  String currency;
   double price;
   double cost;
   int warrantyMonths;
@@ -242,6 +245,7 @@ class LocalProduct {
     this.sku = '',
     this.type = 'product',
     this.unit = '',
+    this.currency = 'CNY',
     this.price = 0,
     this.cost = 0,
     this.warrantyMonths = 0,
@@ -262,6 +266,7 @@ class LocalQuote {
   String? accountId;
   String? contactId;
   String status;
+  String currency;
   double totalAmount;
   double discountAmount;
   DateTime? validUntil;
@@ -277,6 +282,7 @@ class LocalQuote {
     this.accountId,
     this.contactId,
     this.status = 'draft',
+    this.currency = 'CNY',
     this.totalAmount = 0,
     this.discountAmount = 0,
     this.validUntil,
@@ -365,6 +371,7 @@ class LocalPayment {
   String contractId;
   String? planId;
   double amount;
+  String currency;
   DateTime paymentDate;
   String method;
   String? invoiceId;
@@ -376,6 +383,7 @@ class LocalPayment {
     required this.contractId,
     this.planId,
     this.amount = 0,
+    this.currency = 'CNY',
     DateTime? paymentDate,
     this.method = 'transfer',
     this.invoiceId,
@@ -392,6 +400,7 @@ class LocalInvoice {
   String invoiceNo;
   String type;
   double amount;
+  String currency;
   double taxRate;
   DateTime? issueDate;
   String status;
@@ -405,6 +414,7 @@ class LocalInvoice {
     this.invoiceNo = '',
     this.type = 'vat_normal',
     this.amount = 0,
+    this.currency = 'CNY',
     this.taxRate = 0.13,
     this.issueDate,
     this.status = 'pending',
