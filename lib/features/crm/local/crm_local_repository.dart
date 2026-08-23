@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
 import 'package:moodiary/persistence/app_database.dart';
@@ -1074,6 +1076,100 @@ class CrmLocalRepository {
     await (db.delete(db.crmReminders)..where((t) => t.id.equals(id))).go();
   }
 
+  // ==================== 报价版本 ====================
+
+  Future<LocalQuoteVersion> saveQuoteVersion(String quoteId) async {
+    final quote = await getQuote(quoteId);
+    if (quote == null) throw StateError('报价单不存在');
+    final items = await quoteItems(quoteId);
+    final versions = await listQuoteVersions(quoteId);
+    final versionNo = (versions.isEmpty ? 0 : versions.first.versionNo) + 1;
+    final version = LocalQuoteVersion(
+      id: const Uuid().v7(),
+      quoteId: quoteId,
+      versionNo: versionNo,
+      snapshot: {
+        'quote': {
+          'quoteNo': quote.quoteNo,
+          'opportunityId': quote.opportunityId,
+          'accountId': quote.accountId,
+          'contactId': quote.contactId,
+          'status': quote.status,
+          'totalAmount': quote.totalAmount,
+          'discountAmount': quote.discountAmount,
+          'validUntil': quote.validUntil?.toIso8601String(),
+          'note': quote.note,
+        },
+        'items': [
+          for (final item in items)
+            {
+              'productId': item.productId,
+              'productName': item.productName,
+              'quantity': item.quantity,
+              'unitPrice': item.unitPrice,
+              'discount': item.discount,
+              'amount': item.amount,
+              'sortOrder': item.sortOrder,
+            },
+        ],
+      },
+    );
+    await db.into(db.crmQuoteVersions).insert(_quoteVersionCompanion(version));
+    return version;
+  }
+
+  Future<List<LocalQuoteVersion>> listQuoteVersions(String quoteId) async {
+    final rows = await (db.select(db.crmQuoteVersions)
+          ..where((t) => t.quoteId.equals(quoteId))
+          ..orderBy([(t) => OrderingTerm.desc(t.versionNo)]))
+        .get();
+    return rows.map(_quoteVersionFromRow).toList();
+  }
+
+  Future<void> restoreQuoteVersion(String versionId) async {
+    final row = await (db.select(db.crmQuoteVersions)
+          ..where((t) => t.id.equals(versionId)))
+        .getSingleOrNull();
+    if (row == null) throw StateError('版本不存在');
+    final snapshot = (jsonDecode(row.snapshotJson) as Map).cast<String, dynamic>();
+    final quoteMap = (snapshot['quote'] as Map).cast<String, dynamic>();
+    final quoteId = row.quoteId;
+    await db.transaction(() async {
+      final quote = await getQuote(quoteId);
+      if (quote == null) return;
+      quote
+        ..status = quoteMap['status']?.toString() ?? quote.status
+        ..totalAmount = (quoteMap['totalAmount'] as num?)?.toDouble() ?? quote.totalAmount
+        ..discountAmount = (quoteMap['discountAmount'] as num?)?.toDouble() ?? quote.discountAmount
+        ..validUntil = _dateFrom(quoteMap['validUntil'])
+        ..note = quoteMap['note']?.toString() ?? quote.note;
+      await updateQuote(quote);
+      await (db.delete(db.crmQuoteItems)..where((t) => t.quoteId.equals(quoteId)))
+          .go();
+      for (final raw in (snapshot['items'] as List? ?? [])) {
+        final item = (raw as Map).cast<String, dynamic>();
+        await db.into(db.crmQuoteItems).insert(
+          CrmQuoteItemsCompanion.insert(
+            id: const Uuid().v7(),
+            quoteId: quoteId,
+            productId: Value(item['productId'] as String?),
+            productName: item['productName']?.toString() ?? '',
+            quantity: Value((item['quantity'] as num?)?.toDouble() ?? 1),
+            unitPrice: Value((item['unitPrice'] as num?)?.toDouble() ?? 0),
+            discount: Value((item['discount'] as num?)?.toDouble() ?? 1),
+            amount: Value((item['amount'] as num?)?.toDouble() ?? 0),
+            sortOrder: Value((item['sortOrder'] as num?)?.toInt() ?? 0),
+          ),
+        );
+      }
+      await _recalcQuote(quoteId);
+    });
+  }
+
+  Future<void> deleteQuoteVersion(String id) async {
+    await (db.delete(db.crmQuoteVersions)..where((t) => t.id.equals(id))).go();
+  }
+
   /// 单号生成：前缀 + YYYYMMDD + 当日自增 3 位（QT/HT/AS）
   Future<String> _nextSequenceNo(String prefix) async {
     final now = DateTime.now();
@@ -1871,4 +1967,28 @@ class CrmLocalRepository {
     isCompleted: row.isCompleted,
     createdAt: row.createdAt,
   );
+
+  CrmQuoteVersionsCompanion _quoteVersionCompanion(LocalQuoteVersion v) {
+    return CrmQuoteVersionsCompanion(
+      id: Value(v.id),
+      quoteId: Value(v.quoteId),
+      versionNo: Value(v.versionNo),
+      snapshotJson: Value(jsonEncode(v.snapshot)),
+      createdAt: Value(v.createdAt),
+    );
+  }
+
+  LocalQuoteVersion _quoteVersionFromRow(CrmQuoteVersionRow row) =>
+      LocalQuoteVersion(
+        id: row.id,
+        quoteId: row.quoteId,
+        versionNo: row.versionNo,
+        snapshot: (jsonDecode(row.snapshotJson) as Map).cast<String, dynamic>(),
+        createdAt: row.createdAt,
+      );
+
+  DateTime? _dateFrom(Object? value) {
+    if (value == null) return null;
+    return DateTime.tryParse(value.toString());
+  }
 }

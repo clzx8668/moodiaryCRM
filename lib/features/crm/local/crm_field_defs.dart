@@ -7,7 +7,7 @@ import 'crm_models.dart';
 class LocalObjectField {
   final String name;
   final String label;
-  final String type; // text / number / date / select / textarea / relation
+  final String type; // text / number / date / select / textarea / relation / currency
   final List<String> options;
 
   const LocalObjectField(
@@ -17,6 +17,10 @@ class LocalObjectField {
     this.options = const [],
   });
 }
+
+/// 常用币种与系统默认币种
+const List<String> kCurrencies = ['CNY', 'USD', 'EUR', 'GBP', 'HKD', 'JPY'];
+const String kDefaultCurrency = 'CNY';
 
 /// 各基础对象的标签标识字段
 const Map<String, String> kLocalLabelFields = {
@@ -102,8 +106,8 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('contact', '联系人', type: 'relation'),
     LocalObjectField('stage', '阶段', type: 'select', options: kOpportunityStages),
     LocalObjectField('probability', '成交概率(%)', type: 'number'),
-    LocalObjectField('amount', '预计金额（元）', type: 'number'),
-    LocalObjectField('currency', '币种'),
+    LocalObjectField('amount', '预计金额', type: 'currency'),
+    LocalObjectField('currency', '币种', type: 'currency'),
     LocalObjectField('source', '来源渠道'),
     LocalObjectField('leadContactName', '线索联系人'),
     LocalObjectField('leadPhone', '线索电话'),
@@ -127,9 +131,9 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
       'terminated',
       'expired',
     ]),
-    LocalObjectField('totalAmount', '总金额（元）', type: 'number'),
-    LocalObjectField('paidAmount', '已回款（元）', type: 'number'),
-    LocalObjectField('invoicedAmount', '已开票（元）', type: 'number'),
+    LocalObjectField('totalAmount', '总金额', type: 'currency'),
+    LocalObjectField('paidAmount', '已回款', type: 'currency'),
+    LocalObjectField('invoicedAmount', '已开票', type: 'currency'),
     LocalObjectField('signDate', '签约日期', type: 'date'),
     LocalObjectField('startDate', '开始日期', type: 'date'),
     LocalObjectField('endDate', '结束日期', type: 'date'),
@@ -146,8 +150,8 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
       'service',
     ]),
     LocalObjectField('unit', '单位'),
-    LocalObjectField('price', '标准单价（元）', type: 'number'),
-    LocalObjectField('cost', '成本价（元）', type: 'number'),
+    LocalObjectField('price', '标准单价', type: 'currency'),
+    LocalObjectField('cost', '成本价', type: 'currency'),
     LocalObjectField('warrantyMonths', '质保月数', type: 'number'),
     LocalObjectField('isActive', '在售', type: 'select', options: [
       'true',
@@ -169,8 +173,8 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
       'rejected',
       'expired',
     ]),
-    LocalObjectField('totalAmount', '总金额（元）', type: 'number'),
-    LocalObjectField('discountAmount', '折扣金额（元）', type: 'number'),
+    LocalObjectField('totalAmount', '总金额', type: 'currency'),
+    LocalObjectField('discountAmount', '折扣金额', type: 'currency'),
     LocalObjectField('validUntil', '有效期至', type: 'date'),
     LocalObjectField('note', '备注', type: 'textarea'),
     LocalObjectField('createdAt', '创建时间', type: 'date'),
@@ -179,8 +183,8 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
   'paymentPlan': [
     LocalObjectField('planName', '期次名称'),
     LocalObjectField('contract', '合同', type: 'relation'),
-    LocalObjectField('planAmount', '计划金额（元）', type: 'number'),
-    LocalObjectField('paidAmount', '已收金额（元）', type: 'number'),
+    LocalObjectField('planAmount', '计划金额', type: 'currency'),
+    LocalObjectField('paidAmount', '已收金额', type: 'currency'),
     LocalObjectField('planDate', '计划回款日期', type: 'date'),
     LocalObjectField('status', '状态', type: 'select', options: [
       'pending',
@@ -193,7 +197,7 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('paymentDate', '回款日期', type: 'date'),
     LocalObjectField('contract', '合同', type: 'relation'),
     LocalObjectField('plan', '回款计划', type: 'relation'),
-    LocalObjectField('amount', '金额（元）', type: 'number'),
+    LocalObjectField('amount', '金额', type: 'currency'),
     LocalObjectField('method', '方式', type: 'select', options: [
       'cash',
       'transfer',
@@ -211,7 +215,7 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
       'vat_normal',
       'electronic',
     ]),
-    LocalObjectField('amount', '开票金额（元）', type: 'number'),
+    LocalObjectField('amount', '开票金额', type: 'currency'),
     LocalObjectField('taxRate', '税率', type: 'number'),
     LocalObjectField('issueDate', '开票日期', type: 'date'),
     LocalObjectField('status', '状态', type: 'select', options: [

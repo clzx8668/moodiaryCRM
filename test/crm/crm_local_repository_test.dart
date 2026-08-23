@@ -391,4 +391,43 @@ void main() {
     expect(await repo.listReminders(), isEmpty);
     expect((await repo.listReminders(includeCompleted: true)).length, 1);
   });
+
+  test('报价版本保存/恢复', () async {
+    final quote = await repo.createQuote(LocalQuote(id: '', status: 'draft'));
+    await repo.addQuoteItem(
+      LocalQuoteItem(
+        id: '',
+        quoteId: quote.id,
+        productName: '版本一产品',
+        quantity: 2,
+        unitPrice: 100,
+      ),
+    );
+    await repo.saveQuoteVersion(quote.id);
+
+    // 修改为版本二内容
+    final items = await repo.quoteItems(quote.id);
+    await repo.removeQuoteItem(items.first.id);
+    await repo.addQuoteItem(
+      LocalQuoteItem(
+        id: '',
+        quoteId: quote.id,
+        productName: '版本二产品',
+        quantity: 1,
+        unitPrice: 999,
+      ),
+    );
+    await repo.saveQuoteVersion(quote.id);
+
+    expect((await repo.listQuoteVersions(quote.id)).length, 2);
+    final versions = await repo.listQuoteVersions(quote.id);
+    expect(versions.first.versionNo, 2);
+
+    // 恢复到版本一
+    final v1 = versions.firstWhere((v) => v.versionNo == 1);
+    await repo.restoreQuoteVersion(v1.id);
+    final restored = await repo.quoteItems(quote.id);
+    expect(restored.single.productName, '版本一产品');
+    expect(restored.single.amount, closeTo(200, 0.001));
+  });
 }

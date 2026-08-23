@@ -100,6 +100,8 @@ class PrefUtil {
     'moduleCalendar',
     // 局域网同步内容范围（notes/all）
     'lanSyncContentScope',
+    // 报价模板（JSON）
+    'crmQuoteTemplates',
   };
 
   /// 允许持久化的动态键前缀（如 `crmTableColumns_` 前缀的列表级设置）。

@@ -29,6 +29,9 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
   final Map<String, TextEditingController> _controllers = {};
   bool _aiOpen = false;
   bool _saving = false;
+  final Map<String, List<String>> _extraOptions = {};
+  String? _addingOptionFor;
+  final TextEditingController _optionController = TextEditingController();
 
   static bool isEditable(LocalObjectField field) {
     if (field.name.endsWith('Id')) return false;
@@ -50,7 +53,111 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
     for (final c in _controllers.values) {
       c.dispose();
     }
+    _optionController.dispose();
     super.dispose();
+  }
+
+  List<String> _optionsFor(LocalObjectField field) {
+    if (field.type == 'currency') {
+      return [...kCurrencies, ...?_extraOptions[field.name]];
+    }
+    return [...field.options, ...?_extraOptions[field.name]];
+  }
+
+  Future<void> _pickDate(LocalObjectField field) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      _controllers[field.name]!.text =
+          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-'
+          '${picked.day.toString().padLeft(2, '0')}';
+      setState(() {});
+    }
+  }
+
+  void _confirmOption(LocalObjectField field) {
+    final value = _optionController.text.trim();
+    if (value.isEmpty) return;
+    _extraOptions.putIfAbsent(field.name, () => []).add(value);
+    _controllers[field.name]!.text = value;
+    setState(() {
+      _addingOptionFor = null;
+      _optionController.clear();
+    });
+  }
+
+  Widget _inputFor(LocalObjectField field) {
+    if (field.type == 'select' || field.type == 'currency') {
+      final options = _optionsFor(field);
+      final current = _controllers[field.name]!.text;
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              initialValue:
+                  options.contains(current) ? current : (options.isEmpty ? null : options.first),
+              decoration: InputDecoration(
+                labelText: field.label,
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: [
+                for (final option in options)
+                  DropdownMenuItem(value: option, child: Text(option)),
+              ],
+              onChanged: (v) =>
+                  _controllers[field.name]!.text = v ?? '',
+            ),
+          ),
+          IconButton(
+            tooltip: '添加选项',
+            icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+            onPressed: () => setState(() {
+              _addingOptionFor = _addingOptionFor == field.name
+                  ? null
+                  : field.name;
+            }),
+          ),
+        ],
+      );
+    }
+    if (field.type == 'date') {
+      return Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _controllers[field.name],
+              keyboardType: TextInputType.datetime,
+              decoration: InputDecoration(
+                labelText: field.label,
+                border: const OutlineInputBorder(),
+                isDense: true,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                  onPressed: () => _pickDate(field),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return TextField(
+      controller: _controllers[field.name],
+      keyboardType: field.type == 'number'
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : null,
+      decoration: InputDecoration(
+        labelText: field.label,
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
+    );
   }
 
   Future<void> _save() async {
@@ -172,21 +279,32 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
                   ),
                   const SizedBox(height: 8),
                 ],
-                for (final field in _fields)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: TextField(
-                      controller: _controllers[field.name],
-                      keyboardType: field.type == 'number'
-                          ? const TextInputType.numberWithOptions(decimal: true)
-                          : null,
-                      decoration: InputDecoration(
-                        labelText: field.label,
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
+                for (final field in _fields) ...[
+                  _inputFor(field),
+                  if (_addingOptionFor == field.name) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _optionController,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              hintText: '输入新选项',
+                              isDense: true,
+                            ),
+                            onSubmitted: (_) => _confirmOption(field),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.check_rounded, size: 18),
+                          onPressed: () => _confirmOption(field),
+                        ),
+                      ],
                     ),
-                  ),
+                  ],
+                  const SizedBox(height: 10),
+                ],
               ],
             ),
           ),

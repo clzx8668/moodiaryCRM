@@ -553,6 +553,20 @@ class CrmReminders extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 报价单版本快照
+@DataClassName('CrmQuoteVersionRow')
+class CrmQuoteVersions extends Table {
+  TextColumn get id => text()();
+  TextColumn get quoteId => text()();
+  IntColumn get versionNo => integer()();
+  /// 快照 JSON：{quote: {...}, items: [...]}
+  TextColumn get snapshotJson => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// 自定义数据对象定义（元数据驱动，类似 Twenty metadata）
 @DataClassName('CrmObjectDefRow')
 class CrmObjectDefs extends Table {
@@ -709,6 +723,7 @@ class AiChatMessages extends Table {
     CrmEntityTags,
     CrmAttachments,
     CrmReminders,
+    CrmQuoteVersions,
     CrmObjectDefs,
     CrmCustomRecords,
     CrmEntityLinks,
@@ -723,7 +738,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -805,6 +820,11 @@ class AppDatabase extends _$AppDatabase {
         final db = m.database as AppDatabase;
         await m.createTable(db.crmAttachments);
         await m.createTable(db.crmReminders);
+      }
+      // v14 → v15：报价版本快照
+      if (from < 15) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.crmQuoteVersions);
       }
     },
     beforeOpen: (details) async {

@@ -15956,6 +15956,377 @@ class CrmRemindersCompanion extends UpdateCompanion<CrmReminderRow> {
   }
 }
 
+class $CrmQuoteVersionsTable extends CrmQuoteVersions
+    with TableInfo<$CrmQuoteVersionsTable, CrmQuoteVersionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrmQuoteVersionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quoteIdMeta = const VerificationMeta(
+    'quoteId',
+  );
+  @override
+  late final GeneratedColumn<String> quoteId = GeneratedColumn<String>(
+    'quote_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionNoMeta = const VerificationMeta(
+    'versionNo',
+  );
+  @override
+  late final GeneratedColumn<int> versionNo = GeneratedColumn<int>(
+    'version_no',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _snapshotJsonMeta = const VerificationMeta(
+    'snapshotJson',
+  );
+  @override
+  late final GeneratedColumn<String> snapshotJson = GeneratedColumn<String>(
+    'snapshot_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    quoteId,
+    versionNo,
+    snapshotJson,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crm_quote_versions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrmQuoteVersionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('quote_id')) {
+      context.handle(
+        _quoteIdMeta,
+        quoteId.isAcceptableOrUnknown(data['quote_id']!, _quoteIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_quoteIdMeta);
+    }
+    if (data.containsKey('version_no')) {
+      context.handle(
+        _versionNoMeta,
+        versionNo.isAcceptableOrUnknown(data['version_no']!, _versionNoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_versionNoMeta);
+    }
+    if (data.containsKey('snapshot_json')) {
+      context.handle(
+        _snapshotJsonMeta,
+        snapshotJson.isAcceptableOrUnknown(
+          data['snapshot_json']!,
+          _snapshotJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_snapshotJsonMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrmQuoteVersionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrmQuoteVersionRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      quoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quote_id'],
+      )!,
+      versionNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version_no'],
+      )!,
+      snapshotJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}snapshot_json'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CrmQuoteVersionsTable createAlias(String alias) {
+    return $CrmQuoteVersionsTable(attachedDatabase, alias);
+  }
+}
+
+class CrmQuoteVersionRow extends DataClass
+    implements Insertable<CrmQuoteVersionRow> {
+  final String id;
+  final String quoteId;
+  final int versionNo;
+
+  /// 快照 JSON：{quote: {...}, items: [...]}
+  final String snapshotJson;
+  final DateTime createdAt;
+  const CrmQuoteVersionRow({
+    required this.id,
+    required this.quoteId,
+    required this.versionNo,
+    required this.snapshotJson,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['quote_id'] = Variable<String>(quoteId);
+    map['version_no'] = Variable<int>(versionNo);
+    map['snapshot_json'] = Variable<String>(snapshotJson);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CrmQuoteVersionsCompanion toCompanion(bool nullToAbsent) {
+    return CrmQuoteVersionsCompanion(
+      id: Value(id),
+      quoteId: Value(quoteId),
+      versionNo: Value(versionNo),
+      snapshotJson: Value(snapshotJson),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CrmQuoteVersionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrmQuoteVersionRow(
+      id: serializer.fromJson<String>(json['id']),
+      quoteId: serializer.fromJson<String>(json['quoteId']),
+      versionNo: serializer.fromJson<int>(json['versionNo']),
+      snapshotJson: serializer.fromJson<String>(json['snapshotJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'quoteId': serializer.toJson<String>(quoteId),
+      'versionNo': serializer.toJson<int>(versionNo),
+      'snapshotJson': serializer.toJson<String>(snapshotJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  CrmQuoteVersionRow copyWith({
+    String? id,
+    String? quoteId,
+    int? versionNo,
+    String? snapshotJson,
+    DateTime? createdAt,
+  }) => CrmQuoteVersionRow(
+    id: id ?? this.id,
+    quoteId: quoteId ?? this.quoteId,
+    versionNo: versionNo ?? this.versionNo,
+    snapshotJson: snapshotJson ?? this.snapshotJson,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  CrmQuoteVersionRow copyWithCompanion(CrmQuoteVersionsCompanion data) {
+    return CrmQuoteVersionRow(
+      id: data.id.present ? data.id.value : this.id,
+      quoteId: data.quoteId.present ? data.quoteId.value : this.quoteId,
+      versionNo: data.versionNo.present ? data.versionNo.value : this.versionNo,
+      snapshotJson: data.snapshotJson.present
+          ? data.snapshotJson.value
+          : this.snapshotJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmQuoteVersionRow(')
+          ..write('id: $id, ')
+          ..write('quoteId: $quoteId, ')
+          ..write('versionNo: $versionNo, ')
+          ..write('snapshotJson: $snapshotJson, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, quoteId, versionNo, snapshotJson, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrmQuoteVersionRow &&
+          other.id == this.id &&
+          other.quoteId == this.quoteId &&
+          other.versionNo == this.versionNo &&
+          other.snapshotJson == this.snapshotJson &&
+          other.createdAt == this.createdAt);
+}
+
+class CrmQuoteVersionsCompanion extends UpdateCompanion<CrmQuoteVersionRow> {
+  final Value<String> id;
+  final Value<String> quoteId;
+  final Value<int> versionNo;
+  final Value<String> snapshotJson;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const CrmQuoteVersionsCompanion({
+    this.id = const Value.absent(),
+    this.quoteId = const Value.absent(),
+    this.versionNo = const Value.absent(),
+    this.snapshotJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CrmQuoteVersionsCompanion.insert({
+    required String id,
+    required String quoteId,
+    required int versionNo,
+    required String snapshotJson,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       quoteId = Value(quoteId),
+       versionNo = Value(versionNo),
+       snapshotJson = Value(snapshotJson),
+       createdAt = Value(createdAt);
+  static Insertable<CrmQuoteVersionRow> custom({
+    Expression<String>? id,
+    Expression<String>? quoteId,
+    Expression<int>? versionNo,
+    Expression<String>? snapshotJson,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (quoteId != null) 'quote_id': quoteId,
+      if (versionNo != null) 'version_no': versionNo,
+      if (snapshotJson != null) 'snapshot_json': snapshotJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CrmQuoteVersionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? quoteId,
+    Value<int>? versionNo,
+    Value<String>? snapshotJson,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return CrmQuoteVersionsCompanion(
+      id: id ?? this.id,
+      quoteId: quoteId ?? this.quoteId,
+      versionNo: versionNo ?? this.versionNo,
+      snapshotJson: snapshotJson ?? this.snapshotJson,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (quoteId.present) {
+      map['quote_id'] = Variable<String>(quoteId.value);
+    }
+    if (versionNo.present) {
+      map['version_no'] = Variable<int>(versionNo.value);
+    }
+    if (snapshotJson.present) {
+      map['snapshot_json'] = Variable<String>(snapshotJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrmQuoteVersionsCompanion(')
+          ..write('id: $id, ')
+          ..write('quoteId: $quoteId, ')
+          ..write('versionNo: $versionNo, ')
+          ..write('snapshotJson: $snapshotJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CrmObjectDefsTable extends CrmObjectDefs
     with TableInfo<$CrmObjectDefsTable, CrmObjectDefRow> {
   @override
@@ -19387,6 +19758,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CrmEntityTagsTable crmEntityTags = $CrmEntityTagsTable(this);
   late final $CrmAttachmentsTable crmAttachments = $CrmAttachmentsTable(this);
   late final $CrmRemindersTable crmReminders = $CrmRemindersTable(this);
+  late final $CrmQuoteVersionsTable crmQuoteVersions = $CrmQuoteVersionsTable(
+    this,
+  );
   late final $CrmObjectDefsTable crmObjectDefs = $CrmObjectDefsTable(this);
   late final $CrmCustomRecordsTable crmCustomRecords = $CrmCustomRecordsTable(
     this,
@@ -19430,6 +19804,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     crmEntityTags,
     crmAttachments,
     crmReminders,
+    crmQuoteVersions,
     crmObjectDefs,
     crmCustomRecords,
     crmEntityLinks,
@@ -27356,6 +27731,218 @@ typedef $$CrmRemindersTableProcessedTableManager =
       CrmReminderRow,
       PrefetchHooks Function()
     >;
+typedef $$CrmQuoteVersionsTableCreateCompanionBuilder =
+    CrmQuoteVersionsCompanion Function({
+      required String id,
+      required String quoteId,
+      required int versionNo,
+      required String snapshotJson,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$CrmQuoteVersionsTableUpdateCompanionBuilder =
+    CrmQuoteVersionsCompanion Function({
+      Value<String> id,
+      Value<String> quoteId,
+      Value<int> versionNo,
+      Value<String> snapshotJson,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$CrmQuoteVersionsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrmQuoteVersionsTable> {
+  $$CrmQuoteVersionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quoteId => $composableBuilder(
+    column: $table.quoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get versionNo => $composableBuilder(
+    column: $table.versionNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrmQuoteVersionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrmQuoteVersionsTable> {
+  $$CrmQuoteVersionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quoteId => $composableBuilder(
+    column: $table.quoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get versionNo => $composableBuilder(
+    column: $table.versionNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrmQuoteVersionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrmQuoteVersionsTable> {
+  $$CrmQuoteVersionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get quoteId =>
+      $composableBuilder(column: $table.quoteId, builder: (column) => column);
+
+  GeneratedColumn<int> get versionNo =>
+      $composableBuilder(column: $table.versionNo, builder: (column) => column);
+
+  GeneratedColumn<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CrmQuoteVersionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrmQuoteVersionsTable,
+          CrmQuoteVersionRow,
+          $$CrmQuoteVersionsTableFilterComposer,
+          $$CrmQuoteVersionsTableOrderingComposer,
+          $$CrmQuoteVersionsTableAnnotationComposer,
+          $$CrmQuoteVersionsTableCreateCompanionBuilder,
+          $$CrmQuoteVersionsTableUpdateCompanionBuilder,
+          (
+            CrmQuoteVersionRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CrmQuoteVersionsTable,
+              CrmQuoteVersionRow
+            >,
+          ),
+          CrmQuoteVersionRow,
+          PrefetchHooks Function()
+        > {
+  $$CrmQuoteVersionsTableTableManager(
+    _$AppDatabase db,
+    $CrmQuoteVersionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrmQuoteVersionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrmQuoteVersionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrmQuoteVersionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> quoteId = const Value.absent(),
+                Value<int> versionNo = const Value.absent(),
+                Value<String> snapshotJson = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CrmQuoteVersionsCompanion(
+                id: id,
+                quoteId: quoteId,
+                versionNo: versionNo,
+                snapshotJson: snapshotJson,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String quoteId,
+                required int versionNo,
+                required String snapshotJson,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CrmQuoteVersionsCompanion.insert(
+                id: id,
+                quoteId: quoteId,
+                versionNo: versionNo,
+                snapshotJson: snapshotJson,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrmQuoteVersionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrmQuoteVersionsTable,
+      CrmQuoteVersionRow,
+      $$CrmQuoteVersionsTableFilterComposer,
+      $$CrmQuoteVersionsTableOrderingComposer,
+      $$CrmQuoteVersionsTableAnnotationComposer,
+      $$CrmQuoteVersionsTableCreateCompanionBuilder,
+      $$CrmQuoteVersionsTableUpdateCompanionBuilder,
+      (
+        CrmQuoteVersionRow,
+        BaseReferences<
+          _$AppDatabase,
+          $CrmQuoteVersionsTable,
+          CrmQuoteVersionRow
+        >,
+      ),
+      CrmQuoteVersionRow,
+      PrefetchHooks Function()
+    >;
 typedef $$CrmObjectDefsTableCreateCompanionBuilder =
     CrmObjectDefsCompanion Function({
       required String id,
@@ -29246,6 +29833,8 @@ class $AppDatabaseManager {
       $$CrmAttachmentsTableTableManager(_db, _db.crmAttachments);
   $$CrmRemindersTableTableManager get crmReminders =>
       $$CrmRemindersTableTableManager(_db, _db.crmReminders);
+  $$CrmQuoteVersionsTableTableManager get crmQuoteVersions =>
+      $$CrmQuoteVersionsTableTableManager(_db, _db.crmQuoteVersions);
   $$CrmObjectDefsTableTableManager get crmObjectDefs =>
       $$CrmObjectDefsTableTableManager(_db, _db.crmObjectDefs);
   $$CrmCustomRecordsTableTableManager get crmCustomRecords =>

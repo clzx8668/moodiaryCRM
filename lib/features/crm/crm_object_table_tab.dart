@@ -844,11 +844,12 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     }
   }
 
-  void _closePanel() {
+  void _closePanel({bool refresh = false}) {
     setState(() {
       _panelMode = _PanelMode.none;
       _selected = null;
     });
+    if (refresh) _refreshGrid();
   }
 
   Future<void> _saveColumns(List<String> visible, bool customized) async {
@@ -884,7 +885,6 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
 
   Future<void> _createFromPanel(Map<String, dynamic> data) async {
     await _createEntity(data);
-    _refreshGrid();
   }
 
   /// 追加「用户从未决定过」的新默认字段（显式隐藏的除外）：
@@ -1365,6 +1365,14 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                   ),
                                   items: items,
                                   fields: effectiveColumns,
+                                  selectOptions: {
+                                    for (final f in _fields)
+                                      if (f.type == 'select' ||
+                                          f.type == 'currency')
+                                        f.name: f.type == 'currency'
+                                            ? [...kCurrencies]
+                                            : f.options,
+                                  },
                                   onCellChanged: _updateCell,
                                   onOpen: _edit,
                                   onColumnsReordered: _persistColumnOrder,
@@ -1408,7 +1416,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                           title: widget.title,
                           fields: _fields,
                           onCreate: _createFromPanel,
-                          onClose: _closePanel,
+                          onClose: () => _closePanel(refresh: true),
                         ),
                         _PanelMode.none => const SizedBox.shrink(),
                       },

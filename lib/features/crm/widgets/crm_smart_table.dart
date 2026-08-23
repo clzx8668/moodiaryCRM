@@ -19,6 +19,9 @@ class CrmSmartTable extends StatefulWidget {
   /// 展示字段（顺序即列顺序）；字段名与快照 data 键对应
   final List<String> fields;
 
+  /// 选择类字段的选项（字段名 → 选项列表），用于单元格下拉
+  final Map<String, List<String>> selectOptions;
+
   /// 单元格编辑完成（防抖后回调）；field 为列字段，value 为新值
   final void Function(CrmEntityCache item, String field, Object? value)?
   onCellChanged;
@@ -33,6 +36,7 @@ class CrmSmartTable extends StatefulWidget {
     super.key,
     required this.items,
     required this.fields,
+    this.selectOptions = const {},
     this.onCellChanged,
     this.onOpen,
     this.onColumnsReordered,
@@ -128,6 +132,10 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
   }
 
   PlutoColumnType _columnType(String field) {
+    final options = widget.selectOptions[field];
+    if (options != null && options.isNotEmpty) {
+      return PlutoColumnType.select(options);
+    }
     switch (_inferKind(field, widget.items)) {
       case CrmColumnKind.number:
         return PlutoColumnType.number(

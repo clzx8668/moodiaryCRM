@@ -7,6 +7,7 @@ import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
 import 'package:moodiary/features/crm/local/crm_pdf_export.dart';
+import 'package:moodiary/features/crm/local/crm_quote_template_store.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/router/app_routes.dart';
@@ -43,6 +44,9 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   final Set<String> _savingFields = {};
   bool _addingTag = false;
   bool _addingActivity = false;
+  String? _addingOptionFor;
+  final Map<String, List<String>> _extraOptions = {};
+  final TextEditingController _optionController = TextEditingController();
   final TextEditingController _tagController = TextEditingController();
   final TextEditingController _activitySubject = TextEditingController();
   String _activityType = 'call';
@@ -62,7 +66,41 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     }
     _tagController.dispose();
     _activitySubject.dispose();
+    _optionController.dispose();
     super.dispose();
+  }
+
+  List<String> _optionsFor(LocalObjectField field) {
+    if (field.type == 'currency') {
+      return [...kCurrencies, ...?_extraOptions[field.name]];
+    }
+    return [...field.options, ...?_extraOptions[field.name]];
+  }
+
+  Future<void> _pickDate(LocalObjectField field) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      _controllers[field.name]!.text =
+          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-'
+          '${picked.day.toString().padLeft(2, '0')}';
+      _commit(field);
+    }
+  }
+
+  void _confirmOption(LocalObjectField field) {
+    final value = _optionController.text.trim();
+    if (value.isEmpty) return;
+    _extraOptions.putIfAbsent(field.name, () => []).add(value);
+    setState(() {
+      _addingOptionFor = null;
+      _optionController.clear();
+    });
+    _commitSelect(field, value);
   }
 
   // ==================== 字段（原位编辑） ====================
@@ -182,22 +220,22 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
           ),
           Expanded(
             child: editing
-                ? _buildEditInput(field)
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildEditInput(field),
+                      _optionAddRow(field),
+                    ],
+                  )
                 : InkWell(
                     onTap: () => _startEdit(field),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _stringValue(field).isEmpty
-                                  ? '—'
-                                  : _stringValue(field),
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        _stringValue(field).isEmpty
+                            ? '—'
+                            : _stringValue(field),
+                        style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ),
                   ),
@@ -208,22 +246,61 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   }
 
   Widget _buildEditInput(LocalObjectField field) {
-    if (field.type == 'select' || field.name == 'isActive') {
-      final options = field.options.isNotEmpty
-          ? field.options
+    if (field.type == 'select' ||
+        field.type == 'currency' ||
+        field.name == 'isActive') {
+      final options = _optionsFor(field).isNotEmpty
+          ? _optionsFor(field)
           : (field.name == 'isActive' ? const ['true', 'false'] : const []);
-      return DropdownButtonFormField<String>(
-        initialValue: _stringValue(field).isEmpty
-            ? (options.isEmpty ? null : options.first)
-            : _stringValue(field),
-        isDense: true,
-        items: [
-          for (final option in options)
-            DropdownMenuItem(value: option, child: Text(option)),
+      final current = _stringValue(field);
+      return Row(
+        children: [
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              initialValue: options.contains(current) ? current : (options.isEmpty ? null : options.first),
+              isDense: true,
+              items: [
+                for (final option in options)
+                  DropdownMenuItem(value: option, child: Text(option)),
+              ],
+              onChanged: (v) {
+                if (v != null) _commitSelect(field, v);
+              },
+            ),
+          ),
+          IconButton(
+            tooltip: '添加选项',
+            icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+            onPressed: () => setState(() {
+              _addingOptionFor = _addingOptionFor == field.name
+                  ? null
+                  : field.name;
+            }),
+          ),
         ],
-        onChanged: (v) {
-          if (v != null) _commitSelect(field, v);
-        },
+      );
+    }
+    if (field.type == 'date') {
+      return Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _controllers[field.name]!,
+              focusNode: _focusNodes[field.name],
+              autofocus: true,
+              decoration: const InputDecoration(isDense: true),
+              onSubmitted: (_) {
+                _focusNodes[field.name]!.unfocus();
+                _commit(field);
+              },
+            ),
+          ),
+          IconButton(
+            tooltip: '选择日期',
+            icon: const Icon(Icons.calendar_month_rounded, size: 18),
+            onPressed: () => _pickDate(field),
+          ),
+        ],
       );
     }
     final controller = _controllers[field.name]!;
@@ -242,6 +319,29 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
         focusNode.unfocus();
         _commit(field);
       },
+    );
+  }
+
+  Widget _optionAddRow(LocalObjectField field) {
+    if (_addingOptionFor != field.name) return const SizedBox.shrink();
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _optionController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: '输入新选项',
+              isDense: true,
+            ),
+            onSubmitted: (_) => _confirmOption(field),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.check_rounded, size: 18),
+          onPressed: () => _confirmOption(field),
+        ),
+      ],
     );
   }
 
@@ -937,6 +1037,21 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
             icon: const Icon(Icons.add_rounded, size: 16),
             label: const Text('明细'),
           ),
+          OutlinedButton.icon(
+            onPressed: _saveAsTemplate,
+            icon: const Icon(Icons.save_alt_rounded, size: 16),
+            label: const Text('存模板'),
+          ),
+          OutlinedButton.icon(
+            onPressed: _quoteFromTemplate,
+            icon: const Icon(Icons.dashboard_customize_rounded, size: 16),
+            label: const Text('模板报价'),
+          ),
+          OutlinedButton.icon(
+            onPressed: _manageVersions,
+            icon: const Icon(Icons.history_rounded, size: 16),
+            label: const Text('版本'),
+          ),
         ],
         if (widget.objectType == 'quote' ||
             widget.objectType == 'contract' ||
@@ -1078,6 +1193,196 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     } catch (e) {
       toast.error(message: '添加失败：$e');
     }
+  }
+
+  Future<void> _saveAsTemplate() async {
+    final items = await _repo.quoteItems(_item.twentyId);
+    if (items.isEmpty) {
+      toast.info(message: '请先添加报价明细再保存模板');
+      return;
+    }
+    final name = TextEditingController(
+      text: '${_item.name}-模板',
+    );
+    final days = TextEditingController(text: '15');
+    if (!mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('保存为报价模板'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(
+                labelText: '模板名称',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: days,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: '默认有效期（天）',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || name.text.trim().isEmpty) return;
+    await CrmQuoteTemplateStore.save(
+      CrmQuoteTemplate(
+        name: name.text.trim(),
+        validUntilDays: int.tryParse(days.text) ?? 15,
+        items: [
+          for (final item in items)
+            {
+              'productId': item.productId,
+              'productName': item.productName,
+              'quantity': item.quantity,
+              'unitPrice': item.unitPrice,
+              'discount': item.discount,
+            },
+        ],
+      ),
+    );
+    toast.success(message: '模板已保存');
+  }
+
+  Future<void> _quoteFromTemplate() async {
+    final templates = await CrmQuoteTemplateStore.list();
+    if (templates.isEmpty) {
+      toast.info(message: '暂无模板，可在报价详情「存模板」创建');
+      return;
+    }
+    if (!mounted) return;
+    final selected = await showDialog<CrmQuoteTemplate>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('选择报价模板'),
+        children: [
+          for (final template in templates)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(dialogContext, template),
+              child: Text(
+                '${template.name}（${template.items.length} 项）',
+              ),
+            ),
+        ],
+      ),
+    );
+    if (selected == null) return;
+    try {
+      final quote = await CrmQuoteTemplateStore.createQuoteFromTemplate(
+        _repo,
+        selected,
+      );
+      toast.success(message: '已生成报价单 ${quote.quoteNo}');
+      widget.onChanged?.call();
+    } catch (e) {
+      toast.error(message: '生成失败：$e');
+    }
+  }
+
+  Future<void> _manageVersions() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('报价版本'),
+          content: SizedBox(
+            width: 380,
+            child: FutureBuilder<List<LocalQuoteVersion>>(
+              future: _repo.listQuoteVersions(_item.twentyId),
+              builder: (context, snapshot) {
+                final versions = snapshot.data ?? const [];
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FilledButton.tonalIcon(
+                      onPressed: () async {
+                        await _repo.saveQuoteVersion(_item.twentyId);
+                        toast.success(message: '当前版本已保存');
+                        if (dialogContext.mounted) setDialogState(() {});
+                      },
+                      icon: const Icon(Icons.save_rounded, size: 16),
+                      label: const Text('保存当前版本'),
+                    ),
+                    const SizedBox(height: 8),
+                    if (versions.isEmpty)
+                      const Text('暂无版本')
+                    else
+                      Flexible(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: versions.length,
+                          itemBuilder: (context, index) {
+                            final version = versions[index];
+                            return ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(
+                                'V${version.versionNo} · ${version.createdAt.toLocal().toString().substring(0, 16)}',
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    tooltip: '恢复此版本',
+                                    icon: const Icon(Icons.restore_rounded, size: 18),
+                                    onPressed: () async {
+                                      await _repo.restoreQuoteVersion(version.id);
+                                      toast.success(message: '已恢复 V${version.versionNo}');
+                                      if (dialogContext.mounted) {
+                                        Navigator.pop(dialogContext);
+                                      }
+                                      widget.onChanged?.call();
+                                    },
+                                  ),
+                                  IconButton(
+                                    tooltip: '删除版本',
+                                    icon: const Icon(Icons.delete_outline, size: 18),
+                                    onPressed: () async {
+                                      await _repo.deleteQuoteVersion(version.id);
+                                      if (dialogContext.mounted) setDialogState(() {});
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('关闭'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

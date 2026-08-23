@@ -591,6 +591,52 @@ class LocalReminder {
        createdAt = createdAt ?? DateTime.now();
 }
 
+/// 报价版本快照
+class LocalQuoteVersion {
+  String id;
+  String quoteId;
+  int versionNo;
+  Map<String, dynamic> snapshot;
+  DateTime createdAt;
+
+  LocalQuoteVersion({
+    required this.id,
+    required this.quoteId,
+    this.versionNo = 1,
+    Map<String, dynamic>? snapshot,
+    DateTime? createdAt,
+  }) : snapshot = snapshot ?? {},
+       createdAt = createdAt ?? DateTime.now();
+}
+
+/// 报价模板（PrefUtil JSON 存储）
+class CrmQuoteTemplate {
+  String name;
+  int validUntilDays;
+  List<Map<String, dynamic>> items;
+
+  CrmQuoteTemplate({
+    required this.name,
+    this.validUntilDays = 15,
+    List<Map<String, dynamic>>? items,
+  }) : items = items ?? [];
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'validUntilDays': validUntilDays,
+    'items': items,
+  };
+
+  factory CrmQuoteTemplate.fromJson(Map<String, dynamic> json) =>
+      CrmQuoteTemplate(
+        name: json['name'] as String,
+        validUntilDays: (json['validUntilDays'] as num?)?.toInt() ?? 15,
+        items: ((json['items'] as List?) ?? [])
+            .map((e) => (e as Map).cast<String, dynamic>())
+            .toList(),
+      );
+}
+
 /// 自定义数据对象定义
 class LocalCustomObject {
   String id;
