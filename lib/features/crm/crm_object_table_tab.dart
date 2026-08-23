@@ -1077,7 +1077,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             stage: data['stage']?.toString() ?? 'newLead',
             probability: _toInt(data['probability']) ?? 0,
             amount: _toDouble(data['amount']) ?? 0,
-            currency: data['currency']?.toString() ?? 'CNY',
+            currency:
+                data['currency']?.toString() ??
+                data['amountCurrency']?.toString() ??
+                'CNY',
             source: data['source']?.toString() ?? '',
             leadContactName: data['leadContactName']?.toString() ?? '',
             leadPhone: data['leadPhone']?.toString() ?? '',

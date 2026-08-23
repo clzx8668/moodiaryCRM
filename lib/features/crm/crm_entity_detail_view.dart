@@ -9,6 +9,7 @@ import 'package:moodiary/features/crm/local/crm_models.dart';
 import 'package:moodiary/features/crm/local/crm_pdf_export.dart';
 import 'package:moodiary/features/crm/local/crm_quote_template_store.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
+import 'package:moodiary/features/crm/widgets/crm_currency_amount_field.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/utils/notice_util.dart';
@@ -103,6 +104,35 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     _commitSelect(field, value);
   }
 
+  /// 金额字段对应的币种落库键（无独立 currency 列时随金额写入）
+  String _currencyCompanionKey(LocalObjectField field) {
+    const map = {
+      'totalAmount': 'totalAmountCurrency',
+      'amount': 'amountCurrency',
+      'planAmount': 'planAmountCurrency',
+      'discountAmount': 'discountAmountCurrency',
+      'price': 'priceCurrency',
+      'cost': 'priceCurrency',
+    };
+    return map[field.name] ?? '${field.name}Currency';
+  }
+
+  Future<void> _commitCurrency(LocalObjectField field, String code) async {
+    try {
+      await CrmEntityFieldUpdater.update(
+        objectType: widget.objectType,
+        id: _item.twentyId,
+        field: _currencyCompanionKey(field),
+        value: code,
+      );
+      _item.setData({..._item.data, 'currency': code});
+      if (mounted) setState(() {});
+      widget.onChanged?.call();
+    } catch (e) {
+      toast.error(message: '保存失败：$e');
+    }
+  }
+
   // ==================== 字段（原位编辑） ====================
 
   String _stringValue(LocalObjectField field) {
@@ -189,6 +219,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     final editable = widget.fields
         .where((f) => f.type != 'relation')
         .where((f) => f.name != 'createdAt' && f.name != 'updatedAt')
+        .where((f) => f.name != 'currency') // 币种由金额复合组件承载
         .toList();
     return Card.outlined(
       child: Padding(
@@ -299,6 +330,20 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
         ),
         onSubmitted: (_) {
           _focusNodes[field.name]!.unfocus();
+          _commit(field);
+        },
+      );
+    }
+    if (field.type == 'currency') {
+      final currency = _item.data['currency']?.toString() ?? kDefaultCurrency;
+      return CrmCurrencyAmountField(
+        currency: currency,
+        onCurrencyChanged: (v) => _commitCurrency(field, v),
+        amountController: _controllers[field.name]!,
+        label: field.label,
+        autoFocus: true,
+        onAmountSubmitted: (_) {
+          _focusNodes[field.name]?.unfocus();
           _commit(field);
         },
       );

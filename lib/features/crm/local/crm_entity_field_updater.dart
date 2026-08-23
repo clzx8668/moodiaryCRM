@@ -135,6 +135,8 @@ class CrmEntityFieldUpdater {
       case 'totalAmountCurrency':
       case 'amountCurrency':
       case 'priceCurrency':
+      case 'planAmountCurrency':
+      case 'discountAmountCurrency':
         entity.currency = value?.toString() ?? 'CNY';
       case 'leadContactName':
         entity.leadContactName = value?.toString() ?? '';

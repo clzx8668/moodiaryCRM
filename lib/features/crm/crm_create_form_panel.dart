@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:moodiary/features/crm/local/crm_ai_assist.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
+import 'package:moodiary/features/crm/widgets/crm_currency_amount_field.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 新增表单内联面板（Twenty 式，替代新增弹窗）。
@@ -38,6 +39,12 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
     if (field.name.endsWith('Id')) return false;
     if (field.type == 'relation') return false;
     if (field.name == 'createdAt' || field.name == 'updatedAt') return false;
+    // 去掉重复/自动计算字段：币种由金额复合组件承载；已收/已开票由流水自动累加
+    if (field.name == 'currency' ||
+        field.name == 'paidAmount' ||
+        field.name == 'invoicedAmount') {
+      return false;
+    }
     return true;
   }
 
@@ -130,52 +137,14 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
     }
     if (field.type == 'currency') {
       // 复合组件：币种下拉（可改）+ 金额输入（手动）
-      final hasCurrencyField = _fields.any((f) => f.name == 'currency');
-      final currency = hasCurrencyField
-          ? (_controllers['currency']!.text.isEmpty
-                ? kDefaultCurrency
-                : _controllers['currency']!.text)
-          : (_fieldCurrencies[field.name] ?? kDefaultCurrency);
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 92,
-            child: DropdownButtonFormField<String>(
-              initialValue: kCurrencies.contains(currency)
-                  ? currency
-                  : kDefaultCurrency,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: [
-                for (final c in kCurrencies)
-                  DropdownMenuItem(value: c, child: Text(c)),
-              ],
-              onChanged: (v) {
-                if (v == null) return;
-                if (hasCurrencyField) {
-                  _controllers['currency']!.text = v;
-                } else {
-                  _fieldCurrencies[field.name] = v;
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: _controllers[field.name],
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: field.label,
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
-            ),
-          ),
-        ],
+      final currency = _fieldCurrencies[field.name] ?? kDefaultCurrency;
+      return CrmCurrencyAmountField(
+        currency: currency,
+        onCurrencyChanged: (v) {
+          setState(() => _fieldCurrencies[field.name] = v);
+        },
+        amountController: _controllers[field.name]!,
+        label: field.label,
       );
     }
     if (field.type == 'date') {
