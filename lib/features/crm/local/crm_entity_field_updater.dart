@@ -124,6 +124,20 @@ class CrmEntityFieldUpdater {
         entity.isPrimary = value?.toString() == 'true';
       case 'isDecisionMaker':
         entity.isDecisionMaker = value?.toString() == 'true';
+      case 'accountId':
+        entity.accountId = _nullableStr(value);
+      case 'contactId':
+        entity.contactId = _nullableStr(value);
+      case 'opportunityId':
+        entity.opportunityId = _nullableStr(value);
+      case 'contractId':
+        entity.contractId = _nullableStr(value);
+      case 'planId':
+        entity.planId = _nullableStr(value);
+      case 'productId':
+        entity.productId = _nullableStr(value);
+      case 'quoteId':
+        entity.quoteId = _nullableStr(value);
       case 'stage':
         entity.stage = value?.toString() ?? '';
       case 'probability':
@@ -241,6 +255,12 @@ class CrmEntityFieldUpdater {
     if (text.isEmpty) return null;
     return DateTime.tryParse(text);
   }
+
+  static String? _nullableStr(Object? value) {
+    if (value == null) return null;
+    final text = value.toString().trim();
+    return text.isEmpty ? null : text;
+  }
 }
 
 /// 实体删除器：按对象类型删除对应本地记录（含自定义对象）。
@@ -281,6 +301,7 @@ class CrmEntityDeleter {
 }
 
 /// 实体关联写入器：把 target 记录挂到 parent（设置外键）。
+/// 支持全部基础对象的关系方向；parentId 传空字符串表示解除该方向关联。
 class CrmEntityLinker {
   static Future<void> link({
     required CrmLocalRepository repo,
@@ -289,74 +310,69 @@ class CrmEntityLinker {
     required String targetType,
     required String targetId,
   }) async {
-    switch (parentType) {
+    switch (targetType) {
       case 'account':
-        switch (targetType) {
-          case 'contact':
-            final c = await repo.getContact(targetId);
-            if (c == null) return;
-            c.accountId = parentId;
-            await repo.updateContact(c);
-          case 'opportunity':
-            final o = await repo.getOpportunity(targetId);
-            if (o == null) return;
-            o.accountId = parentId;
-            await repo.updateOpportunity(o);
-          case 'contract':
-            final c = await repo.getContract(targetId);
-            if (c == null) return;
-            c.accountId = parentId;
-            await repo.updateContract(c);
-          case 'quote':
-            final q = await repo.getQuote(targetId);
-            if (q == null) return;
-            q.accountId = parentId;
-            await repo.updateQuote(q);
-        }
+        // 账户是纯父实体，不作为子侧挂到其它对象
+        return;
+      case 'contact':
+        final c = await repo.getContact(targetId);
+        if (c == null) return;
+        if (parentType == 'account') c.accountId = _emptyToNull(parentId);
+        await repo.updateContact(c);
       case 'opportunity':
-        switch (targetType) {
-          case 'quote':
-            final q = await repo.getQuote(targetId);
-            if (q == null) return;
-            q.opportunityId = parentId;
-            await repo.updateQuote(q);
-          case 'contract':
-            final c = await repo.getContract(targetId);
-            if (c == null) return;
-            c.opportunityId = parentId;
-            await repo.updateContract(c);
-        }
+        final o = await repo.getOpportunity(targetId);
+        if (o == null) return;
+        if (parentType == 'account') o.accountId = _emptyToNull(parentId);
+        if (parentType == 'contact') o.contactId = _emptyToNull(parentId);
+        await repo.updateOpportunity(o);
       case 'contract':
-        switch (targetType) {
-          case 'payment':
-            final p = await repo.getPayment(targetId);
-            if (p == null) return;
-            p.contractId = parentId;
-            await repo.updatePayment(p);
-          case 'invoice':
-            final i = await repo.getInvoice(targetId);
-            if (i == null) return;
-            i.contractId = parentId;
-            await repo.updateInvoice(i);
-          case 'warranty':
-            final w = await repo.getWarranty(targetId);
-            if (w == null) return;
-            w.contractId = parentId;
-            await repo.updateWarranty(w);
-          case 'paymentPlan':
-            final p = await repo.getPaymentPlan(targetId);
-            if (p == null) return;
-            p.contractId = parentId;
-            await repo.updatePaymentPlan(p);
-        }
+        final c = await repo.getContract(targetId);
+        if (c == null) return;
+        if (parentType == 'account') c.accountId = _emptyToNull(parentId);
+        if (parentType == 'contact') c.contactId = _emptyToNull(parentId);
+        if (parentType == 'opportunity') c.opportunityId = _emptyToNull(parentId);
+        if (parentType == 'quote') c.quoteId = _emptyToNull(parentId);
+        await repo.updateContract(c);
       case 'quote':
-        switch (targetType) {
-          case 'contract':
-            final c = await repo.getContract(targetId);
-            if (c == null) return;
-            c.quoteId = parentId;
-            await repo.updateContract(c);
-        }
+        final q = await repo.getQuote(targetId);
+        if (q == null) return;
+        if (parentType == 'account') q.accountId = _emptyToNull(parentId);
+        if (parentType == 'contact') q.contactId = _emptyToNull(parentId);
+        if (parentType == 'opportunity') q.opportunityId = _emptyToNull(parentId);
+        await repo.updateQuote(q);
+      case 'paymentPlan':
+        final p = await repo.getPaymentPlan(targetId);
+        if (p == null) return;
+        if (parentType == 'contract') p.contractId = _emptyOrEmpty(parentId);
+        await repo.updatePaymentPlan(p);
+      case 'payment':
+        final p = await repo.getPayment(targetId);
+        if (p == null) return;
+        if (parentType == 'contract') p.contractId = _emptyOrEmpty(parentId);
+        if (parentType == 'paymentPlan') p.planId = _emptyToNull(parentId);
+        await repo.updatePayment(p);
+      case 'invoice':
+        final i = await repo.getInvoice(targetId);
+        if (i == null) return;
+        if (parentType == 'contract') i.contractId = _emptyOrEmpty(parentId);
+        await repo.updateInvoice(i);
+      case 'warranty':
+        final w = await repo.getWarranty(targetId);
+        if (w == null) return;
+        if (parentType == 'contract') w.contractId = _emptyOrEmpty(parentId);
+        if (parentType == 'product') w.productId = _emptyToNull(parentId);
+        await repo.updateWarranty(w);
+      case 'afterSales':
+        final t = await repo.getAfterSales(targetId);
+        if (t == null) return;
+        if (parentType == 'account') t.accountId = _emptyOrEmpty(parentId);
+        if (parentType == 'contact') t.contactId = _emptyToNull(parentId);
+        if (parentType == 'contract') t.contractId = _emptyToNull(parentId);
+        await repo.updateAfterSales(t);
     }
   }
+
+  static String? _emptyToNull(String id) => id.isEmpty ? null : id;
+
+  static String _emptyOrEmpty(String id) => id;
 }

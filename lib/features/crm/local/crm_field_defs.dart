@@ -70,6 +70,10 @@ const List<String> kOpportunityStages = [
 const Map<String, List<LocalObjectField>> kBaseObjectFields = {
   'account': [
     LocalObjectField('name', '名称'),
+    LocalObjectField('contact', '联系人', type: 'relation'),
+    LocalObjectField('opportunity', '商机', type: 'relation'),
+    LocalObjectField('contract', '合同', type: 'relation'),
+    LocalObjectField('quote', '报价', type: 'relation'),
     LocalObjectField('type', '客户类型', type: 'select', options: [
       'company',
       'person',
@@ -334,6 +338,149 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('createdAt', '创建时间', type: 'date'),
   ],
 };
+
+/// 关系字段定义：某对象上的 relation 字段 → 候选记录类型 + 方向。
+/// [currentIsParent] = true 表示当前实体是父（选中的记录挂到当前，多值）；
+/// false 表示当前实体是子（当前挂到选中的记录，单值）。
+class CrmRelationDef {
+  final String candidateType;
+  final bool currentIsParent;
+
+  const CrmRelationDef(this.candidateType, {required this.currentIsParent});
+}
+
+const Map<String, Map<String, CrmRelationDef>> kRelationDefs = {
+  'account': {
+    'contact': CrmRelationDef('contact', currentIsParent: true),
+    'opportunity': CrmRelationDef('opportunity', currentIsParent: true),
+    'contract': CrmRelationDef('contract', currentIsParent: true),
+    'quote': CrmRelationDef('quote', currentIsParent: true),
+  },
+  'contact': {
+    'account': CrmRelationDef('account', currentIsParent: false),
+  },
+  'opportunity': {
+    'account': CrmRelationDef('account', currentIsParent: false),
+    'contact': CrmRelationDef('contact', currentIsParent: false),
+  },
+  'contract': {
+    'account': CrmRelationDef('account', currentIsParent: false),
+    'contact': CrmRelationDef('contact', currentIsParent: false),
+    'opportunity': CrmRelationDef('opportunity', currentIsParent: false),
+    'quote': CrmRelationDef('quote', currentIsParent: false),
+  },
+  'quote': {
+    'account': CrmRelationDef('account', currentIsParent: false),
+    'contact': CrmRelationDef('contact', currentIsParent: false),
+    'opportunity': CrmRelationDef('opportunity', currentIsParent: false),
+  },
+  'paymentPlan': {
+    'contract': CrmRelationDef('contract', currentIsParent: false),
+  },
+  'payment': {
+    'contract': CrmRelationDef('contract', currentIsParent: false),
+    'plan': CrmRelationDef('paymentPlan', currentIsParent: false),
+  },
+  'invoice': {
+    'contract': CrmRelationDef('contract', currentIsParent: false),
+  },
+  'warranty': {
+    'contract': CrmRelationDef('contract', currentIsParent: false),
+    'product': CrmRelationDef('product', currentIsParent: false),
+  },
+  'afterSales': {
+    'account': CrmRelationDef('account', currentIsParent: false),
+    'contact': CrmRelationDef('contact', currentIsParent: false),
+    'contract': CrmRelationDef('contract', currentIsParent: false),
+  },
+};
+
+/// relation 字段名 → 子侧外键字段名（当前实体挂到父时写入的字段）。
+String relationFieldToFk(String field) {
+  switch (field) {
+    case 'account':
+      return 'accountId';
+    case 'contact':
+      return 'contactId';
+    case 'opportunity':
+      return 'opportunityId';
+    case 'contract':
+      return 'contractId';
+    case 'plan':
+      return 'planId';
+    case 'product':
+      return 'productId';
+    case 'quote':
+      return 'quoteId';
+    default:
+      return '${field}Id';
+  }
+}
+
+/// 关系候选记录的展示文本（各对象的主标签）。
+String crmRecordLabel(String type, Object record) {
+  switch (type) {
+    case 'account':
+      return (record as LocalAccount).name;
+    case 'contact':
+      return (record as LocalContact).name;
+    case 'opportunity':
+      return (record as LocalOpportunity).name;
+    case 'contract':
+      final c = record as LocalContract;
+      return c.name.isEmpty ? c.contractNo : c.name;
+    case 'quote':
+      final q = record as LocalQuote;
+      return q.quoteNo.isEmpty ? '（未编号报价）' : q.quoteNo;
+    case 'paymentPlan':
+      return (record as LocalPaymentPlan).planName;
+    case 'payment':
+      return '¥${(record as LocalPayment).amount.toStringAsFixed(2)}';
+    case 'invoice':
+      final i = record as LocalInvoice;
+      return i.invoiceNo.isEmpty ? '（未编号发票）' : i.invoiceNo;
+    case 'warranty':
+      final w = record as LocalWarranty;
+      return w.serialNo.isEmpty ? '（未登记序列号）' : w.serialNo;
+    case 'product':
+      return (record as LocalProduct).name;
+    case 'afterSales':
+      final t = record as LocalAfterSales;
+      return t.ticketNo.isEmpty ? '（未编号工单）' : t.ticketNo;
+    default:
+      return record.toString();
+  }
+}
+
+/// 关系候选记录的 id。
+String crmRecordId(String type, Object record) {
+  switch (type) {
+    case 'account':
+      return (record as LocalAccount).id;
+    case 'contact':
+      return (record as LocalContact).id;
+    case 'opportunity':
+      return (record as LocalOpportunity).id;
+    case 'contract':
+      return (record as LocalContract).id;
+    case 'quote':
+      return (record as LocalQuote).id;
+    case 'paymentPlan':
+      return (record as LocalPaymentPlan).id;
+    case 'payment':
+      return (record as LocalPayment).id;
+    case 'invoice':
+      return (record as LocalInvoice).id;
+    case 'warranty':
+      return (record as LocalWarranty).id;
+    case 'product':
+      return (record as LocalProduct).id;
+    case 'afterSales':
+      return (record as LocalAfterSales).id;
+    default:
+      return record.toString();
+  }
+}
 
 /// 基础对象字段的展示值格式化（typed → data map）
 Map<String, dynamic> accountToDataMap(LocalAccount a) => {

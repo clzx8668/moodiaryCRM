@@ -31,6 +31,9 @@ class CrmEntityDetailView extends StatefulWidget {
   /// 打开「新增 + 自动关联」流程（targetType 为新对象类型）
   final void Function(String targetType)? onCreateRelated;
 
+  /// 反向新增：新建 [targetType]（父）后把当前实体挂上去（子侧关系字段用）
+  final void Function(String targetType)? onCreateBackRelated;
+
   /// 打开关联记录详情（下钻，支持逐层返回）
   final void Function(String targetType, String targetId)? onOpenRelated;
 
@@ -43,6 +46,7 @@ class CrmEntityDetailView extends StatefulWidget {
     this.onChanged,
     this.onLinkRelated,
     this.onCreateRelated,
+    this.onCreateBackRelated,
     this.onOpenRelated,
   });
 
@@ -60,6 +64,8 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   bool _addingActivity = false;
   String? _addingOptionFor;
   final Map<String, List<String>> _extraOptions = {};
+  final Map<String, Future<List<Object>>> _relationCandidateFutures = {};
+  final Map<String, List<Object>> _linkedByCandidate = {};
   final TextEditingController _optionController = TextEditingController();
   final TextEditingController _tagController = TextEditingController();
   final TextEditingController _activitySubject = TextEditingController();
@@ -230,7 +236,6 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
 
   Widget _buildFields() {
     final editable = widget.fields
-        .where((f) => f.type != 'relation')
         .where((f) => f.name != 'createdAt' && f.name != 'updatedAt')
         .where((f) => f.name != 'currency') // 币种由金额复合组件承载
         .toList();
@@ -250,6 +255,9 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   }
 
   Widget _buildFieldTile(LocalObjectField field) {
+    if (field.type == 'relation') {
+      return _buildRelationTile(field);
+    }
     final editing = _editing[field.name] == true;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -401,6 +409,280 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
         ),
       ],
     );
+  }
+
+  // ==================== 关系字段（原位下拉选择） ====================
+
+  Widget _buildRelationTile(LocalObjectField field) {
+    final def = kRelationDefs[widget.objectType]?[field.name];
+    if (def == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              field.label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Object>>(
+              future: _relationCandidatesFor(def.candidateType),
+              builder: (context, snapshot) {
+                final candidates = snapshot.data ?? const <Object>[];
+                final linked =
+                    _linkedByCandidate[def.candidateType] ?? const <Object>[];
+                final String display;
+                if (def.currentIsParent) {
+                  display = linked.isEmpty ? '—' : '已关联 ${linked.length} 条';
+                } else {
+                  final value = _stringValue(field);
+                  display = value.isEmpty ? '—' : value;
+                }
+                return PopupMenuButton<_RelationChoice>(
+                  tooltip: '选择${field.label}',
+                  onSelected: (choice) =>
+                      _handleRelationChoice(field, def, choice),
+                  itemBuilder: (context) =>
+                      _relationMenuItems(field, def, candidates),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          display,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_drop_down_rounded,
+                        size: 18,
+                        color: Colors.grey,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 关系候选记录列表（按候选类型缓存；父侧同时计算已挂靠记录）。
+  Future<List<Object>> _relationCandidatesFor(String type) {
+    return _relationCandidateFutures.putIfAbsent(type, () async {
+      final repo = _repo;
+      final List<Object> records;
+      switch (type) {
+        case 'account':
+          records = await repo.listAccounts();
+        case 'contact':
+          records = await repo.listContacts();
+        case 'opportunity':
+          records = await repo.listOpportunities();
+        case 'contract':
+          records = await repo.listContracts();
+        case 'quote':
+          records = await repo.listQuotes();
+        case 'paymentPlan':
+          records = await repo.listPaymentPlans();
+        case 'payment':
+          records = await repo.listPayments();
+        case 'invoice':
+          records = await repo.listInvoices();
+        case 'warranty':
+          records = await repo.listWarranties();
+        case 'product':
+          records = await repo.listProducts();
+        case 'afterSales':
+          records = await repo.listAfterSales();
+        default:
+          records = const [];
+      }
+      // 当前实体是这些候选的父时，同时计算已挂靠记录（用于字段显示与过滤）
+      final isParent = kRelationDefs[widget.objectType]
+              ?.values
+              .any((d) => d.candidateType == type && d.currentIsParent) ==
+          true;
+      if (isParent) {
+        final assoc = await _loadAssocData(widget.objectType);
+        _linkedByCandidate[type] = assoc.linked[type] ?? const [];
+      }
+      return records;
+    });
+  }
+
+  void _invalidateRelationCandidates() {
+    _relationCandidateFutures.clear();
+    _linkedByCandidate.clear();
+  }
+
+  List<PopupMenuEntry<_RelationChoice>> _relationMenuItems(
+    LocalObjectField field,
+    CrmRelationDef def,
+    List<Object> candidates,
+  ) {
+    final items = <PopupMenuEntry<_RelationChoice>>[];
+    final label = crmTypeLabel(def.candidateType);
+    items.add(
+      PopupMenuItem(
+        enabled: false,
+        height: 28,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      ),
+    );
+    items.add(
+      PopupMenuItem(
+        value: const _RelationChoice.create(),
+        height: 34,
+        child: Row(
+          children: [
+            const Icon(Icons.add_rounded, size: 16),
+            const SizedBox(width: 6),
+            Text('新增$label'),
+          ],
+        ),
+      ),
+    );
+    if (!def.currentIsParent && _stringValue(field).isNotEmpty) {
+      items.add(
+        const PopupMenuItem(
+          value: _RelationChoice.unlink(),
+          height: 34,
+          child: Row(
+            children: [
+              Icon(Icons.link_off_rounded, size: 16),
+              SizedBox(width: 6),
+              Text('取消关联'),
+            ],
+          ),
+        ),
+      );
+    }
+    final linkedIds = (_linkedByCandidate[def.candidateType] ?? const <Object>[])
+        .map((r) => crmRecordId(def.candidateType, r))
+        .toSet();
+    for (final record in candidates.take(30)) {
+      final id = crmRecordId(def.candidateType, record);
+      if (def.currentIsParent && linkedIds.contains(id)) continue;
+      items.add(
+        PopupMenuItem(
+          value: _RelationChoice.link(id),
+          height: 34,
+          child: Row(
+            children: [
+              Icon(
+                def.currentIsParent
+                    ? Icons.link_rounded
+                    : Icons.subdirectory_arrow_left_rounded,
+                size: 15,
+                color: Colors.grey,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  def.currentIsParent
+                      ? '关联 · ${crmRecordLabel(def.candidateType, record)}'
+                      : crmRecordLabel(def.candidateType, record),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return items;
+  }
+
+  Future<void> _handleRelationChoice(
+    LocalObjectField field,
+    CrmRelationDef def,
+    _RelationChoice choice,
+  ) async {
+    switch (choice.kind) {
+      case 'create':
+        if (def.currentIsParent) {
+          widget.onCreateRelated?.call(def.candidateType);
+        } else {
+          widget.onCreateBackRelated?.call(def.candidateType);
+        }
+      case 'unlink':
+        await _applyRelationLink(field, def, null);
+      case 'link':
+        await _applyRelationLink(field, def, choice.targetId);
+    }
+  }
+
+  Future<void> _applyRelationLink(
+    LocalObjectField field,
+    CrmRelationDef def,
+    String? targetId,
+  ) async {
+    final myType = widget.objectType;
+    final myId = _item.twentyId;
+    try {
+      if (targetId == null || targetId.isEmpty) {
+        // 子侧解除关联：清空当前实体外键
+        final fk = relationFieldToFk(field.name);
+        await CrmEntityFieldUpdater.update(
+          objectType: myType,
+          id: myId,
+          field: fk,
+          value: '',
+        );
+        _item.setData({..._item.data, field.name: ''});
+      } else if (def.currentIsParent) {
+        await CrmEntityLinker.link(
+          repo: _repo,
+          parentType: myType,
+          parentId: myId,
+          targetType: def.candidateType,
+          targetId: targetId,
+        );
+      } else {
+        await CrmEntityLinker.link(
+          repo: _repo,
+          parentType: def.candidateType,
+          parentId: targetId,
+          targetType: myType,
+          targetId: myId,
+        );
+        // 子侧显示值即时更新
+        final candidates = await _relationCandidatesFor(def.candidateType);
+        String? name;
+        for (final record in candidates) {
+          if (crmRecordId(def.candidateType, record) == targetId) {
+            name = crmRecordLabel(def.candidateType, record);
+            break;
+          }
+        }
+        _item.setData({
+          ..._item.data,
+          field.name: name == null ? targetId : {'name': name},
+        });
+      }
+      _invalidateRelationCandidates();
+      if (mounted) setState(() {});
+      widget.onChanged?.call();
+      toast.success(message: '已保存');
+    } catch (e) {
+      toast.error(message: '保存失败：$e');
+    }
   }
 
   // ==================== 标签 / 附件 ====================
@@ -849,52 +1131,11 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   }
 
   String _assocId(String type, Object record) {
-    switch (type) {
-      case 'contact':
-        return (record as LocalContact).id;
-      case 'opportunity':
-        return (record as LocalOpportunity).id;
-      case 'contract':
-        return (record as LocalContract).id;
-      case 'quote':
-        return (record as LocalQuote).id;
-      case 'paymentPlan':
-        return (record as LocalPaymentPlan).id;
-      case 'payment':
-        return (record as LocalPayment).id;
-      case 'invoice':
-        return (record as LocalInvoice).id;
-      case 'warranty':
-        return (record as LocalWarranty).id;
-      default:
-        return record.toString();
-    }
+    return crmRecordId(type, record);
   }
 
   String _assocLabel(String type, Object record) {
-    switch (type) {
-      case 'contact':
-        return (record as LocalContact).name;
-      case 'opportunity':
-        return (record as LocalOpportunity).name;
-      case 'contract':
-        return (record as LocalContract).name;
-      case 'quote':
-        final q = record as LocalQuote;
-        return q.quoteNo.isEmpty ? '（未编号报价）' : q.quoteNo;
-      case 'paymentPlan':
-        return (record as LocalPaymentPlan).planName;
-      case 'payment':
-        return '¥${(record as LocalPayment).amount.toStringAsFixed(2)}';
-      case 'invoice':
-        final i = record as LocalInvoice;
-        return i.invoiceNo.isEmpty ? '（未编号发票）' : i.invoiceNo;
-      case 'warranty':
-        final w = record as LocalWarranty;
-        return w.serialNo.isEmpty ? '（未登记序列号）' : w.serialNo;
-      default:
-        return record.toString();
-    }
+    return crmRecordLabel(type, record);
   }
 
   String _assocSubtitle(String type, Object record) {
@@ -1675,4 +1916,29 @@ class _AssocChoice {
 
   @override
   int get hashCode => Object.hash(kind, targetType, targetId);
+}
+
+/// 关系字段下拉菜单选择：新增 / 取消关联 / 关联已有。
+class _RelationChoice {
+  final String kind; // 'create' | 'link' | 'unlink'
+  final String? targetId;
+
+  const _RelationChoice.create()
+    : kind = 'create',
+      targetId = null;
+
+  const _RelationChoice.unlink()
+    : kind = 'unlink',
+      targetId = null;
+
+  const _RelationChoice.link(this.targetId) : kind = 'link';
+
+  @override
+  bool operator ==(Object other) =>
+      other is _RelationChoice &&
+      other.kind == kind &&
+      other.targetId == targetId;
+
+  @override
+  int get hashCode => Object.hash(kind, targetId);
 }

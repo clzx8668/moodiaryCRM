@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:moodiary/features/crm/local/crm_ai_assist.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
+import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/widgets/crm_currency_amount_field.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 新增表单内联面板（Twenty 式，替代新增弹窗）。
 class CrmCreateFormPanel extends StatefulWidget {
+  final String objectType;
   final String title;
   final List<LocalObjectField> fields;
   final Future<void> Function(Map<String, dynamic> data) onCreate;
@@ -16,6 +18,7 @@ class CrmCreateFormPanel extends StatefulWidget {
 
   const CrmCreateFormPanel({
     super.key,
+    required this.objectType,
     required this.title,
     required this.fields,
     required this.onCreate,
@@ -36,12 +39,13 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
   bool _saving = false;
   final Map<String, List<String>> _extraOptions = {};
   final Map<String, String> _fieldCurrencies = {};
+  final Map<String, String> _relationSelections = {};
+  final Map<String, Future<List<Object>>> _relationFutures = {};
   String? _addingOptionFor;
   final TextEditingController _optionController = TextEditingController();
 
   static bool isEditable(LocalObjectField field) {
     if (field.name.endsWith('Id')) return false;
-    if (field.type == 'relation') return false;
     if (field.name == 'createdAt' || field.name == 'updatedAt') return false;
     // 去掉重复/自动计算字段：币种由金额复合组件承载；已收/已开票由流水自动累加
     if (field.name == 'currency' ||
@@ -76,6 +80,38 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
     return [...field.options, ...?_extraOptions[field.name]];
   }
 
+  Future<List<Object>> _relationCandidatesFor(String type) {
+    return _relationFutures.putIfAbsent(type, () async {
+      final repo = CrmLocalRepository();
+      switch (type) {
+        case 'account':
+          return repo.listAccounts();
+        case 'contact':
+          return repo.listContacts();
+        case 'opportunity':
+          return repo.listOpportunities();
+        case 'contract':
+          return repo.listContracts();
+        case 'quote':
+          return repo.listQuotes();
+        case 'paymentPlan':
+          return repo.listPaymentPlans();
+        case 'payment':
+          return repo.listPayments();
+        case 'invoice':
+          return repo.listInvoices();
+        case 'warranty':
+          return repo.listWarranties();
+        case 'product':
+          return repo.listProducts();
+        case 'afterSales':
+          return repo.listAfterSales();
+        default:
+          return const [];
+      }
+    });
+  }
+
   Future<void> _pickDate(LocalObjectField field) async {
     final picked = await showDatePicker(
       context: context,
@@ -103,6 +139,9 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
   }
 
   Widget _inputFor(LocalObjectField field) {
+    if (field.type == 'relation') {
+      return _relationInput(field);
+    }
     if (field.type == 'select' ||
         (field.type == 'currency' && field.name == 'currency')) {
       final options = _optionsFor(field);
@@ -185,6 +224,39 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
     );
   }
 
+  Widget _relationInput(LocalObjectField field) {
+    final def = kRelationDefs[widget.objectType]?[field.name];
+    if (def == null) return const SizedBox.shrink();
+    return FutureBuilder<List<Object>>(
+      future: _relationCandidatesFor(def.candidateType),
+      builder: (context, snapshot) {
+        final candidates = snapshot.data ?? const <Object>[];
+        return DropdownButtonFormField<String>(
+          initialValue: _relationSelections[field.name] ?? '',
+          decoration: InputDecoration(
+            labelText: field.label,
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+          items: [
+            const DropdownMenuItem(value: '', child: Text('不关联')),
+            for (final record in candidates)
+              DropdownMenuItem(
+                value: crmRecordId(def.candidateType, record),
+                child: Text(
+                  crmRecordLabel(def.candidateType, record),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+          onChanged: (v) => setState(() {
+            _relationSelections[field.name] = v ?? '';
+          }),
+        );
+      },
+    );
+  }
+
   Future<void> _save() async {
     if (_saving) return;
     final data = <String, dynamic>{
@@ -194,6 +266,10 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
       // 复合币种字段：无独立 currency 字段时，币种随金额字段写入 <字段>Currency
       for (final entry in _fieldCurrencies.entries)
         if (entry.value.isNotEmpty) '${entry.key}Currency': entry.value,
+      // 关系字段：写入外键（关联已有记录）
+      for (final entry in _relationSelections.entries)
+        if (entry.value.isNotEmpty)
+          relationFieldToFk(entry.key): entry.value,
     };
     if (data.isEmpty) {
       toast.info(message: '请至少填写一个字段');
@@ -377,6 +453,7 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
 
 /// 移动端新增页（整页复用 [CrmCreateFormPanel]）。
 class CrmCreatePage extends StatelessWidget {
+  final String objectType;
   final String title;
   final List<LocalObjectField> fields;
   final Future<void> Function(Map<String, dynamic> data) onCreate;
@@ -384,6 +461,7 @@ class CrmCreatePage extends StatelessWidget {
 
   const CrmCreatePage({
     super.key,
+    required this.objectType,
     required this.title,
     required this.fields,
     required this.onCreate,
@@ -399,6 +477,7 @@ class CrmCreatePage extends StatelessWidget {
         ),
       ),
       body: CrmCreateFormPanel(
+        objectType: objectType,
         title: title,
         fields: fields,
         contextLabel: contextLabel,

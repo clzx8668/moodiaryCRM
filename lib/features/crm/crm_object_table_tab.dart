@@ -128,13 +128,21 @@ enum _PanelMode { detail, columns, create }
 
 /// 关联新增上下文：创建成功后把新记录挂到父实体。
 class _LinkContext {
-  final String parentType;
-  final String parentId;
+  /// 正向：新建记录挂到已存在的父实体
+  final String? parentType;
+  final String? parentId;
+
+  /// 反向：新建父实体后，把 [backType]/[backId]（当前实体）挂上去
+  final String? backType;
+  final String? backId;
+
   final String parentLabel;
 
   const _LinkContext({
-    required this.parentType,
-    required this.parentId,
+    this.parentType,
+    this.parentId,
+    this.backType,
+    this.backId,
     required this.parentLabel,
   });
 }
@@ -873,6 +881,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     } else {
       Get.to(
         () => CrmCreatePage(
+          objectType: objectType,
           title: title,
           fields: fields,
           contextLabel: subtitle,
@@ -941,14 +950,27 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       data: data,
     );
     if (newId != null && ctx != null) {
-      await CrmEntityLinker.link(
-        repo: _repo,
-        parentType: ctx.parentType,
-        parentId: ctx.parentId,
-        targetType: type,
-        targetId: newId,
-      );
-      toast.success(message: '已创建并关联「${ctx.parentLabel}」');
+      if (ctx.backType != null && ctx.backId != null) {
+        // 反向：新建父实体，把当前实体挂上去
+        await CrmEntityLinker.link(
+          repo: _repo,
+          parentType: type,
+          parentId: newId,
+          targetType: ctx.backType!,
+          targetId: ctx.backId!,
+        );
+        toast.success(message: '已创建并关联「${ctx.parentLabel}」');
+      } else if (ctx.parentType != null && ctx.parentId != null) {
+        // 正向：新记录挂到已存在父实体
+        await CrmEntityLinker.link(
+          repo: _repo,
+          parentType: ctx.parentType!,
+          parentId: ctx.parentId!,
+          targetType: type,
+          targetId: newId,
+        );
+        toast.success(message: '已创建并关联「${ctx.parentLabel}」');
+      }
     }
   }
 
@@ -989,6 +1011,23 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         parentLabel: item.name,
       ),
       subtitle: '关联：${item.name}',
+    );
+  }
+
+  /// 子侧关系字段「新增并关联」：新建父实体，把当前实体挂上去。
+  void _createBackRelatedFromPanel(String targetType) {
+    final frame = _panel;
+    final item = frame?.item;
+    if (frame == null || item == null) return;
+    _openCreateFor(
+      objectType: targetType,
+      title: crmTypeLabel(targetType),
+      linkContext: _LinkContext(
+        backType: frame.objectType,
+        backId: item.twentyId,
+        parentLabel: item.name,
+      ),
+      subtitle: '挂到：${item.name}',
     );
   }
 
@@ -1291,6 +1330,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
           onDelete: _deleteSelected,
           onLinkRelated: _linkToCurrentEntity,
           onCreateRelated: _createRelatedFromPanel,
+          onCreateBackRelated: _createBackRelatedFromPanel,
           onOpenRelated: _openRelatedDetail,
         );
       case _PanelMode.columns:
@@ -1304,6 +1344,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         );
       case _PanelMode.create:
         return CrmCreateFormPanel(
+          objectType: frame.objectType,
           title: frame.title ?? widget.title,
           contextLabel: frame.subtitle,
           fields: frame.fields,

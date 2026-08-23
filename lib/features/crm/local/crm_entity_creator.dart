@@ -32,6 +32,7 @@ Future<String?> createCrmEntity({
       final c = await repo.createContact(
         LocalContact(
           id: '',
+          accountId: data['accountId']?.toString() ?? '',
           name: data['name']?.toString() ?? '',
           title: data['title']?.toString() ?? '',
           department: data['department']?.toString() ?? '',
@@ -48,6 +49,8 @@ Future<String?> createCrmEntity({
       final o = await repo.createOpportunity(
         LocalOpportunity(
           id: '',
+          accountId: data['accountId']?.toString(),
+          contactId: data['contactId']?.toString(),
           name: data['name']?.toString() ?? '',
           stage: data['stage']?.toString() ?? 'newLead',
           probability: _toInt(data['probability']) ?? 0,
@@ -71,6 +74,10 @@ Future<String?> createCrmEntity({
       final c = await repo.createContract(
         LocalContract(
           id: '',
+          accountId: data['accountId']?.toString(),
+          contactId: data['contactId']?.toString(),
+          opportunityId: data['opportunityId']?.toString(),
+          quoteId: data['quoteId']?.toString(),
           contractNo: data['contractNo']?.toString() ?? '',
           name: data['name']?.toString() ?? '',
           status: data['status']?.toString() ?? '',
@@ -113,6 +120,9 @@ Future<String?> createCrmEntity({
       final q = await repo.createQuote(
         LocalQuote(
           id: '',
+          accountId: data['accountId']?.toString(),
+          contactId: data['contactId']?.toString(),
+          opportunityId: data['opportunityId']?.toString(),
           status: data['status']?.toString() ?? 'draft',
           currency:
               data['totalAmountCurrency']?.toString() ??
@@ -129,7 +139,7 @@ Future<String?> createCrmEntity({
       final p = await repo.createPaymentPlan(
         LocalPaymentPlan(
           id: '',
-          contractId: '',
+          contractId: data['contractId']?.toString() ?? '',
           planName: data['planName']?.toString() ?? '',
           planAmount: _toDouble(data['planAmount']) ?? 0,
           planDate: _parseDate(data['planDate']) ?? DateTime.now(),
@@ -141,7 +151,8 @@ Future<String?> createCrmEntity({
       final p = await repo.createPayment(
         LocalPayment(
           id: '',
-          contractId: '',
+          contractId: data['contractId']?.toString() ?? '',
+          planId: data['planId']?.toString(),
           amount: _toDouble(data['amount']) ?? 0,
           currency:
               data['amountCurrency']?.toString() ??
@@ -157,7 +168,7 @@ Future<String?> createCrmEntity({
       final i = await repo.createInvoice(
         LocalInvoice(
           id: '',
-          contractId: '',
+          contractId: data['contractId']?.toString() ?? '',
           invoiceNo: data['invoiceNo']?.toString() ?? '',
           type: data['type']?.toString() ?? 'vat_normal',
           amount: _toDouble(data['amount']) ?? 0,
@@ -177,7 +188,8 @@ Future<String?> createCrmEntity({
       final w = await repo.createWarranty(
         LocalWarranty(
           id: '',
-          contractId: '',
+          contractId: data['contractId']?.toString() ?? '',
+          productId: data['productId']?.toString(),
           serialNo: data['serialNo']?.toString() ?? '',
           startDate: _parseDate(data['startDate']) ?? DateTime.now(),
           endDate: _parseDate(data['endDate']) ?? DateTime.now(),
@@ -190,6 +202,9 @@ Future<String?> createCrmEntity({
       final t = await repo.createAfterSales(
         LocalAfterSales(
           id: '',
+          accountId: data['accountId']?.toString() ?? '',
+          contactId: data['contactId']?.toString(),
+          contractId: data['contractId']?.toString(),
           subject: data['subject']?.toString() ?? '',
           type: data['type']?.toString() ?? 'other',
           priority: data['priority']?.toString() ?? 'medium',

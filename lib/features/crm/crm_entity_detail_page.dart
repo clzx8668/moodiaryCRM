@@ -56,6 +56,7 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
         fields: widget.fields,
         onLinkRelated: _linkRelated,
         onCreateRelated: _createRelated,
+        onCreateBackRelated: _createBackRelated,
         onOpenRelated: _openRelated,
         onChanged: () {
           if (mounted) setState(() {});
@@ -83,6 +84,7 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
   void _createRelated(String targetType) {
     final future = Get.to(
       () => CrmCreatePage(
+        objectType: targetType,
         title: crmTypeLabel(targetType),
         fields: kBaseObjectFields[targetType] ?? const [],
         contextLabel: '关联：${widget.item.name}',
@@ -99,6 +101,37 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
               parentId: widget.item.twentyId,
               targetType: targetType,
               targetId: id,
+            );
+          }
+        },
+      ),
+    );
+    future?.then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  /// 子侧关系字段「新增并关联」：新建父实体后把当前实体挂上去。
+  void _createBackRelated(String targetType) {
+    final future = Get.to(
+      () => CrmCreatePage(
+        objectType: targetType,
+        title: crmTypeLabel(targetType),
+        fields: kBaseObjectFields[targetType] ?? const [],
+        contextLabel: '关联：${widget.item.name}',
+        onCreate: (data) async {
+          final id = await createCrmEntity(
+            repo: CrmLocalRepository(),
+            objectType: targetType,
+            data: data,
+          );
+          if (id != null) {
+            await CrmEntityLinker.link(
+              repo: CrmLocalRepository(),
+              parentType: targetType,
+              parentId: id,
+              targetType: widget.objectType,
+              targetId: widget.item.twentyId,
             );
           }
         },

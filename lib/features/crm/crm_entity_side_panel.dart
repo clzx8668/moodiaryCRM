@@ -20,6 +20,7 @@ class CrmEntitySidePanel extends StatelessWidget {
   final Future<void> Function(String targetType, String targetId)?
   onLinkRelated;
   final void Function(String targetType)? onCreateRelated;
+  final void Function(String targetType)? onCreateBackRelated;
   final void Function(String targetType, String targetId)? onOpenRelated;
 
   const CrmEntitySidePanel({
@@ -32,6 +33,7 @@ class CrmEntitySidePanel extends StatelessWidget {
     required this.onDelete,
     this.onLinkRelated,
     this.onCreateRelated,
+    this.onCreateBackRelated,
     this.onOpenRelated,
   });
 
@@ -87,6 +89,7 @@ class CrmEntitySidePanel extends StatelessWidget {
               onChanged: onChanged,
               onLinkRelated: onLinkRelated,
               onCreateRelated: onCreateRelated,
+              onCreateBackRelated: onCreateBackRelated,
               onOpenRelated: onOpenRelated,
             ),
           ),
