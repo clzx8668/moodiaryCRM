@@ -16,6 +16,12 @@ class CrmEntitySidePanel extends StatelessWidget {
   final VoidCallback onChanged;
   final VoidCallback onDelete;
 
+  /// 原位关联已有记录 / 打开新增关联 / 打开关联记录详情
+  final Future<void> Function(String targetType, String targetId)?
+  onLinkRelated;
+  final void Function(String targetType)? onCreateRelated;
+  final void Function(String targetType, String targetId)? onOpenRelated;
+
   const CrmEntitySidePanel({
     super.key,
     required this.objectType,
@@ -24,6 +30,9 @@ class CrmEntitySidePanel extends StatelessWidget {
     required this.onClose,
     required this.onChanged,
     required this.onDelete,
+    this.onLinkRelated,
+    this.onCreateRelated,
+    this.onOpenRelated,
   });
 
   @override
@@ -76,6 +85,9 @@ class CrmEntitySidePanel extends StatelessWidget {
               fields: fields,
               compact: true,
               onChanged: onChanged,
+              onLinkRelated: onLinkRelated,
+              onCreateRelated: onCreateRelated,
+              onOpenRelated: onOpenRelated,
             ),
           ),
         ],

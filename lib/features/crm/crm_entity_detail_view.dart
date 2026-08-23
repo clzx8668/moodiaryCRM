@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
+import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/local/crm_attachment_store.dart';
 import 'package:moodiary/features/crm/local/crm_entity_field_updater.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
@@ -24,6 +25,15 @@ class CrmEntityDetailView extends StatefulWidget {
   final bool compact;
   final VoidCallback? onChanged;
 
+  /// 原位关联已有记录（parentType = widget.objectType）
+  final Future<void> Function(String targetType, String targetId)? onLinkRelated;
+
+  /// 打开「新增 + 自动关联」流程（targetType 为新对象类型）
+  final void Function(String targetType)? onCreateRelated;
+
+  /// 打开关联记录详情（下钻，支持逐层返回）
+  final void Function(String targetType, String targetId)? onOpenRelated;
+
   const CrmEntityDetailView({
     super.key,
     required this.objectType,
@@ -31,6 +41,9 @@ class CrmEntityDetailView extends StatefulWidget {
     required this.fields,
     this.compact = false,
     this.onChanged,
+    this.onLinkRelated,
+    this.onCreateRelated,
+    this.onOpenRelated,
   });
 
   @override
@@ -547,18 +560,23 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     }
   }
 
-  // ==================== 下钻 / 财务 / 质保 / 报价 ====================
+  // ==================== 关联 / 下钻 / 财务 / 质保 / 报价 ====================
+
+  /// 父子关联关系（与 CrmEntityLinker 保持一致）
+  static const Map<String, List<String>> kLinkableChildren = {
+    'account': ['contact', 'opportunity', 'contract', 'quote'],
+    'opportunity': ['quote', 'contract'],
+    'contract': ['paymentPlan', 'payment', 'invoice', 'warranty'],
+    'quote': ['contract'],
+  };
 
   Widget _buildDrilldowns() {
     final sections = <Widget>[];
-    if (widget.objectType == 'account') {
-      sections.add(_accountDrilldown());
-    } else if (widget.objectType == 'opportunity') {
-      sections.add(_opportunityDrilldown());
-    } else if (widget.objectType == 'contract') {
+    if (kLinkableChildren.containsKey(widget.objectType)) {
+      sections.add(_assocSection(widget.objectType));
+    }
+    if (widget.objectType == 'contract') {
       sections.add(_contractItems());
-      sections.add(_contractFinance());
-      sections.add(_contractWarranties());
     } else if (widget.objectType == 'quote') {
       sections.add(_quoteItems());
     }
@@ -569,102 +587,360 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     );
   }
 
-  Widget _accountDrilldown() {
-    return FutureBuilder<List<Object>>(
-      future: () async {
-        final id = _item.twentyId;
-        final contacts = await _repo.contactsOfAccount(id);
-        final opps = (await _repo.listOpportunities())
-            .where((o) => o.accountId == id)
-            .toList();
-        final contracts = (await _repo.listContracts())
+  Future<_AssocData> _loadAssocData(String parentType) async {
+    final id = _item.twentyId;
+    final linked = <String, List<Object>>{};
+    final unlinked = <String, List<Object>>{};
+    switch (parentType) {
+      case 'account':
+        final contacts = await _repo.listContacts();
+        final opps = await _repo.listOpportunities();
+        final contracts = await _repo.listContracts();
+        final quotes = await _repo.listQuotes();
+        linked['contact'] = contacts.where((c) => c.accountId == id).toList();
+        linked['opportunity'] = opps.where((o) => o.accountId == id).toList();
+        linked['contract'] = contracts
             .where((c) => c.accountId == id)
             .toList();
-        return <Object>[...contacts, ...opps, ...contracts];
-      }(),
+        linked['quote'] = quotes.where((q) => q.accountId == id).toList();
+        unlinked['contact'] = contacts
+            .where((c) => (c.accountId ?? '').isEmpty)
+            .toList();
+        unlinked['opportunity'] = opps
+            .where((o) => (o.accountId ?? '').isEmpty)
+            .toList();
+        unlinked['contract'] = contracts
+            .where((c) => (c.accountId ?? '').isEmpty)
+            .toList();
+        unlinked['quote'] = quotes
+            .where((q) => (q.accountId ?? '').isEmpty)
+            .toList();
+      case 'opportunity':
+        final contracts = await _repo.listContracts();
+        final quotes = await _repo.listQuotes();
+        linked['contract'] = contracts
+            .where((c) => c.opportunityId == id)
+            .toList();
+        linked['quote'] = quotes.where((q) => q.opportunityId == id).toList();
+        unlinked['contract'] = contracts
+            .where((c) => (c.opportunityId ?? '').isEmpty)
+            .toList();
+        unlinked['quote'] = quotes
+            .where((q) => (q.opportunityId ?? '').isEmpty)
+            .toList();
+      case 'contract':
+        final plans = await _repo.listPaymentPlans();
+        final payments = await _repo.listPayments();
+        final invoices = await _repo.listInvoices();
+        final warranties = await _repo.listWarranties();
+        linked['paymentPlan'] = plans
+            .where((p) => p.contractId == id)
+            .toList();
+        linked['payment'] = payments
+            .where((p) => p.contractId == id)
+            .toList();
+        linked['invoice'] = invoices.where((i) => i.contractId == id).toList();
+        linked['warranty'] = warranties
+            .where((w) => w.contractId == id)
+            .toList();
+        unlinked['paymentPlan'] = plans
+            .where((p) => p.contractId.isEmpty)
+            .toList();
+        unlinked['payment'] = payments
+            .where((p) => p.contractId.isEmpty)
+            .toList();
+        unlinked['invoice'] = invoices
+            .where((i) => i.contractId.isEmpty)
+            .toList();
+        unlinked['warranty'] = warranties
+            .where((w) => w.contractId.isEmpty)
+            .toList();
+      case 'quote':
+        final contracts = await _repo.listContracts();
+        linked['contract'] = contracts.where((c) => c.quoteId == id).toList();
+        unlinked['contract'] = contracts
+            .where((c) => (c.quoteId ?? '').isEmpty)
+            .toList();
+    }
+    return _AssocData(linked: linked, unlinked: unlinked);
+  }
+
+  Widget _assocSection(String parentType) {
+    return FutureBuilder<_AssocData>(
+      future: _loadAssocData(parentType),
       builder: (context, snapshot) {
-        final items = snapshot.data ?? const [];
+        final data = snapshot.data ?? _AssocData.empty();
+        final total = data.linked.values
+            .fold<int>(0, (sum, list) => sum + list.length);
+        Widget title = Text(
+          '关联业务（$total）',
+          style: Theme.of(context).textTheme.titleSmall,
+        );
+        Widget? summary;
+        if (parentType == 'contract') {
+          var paid = 0.0;
+          var invoiced = 0.0;
+          for (final p in data.linked['payment'] ?? const <Object>[]) {
+            paid += (p as LocalPayment).amount;
+          }
+          for (final i in data.linked['invoice'] ?? const <Object>[]) {
+            invoiced += (i as LocalInvoice).amount;
+          }
+          title = Text(
+            '财务与关联（已回款 ¥${paid.toStringAsFixed(2)}'
+            ' · 已开票 ¥${invoiced.toStringAsFixed(2)}）',
+            style: Theme.of(context).textTheme.titleSmall,
+          );
+          summary = Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              '共 $total 条关联记录（回款计划/回款/发票/质保）',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          );
+        }
         return _sectionCard(
-          '关联业务（${items.length}）',
-          items.isEmpty
-              ? const Text('暂无联系人/机会/合同')
-              : Column(children: [
-                  for (final item in items.take(50))
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(
-                      item is LocalContact
-                          ? Icons.person_outline_rounded
-                          : item is LocalOpportunity
-                          ? Icons.trending_up_rounded
-                          : Icons.description_outlined,
-                      size: 18,
-                    ),
-                    title: Text(
-                      item is LocalContact
-                          ? item.name
-                          : item is LocalOpportunity
-                          ? item.name
-                          : (item as LocalContract).name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      item is LocalContact
-                          ? '联系人 · ${item.title}'
-                          : item is LocalOpportunity
-                          ? '机会 · ${item.stage}'
-                          : '合同 · ${(item as LocalContract).status}',
-                    ),
-                  ),
-                ]),
+          Row(
+            children: [
+              Expanded(child: title),
+              _assocPicker(parentType, data),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (summary != null) summary,
+              if (total == 0)
+                const Text('暂无关联记录，点右上「⊕」选择已有或新增')
+              else
+                Column(
+                  children: [
+                    for (final type
+                        in kLinkableChildren[parentType] ?? const <String>[])
+                      if ((data.linked[type] ?? const []).isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 2),
+                          child: Text(
+                            crmTypeLabel(type),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ),
+                        for (final record in data.linked[type]!)
+                          _assocTile(parentType, type, record),
+                      ],
+                  ],
+                ),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _opportunityDrilldown() {
-    return FutureBuilder<List<Object>>(
-      future: () async {
-        final id = _item.twentyId;
-        final contracts = (await _repo.listContracts())
-            .where((c) => c.opportunityId == id)
-            .toList();
-        final quotes = (await _repo.listQuotes())
-            .where((q) => q.opportunityId == id)
-            .toList();
-        return <Object>[...contracts, ...quotes];
-      }(),
-      builder: (context, snapshot) {
-        final items = snapshot.data ?? const [];
-        return _sectionCard(
-          '关联报价/合同（${items.length}）',
-          items.isEmpty
-              ? const Text('暂无报价/合同')
-              : Column(children: [
-                  for (final item in items.take(30))
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(
-                      item is LocalQuote
-                          ? Icons.request_quote_outlined
-                          : Icons.description_outlined,
-                      size: 18,
-                    ),
-                    title: Text(
-                      item is LocalQuote
-                          ? '${item.quoteNo} · ${item.status}'
-                          : (item as LocalContract).name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ]),
-        );
-      },
+  Widget _assocTile(String parentType, String type, Object record) {
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(_assocIcon(type), size: 18),
+      title: Text(
+        _assocLabel(type, record),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(_assocSubtitle(type, record)),
+      trailing: const Icon(Icons.chevron_right_rounded, size: 16),
+      onTap: widget.onOpenRelated == null
+          ? null
+          : () => widget.onOpenRelated!(type, _assocId(type, record)),
     );
+  }
+
+  Widget _assocPicker(String parentType, _AssocData data) {
+    return PopupMenuButton<_AssocChoice>(
+      tooltip: '关联记录',
+      icon: const Icon(Icons.add_link_rounded, size: 18),
+      onSelected: (choice) => _handleAssocChoice(parentType, choice),
+      itemBuilder: (context) => _assocMenuItems(parentType, data),
+    );
+  }
+
+  Future<void> _handleAssocChoice(
+    String parentType,
+    _AssocChoice choice,
+  ) async {
+    if (choice.kind == 'create') {
+      widget.onCreateRelated?.call(choice.targetType);
+      return;
+    }
+    final targetId = choice.targetId;
+    if (targetId == null) return;
+    try {
+      await widget.onLinkRelated?.call(choice.targetType, targetId);
+      if (mounted) setState(() {});
+      widget.onChanged?.call();
+    } catch (e) {
+      toast.error(message: '关联失败：$e');
+    }
+  }
+
+  List<PopupMenuEntry<_AssocChoice>> _assocMenuItems(
+    String parentType,
+    _AssocData data,
+  ) {
+    final items = <PopupMenuEntry<_AssocChoice>>[];
+    for (final type in kLinkableChildren[parentType] ?? const <String>[]) {
+      final label = crmTypeLabel(type);
+      items.add(
+        PopupMenuItem(
+          enabled: false,
+          height: 28,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
+      );
+      items.add(
+        PopupMenuItem(
+          value: _AssocChoice.create(type),
+          height: 34,
+          child: Row(
+            children: [
+              const Icon(Icons.add_rounded, size: 16),
+              const SizedBox(width: 6),
+              Text('新增$label'),
+            ],
+          ),
+        ),
+      );
+      for (final record
+          in (data.unlinked[type] ?? const <Object>[]).take(15)) {
+        items.add(
+          PopupMenuItem(
+            value: _AssocChoice.link(type, _assocId(type, record)),
+            height: 34,
+            child: Row(
+              children: [
+                Icon(_assocIcon(type), size: 15, color: Colors.grey),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '关联 · ${_assocLabel(type, record)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      items.add(const PopupMenuDivider(height: 8));
+    }
+    return items;
+  }
+
+  String _assocId(String type, Object record) {
+    switch (type) {
+      case 'contact':
+        return (record as LocalContact).id;
+      case 'opportunity':
+        return (record as LocalOpportunity).id;
+      case 'contract':
+        return (record as LocalContract).id;
+      case 'quote':
+        return (record as LocalQuote).id;
+      case 'paymentPlan':
+        return (record as LocalPaymentPlan).id;
+      case 'payment':
+        return (record as LocalPayment).id;
+      case 'invoice':
+        return (record as LocalInvoice).id;
+      case 'warranty':
+        return (record as LocalWarranty).id;
+      default:
+        return record.toString();
+    }
+  }
+
+  String _assocLabel(String type, Object record) {
+    switch (type) {
+      case 'contact':
+        return (record as LocalContact).name;
+      case 'opportunity':
+        return (record as LocalOpportunity).name;
+      case 'contract':
+        return (record as LocalContract).name;
+      case 'quote':
+        final q = record as LocalQuote;
+        return q.quoteNo.isEmpty ? '（未编号报价）' : q.quoteNo;
+      case 'paymentPlan':
+        return (record as LocalPaymentPlan).planName;
+      case 'payment':
+        return '¥${(record as LocalPayment).amount.toStringAsFixed(2)}';
+      case 'invoice':
+        final i = record as LocalInvoice;
+        return i.invoiceNo.isEmpty ? '（未编号发票）' : i.invoiceNo;
+      case 'warranty':
+        final w = record as LocalWarranty;
+        return w.serialNo.isEmpty ? '（未登记序列号）' : w.serialNo;
+      default:
+        return record.toString();
+    }
+  }
+
+  String _assocSubtitle(String type, Object record) {
+    switch (type) {
+      case 'contact':
+        return '联系人 · ${(record as LocalContact).title}';
+      case 'opportunity':
+        return '机会 · ${(record as LocalOpportunity).stage}';
+      case 'contract':
+        return '合同 · ${(record as LocalContract).status}';
+      case 'quote':
+        return '报价 · ${(record as LocalQuote).status}';
+      case 'paymentPlan':
+        return '回款计划 · ${(record as LocalPaymentPlan).status}';
+      case 'payment':
+        return '回款 · ${(record as LocalPayment).method}';
+      case 'invoice':
+        return '发票 · ${(record as LocalInvoice).status}';
+      case 'warranty':
+        return '质保 · ${(record as LocalWarranty).status}';
+      default:
+        return crmTypeLabel(type);
+    }
+  }
+
+  IconData _assocIcon(String type) {
+    switch (type) {
+      case 'contact':
+        return Icons.person_outline_rounded;
+      case 'opportunity':
+        return Icons.trending_up_rounded;
+      case 'contract':
+        return Icons.description_outlined;
+      case 'quote':
+        return Icons.request_quote_outlined;
+      case 'paymentPlan':
+        return Icons.account_balance_wallet_outlined;
+      case 'payment':
+        return Icons.payments_outlined;
+      case 'invoice':
+        return Icons.receipt_outlined;
+      case 'warranty':
+        return Icons.verified_outlined;
+      default:
+        return Icons.folder_outlined;
+    }
   }
 
   Widget _contractItems() {
@@ -673,7 +949,10 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       builder: (context, snapshot) {
         final items = snapshot.data ?? const [];
         return _sectionCard(
-          '合同明细（${items.length}）',
+          Text(
+            '合同明细（${items.length}）',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
           items.isEmpty
               ? const Text('暂无明细（报价转合同自动生成）')
               : Column(children: [
@@ -694,97 +973,6 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     );
   }
 
-  Widget _contractFinance() {
-    return FutureBuilder<List<Object>>(
-      future: () async {
-        final id = _item.twentyId;
-        final plans = await _repo.listPaymentPlans(contractId: id);
-        final payments = await _repo.listPayments(contractId: id);
-        final invoices = await _repo.listInvoices(contractId: id);
-        return <Object>[...plans, ...payments, ...invoices];
-      }(),
-      builder: (context, snapshot) {
-        final items = snapshot.data ?? const [];
-        final plans = items.whereType<LocalPaymentPlan>().toList();
-        final payments = items.whereType<LocalPayment>().toList();
-        final invoices = items.whereType<LocalInvoice>().toList();
-        final paid = payments.fold<double>(0, (s, p) => s + p.amount);
-        final invoiced = invoices.fold<double>(0, (s, i) => s + i.amount);
-        return _sectionCard(
-          '财务（已回款 ¥${paid.toStringAsFixed(2)} · 已开票 ¥${invoiced.toStringAsFixed(2)}）',
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (plans.isNotEmpty)
-                for (final plan in plans)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(plan.planName),
-                    subtitle: Text(
-                      '¥${plan.planAmount.toStringAsFixed(2)}'
-                      ' · 已收 ¥${plan.paidAmount.toStringAsFixed(2)} · ${plan.status}',
-                    ),
-                  ),
-              if (payments.isNotEmpty)
-                for (final payment in payments)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      '¥${payment.amount.toStringAsFixed(2)} · ${payment.paymentDate.toLocal().toString().substring(0, 10)}',
-                    ),
-                    subtitle: Text(payment.method),
-                  ),
-              if (invoices.isNotEmpty)
-                for (final invoice in invoices)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      '${invoice.invoiceNo.isEmpty ? '（未编号）' : invoice.invoiceNo} · ¥${invoice.amount.toStringAsFixed(2)}',
-                    ),
-                    subtitle: Text('${invoice.type} · ${invoice.status}'),
-                  ),
-              if (items.isEmpty) const Text('暂无财务记录'),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _contractWarranties() {
-    return FutureBuilder<List<LocalWarranty>>(
-      future: _repo.listWarranties(contractId: _item.twentyId),
-      builder: (context, snapshot) {
-        final warranties = snapshot.data ?? const [];
-        return _sectionCard(
-          '质保（${warranties.length}）',
-          warranties.isEmpty
-              ? const Text('暂无质保')
-              : Column(children: [
-                  for (final warranty in warranties)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      warranty.serialNo.isEmpty
-                          ? '（未登记序列号）'
-                          : warranty.serialNo,
-                    ),
-                    subtitle: Text(
-                      '${warranty.startDate.toLocal().toString().substring(0, 10)}'
-                      ' ~ ${warranty.endDate.toLocal().toString().substring(0, 10)}'
-                      ' · ${warranty.status}',
-                    ),
-                  ),
-                ]),
-        );
-      },
-    );
-  }
-
   Widget _quoteItems() {
     return FutureBuilder<List<LocalQuoteItem>>(
       future: _repo.quoteItems(_item.twentyId),
@@ -792,7 +980,10 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
         final items = snapshot.data ?? const [];
         final total = items.fold<double>(0, (s, i) => s + i.amount);
         return _sectionCard(
-          '报价明细（${items.length} · 合计 ¥${total.toStringAsFixed(2)}）',
+          Text(
+            '报价明细（${items.length} · 合计 ¥${total.toStringAsFixed(2)}）',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -829,14 +1020,14 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     );
   }
 
-  Widget _sectionCard(String title, Widget child) {
+  Widget _sectionCard(Widget title, Widget child) {
     return Card.outlined(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleSmall),
+            title,
             const SizedBox(height: 6),
             child,
           ],
@@ -907,7 +1098,10 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       builder: (context, snapshot) {
         final entries = snapshot.data ?? const <_TimelineEntry>[];
         return _sectionCard(
-          '时间线（${entries.length}）',
+          Text(
+            '时间线（${entries.length}）',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
           entries.isEmpty
               ? const Text('暂无跟进与相关日记')
               : Column(children: [
@@ -1445,4 +1639,40 @@ class _TimelineEntry {
     required this.icon,
     this.diary,
   });
+}
+
+/// 关联区数据：已关联 + 未关联（可选）记录，按目标类型分组。
+class _AssocData {
+  final Map<String, List<Object>> linked;
+  final Map<String, List<Object>> unlinked;
+
+  const _AssocData({required this.linked, required this.unlinked});
+
+  factory _AssocData.empty() => const _AssocData(
+    linked: {},
+    unlinked: {},
+  );
+}
+
+/// 关联下拉菜单选择：新增某类型 / 关联已有某记录。
+class _AssocChoice {
+  final String kind; // 'create' | 'link'
+  final String targetType;
+  final String? targetId;
+
+  const _AssocChoice.create(this.targetType)
+    : kind = 'create',
+      targetId = null;
+
+  const _AssocChoice.link(this.targetType, this.targetId) : kind = 'link';
+
+  @override
+  bool operator ==(Object other) =>
+      other is _AssocChoice &&
+      other.kind == kind &&
+      other.targetType == targetType &&
+      other.targetId == targetId;
+
+  @override
+  int get hashCode => Object.hash(kind, targetType, targetId);
 }

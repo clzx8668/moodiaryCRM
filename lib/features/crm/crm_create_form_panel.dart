@@ -11,12 +11,16 @@ class CrmCreateFormPanel extends StatefulWidget {
   final Future<void> Function(Map<String, dynamic> data) onCreate;
   final VoidCallback onClose;
 
+  /// 关联上下文提示，例如「关联：客户 XXX」（关联新增时显示）
+  final String? contextLabel;
+
   const CrmCreateFormPanel({
     super.key,
     required this.title,
     required this.fields,
     required this.onCreate,
     required this.onClose,
+    this.contextLabel,
   });
 
   @override
@@ -198,7 +202,9 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
     setState(() => _saving = true);
     try {
       await widget.onCreate(data);
-      toast.success(message: '已创建');
+      if (widget.contextLabel == null) {
+        toast.success(message: '已创建');
+      }
       widget.onClose();
     } catch (e) {
       toast.error(message: '创建失败：$e');
@@ -258,6 +264,19 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
                   '新增${widget.title}',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
+                if (widget.contextLabel != null) ...[
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      widget.contextLabel!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 IconButton(
                   tooltip: '关闭',
@@ -351,6 +370,40 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 移动端新增页（整页复用 [CrmCreateFormPanel]）。
+class CrmCreatePage extends StatelessWidget {
+  final String title;
+  final List<LocalObjectField> fields;
+  final Future<void> Function(Map<String, dynamic> data) onCreate;
+  final String? contextLabel;
+
+  const CrmCreatePage({
+    super.key,
+    required this.title,
+    required this.fields,
+    required this.onCreate,
+    this.contextLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          contextLabel == null ? '新增$title' : '新增$title · $contextLabel',
+        ),
+      ),
+      body: CrmCreateFormPanel(
+        title: title,
+        fields: fields,
+        contextLabel: contextLabel,
+        onCreate: onCreate,
+        onClose: () => Navigator.of(context).pop(),
       ),
     );
   }
