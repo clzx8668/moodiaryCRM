@@ -16,6 +16,9 @@ class CrmEntitySidePanel extends StatelessWidget {
   final VoidCallback onChanged;
   final VoidCallback onDelete;
 
+  /// 外部刷新计数：变化时让详情视图失效关系候选缓存
+  final int refreshTick;
+
   /// 原位关联已有记录 / 打开新增关联 / 打开关联记录详情
   final Future<void> Function(String targetType, String targetId)?
   onLinkRelated;
@@ -31,6 +34,7 @@ class CrmEntitySidePanel extends StatelessWidget {
     required this.onClose,
     required this.onChanged,
     required this.onDelete,
+    this.refreshTick = 0,
     this.onLinkRelated,
     this.onCreateRelated,
     this.onCreateBackRelated,
@@ -87,6 +91,7 @@ class CrmEntitySidePanel extends StatelessWidget {
               fields: fields,
               compact: true,
               onChanged: onChanged,
+              refreshTick: refreshTick,
               onLinkRelated: onLinkRelated,
               onCreateRelated: onCreateRelated,
               onCreateBackRelated: onCreateBackRelated,

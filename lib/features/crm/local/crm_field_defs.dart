@@ -482,6 +482,13 @@ String crmRecordId(String type, Object record) {
   }
 }
 
+/// 关系对象名称列表展示：≤3 个直接顿号连接，超过显示「前 3 个 + 等 n 个」。
+String joinRelationNames(List<String> names, {int max = 3}) {
+  if (names.isEmpty) return '';
+  if (names.length <= max) return names.join('、');
+  return '${names.take(max).join('、')} 等 ${names.length} 个';
+}
+
 /// 基础对象字段的展示值格式化（typed → data map）
 Map<String, dynamic> accountToDataMap(LocalAccount a) => {
   'name': a.name,

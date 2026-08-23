@@ -25,6 +25,9 @@ class CrmEntityDetailView extends StatefulWidget {
   final bool compact;
   final VoidCallback? onChanged;
 
+  /// 外部数据刷新计数：变化时失效关系字段候选缓存，保证新增关联后即时显示
+  final int refreshTick;
+
   /// 原位关联已有记录（parentType = widget.objectType）
   final Future<void> Function(String targetType, String targetId)? onLinkRelated;
 
@@ -44,6 +47,7 @@ class CrmEntityDetailView extends StatefulWidget {
     required this.fields,
     this.compact = false,
     this.onChanged,
+    this.refreshTick = 0,
     this.onLinkRelated,
     this.onCreateRelated,
     this.onCreateBackRelated,
@@ -66,6 +70,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   final Map<String, List<String>> _extraOptions = {};
   final Map<String, Future<List<Object>>> _relationCandidateFutures = {};
   final Map<String, List<Object>> _linkedByCandidate = {};
+  Future<_AssocData>? _assocCache;
   final TextEditingController _optionController = TextEditingController();
   final TextEditingController _tagController = TextEditingController();
   final TextEditingController _activitySubject = TextEditingController();
@@ -75,6 +80,15 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   CrmLocalRepository get _repo => CrmLocalRepository();
 
   String get _labelField => kLocalLabelFields[widget.objectType] ?? 'name';
+
+  @override
+  void didUpdateWidget(covariant CrmEntityDetailView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshTick != widget.refreshTick) {
+      _invalidateRelationCandidates();
+      if (mounted) setState(() {});
+    }
+  }
 
   @override
   void dispose() {
@@ -439,7 +453,12 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
                     _linkedByCandidate[def.candidateType] ?? const <Object>[];
                 final String display;
                 if (def.currentIsParent) {
-                  display = linked.isEmpty ? '—' : '已关联 ${linked.length} 条';
+                  display = linked.isEmpty
+                      ? '—'
+                      : joinRelationNames([
+                          for (final record in linked)
+                            crmRecordLabel(def.candidateType, record),
+                        ]);
                 } else {
                   final value = _stringValue(field);
                   display = value.isEmpty ? '—' : value;
@@ -511,7 +530,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
               .any((d) => d.candidateType == type && d.currentIsParent) ==
           true;
       if (isParent) {
-        final assoc = await _loadAssocData(widget.objectType);
+        final assoc = await (_assocCache ??= _loadAssocData(widget.objectType));
         _linkedByCandidate[type] = assoc.linked[type] ?? const [];
       }
       return records;
@@ -521,6 +540,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   void _invalidateRelationCandidates() {
     _relationCandidateFutures.clear();
     _linkedByCandidate.clear();
+    _assocCache = null;
   }
 
   List<PopupMenuEntry<_RelationChoice>> _relationMenuItems(

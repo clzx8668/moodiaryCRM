@@ -280,15 +280,58 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     final type = objectType ?? widget.objectType;
     switch (type) {
       case 'account':
-        return (await repo.listAccounts())
+        final accounts = await repo.listAccounts();
+        final contacts = await repo.listContacts();
+        final opps = await repo.listOpportunities();
+        final contracts = await repo.listContracts();
+        final quotes = await repo.listQuotes();
+        // 父侧多值关系：按 accountId 分组，表格列直接显示对象名称列表
+        final contactsByAccount = _groupNamesBy(
+          contacts,
+          (c) => (c as LocalContact).accountId,
+          (c) => (c as LocalContact).name,
+        );
+        final oppsByAccount = _groupNamesBy(
+          opps,
+          (o) => (o as LocalOpportunity).accountId,
+          (o) => (o as LocalOpportunity).name,
+        );
+        final contractsByAccount = _groupNamesBy(
+          contracts,
+          (c) => (c as LocalContract).accountId,
+          (c) => (c as LocalContract).name,
+        );
+        final quotesByAccount = _groupNamesBy(
+          quotes,
+          (q) => (q as LocalQuote).accountId,
+          (q) => (q as LocalQuote).quoteNo,
+        );
+        return accounts
             .map(
-              (a) => CrmEntityCache()
-                ..id = a.id
-                ..twentyId = a.id
-                ..entityType = 'account'
-                ..name = a.name.isEmpty ? '（未命名客户）' : a.name
-                ..setData(accountToDataMap(a))
-                ..updatedAt = a.updatedAt,
+              (a) {
+                final data = accountToDataMap(a);
+                data['contact'] = {
+                  'name': joinRelationNames(contactsByAccount[a.id] ?? const []),
+                };
+                data['opportunity'] = {
+                  'name': joinRelationNames(oppsByAccount[a.id] ?? const []),
+                };
+                data['contract'] = {
+                  'name': joinRelationNames(
+                    contractsByAccount[a.id] ?? const [],
+                  ),
+                };
+                data['quote'] = {
+                  'name': joinRelationNames(quotesByAccount[a.id] ?? const []),
+                };
+                return CrmEntityCache()
+                  ..id = a.id
+                  ..twentyId = a.id
+                  ..entityType = 'account'
+                  ..name = a.name.isEmpty ? '（未命名客户）' : a.name
+                  ..setData(data)
+                  ..updatedAt = a.updatedAt;
+              },
             )
             .toList();
       case 'contact':
@@ -522,6 +565,21 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     final map = <String?, String>{};
     for (final a in await _repo.listAccounts()) {
       map[a.id] = a.name;
+    }
+    return map;
+  }
+
+  /// 按外键 id 分组记录，值为展示名称列表（父侧多值关系列用）。
+  Map<String, List<String>> _groupNamesBy(
+    Iterable records,
+    String? Function(dynamic) idOf,
+    String Function(dynamic) nameOf,
+  ) {
+    final map = <String, List<String>>{};
+    for (final record in records) {
+      final id = idOf(record);
+      if (id == null || id.isEmpty) continue;
+      map.putIfAbsent(id, () => []).add(nameOf(record));
     }
     return map;
   }
@@ -1328,6 +1386,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
           onClose: _closeTopAndRefresh,
           onChanged: _refreshGrid,
           onDelete: _deleteSelected,
+          refreshTick: _refreshToken,
           onLinkRelated: _linkToCurrentEntity,
           onCreateRelated: _createRelatedFromPanel,
           onCreateBackRelated: _createBackRelatedFromPanel,

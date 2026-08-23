@@ -30,6 +30,8 @@ class CrmEntityDetailPage extends StatefulWidget {
 }
 
 class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
+  int _refreshTick = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,6 +60,7 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
         onCreateRelated: _createRelated,
         onCreateBackRelated: _createBackRelated,
         onOpenRelated: _openRelated,
+        refreshTick: _refreshTick,
         onChanged: () {
           if (mounted) setState(() {});
         },
@@ -75,7 +78,7 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
         targetId: targetId,
       );
       toast.success(message: '已关联${crmTypeLabel(targetType)}');
-      if (mounted) setState(() {});
+      if (mounted) setState(() => _refreshTick++);
     } catch (e) {
       toast.error(message: '关联失败：$e');
     }
@@ -107,7 +110,7 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
       ),
     );
     future?.then((_) {
-      if (mounted) setState(() {});
+      if (mounted) setState(() => _refreshTick++);
     });
   }
 
@@ -138,7 +141,7 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
       ),
     );
     future?.then((_) {
-      if (mounted) setState(() {});
+      if (mounted) setState(() => _refreshTick++);
     });
   }
 
