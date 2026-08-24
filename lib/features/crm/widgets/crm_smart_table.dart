@@ -42,6 +42,10 @@ class CrmSmartTable extends StatefulWidget {
   final Set<String> selectedIds;
   final ValueChanged<Set<String>>? onSelectionChanged;
 
+  /// 关系字段名集合（点击单元格弹出原位搜索式关联编辑）
+  final Set<String> relationFields;
+  final void Function(CrmEntityCache item, String field)? onRelationCellTap;
+
   const CrmSmartTable({
     super.key,
     required this.items,
@@ -54,6 +58,8 @@ class CrmSmartTable extends StatefulWidget {
     this.onDeleteRow,
     this.selectedIds = const {},
     this.onSelectionChanged,
+    this.relationFields = const {},
+    this.onRelationCellTap,
   });
 
   @override
@@ -168,11 +174,53 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
     final mapValued = widget.items.any((i) => i.data[field] is Map);
     final readOnly = field == 'id' || field == 'twentyId' || mapValued;
     final labels = widget.selectOptionLabels[field];
+    final isRelation = widget.relationFields.contains(field);
     return PlutoColumn(
       title: _columnTitle(field),
       field: field,
       type: _columnType(field, labels),
       width: _columnWidth(field),
+      renderer: isRelation
+          ? (rendererContext) {
+              final rowIdx = rendererContext.rowIdx;
+              if (rowIdx < 0 || rowIdx >= widget.items.length) {
+                return const SizedBox.shrink();
+              }
+              final item = widget.items[rowIdx];
+              final text = CrmFieldRegistry.formatValue(item.data[field]);
+              return GestureDetector(
+                onTap: () => widget.onRelationCellTap?.call(item, field),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          text.isEmpty ? '—' : text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.edit_outlined,
+                        size: 13,
+                        color: Colors.grey,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          : null,
       enableSorting: true,
       enableFilterMenuItem: true,
       enableHideColumnMenuItem: true,

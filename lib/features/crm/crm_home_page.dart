@@ -47,9 +47,13 @@ class _CrmHomePageState extends State<CrmHomePage>
   }
 
   void _onTabChanged() {
-    if (_tabController.indexIsChanging ||
-        _tabController.index != _activeIndex) {
+    if (_tabController.indexIsChanging) return;
+    if (_tabController.index != _activeIndex) {
       setState(() => _activeIndex = _tabController.index);
+      // 切 Tab 时刷新目标表（帧后触发，确保新 Tab 已绑定控制器）
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _tableController.refreshTick.value++;
+      });
     }
   }
 

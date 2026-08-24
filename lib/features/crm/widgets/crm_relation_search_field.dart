@@ -40,6 +40,7 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
   final TextEditingController _searchCtrl = TextEditingController();
   final TextEditingController _nameCtrl = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
+  final FocusNode _nameFocus = FocusNode();
   List<Object> _results = [];
   Timer? _debounce;
   bool _open = false;
@@ -47,12 +48,6 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
   bool _creating = false;
   int _highlight = -1;
   String _display = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _display = widget.currentText;
-  }
 
   @override
   void didUpdateWidget(covariant CrmRelationSearchField oldWidget) {
@@ -68,7 +63,32 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
     _searchCtrl.dispose();
     _nameCtrl.dispose();
     _searchFocus.dispose();
+    _nameFocus.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _display = widget.currentText;
+    // 搜索框失焦自动收起（延迟避免吞掉结果点击）
+    _searchFocus.addListener(() {
+      if (!_searchFocus.hasFocus && _open && !_creating) {
+        Future<void>.delayed(const Duration(milliseconds: 250), () {
+          if (mounted && !_searchFocus.hasFocus && _open) {
+            setState(() => _open = false);
+          }
+        });
+      }
+    });
+    // 新建表单：失焦自动创建并关联（名称非空时）
+    _nameFocus.addListener(() {
+      if (!_nameFocus.hasFocus &&
+          _creating &&
+          _nameCtrl.text.trim().isNotEmpty) {
+        _submitCreate();
+      }
+    });
   }
 
   void _onQueryChanged(String q) {
@@ -238,11 +258,6 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
               hintText: '搜索${widget.typeLabel}…',
               isDense: true,
               prefixIcon: const Icon(Icons.search, size: 18),
-              suffixIcon: IconButton(
-                tooltip: '关闭',
-                icon: const Icon(Icons.close_rounded, size: 16),
-                onPressed: () => setState(() => _open = false),
-              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -316,32 +331,32 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
   }
 
   Widget _buildCreateForm() {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
+        Focus(
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.escape) {
+              setState(() {
+                _creating = false;
+                _nameCtrl.clear();
+              });
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
           child: TextField(
             controller: _nameCtrl,
+            focusNode: _nameFocus,
             autofocus: true,
+            onSubmitted: (_) => _submitCreate(),
             decoration: InputDecoration(
-              hintText: '输入${widget.typeLabel}名称',
+              hintText: '输入${widget.typeLabel}名称，失焦或回车自动创建',
               isDense: true,
               border: const OutlineInputBorder(),
             ),
-            onSubmitted: (_) => _submitCreate(),
           ),
-        ),
-        IconButton(
-          tooltip: '创建并关联',
-          icon: const Icon(Icons.check_rounded, size: 18),
-          onPressed: _creating ? null : _submitCreate,
-        ),
-        IconButton(
-          tooltip: '取消',
-          icon: const Icon(Icons.close_rounded, size: 18),
-          onPressed: () => setState(() {
-            _creating = false;
-            _nameCtrl.clear();
-          }),
         ),
       ],
     );
