@@ -44,7 +44,6 @@ class CrmSmartTable extends StatefulWidget {
 
   /// 关系字段名集合（点击单元格弹出原位搜索式关联编辑）
   final Set<String> relationFields;
-  final void Function(CrmEntityCache item, String field)? onRelationCellTap;
 
   const CrmSmartTable({
     super.key,
@@ -59,7 +58,6 @@ class CrmSmartTable extends StatefulWidget {
     this.selectedIds = const {},
     this.onSelectionChanged,
     this.relationFields = const {},
-    this.onRelationCellTap,
   });
 
   @override
@@ -189,7 +187,7 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
               final item = widget.items[rowIdx];
               final text = CrmFieldRegistry.formatValue(item.data[field]);
               return GestureDetector(
-                onTap: () => widget.onRelationCellTap?.call(item, field),
+                onTap: () => widget.onOpen?.call(item),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -209,11 +207,6 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
                             ).colorScheme.primary,
                           ),
                         ),
-                      ),
-                      const Icon(
-                        Icons.edit_outlined,
-                        size: 13,
-                        color: Colors.grey,
                       ),
                     ],
                   ),

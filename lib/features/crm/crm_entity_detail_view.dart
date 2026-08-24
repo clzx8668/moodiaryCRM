@@ -463,21 +463,8 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
                 final all = snapshot.data ?? const <Object>[];
                 final linked =
                     _linkedByCandidate[def.candidateType] ?? const <Object>[];
-                final linkedIds = linked
-                    .map((r) => crmRecordId(def.candidateType, r))
-                    .toSet();
-                // 父侧只展示未挂靠候选；子侧展示全部
-                final candidates = def.currentIsParent
-                    ? all
-                          .where(
-                            (r) =>
-                                !linkedIds.contains(
-                                  crmRecordId(def.candidateType, r),
-                                ),
-                          )
-                          .toList()
-                    : all;
                 final String currentText;
+                String? currentId;
                 if (def.currentIsParent) {
                   currentText = linked.isEmpty
                       ? ''
@@ -488,18 +475,29 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
                 } else {
                   final value = _stringValue(field);
                   currentText = value;
+                  currentId = _item.data[relationFieldToFk(field.name)]
+                      ?.toString();
                 }
                 return CrmRelationSearchField(
                   label: field.label,
                   typeLabel: crmTypeLabel(def.candidateType),
                   currentText: currentText,
-                  candidates: candidates,
+                  currentId: currentId,
+                  // 候选含全部记录（含已挂靠），保证修改关联时可搜到已有记录，避免误新建
+                  candidates: all,
                   recordLabel: (r) => crmRecordLabel(def.candidateType, r),
                   recordId: (r) => crmRecordId(def.candidateType, r),
                   onSelect: (id) => _applyRelationLink(field, def, id),
                   onClear: def.currentIsParent
                       ? null
                       : () => _applyRelationLink(field, def, null),
+                  onOpenRecord:
+                      def.currentIsParent || currentId == null
+                      ? null
+                      : () => widget.onOpenRelated?.call(
+                          def.candidateType,
+                          currentId!,
+                        ),
                   onCreate: (name) => _createRelationRecord(def, name),
                 );
               },

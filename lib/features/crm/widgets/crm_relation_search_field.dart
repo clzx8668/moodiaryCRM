@@ -10,12 +10,16 @@ class CrmRelationSearchField extends StatefulWidget {
   final String label;
   final String typeLabel;
   final String currentText;
+  final String? currentId;
   final List<Object> candidates;
   final String Function(Object) recordLabel;
   final String Function(Object) recordId;
   /// 选中/新建后执行关联（返回 Future，保存成功后才回显）
   final Future<void> Function(String id) onSelect;
   final VoidCallback? onClear;
+
+  /// 打开当前已关联记录详情（编辑记录本身）
+  final VoidCallback? onOpenRecord;
 
   /// 内联新建：返回新记录 id（由调用方决定是否立即关联）
   final Future<String?> Function(String name)? onCreate;
@@ -25,11 +29,13 @@ class CrmRelationSearchField extends StatefulWidget {
     required this.label,
     required this.typeLabel,
     required this.currentText,
+    this.currentId,
     required this.candidates,
     required this.recordLabel,
     required this.recordId,
     required this.onSelect,
     this.onClear,
+    this.onOpenRecord,
     this.onCreate,
   });
 
@@ -234,6 +240,20 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
+              if (_display.isNotEmpty &&
+                  widget.onOpenRecord != null &&
+                  widget.currentId != null)
+                InkWell(
+                  onTap: widget.onOpenRecord,
+                  child: const Padding(
+                    padding: EdgeInsets.all(2),
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
               if (_display.isNotEmpty && widget.onClear != null)
                 InkWell(
                   onTap: _clear,

@@ -16,7 +16,6 @@ import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/widgets/crm_smart_table.dart';
-import 'package:moodiary/features/crm/widgets/crm_relation_search_field.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -1400,138 +1399,6 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     }
   }
 
-  /// 表格关系字段列点击：弹出原位搜索式关联编辑（选已有/取消/新建即关联）。
-  Future<void> _editRelationCell(
-    CrmEntityCache item,
-    String field,
-  ) async {
-    final def = kRelationDefs[widget.objectType]?[field];
-    if (def == null) return;
-    final candidates = await _relationCandidatesForTab(def.candidateType);
-    if (!mounted) return;
-    final raw = item.data[field];
-    final currentText = raw is Map
-        ? (raw['name']?.toString() ?? '')
-        : (raw?.toString() ?? '');
-    await showModalBottomSheet<void>(
-      context: context,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: CrmRelationSearchField(
-            label: _fieldLabel(field),
-            typeLabel: crmTypeLabel(def.candidateType),
-            currentText: currentText,
-            candidates: candidates,
-            recordLabel: (r) => crmRecordLabel(def.candidateType, r),
-            recordId: (r) => crmRecordId(def.candidateType, r),
-            onSelect: (id) async {
-              await _linkRowRelation(item, field, def, id);
-              if (sheetContext.mounted) Navigator.pop(sheetContext);
-            },
-            onClear: def.currentIsParent
-                ? null
-                : () async {
-                    await _linkRowRelation(item, field, def, null);
-                    if (sheetContext.mounted) Navigator.pop(sheetContext);
-                  },
-            onCreate: (name) => _createRowRelation(item, field, def, name),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<List<Object>> _relationCandidatesForTab(String type) async {
-    final repo = _repo;
-    switch (type) {
-      case 'account':
-        return repo.listAccounts();
-      case 'contact':
-        return repo.listContacts();
-      case 'opportunity':
-        return repo.listOpportunities();
-      case 'contract':
-        return repo.listContracts();
-      case 'quote':
-        return repo.listQuotes();
-      case 'paymentPlan':
-        return repo.listPaymentPlans();
-      case 'payment':
-        return repo.listPayments();
-      case 'invoice':
-        return repo.listInvoices();
-      case 'warranty':
-        return repo.listWarranties();
-      case 'product':
-        return repo.listProducts();
-      case 'afterSales':
-        return repo.listAfterSales();
-      default:
-        return const [];
-    }
-  }
-
-  Future<void> _linkRowRelation(
-    CrmEntityCache item,
-    String field,
-    CrmRelationDef def,
-    String? targetId,
-  ) async {
-    try {
-      if (targetId == null || targetId.isEmpty) {
-        final fk = relationFieldToFk(field);
-        await CrmEntityFieldUpdater.update(
-          objectType: widget.objectType,
-          id: item.twentyId,
-          field: fk,
-          value: '',
-        );
-      } else if (def.currentIsParent) {
-        await CrmEntityLinker.link(
-          repo: _repo,
-          parentType: widget.objectType,
-          parentId: item.twentyId,
-          targetType: def.candidateType,
-          targetId: targetId,
-        );
-      } else {
-        await CrmEntityLinker.link(
-          repo: _repo,
-          parentType: def.candidateType,
-          parentId: targetId,
-          targetType: widget.objectType,
-          targetId: item.twentyId,
-        );
-      }
-      _refreshGrid();
-      toast.success(message: '已保存');
-    } catch (e) {
-      toast.error(message: '保存失败：$e');
-    }
-  }
-
-  /// 表格内联新建候选记录（仅创建；关联由 onSelect 统一写入）。
-  Future<String?> _createRowRelation(
-    CrmEntityCache item,
-    String field,
-    CrmRelationDef def,
-    String name,
-  ) async {
-    try {
-      final newId = await createCrmEntity(
-        repo: _repo,
-        objectType: def.candidateType,
-        data: {'name': name},
-      );
-      if (newId == null) return null;
-      return newId;
-    } catch (e) {
-      toast.error(message: '创建失败：$e');
-      return null;
-    }
-  }
-
   Future<void> _updateCell(
     CrmEntityCache item,
     String field,
@@ -1700,7 +1567,6 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                           for (final f in _fields)
                                             if (f.type == 'relation') f.name,
                                         },
-                                        onRelationCellTap: _editRelationCell,
                                       ),
                               ),
                               if (_panels.isNotEmpty &&
