@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/crm/crm_dashboard_page.dart';
-import 'package:moodiary/features/crm/local/crm_demo_data.dart';
 import 'package:moodiary/features/crm/local/crm_prefs.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
@@ -15,16 +14,35 @@ class CrmHomePage extends StatefulWidget {
   State<CrmHomePage> createState() => _CrmHomePageState();
 }
 
-class _CrmHomePageState extends State<CrmHomePage> {
+class _CrmHomePageState extends State<CrmHomePage>
+    with SingleTickerProviderStateMixin {
   List<CrmTabDef> _tabs = List.of(kCrmTabs);
   List<LocalCustomObject> _customObjects = [];
   bool _loaded = false;
-  int _reloadToken = 0;
+  late TabController _tabController;
+  final CrmTableController _tableController = CrmTableController();
+  final TextEditingController _searchController = TextEditingController();
+  int _activeIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging ||
+          _tabController.index != _activeIndex) {
+        setState(() => _activeIndex = _tabController.index);
+      }
+    });
     _loadCustomObjects();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _tableController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCustomObjects() async {
@@ -37,6 +55,18 @@ class _CrmHomePageState extends State<CrmHomePage> {
           for (final def in defs)
             CrmTabDef('custom:${def.id}', def.labelPlural),
         ];
+        _tabController.dispose();
+        _tabController = TabController(
+          length: _tabs.length,
+          vsync: this,
+          initialIndex: _activeIndex.clamp(0, _tabs.length - 1).toInt(),
+        );
+        _tabController.addListener(() {
+          if (_tabController.indexIsChanging ||
+              _tabController.index != _activeIndex) {
+            setState(() => _activeIndex = _tabController.index);
+          }
+        });
         _loaded = true;
       });
     }
@@ -47,28 +77,48 @@ class _CrmHomePageState extends State<CrmHomePage> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          padding: const EdgeInsets.fromLTRB(16, 10, 12, 6),
           child: Row(
             children: [
               Text('CRM', style: context.textTheme.titleLarge),
-              const Spacer(),
-              IconButton(
-                tooltip: '数据看板',
-                icon: const Icon(Icons.dashboard_rounded),
-                onPressed: () => Get.to(() => const CrmDashboardPage()),
+              const SizedBox(width: 16),
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (v) => _tableController.query.value = v,
+                    decoration: InputDecoration(
+                      hintText: '搜索当前表…',
+                      isDense: true,
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                    ),
+                  ),
+                ),
               ),
+              const SizedBox(width: 4),
               IconButton(
-                tooltip: '生成演示数据（每表 5–10 条，验证功能）',
-                icon: const Icon(Icons.auto_awesome_rounded),
-                onPressed: _seedDemoData,
+                tooltip: '列字段设置',
+                onPressed: () => _tableController.columnsTick.value++,
+                icon: const Icon(Icons.view_column_outlined),
               ),
               IconButton(
                 tooltip: '刷新',
                 onPressed: () {
-                  setState(() => _reloadToken++);
+                  _tableController.refreshTick.value++;
                   _loadCustomObjects();
                 },
                 icon: const Icon(Icons.refresh_rounded),
+              ),
+              IconButton(
+                tooltip: '数据看板',
+                icon: const Icon(Icons.dashboard_rounded),
+                onPressed: () => Get.to(() => const CrmDashboardPage()),
               ),
             ],
           ),
@@ -80,79 +130,38 @@ class _CrmHomePageState extends State<CrmHomePage> {
           )
         else
           Expanded(
-            child: DefaultTabController(
-              length: _tabs.length,
-              child: Column(
-                children: [
-                  TabBar(
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    tabs: [for (final tab in _tabs) Tab(text: tab.label)],
+            child: Column(
+              children: [
+                TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  tabs: [for (final tab in _tabs) Tab(text: tab.label)],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      for (var i = 0; i < _tabs.length; i++)
+                        CrmObjectTableTab(
+                          key: PageStorageKey('crm-tab-${_tabs[i].type}'),
+                          objectType: _tabs[i].type,
+                          title: _tabs[i].label,
+                          controller: _tableController,
+                          controllerActive: i == _activeIndex,
+                          customObject: _tabs[i].type.startsWith('custom:')
+                              ? _customObjects.firstWhere(
+                                  (o) => 'custom:${o.id}' == _tabs[i].type,
+                                )
+                              : null,
+                        ),
+                    ],
                   ),
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        for (final tab in _tabs)
-                          CrmObjectTableTab(
-                            key: PageStorageKey('crm-tab-${tab.type}'),
-                            objectType: tab.type,
-                            title: tab.label,
-                            reloadToken: _reloadToken,
-                            customObject: tab.type.startsWith('custom:')
-                                ? _customObjects.firstWhere(
-                                    (o) => 'custom:${o.id}' == tab.type,
-                                  )
-                                : null,
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
       ],
     );
-  }
-
-  Future<void> _seedDemoData() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('生成演示数据'),
-        content: const Text(
-          '将为每个 CRM 表追加 5–10 条带关联的演示数据'
-          '（不删除现有数据），用于功能验证。确认继续？',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('生成'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    try {
-      final counts = await CrmDemoData.seed(CrmLocalRepository());
-      if (mounted) {
-        setState(() {
-          _reloadToken++;
-        });
-        await _loadCustomObjects();
-        Get.snackbar(
-          '演示数据已生成',
-          counts.entries.map((e) => '${e.key}:${e.value}').join(' · '),
-          snackPosition: SnackPosition.bottom,
-          duration: const Duration(seconds: 4),
-        );
-      }
-    } catch (e) {
-      Get.snackbar('生成失败', '$e', snackPosition: SnackPosition.bottom);
-    }
   }
 }

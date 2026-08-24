@@ -147,6 +147,20 @@ class _LinkContext {
   });
 }
 
+/// CRM 表格外部控制通道：首页标题行工具条 → 当前激活 Tab。
+/// 搜索词 / 刷新 / 列设置通过 ValueNotifier 广播，Tab 仅在激活时响应。
+class CrmTableController {
+  final ValueNotifier<String> query = ValueNotifier('');
+  final ValueNotifier<int> refreshTick = ValueNotifier(0);
+  final ValueNotifier<int> columnsTick = ValueNotifier(0);
+
+  void dispose() {
+    query.dispose();
+    refreshTick.dispose();
+    columnsTick.dispose();
+  }
+}
+
 /// 右侧栏面板栈的一帧：详情 / 列设置 / 新增，逐层压入与弹出。
 class _PanelFrame {
   final _PanelMode mode;
@@ -182,6 +196,10 @@ class CrmObjectTableTab extends StatefulWidget {
   final String objectType;
   final String title;
   final int reloadToken;
+  final CrmTableController? controller;
+
+  /// 是否为当前激活 Tab（只有激活 Tab 响应 [controller]）
+  final bool controllerActive;
 
   /// 自定义对象定义（objectType 形如 `custom:<id>` 时传入）
   final LocalCustomObject? customObject;
@@ -192,6 +210,8 @@ class CrmObjectTableTab extends StatefulWidget {
     required this.title,
     this.reloadToken = 0,
     this.customObject,
+    this.controller,
+    this.controllerActive = true,
   });
 
   @override
@@ -207,6 +227,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   List<String> _lastAll = [];
   int _refreshToken = 0;
   final List<_PanelFrame> _panels = [];
+  List<CrmEntityCache> _lastAllItems = [];
+  List<VoidCallback> _controllerListeners = [];
 
   CrmLocalRepository get _repo => CrmLocalRepository();
 
@@ -246,6 +268,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     _columns = PrefUtil.getValue<List<String>>(_columnPrefKey) ?? [];
     _hidden = PrefUtil.getValue<List<String>>(_hiddenPrefKey) ?? [];
     _reload();
+    _bindController();
   }
 
   @override
@@ -254,6 +277,54 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     if (oldWidget.reloadToken != widget.reloadToken) {
       _refreshGrid();
     }
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.controllerActive != widget.controllerActive) {
+      _bindController();
+    }
+  }
+
+  @override
+  void dispose() {
+    _unbindController();
+    super.dispose();
+  }
+
+  void _bindController() {
+    _unbindController();
+    final c = widget.controller;
+    if (c == null || !widget.controllerActive) return;
+    c.query.addListener(_onExternalQuery);
+    c.refreshTick.addListener(_onExternalRefresh);
+    c.columnsTick.addListener(_onExternalColumns);
+    _controllerListeners = [
+      _onExternalQuery,
+      _onExternalRefresh,
+      _onExternalColumns,
+    ];
+  }
+
+  void _unbindController() {
+    final c = widget.controller;
+    if (c != null) {
+      for (final listener in _controllerListeners) {
+        c.query.removeListener(listener);
+        c.refreshTick.removeListener(listener);
+        c.columnsTick.removeListener(listener);
+      }
+    }
+    _controllerListeners = [];
+  }
+
+  void _onExternalQuery() {
+    if (mounted) {
+      setState(() => _query = widget.controller?.query.value ?? '');
+    }
+  }
+
+  void _onExternalRefresh() => _refreshGrid();
+
+  void _onExternalColumns() {
+    if (_lastAllItems.isNotEmpty) _openColumns(_lastAllItems);
   }
 
   void _reload() {
@@ -846,13 +917,17 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         );
       });
     } else {
-      Get.to(
+      final route = Get.to(
         () => CrmEntityDetailPage(
           objectType: widget.objectType,
           item: item,
           fields: _fields,
         ),
       );
+      route?.then((_) {
+        // 移动端详情页返回后刷新网格（新建/编辑/删除可能已发生）
+        if (mounted) _refreshGrid();
+      });
     }
   }
 
@@ -937,7 +1012,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         );
       });
     } else {
-      Get.to(
+      final route = Get.to(
         () => CrmCreatePage(
           objectType: objectType,
           title: title,
@@ -950,6 +1025,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
           ),
         ),
       );
+      route?.then((_) {
+        // 移动端新增页返回后刷新网格，保证新建记录即时可见
+        if (mounted) _refreshGrid();
+      });
     }
   }
 
@@ -1223,45 +1302,47 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         final items = _filtered(all);
         final fieldNames = _allFieldNames(all);
         _lastAll = fieldNames;
+        _lastAllItems = all;
         final effectiveColumns = _effectiveColumns(fieldNames);
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 38,
-                      child: TextField(
-                        onChanged: (v) => setState(() => _query = v),
-                        decoration: InputDecoration(
-                          hintText: '搜索名称或字段…',
-                          isDense: true,
-                          prefixIcon: const Icon(Icons.search, size: 18),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
+            if (widget.controller == null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 38,
+                        child: TextField(
+                          onChanged: (v) => setState(() => _query = v),
+                          decoration: InputDecoration(
+                            hintText: '搜索名称或字段…',
+                            isDense: true,
+                            prefixIcon: const Icon(Icons.search, size: 18),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
                           ),
-                          filled: true,
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    tooltip: '列设置',
-                    onPressed: () => _openColumns(all),
-                    icon: const Icon(Icons.view_column_outlined),
-                  ),
-                  IconButton(
-                    tooltip: '刷新',
-                    onPressed: _refreshGrid,
-                    icon: const Icon(Icons.refresh_rounded),
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    IconButton(
+                      tooltip: '列设置',
+                      onPressed: () => _openColumns(all),
+                      icon: const Icon(Icons.view_column_outlined),
+                    ),
+                    IconButton(
+                      tooltip: '刷新',
+                      onPressed: _refreshGrid,
+                      icon: const Icon(Icons.refresh_rounded),
+                    ),
+                  ],
+                ),
               ),
-            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Align(
