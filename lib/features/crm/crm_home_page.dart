@@ -28,6 +28,14 @@ class _CrmHomePageState extends State<CrmHomePage>
   final List<_GlobalHit> _globalResults = [];
   bool _globalOpen = false;
   Timer? _globalDebounce;
+  final Map<String, int> _selectionCounts = {};
+
+  int get _currentSelectionCount {
+    if (_tabs.isEmpty || _activeIndex < 0 || _activeIndex >= _tabs.length) {
+      return 0;
+    }
+    return _selectionCounts[_tabs[_activeIndex].type] ?? 0;
+  }
 
   @override
   void initState() {
@@ -158,6 +166,40 @@ class _CrmHomePageState extends State<CrmHomePage>
     _tableController.query.value = query;
   }
 
+  /// Tab 导航行右侧的批量操作条（勾选后显示，靠右对齐；与 Tab 卡片页分割）。
+  Widget _buildBatchBar() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '已选 $_currentSelectionCount 条',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(width: 4),
+          TextButton.icon(
+            onPressed: () => _tableController.batchAction.value = 'delete',
+            icon: const Icon(Icons.delete_outline, size: 16),
+            label: const Text('删除'),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => _tableController.batchAction.value = 'export',
+            icon: const Icon(Icons.file_download_outlined, size: 16),
+            label: const Text('导出'),
+          ),
+          TextButton(
+            onPressed: () => _tableController.batchAction.value = 'clear',
+            child: const Text('清除'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -225,11 +267,21 @@ class _CrmHomePageState extends State<CrmHomePage>
               Expanded(
                 child: Column(
                   children: [
-                    TabBar(
-                      controller: _tabController,
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.start,
-                      tabs: [for (final tab in _tabs) Tab(text: tab.label)],
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TabBar(
+                            controller: _tabController,
+                            isScrollable: true,
+                            tabAlignment: TabAlignment.start,
+                            tabs: [
+                              for (final tab in _tabs) Tab(text: tab.label),
+                            ],
+                          ),
+                        ),
+                        if (_currentSelectionCount > 0)
+                          _buildBatchBar(),
+                      ],
                     ),
                     Expanded(
                       child: TabBarView(
@@ -242,6 +294,9 @@ class _CrmHomePageState extends State<CrmHomePage>
                               title: _tabs[i].label,
                               controller: _tableController,
                               onRequestObjectView: _gotoTab,
+                              onSelectionCountChanged: (count) => setState(
+                                () => _selectionCounts[_tabs[i].type] = count,
+                              ),
                               controllerActive: i == _activeIndex,
                               customObject: _tabs[i].type.startsWith('custom:')
                                   ? _customObjects.firstWhere(

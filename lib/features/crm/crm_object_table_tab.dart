@@ -163,11 +163,15 @@ class CrmTableController {
   final ValueNotifier<int> columnsTick = ValueNotifier(0);
   final ValueNotifier<int> exportTick = ValueNotifier(0);
 
+  /// 首页 Tab 行批量操作请求：'delete' / 'export' / 'clear'，消费后清空
+  final ValueNotifier<String> batchAction = ValueNotifier('');
+
   void dispose() {
     query.dispose();
     refreshTick.dispose();
     columnsTick.dispose();
     exportTick.dispose();
+    batchAction.dispose();
   }
 }
 
@@ -228,6 +232,9 @@ class CrmObjectTableTab extends StatefulWidget {
   final CrmTableController? controller;
   final void Function(String objectType, String query)? onRequestObjectView;
 
+  /// 勾选数量变化上报（首页 Tab 行批量操作条）
+  final ValueChanged<int>? onSelectionCountChanged;
+
   /// 是否为当前激活 Tab（只有激活 Tab 响应 [controller]）
   final bool controllerActive;
 
@@ -242,6 +249,7 @@ class CrmObjectTableTab extends StatefulWidget {
     this.customObject,
     this.controller,
     this.onRequestObjectView,
+    this.onSelectionCountChanged,
     this.controllerActive = true,
   });
 
@@ -330,12 +338,15 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     c.refreshTick.addListener(_onExternalRefresh);
     c.columnsTick.addListener(_onExternalColumns);
     c.exportTick.addListener(_onExternalExport);
+    c.batchAction.addListener(_onExternalBatchAction);
     _controllerListeners = [
       _onExternalQuery,
       _onExternalRefresh,
       _onExternalColumns,
       _onExternalExport,
+      _onExternalBatchAction,
     ];
+    _notifySelectionCount();
   }
 
   void _unbindController() {
@@ -358,6 +369,31 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   }
 
   void _onExternalRefresh() => _refreshGrid();
+
+  /// 首页 Tab 行批量操作条：删除 / 导出 / 清除。
+  void _onExternalBatchAction() {
+    final c = widget.controller;
+    if (c == null) return;
+    final action = c.batchAction.value;
+    if (action.isEmpty) return;
+    c.batchAction.value = '';
+    switch (action) {
+      case 'delete':
+        _deleteSelectedRows();
+        break;
+      case 'export':
+        _exportCsv(ids: _selectedIds);
+        break;
+      case 'clear':
+        setState(() => _selectedIds.clear());
+        _notifySelectionCount();
+        break;
+    }
+  }
+
+  void _notifySelectionCount() {
+    widget.onSelectionCountChanged?.call(_selectedIds.length);
+  }
 
   void _onExternalColumns() {
     if (_lastAllItems.isNotEmpty) _openColumns(_lastAllItems);
@@ -1385,39 +1421,6 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     }
   }
 
-  /// 批量勾选操作条：删除选中 / 导出选中 / 清除选择。
-  Widget _buildSelectionBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-      child: Row(
-        children: [
-          Text(
-            '已选 ${_selectedIds.length} 条',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const Spacer(),
-          TextButton.icon(
-            onPressed: _deleteSelectedRows,
-            icon: const Icon(Icons.delete_outline, size: 16),
-            label: const Text('删除'),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-          ),
-          TextButton.icon(
-            onPressed: () => _exportCsv(ids: _selectedIds),
-            icon: const Icon(Icons.file_download_outlined, size: 16),
-            label: const Text('导出'),
-          ),
-          TextButton(
-            onPressed: () => setState(() => _selectedIds.clear()),
-            child: const Text('清除'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _deleteSelectedRows() async {
     if (_selectedIds.isEmpty) return;
     final ok = await showDialog<bool>(
@@ -1451,6 +1454,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       }
     }
     setState(() => _selectedIds.clear());
+    _notifySelectionCount();
     _refreshGrid();
     if (failed == 0) {
       toast.success(message: '已删除选中记录');
@@ -1564,8 +1568,6 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
               ),
             ),
             const Divider(height: 8),
-            if (_selectedIds.isNotEmpty)
-              _buildSelectionBar(),
             Expanded(
               child: Row(
                 children: [
@@ -1621,8 +1623,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                             _persistColumnOrder,
                                         onDeleteRow: _deleteRow,
                                         selectedIds: _selectedIds,
-                                        onSelectionChanged: (ids) =>
-                                            setState(() => _selectedIds = ids),
+                                        onSelectionChanged: (ids) {
+                                          setState(() => _selectedIds = ids);
+                                          _notifySelectionCount();
+                                        },
                                         relationFields: {
                                           for (final f in _fields)
                                             if (f.type == 'relation') f.name,
