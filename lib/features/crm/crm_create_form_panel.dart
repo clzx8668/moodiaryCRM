@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:moodiary/features/crm/local/crm_ai_assist.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
+import 'package:moodiary/features/crm/local/crm_prefs.dart';
 import 'package:moodiary/features/crm/widgets/crm_currency_amount_field.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -61,6 +62,9 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
     super.initState();
     for (final f in _fields) {
       _controllers[f.name] = TextEditingController();
+      if (f.type == 'currency') {
+        _fieldCurrencies[f.name] = CrmPrefs.defaultCurrency();
+      }
     }
   }
 
@@ -180,7 +184,8 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
     }
     if (field.type == 'currency') {
       // 复合组件：币种下拉（可改）+ 金额输入（手动）
-      final currency = _fieldCurrencies[field.name] ?? kDefaultCurrency;
+      final currency =
+          _fieldCurrencies[field.name] ?? CrmPrefs.defaultCurrency();
       return CrmCurrencyAmountField(
         currency: currency,
         onCurrencyChanged: (v) {

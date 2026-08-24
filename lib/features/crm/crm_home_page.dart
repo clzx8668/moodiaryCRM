@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/crm/crm_dashboard_page.dart';
 import 'package:moodiary/features/crm/local/crm_demo_data.dart';
+import 'package:moodiary/features/crm/local/crm_prefs.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
@@ -32,7 +33,7 @@ class _CrmHomePageState extends State<CrmHomePage> {
       setState(() {
         _customObjects = defs;
         _tabs = [
-          ...kCrmTabs,
+          ...CrmPrefs.enabledTabs(),
           for (final def in defs)
             CrmTabDef('custom:${def.id}', def.labelPlural),
         ];

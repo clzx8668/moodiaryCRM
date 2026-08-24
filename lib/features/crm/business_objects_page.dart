@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
+import 'package:moodiary/features/crm/local/crm_prefs.dart';
 
 /// 业务对象管理页：客户/联系人/机会/合同/回款/发票/提成/任务/笔记。
 ///
@@ -10,20 +11,21 @@ class BusinessObjectsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tabs = CrmPrefs.enabledTabs();
     return DefaultTabController(
-      length: kCrmTabs.length,
+      length: tabs.length,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('业务对象'),
           bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            tabs: [for (final tab in kCrmTabs) Tab(text: tab.label)],
+            tabs: [for (final tab in tabs) Tab(text: tab.label)],
           ),
         ),
         body: TabBarView(
           children: [
-            for (final tab in kCrmTabs)
+            for (final tab in tabs)
               CrmObjectTableTab(objectType: tab.type, title: tab.label),
           ],
         ),

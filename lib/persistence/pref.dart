@@ -100,6 +100,8 @@ class PrefUtil {
     'moduleCalendar',
     // 局域网同步内容范围（notes/all）
     'lanSyncContentScope',
+    // CRM 默认币种
+    'crmDefaultCurrency',
     // 报价模板（JSON）
     'crmQuoteTemplates',
   };

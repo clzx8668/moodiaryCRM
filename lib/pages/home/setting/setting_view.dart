@@ -18,6 +18,7 @@ import 'package:moodiary/components/remove_password/remove_password_view.dart';
 import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
+import 'package:moodiary/features/crm/crm_settings_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -215,15 +216,18 @@ class SettingPage extends StatelessWidget {
           Card.filled(
             color: context.theme.colorScheme.surfaceContainerLow,
             margin: EdgeInsets.zero,
-            child: const Column(
+            child: Column(
               children: [
                 AdaptiveListTile(
-                  title: Text('本地 CRM 数据'),
-                  subtitle: Text('客户/联系人/机会/合同 · 自定义对象 · 无需联网'),
-                  leading: Icon(Icons.storage_rounded),
-                  trailing: Text('已启用'),
+                  title: const Text('本地 CRM 数据'),
+                  subtitle: const Text('客户/联系人/机会/合同 · 自定义对象 · 无需联网'),
+                  leading: const Icon(Icons.storage_rounded),
+                  trailing: const Icon(Icons.chevron_right_rounded),
                   isFirst: true,
                   isLast: true,
+                  onTap: () {
+                    Get.to(() => const CrmSettingsPage());
+                  },
                 ),
               ],
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
+import 'package:moodiary/features/crm/local/crm_prefs.dart';
 
 /// 货币复合输入：单个边框框内「币种下拉 | 金额输入」（Twenty 风格）。
 class CrmCurrencyAmountField extends StatelessWidget {
@@ -33,7 +34,9 @@ class CrmCurrencyAmountField extends StatelessWidget {
       child: Row(
         children: [
           DropdownButton<String>(
-            value: kCurrencies.contains(currency) ? currency : kDefaultCurrency,
+            value: kCurrencies.contains(currency)
+                ? currency
+                : CrmPrefs.defaultCurrency(),
             underline: const SizedBox.shrink(),
             isDense: true,
             items: [

@@ -8,6 +8,7 @@ import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
 import 'package:moodiary/features/crm/local/crm_pdf_export.dart';
+import 'package:moodiary/features/crm/local/crm_prefs.dart';
 import 'package:moodiary/features/crm/local/crm_quote_template_store.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/widgets/crm_currency_amount_field.dart';
@@ -370,7 +371,8 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       );
     }
     if (field.type == 'currency') {
-      final currency = _item.data['currency']?.toString() ?? kDefaultCurrency;
+      final currency =
+          _item.data['currency']?.toString() ?? CrmPrefs.defaultCurrency();
       return CrmCurrencyAmountField(
         currency: currency,
         onCurrencyChanged: (v) => _commitCurrency(field, v),
