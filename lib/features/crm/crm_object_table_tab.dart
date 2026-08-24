@@ -236,6 +236,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   final List<_PanelFrame> _panels = [];
   List<CrmEntityCache> _lastAllItems = [];
   List<VoidCallback> _controllerListeners = [];
+  Set<String> _selectedIds = {};
 
   CrmLocalRepository get _repo => CrmLocalRepository();
 
@@ -342,18 +343,21 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   }
 
   /// 导出当前对象为 CSV（当前视图列 + 全部记录，UTF-8 BOM 兼容 Excel）。
-  Future<void> _exportCsv() async {
-    if (_lastAllItems.isEmpty) {
+  Future<void> _exportCsv({Set<String>? ids}) async {
+    final exportItems = ids == null || ids.isEmpty
+        ? _lastAllItems
+        : _lastAllItems.where((i) => ids.contains(i.id)).toList();
+    if (exportItems.isEmpty) {
       toast.info(message: '暂无数据可导出');
       return;
     }
     try {
-      final columns = _effectiveColumns(_allFieldNames(_lastAllItems));
+      final columns = _effectiveColumns(_allFieldNames(exportItems));
       final buffer = StringBuffer();
       buffer.writeln(
         columns.map((f) => _csvEscape(_fieldLabel(f))).join(','),
       );
-      for (final item in _lastAllItems) {
+      for (final item in exportItems) {
         final row = [
           for (final f in columns)
             _csvEscape(
@@ -1321,6 +1325,80 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     }
   }
 
+  /// 批量勾选操作条：删除选中 / 导出选中 / 清除选择。
+  Widget _buildSelectionBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+      child: Row(
+        children: [
+          Text(
+            '已选 ${_selectedIds.length} 条',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: _deleteSelectedRows,
+            icon: const Icon(Icons.delete_outline, size: 16),
+            label: const Text('删除'),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => _exportCsv(ids: _selectedIds),
+            icon: const Icon(Icons.file_download_outlined, size: 16),
+            label: const Text('导出'),
+          ),
+          TextButton(
+            onPressed: () => setState(() => _selectedIds.clear()),
+            child: const Text('清除'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteSelectedRows() async {
+    if (_selectedIds.isEmpty) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('批量删除'),
+        content: Text('将删除选中的 ${_selectedIds.length} 条记录，此操作不可撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    var failed = 0;
+    for (final item in _lastAllItems) {
+      if (!_selectedIds.contains(item.id)) continue;
+      try {
+        await CrmEntityDeleter.delete(widget.objectType, item.twentyId);
+      } catch (_) {
+        failed++;
+      }
+    }
+    setState(() => _selectedIds.clear());
+    _refreshGrid();
+    if (failed == 0) {
+      toast.success(message: '已删除选中记录');
+    } else {
+      toast.error(message: '$failed 条删除失败');
+    }
+  }
+
   Future<void> _updateCell(
     CrmEntityCache item,
     String field,
@@ -1426,6 +1504,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
               ),
             ),
             const Divider(height: 8),
+            if (_selectedIds.isNotEmpty)
+              _buildSelectionBar(),
             Expanded(
               child: Row(
                 children: [
@@ -1480,6 +1560,9 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                         onColumnsReordered:
                                             _persistColumnOrder,
                                         onDeleteRow: _deleteRow,
+                                        selectedIds: _selectedIds,
+                                        onSelectionChanged: (ids) =>
+                                            setState(() => _selectedIds = ids),
                                       ),
                               ),
                               if (_panels.isNotEmpty &&

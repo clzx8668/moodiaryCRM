@@ -80,6 +80,14 @@ class CrmLocalRepository {
 
   Future<int> countAccounts() async => (await listAccounts()).length;
 
+  /// 按名称查重客户（防重复新建，返回已存在的记录）。
+  Future<LocalAccount?> findDuplicateAccount(String name) async {
+    final row = await (db.select(db.crmAccounts)
+          ..where((t) => t.name.equals(name) & t.deleted.equals(false)))
+        .getSingleOrNull();
+    return row == null ? null : _accountFromRow(row);
+  }
+
   /// 一键清空全部 CRM 数据（物理删除；自定义对象定义保留，附件文件由健康度页清理）。
   Future<void> clearAllCrm() async {
     await db.transaction(() async {
@@ -174,6 +182,20 @@ class CrmLocalRepository {
   }
 
   Future<int> countContacts() async => (await listContacts()).length;
+
+  /// 按姓名（可选手机号）查重联系人。
+  Future<LocalContact?> findDuplicateContact(
+    String name, {
+    String? phone,
+  }) async {
+    final query = db.select(db.crmContacts)
+      ..where((t) => t.name.equals(name) & t.deleted.equals(false));
+    if (phone != null && phone.trim().isNotEmpty) {
+      query.where((t) => t.phone.equals(phone.trim()));
+    }
+    final rows = await query.get();
+    return rows.isEmpty ? null : _contactFromRow(rows.first);
+  }
 
   // ==================== 机会/线索 ====================
 

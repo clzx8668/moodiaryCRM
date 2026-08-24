@@ -6,6 +6,7 @@ import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_prefs.dart';
 import 'package:moodiary/features/crm/widgets/crm_currency_amount_field.dart';
+import 'package:moodiary/features/crm/widgets/crm_relation_search_field.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 新增表单内联面板（Twenty 式，替代新增弹窗）。
@@ -42,9 +43,6 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
   final Map<String, String> _fieldCurrencies = {};
   final Map<String, String> _relationSelections = {};
   final Map<String, Future<List<Object>>> _relationFutures = {};
-  final Map<String, TextEditingController> _quickCreateControllers = {};
-  String? _quickCreateFor;
-  bool _quickCreating = false;
   String? _addingOptionFor;
   final TextEditingController _optionController = TextEditingController();
 
@@ -59,16 +57,6 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
     }
     return true;
   }
-
-  /// 支持快速「新建并关联」的对象（字段少的核心对象）。
-  static const Set<String> _quickCreateTypes = {
-    'account',
-    'contact',
-    'opportunity',
-    'contract',
-    'quote',
-    'product',
-  };
 
   List<LocalObjectField> _buildEditableFields() {
     final result = <LocalObjectField>[];
@@ -98,9 +86,6 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
   @override
   void dispose() {
     for (final c in _controllers.values) {
-      c.dispose();
-    }
-    for (final c in _quickCreateControllers.values) {
       c.dispose();
     }
     _optionController.dispose();
@@ -265,120 +250,107 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
   Widget _relationInput(LocalObjectField field) {
     final def = kRelationDefs[widget.objectType]?[field.name];
     if (def == null) return const SizedBox.shrink();
-    final canCreate = _quickCreateTypes.contains(def.candidateType);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         FutureBuilder<List<Object>>(
           future: _relationCandidatesFor(def.candidateType),
           builder: (context, snapshot) {
-            // 候选分页：下拉仅展示最近 50 条，避免大数据量卡顿
             final candidates = (snapshot.data ?? const <Object>[])
                 .take(50)
                 .toList();
-            return DropdownButtonFormField<String>(
-              initialValue: _relationSelections[field.name] ?? '',
-              decoration: InputDecoration(
-                labelText: field.label,
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: [
-                const DropdownMenuItem(value: '', child: Text('不关联')),
-                for (final record in candidates)
-                  DropdownMenuItem(
-                    value: crmRecordId(def.candidateType, record),
-                    child: Text(
-                      crmRecordLabel(def.candidateType, record),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                if (canCreate)
-                  const DropdownMenuItem(
-                    value: '__create__',
-                    child: Text('＋ 新建并关联…'),
-                  ),
-              ],
-              onChanged: (v) => setState(() {
-                if (v == '__create__') {
-                  _quickCreateFor = field.name;
-                  _quickCreateControllers.putIfAbsent(
-                    field.name,
-                    TextEditingController.new,
-                  );
-                } else {
-                  _relationSelections[field.name] = v ?? '';
-                  _quickCreateFor = null;
-                }
-              }),
+            final selectedId = _relationSelections[field.name];
+            String currentText = '';
+            for (final record in candidates) {
+              if (crmRecordId(def.candidateType, record) == selectedId) {
+                currentText = crmRecordLabel(def.candidateType, record);
+                break;
+              }
+            }
+            return CrmRelationSearchField(
+              label: field.label,
+              typeLabel: crmTypeLabel(def.candidateType),
+              currentText: currentText,
+              candidates: candidates,
+              recordLabel: (r) => crmRecordLabel(def.candidateType, r),
+              recordId: (r) => crmRecordId(def.candidateType, r),
+              onSelect: (id) =>
+                  setState(() => _relationSelections[field.name] = id),
+              onClear: () =>
+                  setState(() => _relationSelections[field.name] = ''),
+              onCreate: (name) => _quickCreateRelation(def, name),
             );
           },
         ),
-        if (_quickCreateFor == field.name) ...[
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _quickCreateControllers[field.name],
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: '输入${crmTypeLabel(def.candidateType)}名称',
-                    border: const OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  onSubmitted: (_) => _quickCreateRelation(field, def),
-                ),
-              ),
-              IconButton(
-                tooltip: '创建并关联',
-                icon: const Icon(Icons.check_rounded, size: 18),
-                onPressed: _quickCreating ? null : () => _quickCreateRelation(field, def),
-              ),
-              IconButton(
-                tooltip: '取消',
-                icon: const Icon(Icons.close_rounded, size: 18),
-                onPressed: () => setState(() => _quickCreateFor = null),
-              ),
-            ],
-          ),
-        ],
       ],
     );
   }
 
-  Future<void> _quickCreateRelation(
-    LocalObjectField field,
+  Future<String?> _quickCreateRelation(
     CrmRelationDef def,
+    String name,
   ) async {
-    final controller = _quickCreateControllers[field.name];
-    final name = controller?.text.trim() ?? '';
     if (name.isEmpty) {
-      toast.info(message: '请输入名称');
-      return;
+      return null;
     }
-    if (_quickCreating) return;
-    setState(() => _quickCreating = true);
+    final repo = CrmLocalRepository();
+    // 防重复：命中已有记录可选「使用已有」
+    if (def.candidateType == 'account') {
+      final dup = await repo.findDuplicateAccount(name);
+      if (dup != null) {
+        final choice = await _showDuplicateChoice('已存在客户「${dup.name}」');
+        if (choice == 1) return dup.id;
+        if (choice == 0) return null;
+      }
+    } else if (def.candidateType == 'contact') {
+      final dup = await repo.findDuplicateContact(name);
+      if (dup != null) {
+        final choice = await _showDuplicateChoice('已存在联系人「${dup.name}」');
+        if (choice == 1) return dup.id;
+        if (choice == 0) return null;
+      }
+    }
     try {
       final newId = await createCrmEntity(
-        repo: CrmLocalRepository(),
+        repo: repo,
         objectType: def.candidateType,
         data: {'name': name},
       );
       if (newId != null) {
-        setState(() {
-          _relationSelections[field.name] = newId;
-          _quickCreateFor = null;
-          controller?.clear();
-        });
         _relationFutures.clear();
         toast.success(message: '已创建${crmTypeLabel(def.candidateType)}并选中');
       }
+      return newId;
     } catch (e) {
       toast.error(message: '创建失败：$e');
-    } finally {
-      if (mounted) setState(() => _quickCreating = false);
+      return null;
     }
+  }
+
+  /// 防重复选择：0=取消 1=使用已有 2=仍然新建
+  Future<int> _showDuplicateChoice(String message) async {
+    final result = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('发现相似记录'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 0),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, 2),
+            child: const Text('仍然新建'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, 1),
+            child: const Text('使用已有'),
+          ),
+        ],
+      ),
+    );
+    return result ?? 0;
   }
 
   Future<void> _save() async {
@@ -399,6 +371,30 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
       toast.info(message: '请至少填写一个字段');
       return;
     }
+    // 防重复：客户按名称、联系人按姓名（+手机号）
+    final repo = CrmLocalRepository();
+    final name = data['name']?.toString().trim() ?? '';
+    if (widget.objectType == 'account' && name.isNotEmpty) {
+      final dup = await repo.findDuplicateAccount(name);
+      if (dup != null) {
+        final proceed = await _showDuplicateDialog(
+          '已存在客户「${dup.name}」，仍要新建吗？',
+        );
+        if (proceed != true) return;
+      }
+    } else if (widget.objectType == 'contact' && name.isNotEmpty) {
+      final dup = await repo.findDuplicateContact(
+        name,
+        phone: data['phone']?.toString(),
+      );
+      if (dup != null) {
+        final proceed = await _showDuplicateDialog(
+          '已存在联系人「${dup.name}」'
+          '${dup.phone.isNotEmpty ? '（${dup.phone}）' : ''}，仍要新建吗？',
+        );
+        if (proceed != true) return;
+      }
+    }
     setState(() => _saving = true);
     try {
       await widget.onCreate(data);
@@ -411,6 +407,27 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<bool> _showDuplicateDialog(String message) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('发现相似记录'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('仍然新建'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   Object? _typed(LocalObjectField field, String raw) {

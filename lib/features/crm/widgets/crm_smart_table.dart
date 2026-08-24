@@ -38,6 +38,10 @@ class CrmSmartTable extends StatefulWidget {
   /// 行内删除（操作列删除按钮）
   final void Function(CrmEntityCache item)? onDeleteRow;
 
+  /// 批量勾选状态与变更回调（按 item.id）
+  final Set<String> selectedIds;
+  final ValueChanged<Set<String>>? onSelectionChanged;
+
   const CrmSmartTable({
     super.key,
     required this.items,
@@ -48,6 +52,8 @@ class CrmSmartTable extends StatefulWidget {
     this.onOpen,
     this.onColumnsReordered,
     this.onDeleteRow,
+    this.selectedIds = const {},
+    this.onSelectionChanged,
   });
 
   @override
@@ -82,6 +88,42 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
   void _build() {
     final fields = widget.fields.isEmpty ? const ['name'] : widget.fields;
     _columns = [
+      PlutoColumn(
+        title: '',
+        field: '__select__',
+        type: PlutoColumnType.text(),
+        width: 44,
+        readOnly: true,
+        enableEditingMode: false,
+        enableSorting: false,
+        enableFilterMenuItem: false,
+        enableHideColumnMenuItem: false,
+        enableSetColumnsMenuItem: false,
+        renderer: (rendererContext) {
+          final rowIdx = rendererContext.rowIdx;
+          if (rowIdx < 0 || rowIdx >= widget.items.length) {
+            return const SizedBox.shrink();
+          }
+          final item = widget.items[rowIdx];
+          return Center(
+            child: Checkbox(
+              value: widget.selectedIds.contains(item.id),
+              visualDensity: VisualDensity.compact,
+              onChanged: (checked) {
+                final next = Set<String>.of(widget.selectedIds);
+                if (checked == true) {
+                  next.add(item.id);
+                } else {
+                  next.remove(item.id);
+                }
+                widget.onSelectionChanged?.call(next);
+                // 立即重绘勾选单元格
+                rendererContext.stateManager.notifyListeners();
+              },
+            ),
+          );
+        },
+      ),
       for (final field in fields) _columnFor(field),
       PlutoColumn(
         title: '',
@@ -114,6 +156,7 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
     _rows = [
       for (final item in widget.items)
         PlutoRow(cells: {
+          '__select__': PlutoCell(value: ''),
           for (final field in fields)
             field: PlutoCell(value: _cellValue(item, field)),
           '__actions__': PlutoCell(value: ''),

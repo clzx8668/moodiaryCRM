@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/local/crm_attachment_store.dart';
+import 'package:moodiary/features/crm/local/crm_entity_creator.dart';
 import 'package:moodiary/features/crm/local/crm_entity_field_updater.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
@@ -12,6 +13,7 @@ import 'package:moodiary/features/crm/local/crm_prefs.dart';
 import 'package:moodiary/features/crm/local/crm_quote_template_store.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/widgets/crm_currency_amount_field.dart';
+import 'package:moodiary/features/crm/widgets/crm_relation_search_field.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/utils/notice_util.dart';
@@ -458,42 +460,47 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
             child: FutureBuilder<List<Object>>(
               future: _relationCandidatesFor(def.candidateType),
               builder: (context, snapshot) {
-                final candidates = snapshot.data ?? const <Object>[];
+                final all = snapshot.data ?? const <Object>[];
                 final linked =
                     _linkedByCandidate[def.candidateType] ?? const <Object>[];
-                final String display;
+                final linkedIds = linked
+                    .map((r) => crmRecordId(def.candidateType, r))
+                    .toSet();
+                // 父侧只展示未挂靠候选；子侧展示全部
+                final candidates = def.currentIsParent
+                    ? all
+                          .where(
+                            (r) =>
+                                !linkedIds.contains(
+                                  crmRecordId(def.candidateType, r),
+                                ),
+                          )
+                          .toList()
+                    : all;
+                final String currentText;
                 if (def.currentIsParent) {
-                  display = linked.isEmpty
-                      ? '—'
+                  currentText = linked.isEmpty
+                      ? ''
                       : joinRelationNames([
                           for (final record in linked)
                             crmRecordLabel(def.candidateType, record),
                         ]);
                 } else {
                   final value = _stringValue(field);
-                  display = value.isEmpty ? '—' : value;
+                  currentText = value;
                 }
-                return PopupMenuButton<_RelationChoice>(
-                  tooltip: '选择${field.label}',
-                  onSelected: (choice) =>
-                      _handleRelationChoice(field, def, choice),
-                  itemBuilder: (context) =>
-                      _relationMenuItems(field, def, candidates),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          display,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_drop_down_rounded,
-                        size: 18,
-                        color: Colors.grey,
-                      ),
-                    ],
-                  ),
+                return CrmRelationSearchField(
+                  label: field.label,
+                  typeLabel: crmTypeLabel(def.candidateType),
+                  currentText: currentText,
+                  candidates: candidates,
+                  recordLabel: (r) => crmRecordLabel(def.candidateType, r),
+                  recordId: (r) => crmRecordId(def.candidateType, r),
+                  onSelect: (id) => _applyRelationLink(field, def, id),
+                  onClear: def.currentIsParent
+                      ? null
+                      : () => _applyRelationLink(field, def, null),
+                  onCreate: (name) => _createRelationRecord(def, name),
                 );
               },
             ),
@@ -553,108 +560,39 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     _assocCache = null;
   }
 
-  List<PopupMenuEntry<_RelationChoice>> _relationMenuItems(
-    LocalObjectField field,
-    CrmRelationDef def,
-    List<Object> candidates,
-  ) {
-    final items = <PopupMenuEntry<_RelationChoice>>[];
-    final label = crmTypeLabel(def.candidateType);
-    items.add(
-      PopupMenuItem(
-        enabled: false,
-        height: 28,
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-      ),
-    );
-    items.add(
-      PopupMenuItem(
-        value: const _RelationChoice.create(),
-        height: 34,
-        child: Row(
-          children: [
-            const Icon(Icons.add_rounded, size: 16),
-            const SizedBox(width: 6),
-            Text('新增$label'),
-          ],
-        ),
-      ),
-    );
-    if (!def.currentIsParent && _stringValue(field).isNotEmpty) {
-      items.add(
-        const PopupMenuItem(
-          value: _RelationChoice.unlink(),
-          height: 34,
-          child: Row(
-            children: [
-              Icon(Icons.link_off_rounded, size: 16),
-              SizedBox(width: 6),
-              Text('取消关联'),
-            ],
-          ),
-        ),
+  /// 详情内联新建候选记录并立即关联（Twenty 搜索式关联的「+ 新建」）。
+  Future<String?> _createRelationRecord(CrmRelationDef def, String name) async {
+    try {
+      final newId = await createCrmEntity(
+        repo: _repo,
+        objectType: def.candidateType,
+        data: {'name': name},
       );
-    }
-    final linkedIds = (_linkedByCandidate[def.candidateType] ?? const <Object>[])
-        .map((r) => crmRecordId(def.candidateType, r))
-        .toSet();
-    for (final record in candidates.take(30)) {
-      final id = crmRecordId(def.candidateType, record);
-      if (def.currentIsParent && linkedIds.contains(id)) continue;
-      items.add(
-        PopupMenuItem(
-          value: _RelationChoice.link(id),
-          height: 34,
-          child: Row(
-            children: [
-              Icon(
-                def.currentIsParent
-                    ? Icons.link_rounded
-                    : Icons.subdirectory_arrow_left_rounded,
-                size: 15,
-                color: Colors.grey,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  def.currentIsParent
-                      ? '关联 · ${crmRecordLabel(def.candidateType, record)}'
-                      : crmRecordLabel(def.candidateType, record),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    return items;
-  }
-
-  Future<void> _handleRelationChoice(
-    LocalObjectField field,
-    CrmRelationDef def,
-    _RelationChoice choice,
-  ) async {
-    switch (choice.kind) {
-      case 'create':
-        if (def.currentIsParent) {
-          widget.onCreateRelated?.call(def.candidateType);
-        } else {
-          widget.onCreateBackRelated?.call(def.candidateType);
-        }
-      case 'unlink':
-        await _applyRelationLink(field, def, null);
-      case 'link':
-        await _applyRelationLink(field, def, choice.targetId);
+      if (newId == null) return null;
+      if (def.currentIsParent) {
+        await CrmEntityLinker.link(
+          repo: _repo,
+          parentType: widget.objectType,
+          parentId: _item.twentyId,
+          targetType: def.candidateType,
+          targetId: newId,
+        );
+      } else {
+        await CrmEntityLinker.link(
+          repo: _repo,
+          parentType: def.candidateType,
+          parentId: newId,
+          targetType: widget.objectType,
+          targetId: _item.twentyId,
+        );
+      }
+      _invalidateRelationCandidates();
+      if (mounted) setState(() {});
+      widget.onChanged?.call();
+      return newId;
+    } catch (e) {
+      toast.error(message: '创建失败：$e');
+      return null;
     }
   }
 
@@ -1950,26 +1888,3 @@ class _AssocChoice {
 }
 
 /// 关系字段下拉菜单选择：新增 / 取消关联 / 关联已有。
-class _RelationChoice {
-  final String kind; // 'create' | 'link' | 'unlink'
-  final String? targetId;
-
-  const _RelationChoice.create()
-    : kind = 'create',
-      targetId = null;
-
-  const _RelationChoice.unlink()
-    : kind = 'unlink',
-      targetId = null;
-
-  const _RelationChoice.link(this.targetId) : kind = 'link';
-
-  @override
-  bool operator ==(Object other) =>
-      other is _RelationChoice &&
-      other.kind == kind &&
-      other.targetId == targetId;
-
-  @override
-  int get hashCode => Object.hash(kind, targetId);
-}
