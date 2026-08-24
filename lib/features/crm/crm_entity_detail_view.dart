@@ -84,6 +84,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   String? _addingOptionFor;
   final Map<String, List<String>> _extraOptions = {};
   bool _detailShowAll = false;
+  bool _detailFieldsSync = true;
   final Set<String> _detailHiddenFields = {};
   final Set<String> _pinnedSections = {};
   final Map<String, Future<List<Object>>> _relationCandidateFutures = {};
@@ -111,6 +112,18 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   @override
   void initState() {
     super.initState();
+    try {
+      _detailFieldsSync = PrefUtil.getValue<bool>(
+            'crmDetailFieldsSync_${widget.objectType}',
+          ) ??
+          true;
+    } catch (_) {
+      _detailFieldsSync = true;
+    }
+    if (_detailFieldsSync) {
+      _syncHiddenFromTable();
+      return;
+    }
     List<String>? hidden;
     try {
       hidden = PrefUtil.getValue<List<String>>(
@@ -129,6 +142,44 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
             .map((f) => f.name),
       );
     }
+  }
+
+  /// 冲齐模式：详情核心字段 = 当前表格显示列（未自定义列时 = 全部可编辑字段）。
+  Set<String> _computeSyncHidden() {
+    final cardFields = widget.fields.where(_isCardField).map((f) => f.name);
+    Set<String> visible;
+    try {
+      final customized =
+          PrefUtil.getValue<bool>(
+            'crmTableColumnsCustomized_${widget.objectType}',
+          ) ??
+          false;
+      final columns = PrefUtil.getValue<List<String>>(
+        'crmTableColumns_${widget.objectType}',
+      );
+      visible =
+          (customized && columns != null && columns.isNotEmpty)
+          ? columns.toSet()
+          : cardFields.toSet();
+    } catch (_) {
+      visible = cardFields.toSet();
+    }
+    return cardFields.where((f) => !visible.contains(f)).toSet();
+  }
+
+  void _syncHiddenFromTable() {
+    _detailHiddenFields
+      ..clear()
+      ..addAll(_computeSyncHidden());
+  }
+
+  /// 各自定义模式的默认隐藏集：预置核心字段（5–7 条）之外默认隐藏。
+  Set<String> _coreHiddenSet() {
+    final core = kDetailCoreFields[widget.objectType] ?? const <String>[];
+    return widget.fields
+        .where((f) => _isCardField(f) && !core.contains(f.name))
+        .map((f) => f.name)
+        .toSet();
   }
 
   @override
@@ -416,6 +467,13 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   /// 核心信息字段显隐设置（默认显示预置核心字段，其余可勾选显示）。
   Future<void> _showDetailFieldSettings() async {
     final editable = widget.fields.where(_isCardField).toList();
+    List<String>? savedCustom;
+    try {
+      savedCustom = PrefUtil.getValue<List<String>>(
+        'crmDetailFieldsHidden_${widget.objectType}',
+      );
+    } catch (_) {}
+    var sync = _detailFieldsSync;
     final hidden = {..._detailHiddenFields};
     final ok = await showDialog<bool>(
       context: context,
@@ -424,27 +482,60 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
           title: const Text('核心信息字段设置'),
           content: SizedBox(
             width: 360,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final field in editable)
-                    CheckboxListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(field.label),
-                      value: !hidden.contains(field.name),
-                      onChanged: (checked) => setDialogState(() {
-                        if (checked == true) {
-                          hidden.remove(field.name);
-                        } else {
-                          hidden.add(field.name);
-                        }
-                      }),
+            height: 460,
+            child: Column(
+              children: [
+                SwitchListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('与表格列显示对齐'),
+                  subtitle: const Text('关闭后本页字段可独立设置'),
+                  value: sync,
+                  onChanged: (v) => setDialogState(() {
+                    sync = v;
+                    if (sync) {
+                      hidden
+                        ..clear()
+                        ..addAll(_computeSyncHidden());
+                    } else {
+                      hidden
+                        ..clear()
+                        ..addAll(
+                          savedCustom != null
+                              ? savedCustom
+                              : _coreHiddenSet(),
+                        );
+                    }
+                  }),
+                ),
+                const Divider(height: 12),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final field in editable)
+                          CheckboxListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            title: Text(field.label),
+                            value: !hidden.contains(field.name),
+                            onChanged: sync
+                                ? null
+                                : (checked) => setDialogState(() {
+                                      if (checked == true) {
+                                        hidden.remove(field.name);
+                                      } else {
+                                        hidden.add(field.name);
+                                      }
+                                    }),
+                          ),
+                      ],
                     ),
-                ],
-              ),
+                  ),
+                ),
+              ],
             ),
           ),
           actions: [
@@ -461,9 +552,16 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       ),
     );
     if (ok != true) return;
+    _detailFieldsSync = sync;
     _detailHiddenFields
       ..clear()
       ..addAll(hidden);
+    try {
+      await PrefUtil.setValue<bool>(
+        'crmDetailFieldsSync_${widget.objectType}',
+        sync,
+      );
+    } catch (_) {}
     try {
       await PrefUtil.setValue<List<String>>(
         'crmDetailFieldsHidden_${widget.objectType}',

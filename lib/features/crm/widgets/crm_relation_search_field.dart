@@ -223,11 +223,19 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
       return _buildCreateForm();
     }
     if (!_open) {
+      // 非空关联值 = 可点击链接（Twenty RecordChip）：点值打开关联记录详情；
+      // 更换/选择走独立编辑入口（搜索图标）；空值点击直接进入搜索选择。
+      final hasLinkedValue =
+          _display.isNotEmpty &&
+          widget.currentId != null &&
+          widget.onOpenRecord != null;
       return InkWell(
-        onTap: () => setState(() {
-          _open = true;
-          _results = widget.candidates.take(5).toList();
-        }),
+        onTap: hasLinkedValue
+            ? widget.onOpenRecord
+            : () => setState(() {
+                  _open = true;
+                  _results = widget.candidates.take(5).toList();
+                }),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
@@ -237,21 +245,23 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
                   _display.isEmpty ? '—' : _display,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: hasLinkedValue
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                    fontWeight: hasLinkedValue ? FontWeight.w600 : null,
+                  ),
                 ),
               ),
-              if (_display.isNotEmpty &&
-                  widget.onOpenRecord != null &&
-                  widget.currentId != null)
+              if (hasLinkedValue)
                 InkWell(
-                  onTap: widget.onOpenRecord,
+                  onTap: () => setState(() {
+                    _open = true;
+                    _results = widget.candidates.take(5).toList();
+                  }),
                   child: const Padding(
                     padding: EdgeInsets.all(2),
-                    child: Icon(
-                      Icons.chevron_right_rounded,
-                      size: 18,
-                      color: Colors.grey,
-                    ),
+                    child: Icon(Icons.edit_rounded, size: 16, color: Colors.grey),
                   ),
                 ),
               if (_display.isNotEmpty && widget.onClear != null)
@@ -262,7 +272,8 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
                     child: Icon(Icons.close_rounded, size: 16, color: Colors.grey),
                   ),
                 ),
-              const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+              if (!hasLinkedValue)
+                const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
             ],
           ),
         ),

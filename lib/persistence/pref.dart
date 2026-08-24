@@ -115,6 +115,7 @@ class PrefUtil {
     'crmTableHidden_',
     'crmFieldMeta_',
     'crmDetailFieldsHidden_',
+    'crmDetailFieldsSync_',
   };
 
   /// 键是否允许读写：精确命中白名单，或以允许前缀开头。

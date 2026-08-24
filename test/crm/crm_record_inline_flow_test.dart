@@ -109,4 +109,52 @@ void main() {
     expect(contacts, hasLength(1));
     expect(contacts.first.title, '总监');
   });
+
+  testWidgets('子侧关联非空：点击关联值直接打开关联详情（Twenty RecordChip 交互）', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final account = await repo.createAccount(
+      LocalAccount(id: '', name: 'Acme 科技'),
+    );
+    final contact = await repo.createContact(
+      LocalContact(id: '', name: '张三', accountId: account.id),
+    );
+    final cache = await loadCrmEntityCache(type: 'contact', id: contact.id);
+    expect(cache, isNotNull);
+
+    String? openedType;
+    String? openedId;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CrmRecordDetailShell(
+            objectType: 'contact',
+            item: cache!,
+            fields: kBaseObjectFields['contact']!,
+            isRoot: true,
+            isMobile: true,
+            onClose: () {},
+            onChanged: () {},
+            onDelete: () {},
+            onOpenRelated: (type, id) {
+              openedType = type;
+              openedId = id;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 客户（主关联）区块非空：点值 → 打开关联详情，而非进入选择列表
+    expect(find.text('Acme 科技'), findsOneWidget);
+    await tester.tap(find.text('Acme 科技'));
+    await tester.pumpAndSettle();
+    expect(openedType, 'account');
+    expect(openedId, account.id);
+  });
 }

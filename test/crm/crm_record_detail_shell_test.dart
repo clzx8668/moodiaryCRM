@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moodiary/features/crm/crm_record_detail_shell.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
+import 'package:moodiary/features/crm/local/crm_local_repository.dart';
+import 'package:moodiary/features/crm/local/crm_models.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/persistence/app_database.dart';
 
@@ -9,8 +11,12 @@ import '../helpers/db_test_helper.dart';
 
 void main() {
   late AppDatabase db;
+  late CrmLocalRepository repo;
 
-  setUp(() => db = openTestDb());
+  setUp(() {
+    db = openTestDb();
+    repo = CrmLocalRepository(db);
+  });
   tearDown(() => closeTestDb(db));
 
   CrmEntityCache buildAccount() => CrmEntityCache()
@@ -169,7 +175,7 @@ void main() {
     expect(find.text('联系人（0）'), findsOneWidget);
   });
 
-  testWidgets('主页核心信息：默认只显示核心字段，可展开全部', (tester) async {
+  testWidgets('核心信息：默认与表格列冲齐，关掉开关后可独立设置核心字段', (tester) async {
     tester.view.physicalSize = const Size(1200, 1800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -190,29 +196,40 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 默认 7/11 核心字段；非核心字段（地址）隐藏
-    expect(find.text('核心信息（7/11）'), findsOneWidget);
+    // 默认冲齐（表格未自定义列 → 全部可编辑字段可见）
+    expect(find.text('核心信息（11/11）'), findsOneWidget);
     expect(find.text('客户类型'), findsOneWidget);
     expect(find.text('行业'), findsOneWidget);
+
+    // 字段设置：关闭「与表格列显示对齐」→ 回退预置核心字段 7/11（地址隐藏）
+    await tester.tap(find.byIcon(Icons.view_column_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('与表格列显示对齐'), findsOneWidget);
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    expect(find.text('核心信息（7/11）'), findsOneWidget);
     expect(find.text('地址'), findsNothing);
 
-    // 展开全部 → 全部 11 个字段可见
+    // 展开全部 → 11 个字段可见
     await tester.tap(find.text('展开全部'));
     await tester.pumpAndSettle();
     expect(find.text('核心信息（11/11）'), findsOneWidget);
     expect(find.text('地址'), findsOneWidget);
   });
 
-  testWidgets('主页「添加区块」下拉：可把暂无内容的关联类型固定为新区块', (tester) async {
+  testWidgets('添加区块：空区块仅会话显示不持久化，有内容下次自动出现', (tester) async {
     tester.view.physicalSize = const Size(1200, 1800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
+    final account = buildAccount();
     await tester.pumpWidget(
       wrap(
         CrmRecordDetailShell(
           objectType: 'account',
-          item: buildAccount(),
+          item: account,
           fields: kBaseObjectFields['account']!,
           isRoot: true,
           isMobile: true,
@@ -234,5 +251,48 @@ void main() {
     await tester.tap(find.text('添加报价区块'));
     await tester.pumpAndSettle();
     expect(find.text('报价（0）'), findsOneWidget);
+
+    // 模拟重开详情（空区块未持久化 → 不再显示）
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      wrap(
+        CrmRecordDetailShell(
+          objectType: 'account',
+          item: account,
+          fields: kBaseObjectFields['account']!,
+          isRoot: true,
+          isMobile: true,
+          onClose: () {},
+          onChanged: () {},
+          onDelete: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('报价（0）'), findsNothing);
+
+    // 成功添加关联报价后重开 → 有内容自动显示（动态持久化）
+    await repo.createQuote(
+      LocalQuote(id: '', quoteNo: 'QT-001', accountId: account.twentyId),
+    );
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      wrap(
+        CrmRecordDetailShell(
+          objectType: 'account',
+          item: account,
+          fields: kBaseObjectFields['account']!,
+          isRoot: true,
+          isMobile: true,
+          onClose: () {},
+          onChanged: () {},
+          onDelete: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('报价（1）'), findsOneWidget);
   });
 }
