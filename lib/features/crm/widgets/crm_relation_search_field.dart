@@ -13,7 +13,8 @@ class CrmRelationSearchField extends StatefulWidget {
   final List<Object> candidates;
   final String Function(Object) recordLabel;
   final String Function(Object) recordId;
-  final ValueChanged<String> onSelect;
+  /// 选中/新建后执行关联（返回 Future，保存成功后才回显）
+  final Future<void> Function(String id) onSelect;
   final VoidCallback? onClear;
 
   /// 内联新建：返回新记录 id（由调用方决定是否立即关联）
@@ -124,9 +125,10 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
     });
   }
 
-  void _select(Object record) {
+  Future<void> _select(Object record) async {
     final id = widget.recordId(record);
-    widget.onSelect(id);
+    await widget.onSelect(id);
+    if (!mounted) return;
     setState(() {
       _open = false;
       _display = widget.recordLabel(record);
@@ -155,7 +157,7 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
     try {
       final newId = await widget.onCreate?.call(name);
       if (newId != null) {
-        widget.onSelect(newId);
+        await widget.onSelect(newId);
         if (mounted) {
           setState(() {
             _open = false;

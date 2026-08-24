@@ -274,7 +274,7 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
               candidates: candidates,
               recordLabel: (r) => crmRecordLabel(def.candidateType, r),
               recordId: (r) => crmRecordId(def.candidateType, r),
-              onSelect: (id) =>
+              onSelect: (id) async =>
                   setState(() => _relationSelections[field.name] = id),
               onClear: () =>
                   setState(() => _relationSelections[field.name] = ''),

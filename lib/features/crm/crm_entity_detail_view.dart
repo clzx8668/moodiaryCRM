@@ -560,7 +560,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     _assocCache = null;
   }
 
-  /// 详情内联新建候选记录并立即关联（Twenty 搜索式关联的「+ 新建」）。
+  /// 详情内联新建候选记录（仅创建；关联由组件 onSelect 统一写入）。
   Future<String?> _createRelationRecord(CrmRelationDef def, String name) async {
     try {
       final newId = await createCrmEntity(
@@ -569,26 +569,8 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
         data: {'name': name},
       );
       if (newId == null) return null;
-      if (def.currentIsParent) {
-        await CrmEntityLinker.link(
-          repo: _repo,
-          parentType: widget.objectType,
-          parentId: _item.twentyId,
-          targetType: def.candidateType,
-          targetId: newId,
-        );
-      } else {
-        await CrmEntityLinker.link(
-          repo: _repo,
-          parentType: def.candidateType,
-          parentId: newId,
-          targetType: widget.objectType,
-          targetId: _item.twentyId,
-        );
-      }
       _invalidateRelationCandidates();
       if (mounted) setState(() {});
-      widget.onChanged?.call();
       return newId;
     } catch (e) {
       toast.error(message: '创建失败：$e');

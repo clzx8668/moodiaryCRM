@@ -1511,6 +1511,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     }
   }
 
+  /// 表格内联新建候选记录（仅创建；关联由 onSelect 统一写入）。
   Future<String?> _createRowRelation(
     CrmEntityCache item,
     String field,
@@ -1524,24 +1525,6 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         data: {'name': name},
       );
       if (newId == null) return null;
-      if (def.currentIsParent) {
-        await CrmEntityLinker.link(
-          repo: _repo,
-          parentType: widget.objectType,
-          parentId: item.twentyId,
-          targetType: def.candidateType,
-          targetId: newId,
-        );
-      } else {
-        await CrmEntityLinker.link(
-          repo: _repo,
-          parentType: def.candidateType,
-          parentId: newId,
-          targetType: widget.objectType,
-          targetId: item.twentyId,
-        );
-      }
-      _refreshGrid();
       return newId;
     } catch (e) {
       toast.error(message: '创建失败：$e');
