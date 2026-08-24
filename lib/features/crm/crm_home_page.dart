@@ -14,12 +14,10 @@ class CrmHomePage extends StatefulWidget {
   State<CrmHomePage> createState() => _CrmHomePageState();
 }
 
-class _CrmHomePageState extends State<CrmHomePage>
-    with SingleTickerProviderStateMixin {
+class _CrmHomePageState extends State<CrmHomePage> {
   List<CrmTabDef> _tabs = List.of(kCrmTabs);
   List<LocalCustomObject> _customObjects = [];
   bool _loaded = false;
-  late TabController _tabController;
   final CrmTableController _tableController = CrmTableController();
   final TextEditingController _searchController = TextEditingController();
   int _activeIndex = 0;
@@ -27,19 +25,11 @@ class _CrmHomePageState extends State<CrmHomePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging ||
-          _tabController.index != _activeIndex) {
-        setState(() => _activeIndex = _tabController.index);
-      }
-    });
     _loadCustomObjects();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _tableController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -55,18 +45,7 @@ class _CrmHomePageState extends State<CrmHomePage>
           for (final def in defs)
             CrmTabDef('custom:${def.id}', def.labelPlural),
         ];
-        _tabController.dispose();
-        _tabController = TabController(
-          length: _tabs.length,
-          vsync: this,
-          initialIndex: _activeIndex.clamp(0, _tabs.length - 1).toInt(),
-        );
-        _tabController.addListener(() {
-          if (_tabController.indexIsChanging ||
-              _tabController.index != _activeIndex) {
-            setState(() => _activeIndex = _tabController.index);
-          }
-        });
+        _activeIndex = _activeIndex.clamp(0, _tabs.length - 1);
         _loaded = true;
       });
     }
@@ -135,35 +114,37 @@ class _CrmHomePageState extends State<CrmHomePage>
           )
         else
           Expanded(
-            child: Column(
-              children: [
-                TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  tabs: [for (final tab in _tabs) Tab(text: tab.label)],
-                ),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      for (var i = 0; i < _tabs.length; i++)
-                        CrmObjectTableTab(
-                          key: PageStorageKey('crm-tab-${_tabs[i].type}'),
-                          objectType: _tabs[i].type,
-                          title: _tabs[i].label,
-                          controller: _tableController,
-                          controllerActive: i == _activeIndex,
-                          customObject: _tabs[i].type.startsWith('custom:')
-                              ? _customObjects.firstWhere(
-                                  (o) => 'custom:${o.id}' == _tabs[i].type,
-                                )
-                              : null,
-                        ),
-                    ],
+            child: DefaultTabController(
+              length: _tabs.length,
+              child: Column(
+                children: [
+                  TabBar(
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    onTap: (index) => setState(() => _activeIndex = index),
+                    tabs: [for (final tab in _tabs) Tab(text: tab.label)],
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        for (var i = 0; i < _tabs.length; i++)
+                          CrmObjectTableTab(
+                            key: PageStorageKey('crm-tab-${_tabs[i].type}'),
+                            objectType: _tabs[i].type,
+                            title: _tabs[i].label,
+                            controller: _tableController,
+                            controllerActive: i == _activeIndex,
+                            customObject: _tabs[i].type.startsWith('custom:')
+                                ? _customObjects.firstWhere(
+                                    (o) => 'custom:${o.id}' == _tabs[i].type,
+                                  )
+                                : null,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
       ],
