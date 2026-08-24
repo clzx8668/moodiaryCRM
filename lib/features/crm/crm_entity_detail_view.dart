@@ -892,63 +892,94 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       future: _repo.tagsForEntity(widget.objectType, _item.twentyId),
       builder: (context, snapshot) {
         final tags = snapshot.data ?? const <LocalTag>[];
-        return Card.outlined(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('标签', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 6),
+        // 与主字段卡同样式：无独立方框，标签以「#标签」文本流、空格分隔展示
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text('标签', style: Theme.of(context).textTheme.titleSmall),
+                  const Spacer(),
+                  if (!_addingTag)
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        minimumSize: const Size(0, 28),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onPressed: () => setState(() => _addingTag = true),
+                      icon: const Icon(Icons.add_rounded, size: 16),
+                      label: Text(
+                        '添加',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  if (_addingTag) ...[
+                    SizedBox(
+                      width: 130,
+                      child: TextField(
+                        controller: _tagController,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          hintText: '标签名',
+                          isDense: true,
+                        ),
+                        onSubmitted: (_) => _commitTag(),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: '保存标签',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.check_rounded, size: 18),
+                      onPressed: _commitTag,
+                    ),
+                    IconButton(
+                      tooltip: '取消',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      onPressed: () {
+                        _tagController.clear();
+                        setState(() => _addingTag = false);
+                      },
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 4),
+              if (tags.isEmpty && !_addingTag)
+                Text(
+                  '暂无标签，点右上「添加」',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                )
+              else if (tags.isNotEmpty)
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
+                  spacing: 10,
+                  runSpacing: 2,
                   children: [
                     for (final tag in tags)
-                      InputChip(
-                        label: Text(tag.name),
-                        visualDensity: VisualDensity.compact,
-                        onDeleted: () => _removeTag(tag.name),
-                      ),
-                    ActionChip(
-                      avatar: const Icon(Icons.add, size: 16),
-                      label: const Text('添加'),
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () => setState(() => _addingTag = true),
-                    ),
-                    if (_addingTag)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 120,
-                            child: TextField(
-                              controller: _tagController,
-                              autofocus: true,
-                              decoration: const InputDecoration(
-                                hintText: '标签名',
-                                isDense: true,
-                              ),
-                              onSubmitted: (_) => _commitTag(),
-                            ),
+                      InkWell(
+                        onTap: () => _removeTag(tag.name),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 1),
+                          child: Text(
+                            '#${tag.name}',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.check_rounded, size: 18),
-                            onPressed: _commitTag,
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 18),
-                            onPressed: () {
-                              _tagController.clear();
-                              setState(() => _addingTag = false);
-                            },
-                          ),
-                        ],
+                        ),
                       ),
                   ],
                 ),
-              ],
-            ),
+            ],
           ),
         );
       },
