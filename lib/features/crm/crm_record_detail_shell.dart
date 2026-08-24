@@ -1,10 +1,12 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:moodiary/features/crm/crm_entity_detail_view.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/crm_record_detail_tabs.dart';
 import 'package:moodiary/features/crm/local/crm_attachment_store.dart';
 import 'package:moodiary/features/crm/local/crm_entity_field_updater.dart';
+import 'package:moodiary/features/crm/local/crm_entity_loader.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/utils/notice_util.dart';
@@ -24,6 +26,15 @@ class CrmRecordDetailShell extends StatefulWidget {
 
   /// 移动/窄屏整页模式（不合并 Tab，Twenty 移动端五 Tab）
   final bool isMobile;
+
+  /// 桌面整页记录视图（Twenty 桌面双栏：左列 Summary+Fields，右侧 Timeline/Tasks/Notes/Files）
+  final bool isFullPage;
+
+  /// 显示「打开整页」入口（右抽屉/移动详情页）
+  final bool enableFullPage;
+
+  /// 整页模式嵌套深度（根=1）
+  final int depth;
 
   final VoidCallback onClose;
   final VoidCallback onChanged;
@@ -46,6 +57,9 @@ class CrmRecordDetailShell extends StatefulWidget {
     required this.isRoot,
     this.parentLabel,
     required this.isMobile,
+    this.isFullPage = false,
+    this.enableFullPage = false,
+    this.depth = 1,
     required this.onClose,
     required this.onChanged,
     required this.onDelete,
@@ -156,17 +170,90 @@ class _CrmRecordDetailShellState extends State<CrmRecordDetailShell> {
     }
   }
 
+  /// 打开桌面整页记录视图（Twenty「Open record」）。
+  void _openFullPage() {
+    Get.to(
+      () => CrmRecordDetailShell(
+        objectType: widget.objectType,
+        item: widget.item,
+        fields: widget.fields,
+        isRoot: true,
+        isFullPage: true,
+        isMobile: false,
+        depth: widget.depth,
+        onClose: () => Get.back(),
+        onChanged: widget.onChanged,
+        onDelete: widget.onDelete,
+        refreshTick: widget.refreshTick,
+        onLinkRelated: widget.onLinkRelated,
+        onCreateRelated: widget.onCreateRelated,
+        onCreateBackRelated: widget.onCreateBackRelated,
+        onShowRelatedList: widget.onShowRelatedList,
+      ),
+    );
+  }
+
+  /// 整页模式下钻：推入下一级整页详情（父 ← 返回，深度上限同抽屉）。
+  Future<void> _openFullPageRelated(String type, String id) async {
+    if (widget.depth >= kCrmDetailMaxDepth) {
+      toast.info(
+        message: '已达最大嵌套层级（$kCrmDetailMaxDepth 层），可在当前详情内就地展开编辑',
+      );
+      return;
+    }
+    final cache = await loadCrmEntityCache(type: type, id: id);
+    if (cache == null || !mounted) return;
+    Get.to(
+      () => CrmRecordDetailShell(
+        objectType: type,
+        item: cache,
+        fields: kBaseObjectFields[type] ?? const [],
+        isRoot: false,
+        parentLabel:
+            '来自 ${crmTypeLabel(widget.objectType)} · ${widget.item.name}',
+        isFullPage: true,
+        isMobile: false,
+        depth: widget.depth + 1,
+        onClose: () => Get.back(),
+        onChanged: widget.onChanged,
+        onDelete: widget.onDelete,
+        refreshTick: widget.refreshTick,
+        onLinkRelated: widget.onLinkRelated,
+        onCreateRelated: widget.onCreateRelated,
+        onCreateBackRelated: widget.onCreateBackRelated,
+        onShowRelatedList: widget.onShowRelatedList,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabs = crmDetailTabsFor(
       inRightDrawer: !widget.isMobile,
       isMobile: widget.isMobile,
+      objectType: widget.objectType,
     );
     final active = tabs.firstWhere(
       (t) => t.id == _activeTabId,
       orElse: () => tabs.first,
     );
     final theme = Theme.of(context);
+    if (widget.isFullPage) {
+      return _buildFullPage(theme);
+    }
+    return Material(
+      color: theme.colorScheme.surfaceContainerLow,
+      child: widget.isMobile
+          ? SafeArea(bottom: false, child: _buildDrawerLayout(theme, tabs, active))
+          : _buildDrawerLayout(theme, tabs, active),
+    );
+  }
+
+  Widget _buildDrawerLayout(
+    ThemeData theme,
+    List<CrmDetailTab> tabs,
+    CrmDetailTab active,
+  ) {
     final shell = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -176,28 +263,90 @@ class _CrmRecordDetailShellState extends State<CrmRecordDetailShell> {
         const Divider(height: 1),
         if (tabs.length > 1) _buildTabBar(theme, tabs, active.id),
         Expanded(
-          child: CrmEntityDetailView(
-            objectType: widget.objectType,
-            item: widget.item,
-            fields: widget.fields,
-            cards: active.cards,
-            onShowRelatedList: widget.onShowRelatedList,
-            compact: !widget.isMobile,
-            onChanged: widget.onChanged,
-            refreshTick: widget.refreshTick,
-            onLinkRelated: widget.onLinkRelated,
-            onCreateRelated: widget.onCreateRelated,
-            onCreateBackRelated: widget.onCreateBackRelated,
-            onOpenRelated: widget.onOpenRelated,
-          ),
+          child: _detailView(active.cards, compact: !widget.isMobile),
         ),
       ],
     );
+    return shell;
+  }
+
+  /// 桌面整页双栏布局（Twenty ShowPage：左列 Summary+Fields，右侧 Tab 区）。
+  Widget _buildFullPage(ThemeData theme) {
+    final allTabs = crmDetailTabsFor(
+      inRightDrawer: false,
+      isMobile: false,
+      objectType: widget.objectType,
+    );
+    final rightTabs = allTabs.where((t) => t.id != 'fields').toList();
+    final active = rightTabs.isEmpty
+        ? allTabs.first
+        : rightTabs.firstWhere(
+            (t) => t.id == _activeTabId,
+            orElse: () => rightTabs.first,
+          );
     return Material(
-      color: theme.colorScheme.surfaceContainerLow,
-      child: widget.isMobile
-          ? SafeArea(bottom: false, child: shell)
-          : shell,
+      color: theme.colorScheme.surface,
+      child: Column(
+        children: [
+          _buildHeader(theme),
+          const Divider(height: 1),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 360,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSummary(theme),
+                      const Divider(height: 1),
+                      Expanded(
+                        child: _detailView(
+                          const [CrmDetailCardType.fields],
+                          compact: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (rightTabs.length > 1)
+                        _buildTabBar(theme, rightTabs, active.id),
+                      Expanded(
+                        child: _detailView(active.cards, compact: true),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailView(List<CrmDetailCardType> cards, {required bool compact}) {
+    return CrmEntityDetailView(
+      objectType: widget.objectType,
+      item: widget.item,
+      fields: widget.fields,
+      cards: cards,
+      compact: compact,
+      onChanged: widget.onChanged,
+      refreshTick: widget.refreshTick,
+      onLinkRelated: widget.onLinkRelated,
+      onCreateRelated: widget.onCreateRelated,
+      onCreateBackRelated: widget.onCreateBackRelated,
+      onOpenRelated: widget.isFullPage
+          ? (type, id) => _openFullPageRelated(type, id)
+          : widget.onOpenRelated,
+      onShowRelatedList: widget.onShowRelatedList,
     );
   }
 
@@ -245,6 +394,12 @@ class _CrmRecordDetailShellState extends State<CrmRecordDetailShell> {
               ],
             ),
           ),
+          if (widget.enableFullPage && !widget.isFullPage)
+            IconButton(
+              tooltip: '打开整页',
+              icon: const Icon(Icons.open_in_new_rounded, size: 18),
+              onPressed: _openFullPage,
+            ),
           IconButton(
             tooltip: '添加附件',
             icon: const Icon(Icons.attach_file_rounded, size: 20),

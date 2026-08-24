@@ -23,6 +23,9 @@ class CrmEntityDetailPage extends StatefulWidget {
   /// 父页面关联上下文（子详情页显示）
   final String? parentLabel;
 
+  /// 当前嵌套深度（根=1；子详情逐层 +1，超出 [kCrmDetailMaxDepth] 回落就地展开）
+  final int depth;
+
   const CrmEntityDetailPage({
     super.key,
     required this.objectType,
@@ -30,6 +33,7 @@ class CrmEntityDetailPage extends StatefulWidget {
     required this.fields,
     this.isRoot = true,
     this.parentLabel,
+    this.depth = 1,
   });
 
   @override
@@ -141,6 +145,12 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
   }
 
   Future<void> _openRelated(String targetType, String targetId) async {
+    if (widget.depth >= kCrmDetailMaxDepth) {
+      toast.info(
+        message: '已达最大嵌套层级（$kCrmDetailMaxDepth 层），可在当前详情内就地展开编辑',
+      );
+      return;
+    }
     final cache = await loadCrmEntityCache(type: targetType, id: targetId);
     if (cache == null || !mounted) return;
     Get.to(
@@ -151,8 +161,12 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
         isRoot: false,
         parentLabel:
             '来自 ${crmTypeLabel(widget.objectType)} · ${widget.item.name}',
+        depth: widget.depth + 1,
       ),
-    );
+    )?.then((_) {
+      // 移动端下钻返回后刷新父详情（子页编辑/删除可能已发生）
+      if (mounted) setState(() => _refreshTick++);
+    });
   }
 
   Future<void> _deleteEntity() async {

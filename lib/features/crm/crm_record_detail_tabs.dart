@@ -52,15 +52,23 @@ const List<CrmDetailTab> kBaseDetailTabs = [
   ),
 ];
 
+/// 按对象类型隐藏详情内层 Tab（Twenty 对象级布局覆盖的扩展点）。
+/// key = 对象类型；value = 需要隐藏的 Tab id（fields/timeline/tasks/notes/files）。
+/// 当前无内置隐藏规则，预留给业务需要（如事务类对象不显示笔记）。
+const Map<String, Set<String>> kCrmDetailTabHides = {};
+
 /// 按 Twenty 规则生成详情内层 Tab：
 /// - 右侧栏（inRightDrawer）：第 1、2 个 Tab（Fields+Timeline）合并为「主页」，随后 Tasks/Notes/Files；
 /// - 移动整页：不合并，Fields/Timeline/Tasks/Notes/Files 五个 Tab。
+/// - 按 [objectType] 应用对象级隐藏规则（kCrmDetailTabHides）。
 List<CrmDetailTab> crmDetailTabsFor({
   required bool inRightDrawer,
   required bool isMobile,
+  String? objectType,
 }) {
+  bool hidden(String id) => kCrmDetailTabHides[objectType]?.contains(id) ?? false;
   if (inRightDrawer) {
-    return [
+    final tabs = [
       const CrmDetailTab(
         id: 'home',
         title: '主页',
@@ -71,6 +79,9 @@ List<CrmDetailTab> crmDetailTabsFor({
       kBaseDetailTabs[3],
       kBaseDetailTabs[4],
     ];
+    return tabs
+        .where((t) => t.id == 'home' || !hidden(t.id))
+        .toList();
   }
-  return List.of(kBaseDetailTabs);
+  return kBaseDetailTabs.where((t) => !hidden(t.id)).toList();
 }

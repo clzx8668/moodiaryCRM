@@ -1,9 +1,17 @@
 # CRM 记录详情页（仿 Twenty）开发设计指南
 
-> 版本：v1.1 · 2026-08-24 · 分支：feat/local-crm-v1
+> 版本：v2.0 · 2026-08-24 · 分支：feat/local-crm-v1
 > 依据：Twenty 本地源码实证（`E:\Dev\twenty\packages\twenty-front\src`）+ 用户需求
 > 原则：**默认遵照 Twenty 的开发思路与成熟方案**；仅在「产品/导航结构差异」上提出适配与更优解（不考虑编程语言差异）。
-> 状态：**评审稿 v2，等待确认后开工**
+> 状态：**P0/P1/P2 已落地**（2026-08-24，用户确认后执行）
+
+## 〇、落地状态
+
+| 阶段 | 状态 | 说明 |
+| :-- | :-- | :-- |
+| P0 详情结构 + Tab | ✅ | `CrmRecordDetailShell`（header ❌/← + Summary 标题行原位编辑 + 二级 Tab）；右抽屉 Home 合并（主页/任务/笔记/文件），移动端五 Tab（字段/时间线/任务/笔记/文件）；`CrmDetailCardType` 卡片化内容 |
+| P1 关联交互 | ✅ | 关联记录 chevron 就地展开全部字段原位编辑（`CrmRecordInlineFields`）；点名称打开子详情页（同 Shell + ← 返回 + 父上下文）；嵌套上限 3 层（超出回落就地展开）；新建并关联后打开子详情继续编辑；「All (n)」关抽屉跳目标表+过滤 |
+| P2 打磨 | ✅ | 移动端下钻返回刷新 + 深度上限；Tab 按对象显隐覆盖（`kCrmDetailTabHides` 扩展点）；桌面整页双栏视图（左列 Summary+Fields / 右侧 Timeline·任务·笔记·文件）+ Open record 入口；回归 182 测试全绿、analyze 0 error、Windows 构建 ✅ |
 
 ## 一、目标
 

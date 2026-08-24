@@ -133,4 +133,38 @@ void main() {
     expect(find.text('来自 客户 · Acme 科技'), findsOneWidget);
     expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
   });
+
+  testWidgets('桌面整页：左列 Summary+Fields，右侧 Timeline/Tasks/Notes/Files 四 Tab', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      wrap(
+        CrmRecordDetailShell(
+          objectType: 'account',
+          item: buildAccount(),
+          fields: kBaseObjectFields['account']!,
+          isRoot: true,
+          isFullPage: true,
+          isMobile: false,
+          onClose: () {},
+          onChanged: () {},
+          onDelete: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 无合并 Home、无独立「字段」Tab；右侧为时间线/任务/笔记/文件
+    expect(find.byIcon(Icons.home_rounded), findsNothing);
+    expect(find.byIcon(Icons.list_alt_rounded), findsNothing);
+    expect(find.byIcon(Icons.timeline_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle_outline_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.article_outlined), findsOneWidget);
+    // 左列字段卡（关联业务区块）仍渲染
+    expect(find.textContaining('关联业务（'), findsOneWidget);
+  });
 }

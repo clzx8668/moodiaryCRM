@@ -57,6 +57,7 @@ class CrmEntitySidePanel extends StatelessWidget {
       isRoot: isRoot,
       parentLabel: parentLabel,
       isMobile: false,
+      enableFullPage: true,
       onClose: onClose,
       onChanged: onChanged,
       onDelete: onDelete,
