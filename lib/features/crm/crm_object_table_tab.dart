@@ -346,7 +346,10 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       _onExternalExport,
       _onExternalBatchAction,
     ];
-    _notifySelectionCount();
+    // 帧后上报：initState/didUpdateWidget 处于父级 build 阶段，同步 setState 会报错
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _notifySelectionCount();
+    });
   }
 
   void _unbindController() {
