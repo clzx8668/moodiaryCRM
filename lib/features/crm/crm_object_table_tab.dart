@@ -1140,6 +1140,38 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     }
   }
 
+  /// 表格行内删除（操作列）→ 确认 → 软删除 → 刷新网格。
+  Future<void> _deleteRow(CrmEntityCache item) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('将删除「${item.name}」，此操作不可撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await CrmEntityDeleter.delete(widget.objectType, item.twentyId);
+      toast.success(message: '已删除');
+      _refreshGrid();
+    } catch (e) {
+      toast.error(message: '删除失败：$e');
+    }
+  }
+
   Future<void> _updateCell(
     CrmEntityCache item,
     String field,
@@ -1291,6 +1323,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                         onOpen: _edit,
                                         onColumnsReordered:
                                             _persistColumnOrder,
+                                        onDeleteRow: _deleteRow,
                                       ),
                               ),
                               if (_panels.isNotEmpty &&

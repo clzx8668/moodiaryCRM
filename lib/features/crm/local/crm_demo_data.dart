@@ -317,6 +317,78 @@ class CrmDemoData {
     counts['warranty'] = 6;
     counts['afterSales'] = 6;
 
+    // ---- 跟进记录（多态关联客户 / 商机） ----
+    const activityTypes = ['call', 'meeting', 'email', 'wechat', 'visit'];
+    const activityStatuses = ['completed', 'planned', 'completed', 'completed', 'planned'];
+    for (var i = 0; i < 8; i++) {
+      final isAccount = i.isEven;
+      final type = activityTypes[i % activityTypes.length];
+      final status = activityStatuses[i % activityStatuses.length];
+      final String relatedType;
+      final String relatedId;
+      final String subject;
+      final String content;
+      if (isAccount) {
+        final account = accounts[i % accounts.length];
+        relatedType = 'account';
+        relatedId = account.id;
+        subject = '跟进 ${account.name}';
+        content = '与 ${contacts[i % contacts.length].name} 沟通需求，约定下一步。';
+      } else {
+        final opp = opportunities[i % opportunities.length];
+        relatedType = 'opportunity';
+        relatedId = opp.id;
+        subject = '推进商机：${opp.name}';
+        content = '已发送方案，等待客户内部评审。';
+      }
+      await repo.createActivity(
+        LocalActivity(
+          id: '',
+          type: type,
+          direction: type == 'email'
+              ? (i.isEven ? 'inbound' : 'outbound')
+              : null,
+          relatedType: relatedType,
+          relatedId: relatedId,
+          subject: subject,
+          content: content,
+          status: status,
+          scheduledAt: status == 'planned'
+              ? DateTime.now().add(Duration(days: 1 + i))
+              : null,
+          completedAt: status == 'completed'
+              ? DateTime.now().subtract(Duration(days: i))
+              : null,
+        ),
+      );
+    }
+    counts['activity'] = 8;
+
+    // ---- 标签（多态 N:M） ----
+    await repo.setEntityTags('account', accounts[0].id, ['重点客户', 'VIP']);
+    await repo.setEntityTags('account', accounts[1].id, ['重点客户']);
+    await repo.setEntityTags('opportunity', opportunities[1].id, ['大单']);
+    await repo.setEntityTags('contract', contracts[0].id, ['已签约']);
+    counts['tag'] = 3;
+
+    // ---- 提醒（多态，类型与到期场景对应） ----
+    const reminderTypes = ['paymentDue', 'warrantyExpire', 'followUp', 'contractExpire'];
+    const reminderTitles = ['回款到期提醒', '质保到期提醒', '跟进提醒', '合同到期提醒'];
+    for (var i = 0; i < 4; i++) {
+      final contract = contracts[i % contracts.length];
+      await repo.createReminder(
+        LocalReminder(
+          id: '',
+          relatedType: 'contract',
+          relatedId: contract.id,
+          type: reminderTypes[i],
+          title: reminderTitles[i],
+          remindAt: DateTime.now().add(Duration(days: i * 3 + 1)),
+        ),
+      );
+    }
+    counts['reminder'] = 4;
+
     // ---- 自定义对象示例：拜访记录 ----
     final visitDef = await repo.createCustomObject(
       LocalCustomObject(

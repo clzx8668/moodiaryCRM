@@ -32,6 +32,9 @@ class CrmSmartTable extends StatefulWidget {
   /// 拖拽列排序完成（参数为当前可见字段顺序），用于持久化
   final void Function(List<String> fields)? onColumnsReordered;
 
+  /// 行内删除（操作列删除按钮）
+  final void Function(CrmEntityCache item)? onDeleteRow;
+
   const CrmSmartTable({
     super.key,
     required this.items,
@@ -40,6 +43,7 @@ class CrmSmartTable extends StatefulWidget {
     this.onCellChanged,
     this.onOpen,
     this.onColumnsReordered,
+    this.onDeleteRow,
   });
 
   @override
@@ -75,12 +79,40 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
     final fields = widget.fields.isEmpty ? const ['name'] : widget.fields;
     _columns = [
       for (final field in fields) _columnFor(field),
+      PlutoColumn(
+        title: '',
+        field: '__actions__',
+        type: PlutoColumnType.text(),
+        width: 64,
+        readOnly: true,
+        enableEditingMode: false,
+        enableSorting: false,
+        enableFilterMenuItem: false,
+        enableHideColumnMenuItem: false,
+        enableSetColumnsMenuItem: false,
+        renderer: (rendererContext) {
+          final rowIdx = rendererContext.rowIdx;
+          if (rowIdx < 0 || rowIdx >= widget.items.length) {
+            return const SizedBox.shrink();
+          }
+          final item = widget.items[rowIdx];
+          return Center(
+            child: IconButton(
+              tooltip: '删除',
+              icon: const Icon(Icons.delete_outline, size: 18),
+              visualDensity: VisualDensity.compact,
+              onPressed: () => widget.onDeleteRow?.call(item),
+            ),
+          );
+        },
+      ),
     ];
     _rows = [
       for (final item in widget.items)
         PlutoRow(cells: {
           for (final field in fields)
             field: PlutoCell(value: _cellValue(item, field)),
+          '__actions__': PlutoCell(value: ''),
         }),
     ];
   }

@@ -80,6 +80,36 @@ class CrmLocalRepository {
 
   Future<int> countAccounts() async => (await listAccounts()).length;
 
+  /// 一键清空全部 CRM 数据（物理删除；自定义对象定义保留，附件文件由健康度页清理）。
+  Future<void> clearAllCrm() async {
+    await db.transaction(() async {
+      await db.delete(db.crmEntityCaches).go();
+      await db.delete(db.crmContentLinks).go();
+      await db.delete(db.crmAccounts).go();
+      await db.delete(db.crmContacts).go();
+      await db.delete(db.crmOpportunities).go();
+      await db.delete(db.crmContracts).go();
+      await db.delete(db.crmContractItems).go();
+      await db.delete(db.crmProductCategories).go();
+      await db.delete(db.crmProducts).go();
+      await db.delete(db.crmQuotes).go();
+      await db.delete(db.crmQuoteItems).go();
+      await db.delete(db.crmPaymentPlans).go();
+      await db.delete(db.crmPayments).go();
+      await db.delete(db.crmInvoices).go();
+      await db.delete(db.crmWarranties).go();
+      await db.delete(db.crmAfterSales).go();
+      await db.delete(db.crmActivities).go();
+      await db.delete(db.crmTags).go();
+      await db.delete(db.crmEntityTags).go();
+      await db.delete(db.crmAttachments).go();
+      await db.delete(db.crmReminders).go();
+      await db.delete(db.crmQuoteVersions).go();
+      await db.delete(db.crmCustomRecords).go();
+      await db.delete(db.crmEntityLinks).go();
+    });
+  }
+
   // ==================== 联系人 ====================
 
   Future<List<LocalContact>> listContacts({String? keyword}) async {

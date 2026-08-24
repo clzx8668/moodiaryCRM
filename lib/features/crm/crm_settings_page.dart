@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
+import 'package:moodiary/features/crm/local/crm_backup_codec.dart';
 import 'package:moodiary/features/crm/local/crm_demo_data.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
@@ -92,6 +97,33 @@ class _CrmSettingsPageState extends State<CrmSettingsPage> {
                 title: const Text('生成演示数据'),
                 subtitle: const Text('为每个表追加 5–10 条带关联的测试数据'),
                 onTap: _seedDemoData,
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.upload_file_rounded),
+                title: const Text('导出数据（JSON）'),
+                subtitle: const Text('导出全部 CRM 数据为备份文件，便于调试'),
+                onTap: _exportData,
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.download_rounded),
+                title: const Text('导入数据（JSON）'),
+                subtitle: const Text('从备份文件导入（按 id 幂等合并）'),
+                onTap: _importData,
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_sweep_rounded,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  '一键清空 CRM 数据',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                subtitle: const Text('物理删除全部记录（保留自定义对象定义）'),
+                onTap: () => _clearAll(context),
               ),
             ],
           ),
@@ -335,6 +367,74 @@ class _CrmSettingsPageState extends State<CrmSettingsPage> {
       toast.error(message: '生成失败：$e');
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _exportData() async {
+    try {
+      final data = await CrmBackupCodec.exportAll(CrmLocalRepository());
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: '导出 CRM 数据',
+        fileName: 'crm_backup_${DateTime.now().millisecondsSinceEpoch}.json',
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+      );
+      if (path == null) return;
+      await File(path).writeAsString(jsonEncode(data));
+      toast.success(message: '已导出：$path');
+    } catch (e) {
+      toast.error(message: '导出失败：$e');
+    }
+  }
+
+  Future<void> _importData() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        dialogTitle: '导入 CRM 数据',
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+      );
+      final path = result?.files.single.path;
+      if (path == null) return;
+      final text = await File(path).readAsString();
+      final data = jsonDecode(text) as Map<String, dynamic>;
+      await CrmBackupCodec.importAll(CrmLocalRepository(), data);
+      toast.success(message: '导入完成');
+    } catch (e) {
+      toast.error(message: '导入失败：$e');
+    }
+  }
+
+  Future<void> _clearAll(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('一键清空 CRM 数据'),
+        content: const Text(
+          '将物理删除全部 CRM 记录（客户/联系人/机会/合同/回款/发票/质保/售后/跟进/提醒/自定义记录等），'
+          '自定义对象定义保留。此操作不可撤销，确认继续？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('清空'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await CrmLocalRepository().clearAllCrm();
+      toast.success(message: '已清空全部 CRM 数据');
+    } catch (e) {
+      toast.error(message: '清空失败：$e');
     }
   }
 }

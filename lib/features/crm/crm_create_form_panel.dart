@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/local/crm_ai_assist.dart';
+import 'package:moodiary/features/crm/local/crm_entity_creator.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_prefs.dart';
@@ -32,9 +34,7 @@ class CrmCreateFormPanel extends StatefulWidget {
 }
 
 class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
-  late final List<LocalObjectField> _fields = widget.fields
-      .where(isEditable)
-      .toList();
+  late final List<LocalObjectField> _fields = _buildEditableFields();
   final Map<String, TextEditingController> _controllers = {};
   bool _aiOpen = false;
   bool _saving = false;
@@ -42,6 +42,9 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
   final Map<String, String> _fieldCurrencies = {};
   final Map<String, String> _relationSelections = {};
   final Map<String, Future<List<Object>>> _relationFutures = {};
+  final Map<String, TextEditingController> _quickCreateControllers = {};
+  String? _quickCreateFor;
+  bool _quickCreating = false;
   String? _addingOptionFor;
   final TextEditingController _optionController = TextEditingController();
 
@@ -55,6 +58,30 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
       return false;
     }
     return true;
+  }
+
+  /// 支持快速「新建并关联」的对象（字段少的核心对象）。
+  static const Set<String> _quickCreateTypes = {
+    'account',
+    'contact',
+    'opportunity',
+    'contract',
+    'quote',
+    'product',
+  };
+
+  List<LocalObjectField> _buildEditableFields() {
+    final result = <LocalObjectField>[];
+    for (final f in widget.fields) {
+      if (!isEditable(f)) continue;
+      if (f.type == 'relation') {
+        final def = kRelationDefs[widget.objectType]?[f.name];
+        // 父侧多值关系（如客户新增时的联系人）由父详情管理，不在新增表单选
+        if (def == null || def.currentIsParent) continue;
+      }
+      result.add(f);
+    }
+    return result;
   }
 
   @override
@@ -71,6 +98,9 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
   @override
   void dispose() {
     for (final c in _controllers.values) {
+      c.dispose();
+    }
+    for (final c in _quickCreateControllers.values) {
       c.dispose();
     }
     _optionController.dispose();
@@ -232,34 +262,117 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
   Widget _relationInput(LocalObjectField field) {
     final def = kRelationDefs[widget.objectType]?[field.name];
     if (def == null) return const SizedBox.shrink();
-    return FutureBuilder<List<Object>>(
-      future: _relationCandidatesFor(def.candidateType),
-      builder: (context, snapshot) {
-        final candidates = snapshot.data ?? const <Object>[];
-        return DropdownButtonFormField<String>(
-          initialValue: _relationSelections[field.name] ?? '',
-          decoration: InputDecoration(
-            labelText: field.label,
-            border: const OutlineInputBorder(),
-            isDense: true,
-          ),
-          items: [
-            const DropdownMenuItem(value: '', child: Text('不关联')),
-            for (final record in candidates)
-              DropdownMenuItem(
-                value: crmRecordId(def.candidateType, record),
-                child: Text(
-                  crmRecordLabel(def.candidateType, record),
-                  overflow: TextOverflow.ellipsis,
+    final canCreate = _quickCreateTypes.contains(def.candidateType);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FutureBuilder<List<Object>>(
+          future: _relationCandidatesFor(def.candidateType),
+          builder: (context, snapshot) {
+            final candidates = snapshot.data ?? const <Object>[];
+            return DropdownButtonFormField<String>(
+              initialValue: _relationSelections[field.name] ?? '',
+              decoration: InputDecoration(
+                labelText: field.label,
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: [
+                const DropdownMenuItem(value: '', child: Text('不关联')),
+                for (final record in candidates)
+                  DropdownMenuItem(
+                    value: crmRecordId(def.candidateType, record),
+                    child: Text(
+                      crmRecordLabel(def.candidateType, record),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                if (canCreate)
+                  const DropdownMenuItem(
+                    value: '__create__',
+                    child: Text('＋ 新建并关联…'),
+                  ),
+              ],
+              onChanged: (v) => setState(() {
+                if (v == '__create__') {
+                  _quickCreateFor = field.name;
+                  _quickCreateControllers.putIfAbsent(
+                    field.name,
+                    TextEditingController.new,
+                  );
+                } else {
+                  _relationSelections[field.name] = v ?? '';
+                  _quickCreateFor = null;
+                }
+              }),
+            );
+          },
+        ),
+        if (_quickCreateFor == field.name) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _quickCreateControllers[field.name],
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: '输入${crmTypeLabel(def.candidateType)}名称',
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onSubmitted: (_) => _quickCreateRelation(field, def),
                 ),
               ),
-          ],
-          onChanged: (v) => setState(() {
-            _relationSelections[field.name] = v ?? '';
-          }),
-        );
-      },
+              IconButton(
+                tooltip: '创建并关联',
+                icon: const Icon(Icons.check_rounded, size: 18),
+                onPressed: _quickCreating ? null : () => _quickCreateRelation(field, def),
+              ),
+              IconButton(
+                tooltip: '取消',
+                icon: const Icon(Icons.close_rounded, size: 18),
+                onPressed: () => setState(() => _quickCreateFor = null),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
+  }
+
+  Future<void> _quickCreateRelation(
+    LocalObjectField field,
+    CrmRelationDef def,
+  ) async {
+    final controller = _quickCreateControllers[field.name];
+    final name = controller?.text.trim() ?? '';
+    if (name.isEmpty) {
+      toast.info(message: '请输入名称');
+      return;
+    }
+    if (_quickCreating) return;
+    setState(() => _quickCreating = true);
+    try {
+      final newId = await createCrmEntity(
+        repo: CrmLocalRepository(),
+        objectType: def.candidateType,
+        data: {'name': name},
+      );
+      if (newId != null) {
+        setState(() {
+          _relationSelections[field.name] = newId;
+          _quickCreateFor = null;
+          controller?.clear();
+        });
+        _relationFutures.clear();
+        toast.success(message: '已创建${crmTypeLabel(def.candidateType)}并选中');
+      }
+    } catch (e) {
+      toast.error(message: '创建失败：$e');
+    } finally {
+      if (mounted) setState(() => _quickCreating = false);
+    }
   }
 
   Future<void> _save() async {
