@@ -264,6 +264,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   List<String> _columns = [];
   List<String> _hidden = [];
   List<String> _lastAll = [];
+  Map<String, double> _columnWidths = {};
   int _refreshToken = 0;
   final List<_PanelFrame> _panels = [];
   _PendingDetail? _pendingOpenDetail;
@@ -308,6 +309,23 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     super.initState();
     _columns = PrefUtil.getValue<List<String>>(_columnPrefKey) ?? [];
     _hidden = PrefUtil.getValue<List<String>>(_hiddenPrefKey) ?? [];
+    try {
+      final savedWidths =
+          PrefUtil.getValue<List<String>>(
+            'crmTableWidths_${widget.objectType}',
+          ) ??
+          const <String>[];
+      _columnWidths = {
+        for (final entry in savedWidths)
+          if (entry.contains(':'))
+            entry.substring(0, entry.indexOf(':')): double.tryParse(
+                  entry.substring(entry.indexOf(':') + 1),
+                ) ??
+                0,
+      }..removeWhere((_, v) => v <= 0);
+    } catch (_) {
+      _columnWidths = {};
+    }
     _reload();
     _bindController();
   }
@@ -1631,6 +1649,19 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                         onOpen: _edit,
                                         onColumnsReordered:
                                             _persistColumnOrder,
+                                        columnWidths: _columnWidths,
+                                        onColumnWidthsChanged: (widths) {
+                                          _columnWidths = widths;
+                                          try {
+                                            PrefUtil.setValue<List<String>>(
+                                              'crmTableWidths_${widget.objectType}',
+                                              [
+                                                for (final e in widths.entries)
+                                                  '${e.key}:${e.value.toStringAsFixed(0)}',
+                                              ],
+                                            );
+                                          } catch (_) {}
+                                        },
                                         onDeleteRow: _deleteRow,
                                         selectedIds: _selectedIds,
                                         onSelectionChanged: (ids) {

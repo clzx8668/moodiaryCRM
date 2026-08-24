@@ -36,6 +36,12 @@ class CrmSmartTable extends StatefulWidget {
   /// 拖拽列排序完成（参数为当前可见字段顺序），用于持久化
   final void Function(List<String> fields)? onColumnsReordered;
 
+  /// 各列当前宽度（字段名 → 像素），用于跨会话记忆列宽
+  final Map<String, double> columnWidths;
+
+  /// 列宽调整后回调（字段名 → 像素），由外层持久化
+  final void Function(Map<String, double> widths)? onColumnWidthsChanged;
+
   /// 行内删除（操作列删除按钮）
   final void Function(CrmEntityCache item)? onDeleteRow;
 
@@ -55,6 +61,8 @@ class CrmSmartTable extends StatefulWidget {
     this.onCellChanged,
     this.onOpen,
     this.onColumnsReordered,
+    this.columnWidths = const {},
+    this.onColumnWidthsChanged,
     this.onDeleteRow,
     this.selectedIds = const {},
     this.onSelectionChanged,
@@ -69,6 +77,7 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
   late List<PlutoColumn> _columns;
   late List<PlutoRow> _rows;
   Timer? _debounce;
+  Timer? _resizeDebounce;
   PlutoGridStateManager? _stateManager;
   Offset? _rightClickDown;
 
@@ -89,6 +98,8 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _resizeDebounce?.cancel();
+    _stateManager?.resizingChangeNotifier.removeListener(_onColumnResized);
     super.dispose();
   }
 
@@ -184,11 +195,20 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
     final readOnly = field == 'id' || field == 'twentyId' || mapValued;
     final labels = widget.selectOptionLabels[field];
     final isRelation = widget.relationFields.contains(field);
+    final kind = _inferKind(field, widget.items);
+    // Twenty 风格：数字/金额右对齐、布尔居中、文本左对齐
+    final align = switch (kind) {
+      CrmColumnKind.number => PlutoColumnTextAlign.end,
+      CrmColumnKind.boolean => PlutoColumnTextAlign.center,
+      _ => PlutoColumnTextAlign.start,
+    };
     return PlutoColumn(
       title: _columnTitle(field),
       field: field,
       type: _columnType(field, labels),
-      width: _columnWidth(field),
+      width: widget.columnWidths[field] ?? _columnWidth(field),
+      textAlign: align,
+      titleTextAlign: align,
       renderer: isRelation
           ? (rendererContext) {
               final rowIdx = rendererContext.rowIdx;
@@ -220,6 +240,29 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              );
+            }
+          : kind == CrmColumnKind.text &&
+                widget.selectOptions[field] == null &&
+                labels == null
+          ? (rendererContext) {
+              final rowIdx = rendererContext.rowIdx;
+              if (rowIdx < 0 || rowIdx >= widget.items.length) {
+                return const SizedBox.shrink();
+              }
+              final text = _cellValue(widget.items[rowIdx], field)?.toString() ?? '';
+              return Tooltip(
+                message: text,
+                waitDuration: const Duration(milliseconds: 600),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Text(
+                    text.isEmpty ? '—' : text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13),
                   ),
                 ),
               );
@@ -339,6 +382,15 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
       rows: _rows,
       mode: PlutoGridMode.normal,
       columnMenuDelegate: _CrmColumnMenuDelegate(),
+      // 当前行轻微高亮（Twenty 当前行样式）
+      rowColorCallback: (ctx) {
+        if (ctx.rowIdx == _stateManager?.currentRowIdx) {
+          return Theme.of(
+            this.context,
+          ).colorScheme.primaryContainer.withValues(alpha: 0.10);
+        }
+        return Theme.of(this.context).colorScheme.surface;
+      },
       configuration: PlutoGridConfiguration(
         localeText: const PlutoGridLocaleText(
           unfreezeColumn: '取消冻结',
@@ -401,7 +453,9 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
         ),
       ),
       onLoaded: (event) {
+        _stateManager?.resizingChangeNotifier.removeListener(_onColumnResized);
         _stateManager = event.stateManager;
+        _stateManager?.resizingChangeNotifier.addListener(_onColumnResized);
         event.stateManager.setShowColumnFilter(false);
       },
       onChanged: (event) {
@@ -462,6 +516,23 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
         ],
       ),
     );
+  }
+
+  /// 列宽调整后（防抖）上报，供外层持久化跨会话记忆。
+  void _onColumnResized() {
+    _resizeDebounce?.cancel();
+    _resizeDebounce = Timer(const Duration(milliseconds: 400), () {
+      final sm = _stateManager;
+      if (sm == null || !mounted) return;
+      final widths = <String, double>{};
+      for (final column in sm.refColumns) {
+        if (column.field == '__select__' || column.field == '__actions__') {
+          continue;
+        }
+        widths[column.field] = column.width;
+      }
+      widget.onColumnWidthsChanged?.call(widths);
+    });
   }
 
   /// 复选框列（固定首列）表头：全选 / 取消全选。

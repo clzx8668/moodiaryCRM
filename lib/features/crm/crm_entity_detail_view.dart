@@ -87,6 +87,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   bool _detailFieldsSync = true;
   final Set<String> _detailHiddenFields = {};
   final Set<String> _pinnedSections = {};
+  String? _hoverField;
   final Map<String, Future<List<Object>>> _relationCandidateFutures = {};
   final Map<String, List<Object>> _linkedByCandidate = {};
   Future<_AssocData>? _assocCache;
@@ -425,41 +426,54 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
 
   Widget _buildFieldTile(LocalObjectField field) {
     final editing = _editing[field.name] == true;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              field.label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+    final hovered = _hoverField == field.name;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hoverField = field.name),
+      onExit: (_) => setState(() => _hoverField = null),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 4),
+        decoration: BoxDecoration(
+          color: hovered
+              ? Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+              : null,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 110,
+              child: Text(
+                field.label,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+              ),
             ),
-          ),
-          Expanded(
-            child: editing
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildEditInput(field),
-                      _optionAddRow(field),
-                    ],
-                  )
-                : InkWell(
-                    onTap: () => _startEdit(field),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Text(
-                        _displayFieldValue(field),
-                        style: Theme.of(context).textTheme.bodyMedium,
+            Expanded(
+              child: editing
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildEditInput(field),
+                        _optionAddRow(field),
+                      ],
+                    )
+                  : InkWell(
+                      onTap: () => _startEdit(field),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Text(
+                          _displayFieldValue(field),
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                       ),
                     ),
-                  ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
