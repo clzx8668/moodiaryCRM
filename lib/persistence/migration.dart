@@ -16,7 +16,7 @@ class MigrationService {
   static const String migrationHistoryKey = 'migration_history';
 
   /// 当前代码期望的数据库版本
-  static const int currentDbVersion = 16;
+  static const int currentDbVersion = 17;
 
   static Future<String?> _getMeta(AppDatabase db, String key) async {
     final row = await (db.select(db.appMetadata)
@@ -267,6 +267,35 @@ class MigrationService {
         'time': DateTime.now().toIso8601String(),
         'durationMs': stopwatch.elapsedMilliseconds,
         'note': 'contracts/payments/invoices/quotes/products 增加 currency 列',
+      });
+    }
+
+    if (current < 17) {
+      // v16 → v17：商机阶段枚举统一（中文标签 → 英文 key，UI 负责显示中文）
+      final stopwatch = Stopwatch()..start();
+      const stageMap = {
+        '新线索': 'newLead',
+        '已联系': 'contacted',
+        '需求确认': 'qualified',
+        '方案报价': 'proposal',
+        '商务谈判': 'negotiation',
+        '赢单': 'closedWon',
+        '输单': 'closedLost',
+        '放弃': 'abandoned',
+      };
+      for (final entry in stageMap.entries) {
+        await db.customStatement(
+          "UPDATE crm_opportunities SET stage = '${entry.value}' "
+          "WHERE stage = '${entry.key}'",
+        );
+      }
+      current = 17;
+      await _appendMigrationHistory(db, {
+        'from': 16,
+        'to': 17,
+        'time': DateTime.now().toIso8601String(),
+        'durationMs': stopwatch.elapsedMilliseconds,
+        'note': '机会阶段枚举统一（中文 → 英文 key）',
       });
     }
 

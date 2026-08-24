@@ -1208,38 +1208,58 @@ class CrmLocalRepository {
         '${now.day.toString().padLeft(2, '0')}';
     final like = '$prefix-$date-%';
     var maxSeq = 0;
-    if (prefix == 'HT') {
-      final rows = await (db.select(db.crmContracts)
+    final List<Object> rows = switch (prefix) {
+      'HT' => await (db.select(db.crmContracts)
             ..where((t) => t.contractNo.like(like)))
-          .get();
-      for (final row in rows) {
-        final seq =
-            int.tryParse(row.contractNo.substring(row.contractNo.length - 3)) ??
-            0;
-        if (seq > maxSeq) maxSeq = seq;
-      }
-    } else if (prefix == 'QT') {
-      final rows = await (db.select(db.crmQuotes)
+          .get(),
+      'QT' => await (db.select(db.crmQuotes)
             ..where((t) => t.quoteNo.like(like)))
-          .get();
-      for (final row in rows) {
-        final seq =
-            int.tryParse(row.quoteNo.substring(row.quoteNo.length - 3)) ?? 0;
-        if (seq > maxSeq) maxSeq = seq;
-      }
-    } else if (prefix == 'AS') {
-      final rows = await (db.select(db.crmAfterSales)
+          .get(),
+      'AS' => await (db.select(db.crmAfterSales)
             ..where((t) => t.ticketNo.like(like)))
-          .get();
-      for (final row in rows) {
-        final seq =
-            int.tryParse(row.ticketNo.substring(row.ticketNo.length - 3)) ?? 0;
-        if (seq > maxSeq) maxSeq = seq;
-      }
-    } else {
-      throw ArgumentError('不支持的编号前缀：$prefix');
+          .get(),
+      _ => throw ArgumentError('不支持的编号前缀：$prefix'),
+    };
+    for (final row in rows) {
+      final no = switch (prefix) {
+        'HT' => (row as CrmContractRow).contractNo,
+        'QT' => (row as CrmQuoteRow).quoteNo,
+        'AS' => (row as CrmAfterSalesRow).ticketNo,
+        _ => '',
+      };
+      final seq = int.tryParse(no.substring(no.length - 3)) ?? 0;
+      if (seq > maxSeq) maxSeq = seq;
     }
-    return '$prefix-$date-${(maxSeq + 1).toString().padLeft(3, '0')}';
+    // 冲突重试：候选号已被占用则顺延（防删除/并发造成的重复）
+    var seq = maxSeq + 1;
+    while (await _noExists(
+      prefix,
+      '$prefix-$date-${seq.toString().padLeft(3, '0')}',
+    )) {
+      seq++;
+    }
+    return '$prefix-$date-${seq.toString().padLeft(3, '0')}';
+  }
+
+  Future<bool> _noExists(String prefix, String no) async {
+    switch (prefix) {
+      case 'HT':
+        return await (db.select(db.crmContracts)
+              ..where((t) => t.contractNo.equals(no)))
+            .getSingleOrNull() !=
+            null;
+      case 'QT':
+        return await (db.select(db.crmQuotes)
+              ..where((t) => t.quoteNo.equals(no)))
+            .getSingleOrNull() !=
+            null;
+      case 'AS':
+        return await (db.select(db.crmAfterSales)
+              ..where((t) => t.ticketNo.equals(no)))
+            .getSingleOrNull() !=
+            null;
+    }
+    return false;
   }
 
   // ==================== 自定义对象 ====================

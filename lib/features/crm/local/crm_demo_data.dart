@@ -109,13 +109,13 @@ class CrmDemoData {
     // ---- 机会 ----
     final opportunities = <LocalOpportunity>[];
     for (final o in const [
-      (0, 'CRM 专业版采购', '方案报价', 60, 89900.0, 'website'),
-      (1, '一体化 OA+CRM', '商务谈判', 75, 260000.0, 'referral'),
-      (2, '能源集团数字化', '需求确认', 40, 1500000.0, 'ad'),
-      (3, '智能工厂 MES 一期', '已联系', 25, 800000.0, 'exhibition'),
-      (4, '流程咨询项目', '新线索', 10, 120000.0, 'referral'),
-      (5, '个人版订阅', '赢单', 100, 999.0, 'website'),
-      (0, '服务器扩容', '输单', 0, 90000.0, 'other'),
+      (0, 'CRM 专业版采购', 'proposal', 60, 89900.0, 'website'),
+      (1, '一体化 OA+CRM', 'negotiation', 75, 260000.0, 'referral'),
+      (2, '能源集团数字化', 'qualified', 40, 1500000.0, 'ad'),
+      (3, '智能工厂 MES 一期', 'contacted', 25, 800000.0, 'exhibition'),
+      (4, '流程咨询项目', 'newLead', 10, 120000.0, 'referral'),
+      (5, '个人版订阅', 'closedWon', 100, 999.0, 'website'),
+      (0, '服务器扩容', 'closedLost', 0, 90000.0, 'other'),
     ]) {
       opportunities.add(
         await repo.createOpportunity(

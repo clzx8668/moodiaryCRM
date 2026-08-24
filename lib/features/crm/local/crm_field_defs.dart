@@ -9,12 +9,14 @@ class LocalObjectField {
   final String label;
   final String type; // text / number / date / select / textarea / relation / currency
   final List<String> options;
+  final Map<String, String>? optionLabels;
 
   const LocalObjectField(
     this.name,
     this.label, {
     this.type = 'text',
     this.options = const [],
+    this.optionLabels,
   });
 }
 
@@ -55,16 +57,27 @@ const Map<String, String> kLocalLabelFields = {
   'reminder': 'title',
 };
 
-/// 商机阶段（doc 枚举键，先以中文标签存储展示；S6 看板再做键值化）
+/// 商机阶段（统一库存英文 key，UI 显示中文 label）
+const Map<String, String> kOpportunityStageLabels = {
+  'newLead': '新线索',
+  'contacted': '已联系',
+  'qualified': '需求确认',
+  'proposal': '方案报价',
+  'negotiation': '商务谈判',
+  'closedWon': '赢单',
+  'closedLost': '输单',
+  'abandoned': '放弃',
+};
+
 const List<String> kOpportunityStages = [
-  '新线索',
-  '已联系',
-  '需求确认',
-  '方案报价',
-  '商务谈判',
-  '赢单',
-  '输单',
-  '放弃',
+  'newLead',
+  'contacted',
+  'qualified',
+  'proposal',
+  'negotiation',
+  'closedWon',
+  'closedLost',
+  'abandoned',
 ];
 
 const Map<String, List<LocalObjectField>> kBaseObjectFields = {
@@ -124,7 +137,13 @@ const Map<String, List<LocalObjectField>> kBaseObjectFields = {
     LocalObjectField('name', '名称'),
     LocalObjectField('account', '客户', type: 'relation'),
     LocalObjectField('contact', '联系人', type: 'relation'),
-    LocalObjectField('stage', '阶段', type: 'select', options: kOpportunityStages),
+    LocalObjectField(
+      'stage',
+      '阶段',
+      type: 'select',
+      options: kOpportunityStages,
+      optionLabels: kOpportunityStageLabels,
+    ),
     LocalObjectField('probability', '成交概率(%)', type: 'number'),
     LocalObjectField('amount', '预计金额', type: 'currency'),
     LocalObjectField('currency', '币种', type: 'currency'),

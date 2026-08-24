@@ -108,6 +108,11 @@ class _CrmHomePageState extends State<CrmHomePage>
                 icon: const Icon(Icons.view_column_outlined),
               ),
               IconButton(
+                tooltip: '导出 CSV',
+                onPressed: () => _tableController.exportTick.value++,
+                icon: const Icon(Icons.file_download_outlined),
+              ),
+              IconButton(
                 tooltip: '刷新',
                 onPressed: () {
                   _tableController.refreshTick.value++;

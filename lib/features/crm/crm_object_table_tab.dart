@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/crm/crm_entity_detail_page.dart';
@@ -5,6 +9,7 @@ import 'package:moodiary/features/crm/crm_entity_side_panel.dart';
 import 'package:moodiary/features/crm/crm_column_settings_panel.dart';
 import 'package:moodiary/features/crm/crm_create_form_panel.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
+import 'package:moodiary/features/crm/crm_field_registry.dart';
 import 'package:moodiary/features/crm/local/crm_entity_creator.dart';
 import 'package:moodiary/features/crm/local/crm_entity_field_updater.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
@@ -153,11 +158,13 @@ class CrmTableController {
   final ValueNotifier<String> query = ValueNotifier('');
   final ValueNotifier<int> refreshTick = ValueNotifier(0);
   final ValueNotifier<int> columnsTick = ValueNotifier(0);
+  final ValueNotifier<int> exportTick = ValueNotifier(0);
 
   void dispose() {
     query.dispose();
     refreshTick.dispose();
     columnsTick.dispose();
+    exportTick.dispose();
   }
 }
 
@@ -296,10 +303,12 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     c.query.addListener(_onExternalQuery);
     c.refreshTick.addListener(_onExternalRefresh);
     c.columnsTick.addListener(_onExternalColumns);
+    c.exportTick.addListener(_onExternalExport);
     _controllerListeners = [
       _onExternalQuery,
       _onExternalRefresh,
       _onExternalColumns,
+      _onExternalExport,
     ];
   }
 
@@ -310,6 +319,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         c.query.removeListener(listener);
         c.refreshTick.removeListener(listener);
         c.columnsTick.removeListener(listener);
+        c.exportTick.removeListener(listener);
       }
     }
     _controllerListeners = [];
@@ -325,6 +335,60 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
 
   void _onExternalColumns() {
     if (_lastAllItems.isNotEmpty) _openColumns(_lastAllItems);
+  }
+
+  void _onExternalExport() {
+    _exportCsv();
+  }
+
+  /// 导出当前对象为 CSV（当前视图列 + 全部记录，UTF-8 BOM 兼容 Excel）。
+  Future<void> _exportCsv() async {
+    if (_lastAllItems.isEmpty) {
+      toast.info(message: '暂无数据可导出');
+      return;
+    }
+    try {
+      final columns = _effectiveColumns(_allFieldNames(_lastAllItems));
+      final buffer = StringBuffer();
+      buffer.writeln(
+        columns.map((f) => _csvEscape(_fieldLabel(f))).join(','),
+      );
+      for (final item in _lastAllItems) {
+        final row = [
+          for (final f in columns)
+            _csvEscape(
+              f == _labelField
+                  ? item.name
+                  : CrmFieldRegistry.formatValue(item.data[f]).toString(),
+            ),
+        ];
+        buffer.writeln(row.join(','));
+      }
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: '导出 CSV',
+        fileName:
+            'crm_${widget.objectType}_${DateTime.now().millisecondsSinceEpoch}.csv',
+        type: FileType.custom,
+        allowedExtensions: const ['csv'],
+      );
+      if (path == null) return;
+      // 写入 UTF-8 BOM，Excel 打开中文不乱码
+      await File(path).writeAsBytes(
+        [0xEF, 0xBB, 0xBF, ...utf8.encode(buffer.toString())],
+      );
+      toast.success(message: '已导出：$path');
+    } catch (e) {
+      toast.error(message: '导出失败：$e');
+    }
+  }
+
+  String _csvEscape(String value) {
+    if (value.contains(',') ||
+        value.contains('"') ||
+        value.contains('\n')) {
+      return '"${value.replaceAll('"', '""')}"';
+    }
+    return value;
   }
 
   void _reload() {
@@ -735,15 +799,21 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   List<CrmEntityCache> _filtered(List<CrmEntityCache> items) {
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return items;
-    return items
-        .where(
-          (i) =>
-              i.name.toLowerCase().contains(q) ||
-              i.data.values.any(
-                (v) => v?.toString().toLowerCase().contains(q) == true,
-              ),
-        )
-        .toList();
+    return items.where((i) {
+      if (i.name.toLowerCase().contains(q)) return true;
+      for (final entry in i.data.entries) {
+        final raw = entry.value?.toString().toLowerCase() ?? '';
+        if (raw.contains(q)) return true;
+        // 枚举字段（如商机阶段）按中文 label 匹配，支持中文搜索
+        for (final f in _fields) {
+          if (f.name == entry.key && f.optionLabels != null) {
+            final label = f.optionLabels![entry.value?.toString() ?? ''];
+            if (label != null && label.toLowerCase().contains(q)) return true;
+          }
+        }
+      }
+      return false;
+    }).toList();
   }
 
   Future<void> _persistColumnOrder(List<String> order) async {
@@ -1399,6 +1469,11 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                               f.name: f.type == 'currency'
                                                   ? [...kCurrencies]
                                                   : f.options,
+                                        },
+                                        selectOptionLabels: {
+                                          for (final f in _fields)
+                                            if (f.optionLabels != null)
+                                              f.name: f.optionLabels!,
                                         },
                                         onCellChanged: _updateCell,
                                         onOpen: _edit,

@@ -32,7 +32,7 @@ void main() {
       expect(e.phone, '13812345678');
       expect(e.email, 'zhang@demo.com');
       expect(e.closeDate?.year, 2026);
-      expect(e.stage, '赢单');
+      expect(e.stage, 'closedWon');
     });
 
     test('空文本返回空', () {

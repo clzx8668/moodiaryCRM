@@ -50,10 +50,15 @@ class _CrmDashboardPageState extends State<CrmDashboardPage> {
     }
 
     final won = opportunities
-        .where((o) => o.stage == '赢单')
+        .where((o) => o.stage == 'closedWon')
         .fold<double>(0, (s, o) => s + o.amount);
     final pipeline = opportunities
-        .where((o) => o.stage != '赢单' && o.stage != '输单' && o.stage != '放弃')
+        .where(
+          (o) =>
+              o.stage != 'closedWon' &&
+              o.stage != 'closedLost' &&
+              o.stage != 'abandoned',
+        )
         .fold<double>(0, (s, o) => s + o.amount);
 
     return _DashboardData(
@@ -144,7 +149,10 @@ class _CrmDashboardPageState extends State<CrmDashboardPage> {
                   children: [
                     SizedBox(
                       width: 76,
-                      child: Text(stage, style: const TextStyle(fontSize: 12)),
+                      child: Text(
+                        kOpportunityStageLabels[stage] ?? stage,
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ),
                     Expanded(
                       child: LinearProgressIndicator(

@@ -91,19 +91,19 @@ class CrmAiAssist {
 
     String? stage;
     if (trimmed.contains('赢单')) {
-      stage = '赢单';
+      stage = 'closedWon';
     } else if (trimmed.contains('输单')) {
-      stage = '输单';
+      stage = 'closedLost';
     } else if (trimmed.contains('报价') || trimmed.contains('方案')) {
-      stage = '方案报价';
+      stage = 'proposal';
     } else if (trimmed.contains('谈判')) {
-      stage = '商务谈判';
+      stage = 'negotiation';
     } else if (trimmed.contains('需求') || trimmed.contains('确认')) {
-      stage = '需求确认';
+      stage = 'qualified';
     } else if (trimmed.contains('联系')) {
-      stage = '已联系';
+      stage = 'contacted';
     } else if (trimmed.contains('线索')) {
-      stage = '新线索';
+      stage = 'newLead';
     }
 
     return CrmAiExtraction(

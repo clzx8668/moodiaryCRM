@@ -22,6 +22,9 @@ class CrmSmartTable extends StatefulWidget {
   /// 选择类字段的选项（字段名 → 选项列表），用于单元格下拉
   final Map<String, List<String>> selectOptions;
 
+  /// 选择类字段的选项显示文本（字段名 → key → 中文 label）；值为 key
+  final Map<String, Map<String, String>> selectOptionLabels;
+
   /// 单元格编辑完成（防抖后回调）；field 为列字段，value 为新值
   final void Function(CrmEntityCache item, String field, Object? value)?
   onCellChanged;
@@ -40,6 +43,7 @@ class CrmSmartTable extends StatefulWidget {
     required this.items,
     required this.fields,
     this.selectOptions = const {},
+    this.selectOptionLabels = const {},
     this.onCellChanged,
     this.onOpen,
     this.onColumnsReordered,
@@ -120,10 +124,11 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
   PlutoColumn _columnFor(String field) {
     final mapValued = widget.items.any((i) => i.data[field] is Map);
     final readOnly = field == 'id' || field == 'twentyId' || mapValued;
+    final labels = widget.selectOptionLabels[field];
     return PlutoColumn(
       title: _columnTitle(field),
       field: field,
-      type: _columnType(field),
+      type: _columnType(field, labels),
       width: _columnWidth(field),
       enableSorting: true,
       enableFilterMenuItem: true,
@@ -140,6 +145,11 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
 
   Object? _cellValue(CrmEntityCache item, String field) {
     if (field == 'name') return item.name;
+    final labels = widget.selectOptionLabels[field];
+    if (labels != null) {
+      final raw = item.data[field];
+      if (raw is String && labels.containsKey(raw)) return labels[raw];
+    }
     return CrmFieldRegistry.formatValue(item.data[field]);
   }
 
@@ -163,10 +173,12 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
     return CrmColumnKind.text;
   }
 
-  PlutoColumnType _columnType(String field) {
+  PlutoColumnType _columnType(String field, Map<String, String>? labels) {
     final options = widget.selectOptions[field];
     if (options != null && options.isNotEmpty) {
-      return PlutoColumnType.select(options);
+      return PlutoColumnType.select([
+        for (final option in options) labels?[option] ?? option,
+      ]);
     }
     switch (_inferKind(field, widget.items)) {
       case CrmColumnKind.number:
@@ -300,7 +312,18 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
           final rowIdx = event.rowIdx;
           if (rowIdx < 0 || rowIdx >= widget.items.length) return;
           final item = widget.items[rowIdx];
-          widget.onCellChanged?.call(item, event.column.field, event.value);
+          var value = event.value;
+          // select 列下拉显示中文 label，编辑后反查回英文 key 再落库
+          final labels = widget.selectOptionLabels[event.column.field];
+          if (labels != null && value is String) {
+            for (final entry in labels.entries) {
+              if (entry.value == value) {
+                value = entry.key;
+                break;
+              }
+            }
+          }
+          widget.onCellChanged?.call(item, event.column.field, value);
         });
       },
       onRowDoubleTap: (event) {

@@ -302,9 +302,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Text(
-                        _stringValue(field).isEmpty
-                            ? '—'
-                            : _stringValue(field),
+                        _displayFieldValue(field),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ),
@@ -313,6 +311,13 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
         ],
       ),
     );
+  }
+
+  /// 字段展示值：select 枚举（如商机阶段）显示中文 label，其余原样。
+  String _displayFieldValue(LocalObjectField field) {
+    final raw = _stringValue(field);
+    if (raw.isEmpty) return '—';
+    return field.optionLabels?[raw] ?? raw;
   }
 
   Widget _buildEditInput(LocalObjectField field) {
@@ -331,7 +336,10 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
               isDense: true,
               items: [
                 for (final option in options)
-                  DropdownMenuItem(value: option, child: Text(option)),
+                  DropdownMenuItem(
+                    value: option,
+                    child: Text(field.optionLabels?[option] ?? option),
+                  ),
               ],
               onChanged: (v) {
                 if (v != null) _commitSelect(field, v);
@@ -1165,7 +1173,8 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       case 'contact':
         return '联系人 · ${(record as LocalContact).title}';
       case 'opportunity':
-        return '机会 · ${(record as LocalOpportunity).stage}';
+        final stage = (record as LocalOpportunity).stage;
+        return '机会 · ${kOpportunityStageLabels[stage] ?? stage}';
       case 'contract':
         return '合同 · ${(record as LocalContract).status}';
       case 'quote':

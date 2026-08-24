@@ -194,7 +194,10 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
               ),
               items: [
                 for (final option in options)
-                  DropdownMenuItem(value: option, child: Text(option)),
+                  DropdownMenuItem(
+                    value: option,
+                    child: Text(field.optionLabels?[option] ?? option),
+                  ),
               ],
               onChanged: (v) =>
                   _controllers[field.name]!.text = v ?? '',
@@ -269,7 +272,10 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
         FutureBuilder<List<Object>>(
           future: _relationCandidatesFor(def.candidateType),
           builder: (context, snapshot) {
-            final candidates = snapshot.data ?? const <Object>[];
+            // 候选分页：下拉仅展示最近 50 条，避免大数据量卡顿
+            final candidates = (snapshot.data ?? const <Object>[])
+                .take(50)
+                .toList();
             return DropdownButtonFormField<String>(
               initialValue: _relationSelections[field.name] ?? '',
               decoration: InputDecoration(
