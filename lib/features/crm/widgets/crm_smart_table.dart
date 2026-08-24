@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:moodiary/features/crm/crm_field_registry.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:pluto_grid/pluto_grid.dart';
@@ -68,6 +69,8 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
   late List<PlutoColumn> _columns;
   late List<PlutoRow> _rows;
   Timer? _debounce;
+  PlutoGridStateManager? _stateManager;
+  Offset? _rightClickDown;
 
   @override
   void initState() {
@@ -96,13 +99,17 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
         title: '',
         field: '__select__',
         type: PlutoColumnType.text(),
-        width: 44,
+        width: 36,
+        minWidth: 36,
+        suppressedAutoSize: true,
         readOnly: true,
         enableEditingMode: false,
         enableSorting: false,
         enableFilterMenuItem: false,
         enableHideColumnMenuItem: false,
         enableSetColumnsMenuItem: false,
+        enableColumnDrag: false,
+        frozen: PlutoColumnFrozen.start,
         renderer: (rendererContext) {
           final rowIdx = rendererContext.rowIdx;
           if (rowIdx < 0 || rowIdx >= widget.items.length) {
@@ -214,7 +221,8 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
               );
             }
           : null,
-      enableSorting: true,
+      // 排序箭头隐藏，升降序移入标题行右键/菜单（_CrmColumnMenuDelegate）
+      enableSorting: false,
       enableFilterMenuItem: true,
       enableHideColumnMenuItem: true,
       enableSetColumnsMenuItem: true,
@@ -319,10 +327,11 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
 
   @override
   Widget build(BuildContext context) {
-    return PlutoGrid(
+    final grid = PlutoGrid(
       columns: _columns,
       rows: _rows,
       mode: PlutoGridMode.normal,
+      columnMenuDelegate: _CrmColumnMenuDelegate(),
       configuration: PlutoGridConfiguration(
         localeText: const PlutoGridLocaleText(
           unfreezeColumn: '取消冻结',
@@ -385,6 +394,7 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
         ),
       ),
       onLoaded: (event) {
+        _stateManager = event.stateManager;
         event.stateManager.setShowColumnFilter(false);
       },
       onChanged: (event) {
@@ -417,9 +427,226 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
       },
       onColumnsMoved: (event) {
         widget.onColumnsReordered?.call([
-          for (final column in event.columns) column.field,
+          for (final column in event.columns)
+            if (column.field != '__select__' && column.field != '__actions__')
+              column.field,
         ]);
       },
     );
+    return Listener(
+      onPointerDown: _handleRightPointerDown,
+      onPointerUp: _handleRightPointerUp,
+      child: Stack(
+        children: [
+          grid,
+          _buildSelectHeaderCheckbox(),
+          // 隐藏复选框列与首数据列之间的列间表格线（复选框列固定 36px 首列）
+          Positioned(
+            left: 35.5,
+            top: 1,
+            bottom: 1,
+            width: 2,
+            child: IgnorePointer(
+              child: ColoredBox(
+                color: Theme.of(context).colorScheme.surface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 复选框列（固定首列）表头：全选 / 取消全选。
+  Widget _buildSelectHeaderCheckbox() {
+    final items = widget.items;
+    if (items.isEmpty) return const SizedBox.shrink();
+    final allSelected = items.every(
+      (i) => widget.selectedIds.contains(i.id),
+    );
+    final someSelected = items.any(
+      (i) => widget.selectedIds.contains(i.id),
+    );
+    return Positioned(
+      left: 0,
+      top: 0,
+      width: 36,
+      height: 40,
+      child: Center(
+        child: Checkbox(
+          tristate: true,
+          value: allSelected ? true : (someSelected ? null : false),
+          visualDensity: VisualDensity.compact,
+          onChanged: (v) {
+            final checked = v ?? false;
+            widget.onSelectionChanged?.call(
+              checked ? {for (final i in items) i.id} : <String>{},
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _handleRightPointerDown(PointerDownEvent event) {
+    if (event.kind == PointerDeviceKind.mouse &&
+        (event.buttons & kSecondaryMouseButton) != 0) {
+      _rightClickDown = event.localPosition;
+    }
+  }
+
+  void _handleRightPointerUp(PointerUpEvent event) {
+    final down = _rightClickDown;
+    _rightClickDown = null;
+    final sm = _stateManager;
+    if (down == null || sm == null || !mounted) return;
+    final pos = down;
+    // 仅标题行区域响应右键
+    if (pos.dy < 0 || pos.dy > sm.columnHeight) return;
+    final hit = _columnAtPosition(pos);
+    if (hit == null) return;
+    final column = hit.column;
+    if (column.field == '__select__' || column.field == '__actions__') {
+      return;
+    }
+    // 标题右侧上下文/调整区由 pluto 自身处理，避免双重菜单
+    if (pos.dx >= hit.rightEdge - 24) return;
+    _openColumnMenu(pos, column);
+  }
+
+  ({PlutoColumn column, double rightEdge})? _columnAtPosition(Offset local) {
+    final sm = _stateManager;
+    if (sm == null) return null;
+    final x = local.dx;
+    double cursor = 0;
+    for (final c in sm.leftFrozenColumns) {
+      cursor += c.width;
+      if (x < cursor) return (column: c, rightEdge: cursor);
+    }
+    final offset = sm.scroll.horizontalOffset;
+    var bodyX = sm.leftFrozenColumnsWidth - offset;
+    for (final c in sm.bodyColumns) {
+      bodyX += c.width;
+      if (x < bodyX) return (column: c, rightEdge: bodyX);
+    }
+    return null;
+  }
+
+  Future<void> _openColumnMenu(Offset localPos, PlutoColumn column) async {
+    final sm = _stateManager;
+    if (sm == null || !mounted) return;
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached) return;
+    final global = box.localToGlobal(localPos);
+    final overlayBox =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (overlayBox == null) return;
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        global.dx,
+        global.dy,
+        overlayBox.size.width - global.dx,
+        overlayBox.size.height - global.dy,
+      ),
+      items: _CrmColumnMenuDelegate().buildMenuItems(
+        stateManager: sm,
+        column: column,
+      ),
+    );
+    if (selected != null && mounted) {
+      _CrmColumnMenuDelegate().onSelected(
+        context: context,
+        stateManager: sm,
+        column: column,
+        mounted: mounted,
+        selected: selected,
+      );
+    }
+  }
+}
+
+/// 列标题菜单委托：升序/降序移入菜单（Twenty 无表头排序箭头，
+/// 排序通过列菜单触发），并保留冻结/隐藏/筛选等默认项。
+class _CrmColumnMenuDelegate extends PlutoColumnMenuDelegate<String> {
+  _CrmColumnMenuDelegate();
+
+  @override
+  List<PopupMenuEntry<String>> buildMenuItems({
+    required PlutoGridStateManager stateManager,
+    required PlutoColumn column,
+  }) {
+    final textColor =
+        stateManager.style.cellTextStyle.color ?? Colors.black87;
+    final locale = stateManager.localeText;
+    PopupMenuItem<String> item(String value, String text) => PopupMenuItem(
+      value: value,
+      height: 36,
+      child: Text(text, style: TextStyle(color: textColor, fontSize: 13)),
+    );
+    return [
+      item('sortAsc', '升序'),
+      item('sortDesc', '降序'),
+      const PopupMenuDivider(),
+      if (column.frozen.isFrozen)
+        item('unfreeze', locale.unfreezeColumn)
+      else ...[
+        item('freezeStart', locale.freezeColumnToStart),
+        item('freezeToEnd', locale.freezeColumnToEnd),
+      ],
+      item('autoFit', locale.autoFitColumn),
+      if (column.enableHideColumnMenuItem) item('hide', locale.hideColumn),
+      if (column.enableSetColumnsMenuItem)
+        item('setColumns', locale.setColumns),
+      if (column.enableFilterMenuItem) ...[
+        const PopupMenuDivider(),
+        item('setFilter', locale.setFilter),
+        item('resetFilter', locale.resetFilter),
+      ],
+    ];
+  }
+
+  @override
+  void onSelected({
+    required BuildContext context,
+    required PlutoGridStateManager stateManager,
+    required PlutoColumn column,
+    required bool mounted,
+    required String? selected,
+  }) {
+    switch (selected) {
+      case 'sortAsc':
+        stateManager.sortAscending(column);
+        break;
+      case 'sortDesc':
+        stateManager.sortDescending(column);
+        break;
+      case 'unfreeze':
+        stateManager.toggleFrozenColumn(column, PlutoColumnFrozen.none);
+        break;
+      case 'freezeStart':
+        stateManager.toggleFrozenColumn(column, PlutoColumnFrozen.start);
+        break;
+      case 'freezeToEnd':
+        stateManager.toggleFrozenColumn(column, PlutoColumnFrozen.end);
+        break;
+      case 'autoFit':
+        if (mounted) stateManager.autoFitColumn(context, column);
+        break;
+      case 'hide':
+        stateManager.hideColumn(column, true);
+        break;
+      case 'setColumns':
+        if (mounted) stateManager.showSetColumnsPopup(context);
+        break;
+      case 'setFilter':
+        if (mounted) {
+          stateManager.showFilterPopup(context, calledColumn: column);
+        }
+        break;
+      case 'resetFilter':
+        stateManager.setFilter(null);
+        break;
+    }
   }
 }
