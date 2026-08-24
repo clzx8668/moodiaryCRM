@@ -387,10 +387,6 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
       case 'export':
         _exportCsv(ids: _selectedIds);
         break;
-      case 'clear':
-        setState(() => _selectedIds.clear());
-        _notifySelectionCount();
-        break;
     }
   }
 
@@ -1560,14 +1556,25 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
               ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '共 ${items.length} 条'
-                  '${_query.trim().isNotEmpty ? '（过滤）' : ''}'
-                  ' · 双击行查看详情',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '共 ${items.length} 条'
+                      '${_query.trim().isNotEmpty ? '（过滤）' : ''}'
+                      ' · 双击行查看详情',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  if (_selectedIds.isNotEmpty)
+                    Text(
+                      '已选 ${_selectedIds.length} 条',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                ],
               ),
             ),
             const Divider(height: 8),

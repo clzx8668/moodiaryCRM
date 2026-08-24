@@ -166,35 +166,46 @@ class _CrmHomePageState extends State<CrmHomePage>
     _tableController.query.value = query;
   }
 
-  /// Tab 导航行右侧的批量操作条（勾选后显示，靠右对齐；与 Tab 卡片页分割）。
+  /// Tab 导航行右侧的批量操作条（勾选后显示，靠右对齐；移动端只显示图标）。
   Widget _buildBatchBar() {
+    final isMobile = MediaQuery.sizeOf(context).width < 900;
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.only(right: 4),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '已选 $_currentSelectionCount 条',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(width: 4),
-          TextButton.icon(
-            onPressed: () => _tableController.batchAction.value = 'delete',
-            icon: const Icon(Icons.delete_outline, size: 16),
-            label: const Text('删除'),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
+          if (isMobile) ...[
+            IconButton(
+              tooltip: '删除选中',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => _tableController.batchAction.value = 'delete',
+              icon: Icon(
+                Icons.delete_outline,
+                size: 18,
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
-          ),
-          TextButton.icon(
-            onPressed: () => _tableController.batchAction.value = 'export',
-            icon: const Icon(Icons.file_download_outlined, size: 16),
-            label: const Text('导出'),
-          ),
-          TextButton(
-            onPressed: () => _tableController.batchAction.value = 'clear',
-            child: const Text('清除'),
-          ),
+            IconButton(
+              tooltip: '导出选中',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => _tableController.batchAction.value = 'export',
+              icon: const Icon(Icons.file_download_outlined, size: 18),
+            ),
+          ] else ...[
+            TextButton.icon(
+              onPressed: () => _tableController.batchAction.value = 'delete',
+              icon: const Icon(Icons.delete_outline, size: 16),
+              label: const Text('删除'),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => _tableController.batchAction.value = 'export',
+              icon: const Icon(Icons.file_download_outlined, size: 16),
+              label: const Text('导出'),
+            ),
+          ],
         ],
       ),
     );
