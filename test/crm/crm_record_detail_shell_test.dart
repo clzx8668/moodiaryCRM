@@ -108,4 +108,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('附件（'), findsOneWidget);
   });
+
+  testWidgets('子详情页：显示父页面关联上下文', (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        CrmRecordDetailShell(
+          objectType: 'contact',
+          item: CrmEntityCache()
+            ..twentyId = 'c-1'
+            ..entityType = 'contact'
+            ..name = '张三',
+          fields: kBaseObjectFields['contact']!,
+          isRoot: false,
+          isMobile: true,
+          parentLabel: '来自 客户 · Acme 科技',
+          onClose: () {},
+          onChanged: () {},
+          onDelete: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('来自 客户 · Acme 科技'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+  });
 }

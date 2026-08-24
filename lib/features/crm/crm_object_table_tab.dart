@@ -131,6 +131,9 @@ Color crmTypeColor(String type) {
 /// 单个对象 Tab：智能表格（本地数据）+ 搜索/列设置 + 增删改查 + 业务下钻。
 enum _PanelMode { detail, columns, create }
 
+/// 详情页嵌套最大层级（根 + 子详情；超出回落「就地展开编辑」）。
+const int kCrmDetailMaxDepth = 3;
+
 /// 关联新增上下文：创建成功后把新记录挂到父实体。
 class _LinkContext {
   /// 正向：新建记录挂到已存在的父实体
@@ -187,6 +190,9 @@ class _PanelFrame {
   /// create 帧成功后的自动关联目标
   final _LinkContext? linkContext;
 
+  /// detail 帧的父页面关联上下文（如「来自 客户 · Acme」）
+  final String? parentLabel;
+
   const _PanelFrame({
     required this.mode,
     required this.objectType,
@@ -196,6 +202,22 @@ class _PanelFrame {
     this.title,
     this.subtitle,
     this.linkContext,
+    this.parentLabel,
+  });
+}
+
+/// 创建成功后待打开的「新建记录详情帧」（由表单 onClose 弹出时统一压入，避免帧序竞争）。
+class _PendingDetail {
+  final String objectType;
+  final List<LocalObjectField> fields;
+  final CrmEntityCache item;
+  final String? parentLabel;
+
+  const _PendingDetail({
+    required this.objectType,
+    required this.fields,
+    required this.item,
+    this.parentLabel,
   });
 }
 
@@ -204,6 +226,7 @@ class CrmObjectTableTab extends StatefulWidget {
   final String title;
   final int reloadToken;
   final CrmTableController? controller;
+  final void Function(String objectType, String query)? onRequestObjectView;
 
   /// 是否为当前激活 Tab（只有激活 Tab 响应 [controller]）
   final bool controllerActive;
@@ -218,6 +241,7 @@ class CrmObjectTableTab extends StatefulWidget {
     this.reloadToken = 0,
     this.customObject,
     this.controller,
+    this.onRequestObjectView,
     this.controllerActive = true,
   });
 
@@ -234,6 +258,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   List<String> _lastAll = [];
   int _refreshToken = 0;
   final List<_PanelFrame> _panels = [];
+  _PendingDetail? _pendingOpenDetail;
   List<CrmEntityCache> _lastAllItems = [];
   List<VoidCallback> _controllerListeners = [];
   Set<String> _selectedIds = {};
@@ -1007,15 +1032,15 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
 
   /// 打开目标对象（下钻）详情：从面板栈压入新的一层，返回时逐层弹出。
   Future<void> _openRelatedDetail(String targetType, String targetId) async {
+    final frame = _panel;
+    if (_panels.length >= kCrmDetailMaxDepth) {
+      toast.info(
+        message: '已达最大嵌套层级（$kCrmDetailMaxDepth 层），可在当前详情内就地展开编辑',
+      );
+      return;
+    }
     try {
-      final items = await _loadItems(objectType: targetType);
-      CrmEntityCache? found;
-      for (final item in items) {
-        if (item.twentyId == targetId) {
-          found = item;
-          break;
-        }
-      }
+      final found = await _loadSingleItem(targetType, targetId);
       if (found == null || !mounted) return;
       setState(() {
         _panels.add(
@@ -1024,12 +1049,24 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
             objectType: targetType,
             fields: kBaseObjectFields[targetType] ?? const [],
             item: found,
+            parentLabel: frame == null || frame.item == null
+                ? null
+                : '来自 ${crmTypeLabel(frame.objectType)} · ${frame.item!.name}',
           ),
         );
       });
     } catch (e) {
       toast.error(message: '打开失败：$e');
     }
+  }
+
+  /// 加载单条记录缓存（下钻/创建后打开详情复用）。
+  Future<CrmEntityCache?> _loadSingleItem(String type, String id) async {
+    final items = await _loadItems(objectType: type);
+    for (final item in items) {
+      if (item.twentyId == id) return item;
+    }
+    return null;
   }
 
   void _openColumns(List<CrmEntityCache> items) {
@@ -1112,6 +1149,22 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     setState(() {
       if (_panels.isNotEmpty) _panels.removeLast();
     });
+    // 创建成功后待打开的新建记录详情：由表单 onClose 弹出时统一压入（避免帧序竞争）
+    final pending = _pendingOpenDetail;
+    _pendingOpenDetail = null;
+    if (pending != null) {
+      setState(() {
+        _panels.add(
+          _PanelFrame(
+            mode: _PanelMode.detail,
+            objectType: pending.objectType,
+            fields: pending.fields,
+            item: pending.item,
+            parentLabel: pending.parentLabel,
+          ),
+        );
+      });
+    }
     if (refresh) _refreshGrid();
   }
 
@@ -1120,10 +1173,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
     // 给字段失焦提交留出执行时间（DB 写入为异步）
     await Future<void>.delayed(const Duration(milliseconds: 150));
     if (!mounted) return;
-    setState(() {
-      if (_panels.isNotEmpty) _panels.removeLast();
-    });
-    _refreshGrid();
+    _closeTopPanel(refresh: true);
   }
 
   Future<void> _saveColumns(List<String> visible, bool customized) async {
@@ -1181,6 +1231,16 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
           targetId: newId,
         );
         toast.success(message: '已创建并关联「${ctx.parentLabel}」');
+      }
+      // 新建并关联后：打开新建记录的「子详情页」继续编辑（表单 onClose 时压入）
+      final item = await _loadSingleItem(type, newId);
+      if (mounted && item != null) {
+        _pendingOpenDetail = _PendingDetail(
+          objectType: type,
+          fields: kBaseObjectFields[type] ?? const [],
+          item: item,
+          parentLabel: '新建并关联 · ${ctx.parentLabel}',
+        );
       }
     }
   }
@@ -1660,6 +1720,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
           item: frame.item!,
           fields: frame.fields,
           isRoot: isRoot,
+          parentLabel: frame.parentLabel,
           onClose: _closeTopAndRefresh,
           onChanged: _refreshGrid,
           onDelete: _deleteSelected,
@@ -1668,6 +1729,14 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
           onCreateRelated: _createRelatedFromPanel,
           onCreateBackRelated: _createBackRelatedFromPanel,
           onOpenRelated: _openRelatedDetail,
+          onShowRelatedList: widget.onRequestObjectView == null
+              ? null
+              : (type) {
+                  final parentName = frame.item?.name ?? '';
+                  setState(() => _panels.clear());
+                  _refreshGrid();
+                  widget.onRequestObjectView!(type, parentName);
+                },
         );
       case _PanelMode.columns:
         return CrmColumnSettingsPanel(

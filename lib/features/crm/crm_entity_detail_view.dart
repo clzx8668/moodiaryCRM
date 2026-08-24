@@ -14,6 +14,7 @@ import 'package:moodiary/features/crm/local/crm_prefs.dart';
 import 'package:moodiary/features/crm/local/crm_quote_template_store.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/widgets/crm_currency_amount_field.dart';
+import 'package:moodiary/features/crm/widgets/crm_record_inline_fields.dart';
 import 'package:moodiary/features/crm/widgets/crm_relation_search_field.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/router/app_routes.dart';
@@ -48,6 +49,9 @@ class CrmEntityDetailView extends StatefulWidget {
   /// 打开关联记录详情（下钻，支持逐层返回）
   final void Function(String targetType, String targetId)? onOpenRelated;
 
+  /// 「All (n)」跳转：切换到目标对象表格并过滤（关抽屉后由外层执行）
+  final void Function(String targetType)? onShowRelatedList;
+
   const CrmEntityDetailView({
     super.key,
     required this.objectType,
@@ -61,6 +65,7 @@ class CrmEntityDetailView extends StatefulWidget {
     this.onCreateRelated,
     this.onCreateBackRelated,
     this.onOpenRelated,
+    this.onShowRelatedList,
   });
 
   @override
@@ -80,6 +85,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   final Map<String, Future<List<Object>>> _relationCandidateFutures = {};
   final Map<String, List<Object>> _linkedByCandidate = {};
   Future<_AssocData>? _assocCache;
+  String? _expandedAssocId;
   final TextEditingController _optionController = TextEditingController();
   final TextEditingController _tagController = TextEditingController();
   final TextEditingController _activitySubject = TextEditingController();
@@ -957,13 +963,42 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
                       if ((data.linked[type] ?? const []).isNotEmpty) ...[
                         Padding(
                           padding: const EdgeInsets.only(top: 4, bottom: 2),
-                          child: Text(
-                            crmTypeLabel(type),
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  crmTypeLabel(type),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                 ),
+                              ),
+                              if (widget.onShowRelatedList != null)
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    minimumSize: const Size(0, 28),
+                                  ),
+                                  onPressed: () =>
+                                      widget.onShowRelatedList!(type),
+                                  child: Text(
+                                    'All (${(data.linked[type] ?? const []).length})',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                         for (final record in data.linked[type]!)
@@ -979,21 +1014,128 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   }
 
   Widget _assocTile(String parentType, String type, Object record) {
-    return ListTile(
-      dense: true,
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(_assocIcon(type), size: 18),
-      title: Text(
-        _assocLabel(type, record),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(_assocSubtitle(type, record)),
-      trailing: const Icon(Icons.chevron_right_rounded, size: 16),
-      onTap: widget.onOpenRelated == null
-          ? null
-          : () => widget.onOpenRelated!(type, _assocId(type, record)),
+    final id = _assocId(type, record);
+    final expanded = _expandedAssocId == '$parentType:$type:$id';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(_assocIcon(type), size: 18),
+          title: Text(
+            _assocLabel(type, record),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(_assocSubtitle(type, record)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: expanded ? '收起' : '就地编辑',
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  expanded
+                      ? Icons.expand_less_rounded
+                      : Icons.expand_more_rounded,
+                  size: 18,
+                ),
+                onPressed: () => setState(() {
+                  _expandedAssocId = expanded ? null : '$parentType:$type:$id';
+                }),
+              ),
+              PopupMenuButton<String>(
+                tooltip: '更多',
+                icon: const Icon(Icons.more_vert_rounded, size: 16),
+                onSelected: (action) {
+                  if (action == 'detach') {
+                    _detachAssoc(parentType, type, record);
+                  } else if (action == 'delete') {
+                    _deleteAssoc(type, record);
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'detach', child: Text('解除关联')),
+                  PopupMenuItem(value: 'delete', child: Text('删除记录')),
+                ],
+              ),
+            ],
+          ),
+          onTap: widget.onOpenRelated == null
+              ? null
+              : () => widget.onOpenRelated!(type, id),
+        ),
+        if (expanded)
+          Padding(
+            padding: const EdgeInsets.only(left: 2, bottom: 6),
+            child: CrmRecordInlineFields(
+              objectType: type,
+              recordId: id,
+              fields: kBaseObjectFields[type] ?? const [],
+              onChanged: () {
+                _invalidateRelationCandidates();
+                widget.onChanged?.call();
+              },
+            ),
+          ),
+      ],
     );
+  }
+
+  Future<void> _detachAssoc(
+    String parentType,
+    String type,
+    Object record,
+  ) async {
+    final fk = relationFieldToFk(parentType);
+    try {
+      await CrmEntityFieldUpdater.update(
+        objectType: type,
+        id: _assocId(type, record),
+        field: fk,
+        value: '',
+      );
+      _invalidateRelationCandidates();
+      if (mounted) setState(() {});
+      widget.onChanged?.call();
+      toast.success(message: '已解除关联');
+    } catch (e) {
+      toast.error(message: '解除关联失败：$e');
+    }
+  }
+
+  Future<void> _deleteAssoc(String type, Object record) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('将删除「${_assocLabel(type, record)}」，此操作不可撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await CrmEntityDeleter.delete(type, _assocId(type, record));
+      _invalidateRelationCandidates();
+      if (mounted) setState(() {});
+      widget.onChanged?.call();
+      toast.success(message: '已删除');
+    } catch (e) {
+      toast.error(message: '删除失败：$e');
+    }
   }
 
   Widget _assocPicker(String parentType, _AssocData data) {

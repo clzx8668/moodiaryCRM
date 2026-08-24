@@ -241,6 +241,7 @@ class _CrmHomePageState extends State<CrmHomePage>
                               objectType: _tabs[i].type,
                               title: _tabs[i].label,
                               controller: _tableController,
+                              onRequestObjectView: _gotoTab,
                               controllerActive: i == _activeIndex,
                               customObject: _tabs[i].type.startsWith('custom:')
                                   ? _customObjects.firstWhere(

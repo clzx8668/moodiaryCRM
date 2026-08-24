@@ -19,6 +19,9 @@ class CrmRecordDetailShell extends StatefulWidget {
   /// true = 根详情页（❌ 关闭）；false = 子详情页（← 返回上一层）
   final bool isRoot;
 
+  /// 父页面关联上下文（如「来自 客户 · Acme」），子详情页显示
+  final String? parentLabel;
+
   /// 移动/窄屏整页模式（不合并 Tab，Twenty 移动端五 Tab）
   final bool isMobile;
 
@@ -33,6 +36,7 @@ class CrmRecordDetailShell extends StatefulWidget {
   final void Function(String targetType)? onCreateRelated;
   final void Function(String targetType)? onCreateBackRelated;
   final void Function(String targetType, String targetId)? onOpenRelated;
+  final void Function(String targetType)? onShowRelatedList;
 
   const CrmRecordDetailShell({
     super.key,
@@ -40,6 +44,7 @@ class CrmRecordDetailShell extends StatefulWidget {
     required this.item,
     required this.fields,
     required this.isRoot,
+    this.parentLabel,
     required this.isMobile,
     required this.onClose,
     required this.onChanged,
@@ -49,6 +54,7 @@ class CrmRecordDetailShell extends StatefulWidget {
     this.onCreateRelated,
     this.onCreateBackRelated,
     this.onOpenRelated,
+    this.onShowRelatedList,
   });
 
   @override
@@ -175,6 +181,7 @@ class _CrmRecordDetailShellState extends State<CrmRecordDetailShell> {
             item: widget.item,
             fields: widget.fields,
             cards: active.cards,
+            onShowRelatedList: widget.onShowRelatedList,
             compact: !widget.isMobile,
             onChanged: widget.onChanged,
             refreshTick: widget.refreshTick,
@@ -214,13 +221,28 @@ class _CrmRecordDetailShellState extends State<CrmRecordDetailShell> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              crmTypeLabel(widget.objectType),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  crmTypeLabel(widget.objectType),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                if (widget.parentLabel != null)
+                  Text(
+                    widget.parentLabel!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+              ],
             ),
           ),
           IconButton(

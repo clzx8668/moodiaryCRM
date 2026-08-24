@@ -12,6 +12,9 @@ class CrmEntitySidePanel extends StatelessWidget {
   /// true = 根详情页（❌ 关闭）；false = 子详情页（← 返回上一层）
   final bool isRoot;
 
+  /// 父页面关联上下文（子详情页显示）
+  final String? parentLabel;
+
   final VoidCallback onClose;
   final VoidCallback onChanged;
   final VoidCallback onDelete;
@@ -25,6 +28,7 @@ class CrmEntitySidePanel extends StatelessWidget {
   final void Function(String targetType)? onCreateRelated;
   final void Function(String targetType)? onCreateBackRelated;
   final void Function(String targetType, String targetId)? onOpenRelated;
+  final void Function(String targetType)? onShowRelatedList;
 
   const CrmEntitySidePanel({
     super.key,
@@ -32,6 +36,7 @@ class CrmEntitySidePanel extends StatelessWidget {
     required this.item,
     required this.fields,
     this.isRoot = true,
+    this.parentLabel,
     required this.onClose,
     required this.onChanged,
     required this.onDelete,
@@ -40,6 +45,7 @@ class CrmEntitySidePanel extends StatelessWidget {
     this.onCreateRelated,
     this.onCreateBackRelated,
     this.onOpenRelated,
+    this.onShowRelatedList,
   });
 
   @override
@@ -49,6 +55,7 @@ class CrmEntitySidePanel extends StatelessWidget {
       item: item,
       fields: fields,
       isRoot: isRoot,
+      parentLabel: parentLabel,
       isMobile: false,
       onClose: onClose,
       onChanged: onChanged,
@@ -58,6 +65,7 @@ class CrmEntitySidePanel extends StatelessWidget {
       onCreateRelated: onCreateRelated,
       onCreateBackRelated: onCreateBackRelated,
       onOpenRelated: onOpenRelated,
+      onShowRelatedList: onShowRelatedList,
     );
   }
 }
