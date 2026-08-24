@@ -47,6 +47,7 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
   bool _open = false;
   bool _searching = false;
   bool _creating = false;
+  bool _submitting = false;
   int _highlight = -1;
   String _display = '';
 
@@ -152,8 +153,8 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
 
   Future<void> _submitCreate() async {
     final name = _nameCtrl.text.trim();
-    if (name.isEmpty || _creating) return;
-    setState(() => _creating = true);
+    if (name.isEmpty || _submitting) return;
+    setState(() => _submitting = true);
     try {
       final newId = await widget.onCreate?.call(name);
       if (newId != null) {
@@ -162,13 +163,14 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
           setState(() {
             _open = false;
             _creating = false;
+            _submitting = false;
             _display = name;
             _searchCtrl.clear();
           });
         }
       }
     } finally {
-      if (mounted) setState(() => _creating = false);
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
