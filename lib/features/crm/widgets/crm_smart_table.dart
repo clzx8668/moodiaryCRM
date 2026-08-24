@@ -105,6 +105,8 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
         readOnly: true,
         enableEditingMode: false,
         enableSorting: false,
+        enableContextMenu: false,
+        enableDropToResize: false,
         enableFilterMenuItem: false,
         enableHideColumnMenuItem: false,
         enableSetColumnsMenuItem: false,
@@ -141,10 +143,12 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
         field: '__actions__',
         type: PlutoColumnType.text(),
         width: 64,
-        readOnly: true,
-        enableEditingMode: false,
-        enableSorting: false,
-        enableFilterMenuItem: false,
+      readOnly: true,
+      enableEditingMode: false,
+      enableSorting: false,
+      enableContextMenu: false,
+      enableDropToResize: false,
+      enableFilterMenuItem: false,
         enableHideColumnMenuItem: false,
         enableSetColumnsMenuItem: false,
         renderer: (rendererContext) {
@@ -223,6 +227,9 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
           : null,
       // 排序箭头隐藏，升降序移入标题行右键/菜单（_CrmColumnMenuDelegate）
       enableSorting: false,
+      // 隐藏列标题右侧「三条杠」菜单/调整图标；列操作全部走右键菜单
+      enableContextMenu: false,
+      enableDropToResize: false,
       enableFilterMenuItem: true,
       enableHideColumnMenuItem: true,
       enableSetColumnsMenuItem: true,
@@ -509,8 +516,6 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
     if (column.field == '__select__' || column.field == '__actions__') {
       return;
     }
-    // 标题右侧上下文/调整区由 pluto 自身处理，避免双重菜单
-    if (pos.dx >= hit.rightEdge - 24) return;
     _openColumnMenu(pos, column);
   }
 
