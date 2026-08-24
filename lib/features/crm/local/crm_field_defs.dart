@@ -57,6 +57,63 @@ const Map<String, String> kLocalLabelFields = {
   'reminder': 'title',
 };
 
+/// 详情页「核心信息」区块默认显示的字段（默认 5–7 条，其余默认隐藏；
+/// 用户可在详情字段设置中调整显隐，也可临时「展开全部」）。
+const Map<String, List<String>> kDetailCoreFields = {
+  'account': [
+    'type',
+    'industry',
+    'level',
+    'source',
+    'phone',
+    'email',
+    'status',
+  ],
+  'contact': [
+    'title',
+    'department',
+    'phone',
+    'email',
+    'wechat',
+    'isPrimary',
+    'isDecisionMaker',
+  ],
+  'opportunity': [
+    'stage',
+    'probability',
+    'amount',
+    'source',
+    'expectedCloseDate',
+    'actualCloseDate',
+    'lossReason',
+  ],
+  'contract': [
+    'contractNo',
+    'status',
+    'totalAmount',
+    'signDate',
+    'startDate',
+    'endDate',
+    'warrantyEndDate',
+  ],
+  'quote': ['quoteNo', 'status', 'totalAmount', 'discountAmount', 'validUntil', 'note'],
+  'product': ['sku', 'type', 'unit', 'price', 'cost', 'warrantyMonths', 'isActive'],
+  'paymentPlan': ['planAmount', 'paidAmount', 'planDate', 'status'],
+  'payment': ['paymentDate', 'amount', 'method', 'note'],
+  'invoice': ['invoiceNo', 'type', 'amount', 'taxRate', 'issueDate', 'status', 'receiverName'],
+  'warranty': ['startDate', 'endDate', 'status', 'note'],
+  'afterSales': ['type', 'priority', 'status', 'description', 'resolution'],
+  'activity': ['type', 'direction', 'status', 'scheduledAt', 'content'],
+  'reminder': ['type', 'remindAt', 'isCompleted'],
+};
+
+/// 主页必显的「主关联」区块：互斥且必须都存在。
+/// 客户主页第二块 = 联系人；联系人主页第二块 = 客户。
+const Map<String, String> kPrimaryRelation = {
+  'account': 'contact',
+  'contact': 'account',
+};
+
 /// 商机阶段（统一库存英文 key，UI 显示中文 label）
 const Map<String, String> kOpportunityStageLabels = {
   'newLead': '新线索',

@@ -17,6 +17,7 @@ import 'package:moodiary/features/crm/widgets/crm_currency_amount_field.dart';
 import 'package:moodiary/features/crm/widgets/crm_record_inline_fields.dart';
 import 'package:moodiary/features/crm/widgets/crm_relation_search_field.dart';
 import 'package:moodiary/persistence/isar.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/utils/notice_util.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -82,6 +83,9 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   bool _addingActivity = false;
   String? _addingOptionFor;
   final Map<String, List<String>> _extraOptions = {};
+  bool _detailShowAll = false;
+  final Set<String> _detailHiddenFields = {};
+  final Set<String> _pinnedSections = {};
   final Map<String, Future<List<Object>>> _relationCandidateFutures = {};
   final Map<String, List<Object>> _linkedByCandidate = {};
   Future<_AssocData>? _assocCache;
@@ -95,6 +99,37 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   CrmLocalRepository get _repo => CrmLocalRepository();
 
   String get _labelField => kLocalLabelFields[widget.objectType] ?? 'name';
+
+  /// 主字段卡内可编辑的普通字段（排除标签/时间/币种/关系字段）。
+  bool _isCardField(LocalObjectField f) =>
+      f.type != 'relation' &&
+      f.name != 'createdAt' &&
+      f.name != 'updatedAt' &&
+      f.name != 'currency' &&
+      f.name != _labelField;
+
+  @override
+  void initState() {
+    super.initState();
+    List<String>? hidden;
+    try {
+      hidden = PrefUtil.getValue<List<String>>(
+        'crmDetailFieldsHidden_${widget.objectType}',
+      );
+    } catch (_) {
+      // PrefUtil 未初始化（如测试环境）时回退默认核心字段集
+    }
+    if (hidden != null) {
+      _detailHiddenFields.addAll(hidden);
+    } else {
+      final core = kDetailCoreFields[widget.objectType] ?? const <String>[];
+      _detailHiddenFields.addAll(
+        widget.fields
+            .where((f) => _isCardField(f) && !core.contains(f.name))
+            .map((f) => f.name),
+      );
+    }
+  }
 
   @override
   void didUpdateWidget(covariant CrmEntityDetailView oldWidget) {
@@ -265,19 +300,72 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
 
   Widget _buildFields() {
     final editable = widget.fields
-        .where((f) => f.name != 'createdAt' && f.name != 'updatedAt')
-        .where((f) => f.name != 'currency') // 币种由金额复合组件承载
-        .where((f) => f.name != _labelField) // 标签字段由详情页标题行原位编辑
+        .where(_isCardField)
         .toList();
+    final visible = editable
+        .where((f) => !_detailHiddenFields.contains(f.name))
+        .toList();
+    final showAll = _detailShowAll;
+    final shown = showAll ? editable : visible;
     return Card.outlined(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('字段', style: Theme.of(context).textTheme.titleSmall),
+            Row(
+              children: [
+                Text(
+                  '核心信息（${showAll ? editable.length : visible.length}/${editable.length}）',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const Spacer(),
+                if (!showAll && visible.length < editable.length)
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      minimumSize: const Size(0, 28),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    onPressed: () =>
+                        setState(() => _detailShowAll = true),
+                    child: Text(
+                      '展开全部',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                if (showAll && visible.length < editable.length)
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      minimumSize: const Size(0, 28),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    onPressed: () =>
+                        setState(() => _detailShowAll = false),
+                    child: Text(
+                      '收起',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                IconButton(
+                  tooltip: '字段设置',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.view_column_rounded, size: 18),
+                  onPressed: _showDetailFieldSettings,
+                ),
+              ],
+            ),
             const SizedBox(height: 6),
-            for (final field in editable) _buildFieldTile(field),
+            for (final field in shown) _buildFieldTile(field),
+            if (shown.isEmpty)
+              const Text('无可见字段，点右上「字段设置」勾选显示', style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 8),
+            _buildTags(),
           ],
         ),
       ),
@@ -285,9 +373,6 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
   }
 
   Widget _buildFieldTile(LocalObjectField field) {
-    if (field.type == 'relation') {
-      return _buildRelationTile(field);
-    }
     final editing = _editing[field.name] == true;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -326,6 +411,68 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
         ],
       ),
     );
+  }
+
+  /// 核心信息字段显隐设置（默认显示预置核心字段，其余可勾选显示）。
+  Future<void> _showDetailFieldSettings() async {
+    final editable = widget.fields.where(_isCardField).toList();
+    final hidden = {..._detailHiddenFields};
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('核心信息字段设置'),
+          content: SizedBox(
+            width: 360,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final field in editable)
+                    CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(field.label),
+                      value: !hidden.contains(field.name),
+                      onChanged: (checked) => setDialogState(() {
+                        if (checked == true) {
+                          hidden.remove(field.name);
+                        } else {
+                          hidden.add(field.name);
+                        }
+                      }),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('保存'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    _detailHiddenFields
+      ..clear()
+      ..addAll(hidden);
+    try {
+      await PrefUtil.setValue<List<String>>(
+        'crmDetailFieldsHidden_${widget.objectType}',
+        hidden.toList(),
+      );
+    } catch (_) {
+      // 未初始化（测试环境）时仅本次会话生效
+    }
+    if (mounted) setState(() {});
   }
 
   /// 字段展示值：select 枚举（如商机阶段）显示中文 label，其余原样。
@@ -450,73 +597,67 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     );
   }
 
-  // ==================== 关系字段（原位下拉选择） ====================
+  // ==================== 关联区块（Twenty RelationSection） ====================
 
-  Widget _buildRelationTile(LocalObjectField field) {
-    final def = kRelationDefs[widget.objectType]?[field.name];
-    if (def == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  /// 子侧关联（单值）区块：标题 = 字段名，内容 = 原位选择/新建/清除/打开。
+  Widget _childRelationBlock(String type) {
+    final field = widget.fields.firstWhere(
+      (f) => f.name == type,
+      orElse: () => LocalObjectField(type, crmTypeLabel(type), type: 'relation'),
+    );
+    final def = kRelationDefs[widget.objectType]?[type];
+    if (def == null || def.currentIsParent) return const SizedBox.shrink();
+    final isPrimary = kPrimaryRelation[widget.objectType] == type;
+    final current = _stringValue(field);
+    if (current.isEmpty && !isPrimary && !_pinnedSections.contains(type)) {
+      return const SizedBox.shrink();
+    }
+    return _sectionCard(
+      Row(
         children: [
-          SizedBox(
-            width: 110,
+          Expanded(
             child: Text(
               field.label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+              style: Theme.of(context).textTheme.titleSmall,
             ),
           ),
-          Expanded(
-            child: FutureBuilder<List<Object>>(
-              future: _relationCandidatesFor(def.candidateType),
-              builder: (context, snapshot) {
-                final all = snapshot.data ?? const <Object>[];
-                final linked =
-                    _linkedByCandidate[def.candidateType] ?? const <Object>[];
-                final String currentText;
-                String? currentId;
-                if (def.currentIsParent) {
-                  currentText = linked.isEmpty
-                      ? ''
-                      : joinRelationNames([
-                          for (final record in linked)
-                            crmRecordLabel(def.candidateType, record),
-                        ]);
-                } else {
-                  final value = _stringValue(field);
-                  currentText = value;
-                  currentId = _item.data[relationFieldToFk(field.name)]
-                      ?.toString();
-                }
-                return CrmRelationSearchField(
-                  label: field.label,
-                  typeLabel: crmTypeLabel(def.candidateType),
-                  currentText: currentText,
-                  currentId: currentId,
-                  // 候选含全部记录（含已挂靠），保证修改关联时可搜到已有记录，避免误新建
-                  candidates: all,
-                  recordLabel: (r) => crmRecordLabel(def.candidateType, r),
-                  recordId: (r) => crmRecordId(def.candidateType, r),
-                  onSelect: (id) => _applyRelationLink(field, def, id),
-                  onClear: def.currentIsParent
-                      ? null
-                      : () => _applyRelationLink(field, def, null),
-                  onOpenRecord:
-                      def.currentIsParent || currentId == null
-                      ? null
-                      : () => widget.onOpenRelated?.call(
-                          def.candidateType,
-                          currentId!,
-                        ),
-                  onCreate: (name) => _createRelationRecord(def, name),
-                );
-              },
+          if (!isPrimary)
+            IconButton(
+              tooltip: '隐藏区块',
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.close_rounded, size: 16),
+              onPressed: () =>
+                  setState(() => _pinnedSections.remove(type)),
             ),
-          ),
         ],
+      ),
+      FutureBuilder<List<Object>>(
+        future: _relationCandidatesFor(def.candidateType),
+        builder: (context, snapshot) {
+          final all = snapshot.data ?? const <Object>[];
+          final value = _stringValue(field);
+          final currentId = _item.data[relationFieldToFk(field.name)]
+              ?.toString();
+          return CrmRelationSearchField(
+            label: field.label,
+            typeLabel: crmTypeLabel(def.candidateType),
+            currentText: value,
+            currentId: currentId,
+            // 候选含全部记录（含已挂靠），保证修改关联时可搜到已有记录，避免误新建
+            candidates: all,
+            recordLabel: (r) => crmRecordLabel(def.candidateType, r),
+            recordId: (r) => crmRecordId(def.candidateType, r),
+            onSelect: (id) => _applyRelationLink(field, def, id),
+            onClear: () => _applyRelationLink(field, def, null),
+            onOpenRecord: currentId == null
+                ? null
+                : () => widget.onOpenRelated?.call(
+                    def.candidateType,
+                    currentId,
+                  ),
+            onCreate: (name) => _createRelationRecord(def, name),
+          );
+        },
       ),
     );
   }
@@ -815,18 +956,155 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
 
   Widget _buildDrilldowns() {
     final sections = <Widget>[];
-    if (kLinkableChildren.containsKey(widget.objectType)) {
-      sections.add(_assocSection(widget.objectType));
+    for (final type in _relationBlockTypes()) {
+      sections.add(_relationBlock(type));
     }
     if (widget.objectType == 'contract') {
       sections.add(_contractItems());
     } else if (widget.objectType == 'quote') {
       sections.add(_quoteItems());
     }
+    sections.add(_addRelationBlockButton());
     return Column(
       children: [
         for (final section in sections) ...[section, const SizedBox(height: 16)],
       ],
+    );
+  }
+
+  /// 详情页全部可关联类型（关系字段 ∪ 父侧 children，去重）。
+  List<String> _relationBlockTypes() {
+    final types = <String>{};
+    for (final def in (kRelationDefs[widget.objectType] ?? const {}).values) {
+      types.add(def.candidateType);
+    }
+    for (final t in kLinkableChildren[widget.objectType] ?? const <String>[]) {
+      types.add(t);
+    }
+    return types.toList();
+  }
+
+  bool _relationIsParentSide(String type) {
+    final def = kRelationDefs[widget.objectType]?[type];
+    if (def != null) return def.currentIsParent;
+    return kLinkableChildren[widget.objectType]?.contains(type) ?? false;
+  }
+
+  /// 单个关联区块：主关联必显；其余有内容或已固定才显。
+  Widget _relationBlock(String type) {
+    if (!_relationIsParentSide(type)) return _childRelationBlock(type);
+    return FutureBuilder<_AssocData>(
+      future: _loadAssocData(widget.objectType),
+      builder: (context, snapshot) {
+        final data = snapshot.data ?? _AssocData.empty();
+        final linked = data.linked[type] ?? const <Object>[];
+        final isPrimary = kPrimaryRelation[widget.objectType] == type;
+        if (linked.isEmpty && !isPrimary && !_pinnedSections.contains(type)) {
+          return const SizedBox.shrink();
+        }
+        return _parentRelationBlock(type, data, isPrimary: isPrimary);
+      },
+    );
+  }
+
+  /// 父侧关联（多值）区块：标题 + 计数 + All(n) + ⊕ 添加 + 记录列表（就地展开/菜单）。
+  Widget _parentRelationBlock(
+    String type,
+    _AssocData data, {
+    required bool isPrimary,
+  }) {
+    final linked = data.linked[type] ?? const <Object>[];
+    return _sectionCard(
+      Row(
+        children: [
+          Expanded(
+            child: Text(
+              '${crmTypeLabel(type)}（${linked.length}）',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+          if (linked.isNotEmpty && widget.onShowRelatedList != null)
+            TextButton(
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 28),
+              ),
+              onPressed: () => widget.onShowRelatedList!(type),
+              child: Text(
+                'All (${linked.length})',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          _assocPicker(widget.objectType, type, data),
+          if (!isPrimary)
+            IconButton(
+              tooltip: '隐藏区块',
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.close_rounded, size: 16),
+              onPressed: () =>
+                  setState(() => _pinnedSections.remove(type)),
+            ),
+        ],
+      ),
+      linked.isEmpty
+          ? Text(
+              '暂无${crmTypeLabel(type)}，点右上「⊕」选择已有或新增',
+              style: const TextStyle(color: Colors.grey),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final record in linked)
+                  _assocTile(widget.objectType, type, record),
+              ],
+            ),
+    );
+  }
+
+  /// 「添加区块」下拉：把标准关联类型作为新区块固定显示（即使暂无内容）。
+  Widget _addRelationBlockButton() {
+    final types = _relationBlockTypes();
+    if (types.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: PopupMenuButton<String>(
+        tooltip: '添加关联区块',
+        onSelected: (type) => setState(() => _pinnedSections.add(type)),
+        itemBuilder: (context) => [
+          for (final type in types)
+            PopupMenuItem(
+              value: type,
+              child: Row(
+                children: [
+                  Icon(_assocIcon(type), size: 16),
+                  const SizedBox(width: 8),
+                  Text('添加${crmTypeLabel(type)}区块'),
+                ],
+              ),
+            ),
+        ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add_rounded, size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 6),
+              Text(
+                '添加区块',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -906,111 +1184,6 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
             .toList();
     }
     return _AssocData(linked: linked, unlinked: unlinked);
-  }
-
-  Widget _assocSection(String parentType) {
-    return FutureBuilder<_AssocData>(
-      future: _loadAssocData(parentType),
-      builder: (context, snapshot) {
-        final data = snapshot.data ?? _AssocData.empty();
-        final total = data.linked.values
-            .fold<int>(0, (sum, list) => sum + list.length);
-        Widget title = Text(
-          '关联业务（$total）',
-          style: Theme.of(context).textTheme.titleSmall,
-        );
-        Widget? summary;
-        if (parentType == 'contract') {
-          var paid = 0.0;
-          var invoiced = 0.0;
-          for (final p in data.linked['payment'] ?? const <Object>[]) {
-            paid += (p as LocalPayment).amount;
-          }
-          for (final i in data.linked['invoice'] ?? const <Object>[]) {
-            invoiced += (i as LocalInvoice).amount;
-          }
-          title = Text(
-            '财务与关联（已回款 ¥${paid.toStringAsFixed(2)}'
-            ' · 已开票 ¥${invoiced.toStringAsFixed(2)}）',
-            style: Theme.of(context).textTheme.titleSmall,
-          );
-          summary = Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text(
-              '共 $total 条关联记录（回款计划/回款/发票/质保）',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          );
-        }
-        return _sectionCard(
-          Row(
-            children: [
-              Expanded(child: title),
-              _assocPicker(parentType, data),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (summary != null) summary,
-              if (total == 0)
-                const Text('暂无关联记录，点右上「⊕」选择已有或新增')
-              else
-                Column(
-                  children: [
-                    for (final type
-                        in kLinkableChildren[parentType] ?? const <String>[])
-                      if ((data.linked[type] ?? const []).isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4, bottom: 2),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  crmTypeLabel(type),
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                              ),
-                              if (widget.onShowRelatedList != null)
-                                TextButton(
-                                  style: TextButton.styleFrom(
-                                    visualDensity: VisualDensity.compact,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    minimumSize: const Size(0, 28),
-                                  ),
-                                  onPressed: () =>
-                                      widget.onShowRelatedList!(type),
-                                  child: Text(
-                                    'All (${(data.linked[type] ?? const []).length})',
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                        ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        for (final record in data.linked[type]!)
-                          _assocTile(parentType, type, record),
-                      ],
-                  ],
-                ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   Widget _assocTile(String parentType, String type, Object record) {
@@ -1138,12 +1311,12 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     }
   }
 
-  Widget _assocPicker(String parentType, _AssocData data) {
+  Widget _assocPicker(String parentType, String type, _AssocData data) {
     return PopupMenuButton<_AssocChoice>(
-      tooltip: '关联记录',
+      tooltip: '关联${crmTypeLabel(type)}',
       icon: const Icon(Icons.add_link_rounded, size: 18),
       onSelected: (choice) => _handleAssocChoice(parentType, choice),
-      itemBuilder: (context) => _assocMenuItems(parentType, data),
+      itemBuilder: (context) => _assocMenuItems(parentType, type, data),
     );
   }
 
@@ -1168,61 +1341,44 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
 
   List<PopupMenuEntry<_AssocChoice>> _assocMenuItems(
     String parentType,
+    String type,
     _AssocData data,
   ) {
     final items = <PopupMenuEntry<_AssocChoice>>[];
-    for (final type in kLinkableChildren[parentType] ?? const <String>[]) {
-      final label = crmTypeLabel(type);
-      items.add(
-        PopupMenuItem(
-          enabled: false,
-          height: 28,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
+    final label = crmTypeLabel(type);
+    items.add(
+      PopupMenuItem(
+        value: _AssocChoice.create(type),
+        height: 34,
+        child: Row(
+          children: [
+            const Icon(Icons.add_rounded, size: 16),
+            const SizedBox(width: 6),
+            Text('新增$label'),
+          ],
         ),
-      );
+      ),
+    );
+    for (final record in (data.unlinked[type] ?? const <Object>[]).take(15)) {
       items.add(
         PopupMenuItem(
-          value: _AssocChoice.create(type),
+          value: _AssocChoice.link(type, _assocId(type, record)),
           height: 34,
           child: Row(
             children: [
-              const Icon(Icons.add_rounded, size: 16),
+              Icon(_assocIcon(type), size: 15, color: Colors.grey),
               const SizedBox(width: 6),
-              Text('新增$label'),
+              Expanded(
+                child: Text(
+                  '关联 · ${_assocLabel(type, record)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
         ),
       );
-      for (final record
-          in (data.unlinked[type] ?? const <Object>[]).take(15)) {
-        items.add(
-          PopupMenuItem(
-            value: _AssocChoice.link(type, _assocId(type, record)),
-            height: 34,
-            child: Row(
-              children: [
-                Icon(_assocIcon(type), size: 15, color: Colors.grey),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    '关联 · ${_assocLabel(type, record)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-      items.add(const PopupMenuDivider(height: 8));
     }
     return items;
   }
@@ -1768,8 +1924,6 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
             _buildActions(),
             const SizedBox(height: 12),
             _buildFields(),
-            const SizedBox(height: 16),
-            _buildTags(),
             const SizedBox(height: 16),
             _buildDrilldowns(),
             const SizedBox(height: 16),

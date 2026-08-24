@@ -259,8 +259,6 @@ class _CrmRecordDetailShellState extends State<CrmRecordDetailShell> {
       children: [
         _buildHeader(theme),
         const Divider(height: 1),
-        _buildSummary(theme),
-        const Divider(height: 1),
         if (tabs.length > 1) _buildTabBar(theme, tabs, active.id),
         Expanded(
           child: _detailView(active.cards, compact: !widget.isMobile),
@@ -351,8 +349,16 @@ class _CrmRecordDetailShellState extends State<CrmRecordDetailShell> {
   }
 
   Widget _buildHeader(ThemeData theme) {
+    final t = widget.item.updatedAt.toLocal();
+    final dateText = '${t.year}-${t.month.toString().padLeft(2, '0')}-'
+        '${t.day.toString().padLeft(2, '0')} '
+        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    final meta = [
+      if (widget.parentLabel != null) widget.parentLabel!,
+      '更新于 $dateText',
+    ].join(' · ');
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+      padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
       child: Row(
         children: [
           IconButton(
@@ -363,32 +369,65 @@ class _CrmRecordDetailShellState extends State<CrmRecordDetailShell> {
             ),
             onPressed: widget.onClose,
           ),
-          Icon(
-            crmTypeIcon(widget.objectType),
-            size: 18,
-            color: crmTypeColor(widget.objectType),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: crmTypeColor(widget.objectType).withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(
+              crmTypeIcon(widget.objectType),
+              size: 20,
+              color: crmTypeColor(widget.objectType),
+            ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  crmTypeLabel(widget.objectType),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                if (_editingTitle && _titleController != null)
+                  TextField(
+                    controller: _titleController,
+                    focusNode: _titleFocus,
+                    autofocus: true,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                    onSubmitted: (_) {
+                      _titleFocus?.unfocus();
+                      _commitTitle();
+                    },
+                  )
+                else
+                  InkWell(
+                    onTap: _startEditTitle,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        widget.item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                if (widget.parentLabel != null)
+                if (meta.isNotEmpty)
                   Text(
-                    widget.parentLabel!,
+                    meta,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
               ],

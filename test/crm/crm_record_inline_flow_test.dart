@@ -88,8 +88,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 关联业务区块可见（大视口）
-    expect(find.textContaining('关联业务（'), findsOneWidget);
+    // 关联区块：联系人（主关联）独立成块可见（大视口）
+    expect(find.text('联系人（1）'), findsOneWidget);
     expect(find.text('张三'), findsWidgets);
 
     // 点展开图标 → 就地编辑器出现
