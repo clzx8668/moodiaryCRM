@@ -1,10 +1,8 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/crm/crm_create_form_panel.dart';
-import 'package:moodiary/features/crm/crm_entity_detail_view.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
-import 'package:moodiary/features/crm/local/crm_attachment_store.dart';
+import 'package:moodiary/features/crm/crm_record_detail_shell.dart';
 import 'package:moodiary/features/crm/local/crm_entity_creator.dart';
 import 'package:moodiary/features/crm/local/crm_entity_field_updater.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
@@ -12,17 +10,21 @@ import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
-/// 实体详情页（移动/窄屏整页）：复用 [CrmEntityDetailView]。
+/// 实体详情页（移动/窄屏整页）：复用 [CrmRecordDetailShell]。
 class CrmEntityDetailPage extends StatefulWidget {
   final String objectType;
   final CrmEntityCache item;
   final List<LocalObjectField> fields;
+
+  /// true = 根详情页（❌ 关闭）；false = 子详情页（← 返回上一层）
+  final bool isRoot;
 
   const CrmEntityDetailPage({
     super.key,
     required this.objectType,
     required this.item,
     required this.fields,
+    this.isRoot = true,
   });
 
   @override
@@ -35,27 +37,14 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '${crmTypeLabel(widget.objectType)} · ${widget.item.name}',
-        ),
-        actions: [
-          IconButton(
-            tooltip: '添加附件',
-            icon: const Icon(Icons.attach_file_rounded),
-            onPressed: _pickAttachment,
-          ),
-          IconButton(
-            tooltip: '删除',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: _deleteEntity,
-          ),
-        ],
-      ),
-      body: CrmEntityDetailView(
+      body: CrmRecordDetailShell(
         objectType: widget.objectType,
         item: widget.item,
         fields: widget.fields,
+        isRoot: widget.isRoot,
+        isMobile: true,
+        onClose: () => Get.back(),
+        onDelete: _deleteEntity,
         onLinkRelated: _linkRelated,
         onCreateRelated: _createRelated,
         onCreateBackRelated: _createBackRelated,
@@ -153,6 +142,7 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
         objectType: targetType,
         item: cache,
         fields: kBaseObjectFields[targetType] ?? const [],
+        isRoot: false,
       ),
     );
   }
@@ -259,23 +249,6 @@ class _CrmEntityDetailPageState extends State<CrmEntityDetailPage> {
         return build(t.ticketNo, afterSalesToDataMap(t), t.updatedAt);
     }
     return null;
-  }
-
-  Future<void> _pickAttachment() async {
-    final result = await FilePicker.platform.pickFiles();
-    final path = result?.files.single.path;
-    if (path == null) return;
-    try {
-      await CrmAttachmentStore.storeAndAttach(
-        sourcePath: path,
-        relatedType: widget.objectType,
-        relatedId: widget.item.twentyId,
-      );
-      if (mounted) setState(() {});
-      toast.success(message: '附件已添加');
-    } catch (e) {
-      toast.error(message: '添加附件失败：$e');
-    }
   }
 
   Future<void> _deleteEntity() async {

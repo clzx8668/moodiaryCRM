@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
+import 'package:moodiary/features/crm/crm_record_detail_tabs.dart';
 import 'package:moodiary/features/crm/local/crm_attachment_store.dart';
 import 'package:moodiary/features/crm/local/crm_entity_creator.dart';
 import 'package:moodiary/features/crm/local/crm_entity_field_updater.dart';
@@ -25,6 +26,10 @@ class CrmEntityDetailView extends StatefulWidget {
   final String objectType;
   final CrmEntityCache item;
   final List<LocalObjectField> fields;
+
+  /// 本次渲染的详情卡片（由 [CrmRecordDetailShell] 按当前 Tab 传入）
+  final List<CrmDetailCardType> cards;
+
   final bool compact;
   final VoidCallback? onChanged;
 
@@ -48,6 +53,7 @@ class CrmEntityDetailView extends StatefulWidget {
     required this.objectType,
     required this.item,
     required this.fields,
+    this.cards = const [CrmDetailCardType.fields],
     this.compact = false,
     this.onChanged,
     this.refreshTick = 0,
@@ -255,6 +261,7 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     final editable = widget.fields
         .where((f) => f.name != 'createdAt' && f.name != 'updatedAt')
         .where((f) => f.name != 'currency') // 币种由金额复合组件承载
+        .where((f) => f.name != _labelField) // 标签字段由详情页标题行原位编辑
         .toList();
     return Card.outlined(
       child: Padding(
@@ -1287,35 +1294,58 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       }(),
       builder: (context, snapshot) {
         final entries = snapshot.data ?? const <_TimelineEntry>[];
-        return _sectionCard(
-          Text(
-            '时间线（${entries.length}）',
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          entries.isEmpty
-              ? const Text('暂无跟进与相关日记')
-              : Column(children: [
-                  for (final entry in entries)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(entry.icon, size: 18),
-                    title: Text(
-                      entry.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      '${entry.time.toLocal()} · ${entry.subtitle}',
-                    ),
-                    onTap: entry.diary == null
-                        ? null
-                        : () => Get.toNamed(
-                            AppRoutes.diaryPage,
-                            arguments: [entry.diary, true],
-                          ),
-                  ),
-                ]),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () =>
+                    setState(() => _addingActivity = !_addingActivity),
+                icon: Icon(
+                  _addingActivity
+                      ? Icons.remove_rounded
+                      : Icons.add_comment_rounded,
+                  size: 16,
+                ),
+                label: Text(_addingActivity ? '收起跟进' : '跟进'),
+              ),
+            ),
+            if (_addingActivity) ...[
+              _buildQuickActivityForm(),
+              const SizedBox(height: 12),
+            ],
+            _sectionCard(
+              Text(
+                '时间线（${entries.length}）',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              entries.isEmpty
+                  ? const Text('暂无跟进与相关日记')
+                  : Column(children: [
+                      for (final entry in entries)
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(entry.icon, size: 18),
+                        title: Text(
+                          entry.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${entry.time.toLocal()} · ${entry.subtitle}',
+                        ),
+                        onTap: entry.diary == null
+                            ? null
+                            : () => Get.toNamed(
+                                AppRoutes.diaryPage,
+                                arguments: [entry.diary, true],
+                              ),
+                      ),
+                    ]),
+            ),
+          ],
         );
       },
     );
@@ -1419,6 +1449,162 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     widget.onChanged?.call();
   }
 
+  // ==================== 任务 / 笔记 卡片 ====================
+
+  Widget _buildTasks() {
+    return FutureBuilder<List<LocalActivity>>(
+      future: _repo.listActivities(
+        relatedType: widget.objectType,
+        relatedId: _item.twentyId,
+      ),
+      builder: (context, snapshot) {
+        final tasks =
+            (snapshot.data ?? const <LocalActivity>[])
+                .where((a) => a.type == 'task')
+                .toList()
+              ..sort(
+                (a, b) => (b.scheduledAt ?? b.createdAt).compareTo(
+                  a.scheduledAt ?? a.createdAt,
+                ),
+              );
+        return _sectionCard(
+          Text(
+            '任务（${tasks.length}）',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (tasks.isEmpty)
+                const Text('暂无任务，可在「时间线 → 跟进」选择任务类型添加')
+              else
+                for (final task in tasks)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      task.status == 'completed'
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      size: 18,
+                      color: task.status == 'completed'
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                    title: Text(
+                      task.subject,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      '${(task.scheduledAt ?? task.createdAt).toLocal()} · ${task.status}',
+                    ),
+                    trailing: IconButton(
+                      tooltip: '删除任务',
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      onPressed: () async {
+                        await _repo.deleteActivity(task.id);
+                        if (mounted) setState(() {});
+                        widget.onChanged?.call();
+                      },
+                    ),
+                    onTap: () async {
+                      final updated = task
+                        ..status = task.status == 'completed'
+                            ? 'planned'
+                            : 'completed'
+                        ..completedAt = task.status == 'completed'
+                            ? null
+                            : DateTime.now();
+                      await _repo.updateActivity(updated);
+                      if (mounted) setState(() {});
+                      widget.onChanged?.call();
+                    },
+                  ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNotes() {
+    return FutureBuilder<List<_TimelineEntry>>(
+      future: () async {
+        final entries = <_TimelineEntry>[];
+        for (final link
+            in await _repo.linksForEntity(widget.objectType, _item.twentyId)) {
+          if (link.localType != 'diary') continue;
+          final diary = await IsarUtil.getDiaryById(link.localId);
+          if (diary != null) {
+            entries.add(
+              _TimelineEntry(
+                time: diary.time,
+                title: diary.title.isEmpty ? '未命名日记' : diary.title,
+                subtitle: '已关联日记',
+                icon: Icons.article_outlined,
+                diary: diary,
+              ),
+            );
+          }
+        }
+        if (entries.isEmpty) {
+          for (final diary in (await IsarUtil.searchDiariesByText(_item.name))
+              .take(10)) {
+            entries.add(
+              _TimelineEntry(
+                time: diary.time,
+                title: diary.title.isEmpty ? '未命名日记' : diary.title,
+                subtitle: '相关日记（名称匹配）',
+                icon: Icons.article_outlined,
+                diary: diary,
+              ),
+            );
+          }
+        }
+        entries.sort((a, b) => b.time.compareTo(a.time));
+        return entries.take(50).toList();
+      }(),
+      builder: (context, snapshot) {
+        final entries = snapshot.data ?? const <_TimelineEntry>[];
+        return _sectionCard(
+          Text(
+            '笔记（${entries.length}）',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          entries.isEmpty
+              ? const Text('暂无笔记，可从日记页面关联本记录')
+              : Column(children: [
+                  for (final entry in entries)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(entry.icon, size: 18),
+                      title: Text(
+                        entry.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${entry.time.toLocal()} · ${entry.subtitle}',
+                      ),
+                      trailing: const Icon(
+                        Icons.open_in_new_rounded,
+                        size: 16,
+                      ),
+                      onTap: entry.diary == null
+                          ? null
+                          : () => Get.toNamed(
+                              AppRoutes.diaryPage,
+                              arguments: [entry.diary, true],
+                            ),
+                    ),
+                ]),
+        );
+      },
+    );
+  }
+
   // ==================== 组装 ====================
 
   @override
@@ -1426,23 +1612,49 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     final padding = widget.compact ? 8.0 : 16.0;
     return ListView(
       padding: EdgeInsets.all(padding),
-      children: [
-        _buildActions(),
-        const SizedBox(height: 12),
-        if (_addingActivity) ...[
-          _buildQuickActivityForm(),
-          const SizedBox(height: 12),
-        ],
-        _buildFields(),
-        const SizedBox(height: 16),
-        _buildTags(),
-        const SizedBox(height: 16),
-        _buildAttachments(),
-        const SizedBox(height: 16),
-        _buildDrilldowns(),
-        _buildTimeline(),
-      ],
+      children: _buildCards(),
     );
+  }
+
+  /// 按当前 Tab 的卡片集合渲染内容（对应 Twenty `CardComponents` 注册表）。
+  List<Widget> _buildCards() {
+    final children = <Widget>[];
+    for (final card in widget.cards) {
+      switch (card) {
+        case CrmDetailCardType.fields:
+          children.addAll([
+            _buildActions(),
+            const SizedBox(height: 12),
+            _buildFields(),
+            const SizedBox(height: 16),
+            _buildTags(),
+            const SizedBox(height: 16),
+            _buildDrilldowns(),
+            const SizedBox(height: 16),
+          ]);
+        case CrmDetailCardType.timeline:
+          children.addAll([
+            _buildTimeline(),
+            const SizedBox(height: 16),
+          ]);
+        case CrmDetailCardType.tasks:
+          children.addAll([
+            _buildTasks(),
+            const SizedBox(height: 16),
+          ]);
+        case CrmDetailCardType.notes:
+          children.addAll([
+            _buildNotes(),
+            const SizedBox(height: 16),
+          ]);
+        case CrmDetailCardType.files:
+          children.addAll([
+            _buildAttachments(),
+            const SizedBox(height: 16),
+          ]);
+      }
+    }
+    return children;
   }
 
   Widget _buildActions() {
@@ -1450,11 +1662,6 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       spacing: 8,
       runSpacing: 8,
       children: [
-        FilledButton.tonalIcon(
-          onPressed: () => setState(() => _addingActivity = !_addingActivity),
-          icon: const Icon(Icons.add_comment_rounded, size: 16),
-          label: Text(_addingActivity ? '收起跟进' : '跟进'),
-        ),
         if (widget.objectType == 'quote') ...[
           FilledButton.tonalIcon(
             onPressed: _quoteToContract,

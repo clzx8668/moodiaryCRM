@@ -1599,7 +1599,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                             Positioned.fill(
                               child: Offstage(
                                 offstage: i != _panels.length - 1,
-                                child: _buildPanelFrame(_panels[i]),
+                                child: _buildPanelFrame(_panels[i], isRoot: i == 0),
                               ),
                             ),
                         ],
@@ -1652,13 +1652,14 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
   }
 
   /// 渲染面板栈中的一帧（详情 / 列设置 / 新增）。
-  Widget _buildPanelFrame(_PanelFrame frame) {
+  Widget _buildPanelFrame(_PanelFrame frame, {bool isRoot = true}) {
     switch (frame.mode) {
       case _PanelMode.detail:
         return CrmEntitySidePanel(
           objectType: frame.objectType,
           item: frame.item!,
           fields: frame.fields,
+          isRoot: isRoot,
           onClose: _closeTopAndRefresh,
           onChanged: _refreshGrid,
           onDelete: _deleteSelected,
