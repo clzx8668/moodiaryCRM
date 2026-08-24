@@ -148,9 +148,15 @@ class PrefUtil {
         appVersion == null ||
         appVersion != currentVersion) {
       await _prefs.setString('appVersion', currentVersion);
-      await setDefaultValues();
-      //初始化所需目录
-      await FileUtil.initCreateDir();
+      // 初始化默认值与目录：分步超时兜底，避免任一环节挂起阻塞启动
+      try {
+        await setDefaultValues().timeout(const Duration(seconds: 15));
+      } catch (e) {
+        await _prefs.setBool('firstStart', false);
+      }
+      try {
+        await FileUtil.initCreateDir().timeout(const Duration(seconds: 10));
+      } catch (_) {}
     }
   }
 
@@ -165,10 +171,18 @@ class PrefUtil {
     await _prefs.setBool('autoSync', _prefs.getBool('autoSync') ?? false);
 
     /// 支持相关，每次都重新获取
-    await _prefs.setBool(
-      'supportBiometrics',
-      await AuthUtil.canCheckBiometrics(),
-    );
+    // 生物识别检测走平台通道，加超时兜底：避免首次启动永久卡在启动动画
+    try {
+      await _prefs.setBool(
+        'supportBiometrics',
+        await AuthUtil.canCheckBiometrics().timeout(
+          const Duration(seconds: 3),
+          onTimeout: () => false,
+        ),
+      );
+    } catch (_) {
+      await _prefs.setBool('supportBiometrics', false);
+    }
 
     await _prefs.setInt(
       'colorType',

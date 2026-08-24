@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
@@ -21,6 +22,7 @@ import 'package:moodiary/features/sync_log/sync_log.dart';
 import 'package:moodiary/l10n/app_localizations.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/hive.dart';
+import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/router/app_pages.dart';
@@ -35,14 +37,32 @@ import 'package:path_provider/path_provider.dart';
 
 Future<void> _initSystem() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await PrefUtil.initPref();
-  await IsarUtil.initIsar();
-  await HiveUtil().init();
+  // 启动初始化全部加超时兜底：任一平台通道/模块挂起都不能阻塞进入应用
+  try {
+    await PrefUtil.initPref().timeout(const Duration(seconds: 15));
+  } catch (e) {
+    logger.e('Pref 初始化失败', error: e);
+  }
+  try {
+    await IsarUtil.initIsar().timeout(const Duration(seconds: 20));
+  } catch (e) {
+    logger.e('数据库初始化异常，切换内存库兜底', error: e);
+    await _fallbackDatabase();
+  }
+  try {
+    await HiveUtil().init().timeout(const Duration(seconds: 10));
+  } catch (e) {
+    logger.e('Hive 初始化失败', error: e);
+  }
   unawaited(_initSyncLogFile());
   unawaited(_initRustAndEventStream());
   unawaited(_platFormOption());
   WebDavUtil().initWebDav();
-  await ThemeUtil().buildTheme();
+  try {
+    await ThemeUtil().buildTheme().timeout(const Duration(seconds: 10));
+  } catch (e) {
+    logger.e('主题构建失败', error: e);
+  }
   fvp.registerWith();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
@@ -51,6 +71,17 @@ Future<void> _initSystem() async {
       systemNavigationBarContrastEnforced: false,
     ),
   );
+}
+
+/// 数据库打开失败/超时时的兜底：切换内存库保证应用可启动（数据不持久）。
+Future<void> _fallbackDatabase() async {
+  try {
+    // ignore: invalid_use_of_visible_for_testing_member
+    IsarUtil.overrideDbForTest(AppDatabase(NativeDatabase.memory()));
+    logger.i('已切换内存数据库（本次会话数据不持久）');
+  } catch (e) {
+    logger.e('内存库兜底失败', error: e);
+  }
 }
 
 /// 同步日志落盘（应用支持目录 logs/sync.log），重启后仍可追溯。
@@ -114,14 +145,21 @@ Future<void> _platFormOption() async {
 }
 
 String _getInitialRoute() {
-  if (PrefUtil.getValue<bool>('lock')!) return AppRoutes.lockPage;
-  if (PrefUtil.getValue<bool>('firstStart')!) return AppRoutes.startPage;
+  if (PrefUtil.getValue<bool>('lock') ?? false) return AppRoutes.lockPage;
+  if (PrefUtil.getValue<bool>('firstStart') ?? true) {
+    return AppRoutes.startPage;
+  }
   return AppRoutes.homePage;
 }
 
 void main() async {
   await _initSystem();
-  final locale = await _findLanguage();
+  Locale locale;
+  try {
+    locale = await _findLanguage().timeout(const Duration(seconds: 5));
+  } catch (_) {
+    locale = const Locale('en');
+  }
   FlutterError.onError = (details) {
     logger.e(
       'Flutter error',
@@ -157,7 +195,7 @@ class Moodiary extends StatelessWidget {
         final mediaQuery = MediaQuery(
           data: context.mediaQuery.copyWith(
             textScaler: TextScaler.linear(
-              PrefUtil.getValue<double>('fontScale')!,
+              PrefUtil.getValue<double>('fontScale') ?? 1.0,
             ),
           ),
           child: child!,
@@ -181,7 +219,12 @@ class Moodiary extends StatelessWidget {
       theme: theme.$1,
       darkTheme: theme.$2,
       locale: locale,
-      themeMode: ThemeMode.values[PrefUtil.getValue<int>('themeMode')!],
+      themeMode: ThemeMode.values[
+        (PrefUtil.getValue<int>('themeMode') ?? 0).clamp(
+          0,
+          ThemeMode.values.length - 1,
+        ).toInt()
+      ],
       getPages: AppPages.routes,
       localizationsDelegates: const [
         ...AppLocalizations.localizationsDelegates,
