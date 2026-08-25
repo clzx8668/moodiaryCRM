@@ -89,6 +89,7 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
   PlutoGridStateManager? _stateManager;
   Offset? _rightClickDown;
   double _layoutWidth = 0;
+  double _firstColumnWidth = 200;
 
   /// 首列（复选框融合列）按屏宽响应式宽度：
   /// ≥900 → 200；600–900 → 160（80%）；<600（移动端）→ 120（60%）。
@@ -110,10 +111,6 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.items != widget.items || oldWidget.fields != widget.fields) {
       _build();
-    }
-    // 外部选中集变化 → 同步行勾选（编程 setRowChecked 不触发 onRowChecked，无循环）
-    if (oldWidget.selectedIds != widget.selectedIds) {
-      _syncCheckedRows();
     }
   }
 
@@ -194,21 +191,22 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
     final columnWidth = isFirst
         ? savedWidth ?? _responsiveFirstColumnWidth
         : savedWidth ?? _columnWidth(field);
+    if (isFirst) _firstColumnWidth = columnWidth;
     return PlutoColumn(
-      title: widget.columnTitles[field] ?? _columnTitle(field),
+      // 首列标题由自绘表头渲染（含全选复选框，与行内复选框对齐、间隙 4px）
+      title: isFirst ? '' : widget.columnTitles[field] ?? _columnTitle(field),
       field: field,
       type: _columnType(field, labels),
       width: columnWidth,
-      // 压缩复选框左侧空白（Twenty 复选框列 30px，融合模式下收紧内边距）
-      cellPadding: isFirst
-          ? const EdgeInsets.only(left: 4, right: 8)
-          : null,
+      cellPadding: isFirst ? EdgeInsets.zero : null,
       suppressedAutoSize: isFirst,
       textAlign: align,
       titleTextAlign: align,
-      // 复选框与首列融合（pluto 原生 enableRowChecked：表头全选 + 行内勾选）
-      enableRowChecked: isFirst,
-      renderer: isRelation
+      // 复选框与首列融合：行内由自绘 renderer 渲染（紧凑复选框 + 4px 间隙）
+      enableRowChecked: false,
+      renderer: isFirst
+          ? _firstColumnRenderer(field)
+          : isRelation
           ? (rendererContext) {
               final rowIdx = rendererContext.rowIdx;
               if (rowIdx < 0 || rowIdx >= widget.items.length) {
@@ -292,6 +290,59 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
       if (raw is String && labels.containsKey(raw)) return labels[raw];
     }
     return CrmFieldRegistry.formatValue(item.data[field]);
+  }
+
+  /// 首列行内渲染：紧凑复选框（18px 图标）+ 4px 间隙 + 内容，与自绘表头对齐。
+  Widget Function(PlutoColumnRendererContext) _firstColumnRenderer(
+    String field,
+  ) {
+    return (rendererContext) {
+      final rowIdx = rendererContext.rowIdx;
+      if (rowIdx < 0 || rowIdx >= widget.items.length) {
+        return const SizedBox.shrink();
+      }
+      final item = widget.items[rowIdx];
+      final checked = widget.selectedIds.contains(item.id);
+      final text = _cellValue(item, field)?.toString() ?? '';
+      final color = checked
+          ? Theme.of(context).colorScheme.primary
+          : Theme.of(context).colorScheme.outline;
+      return Row(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              final next = Set<String>.of(widget.selectedIds);
+              if (checked) {
+                next.remove(item.id);
+              } else {
+                next.add(item.id);
+              }
+              widget.onSelectionChanged?.call(next);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
+              child: Icon(
+                checked
+                    ? Icons.check_box_rounded
+                    : Icons.check_box_outline_blank_rounded,
+                size: 18,
+                color: color,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              text.isEmpty ? '—' : text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
+      );
+    };
   }
 
   CrmColumnKind _inferKind(String field, Iterable<CrmEntityCache> items) {
@@ -462,25 +513,6 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
         _stateManager = event.stateManager;
         _stateManager?.resizingChangeNotifier.addListener(_onColumnResized);
         event.stateManager.setShowColumnFilter(false);
-        _syncCheckedRows();
-      },
-      onRowChecked: (event) {
-        final next = Set<String>.of(widget.selectedIds);
-        if (event.isAll) {
-          if (event.isChecked == true) {
-            next.addAll([for (final item in widget.items) item.id]);
-          } else {
-            next.clear();
-          }
-        } else if (event.rowIdx != null && event.rowIdx! < widget.items.length) {
-          final id = widget.items[event.rowIdx!].id;
-          if (event.isChecked == true) {
-            next.add(id);
-          } else {
-            next.remove(id);
-          }
-        }
-        widget.onSelectionChanged?.call(next);
       },
       onChanged: (event) {
         if (event.column.field == 'id' || event.column.field == 'twentyId') {
@@ -520,7 +552,76 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
     return Listener(
       onPointerDown: _handleRightPointerDown,
       onPointerUp: _handleRightPointerUp,
-      child: grid,
+      child: Stack(
+        children: [
+          grid,
+          _buildFirstColumnHeader(),
+        ],
+      ),
+    );
+  }
+
+  /// 首列表头自绘：全选复选框（三态）+ 4px 间隙 + 列标题，与行内复选框对齐。
+  Widget _buildFirstColumnHeader() {
+    if (!widget.freezeFirstColumn || widget.fields.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final items = widget.items;
+    if (items.isEmpty) return const SizedBox.shrink();
+    final firstField = widget.fields.first;
+    final allSelected = items.every((i) => widget.selectedIds.contains(i.id));
+    final someSelected = items.any((i) => widget.selectedIds.contains(i.id));
+    final color = (allSelected || someSelected)
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).colorScheme.outline;
+    final title =
+        widget.columnTitles[firstField] ?? _columnTitle(firstField);
+    return Positioned(
+      left: 0,
+      top: 0,
+      width: _firstColumnWidth,
+      height: 40,
+      child: Row(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              final checked = !allSelected;
+              widget.onSelectionChanged?.call(
+                checked ? {for (final i in items) i.id} : <String>{},
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 10),
+              child: Icon(
+                allSelected
+                    ? Icons.check_box_rounded
+                    : someSelected
+                    ? Icons.indeterminate_check_box_rounded
+                    : Icons.check_box_outline_blank_rounded,
+                size: 18,
+                color: color,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -537,21 +638,6 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
       }
       widget.onColumnWidthsChanged?.call(widths);
     });
-  }
-
-  /// 将外部 [widget.selectedIds] 同步到网格行勾选状态（首列融合复选框）。
-  void _syncCheckedRows() {
-    final sm = _stateManager;
-    if (sm == null) return;
-    final limit = sm.refRows.length < widget.items.length
-        ? sm.refRows.length
-        : widget.items.length;
-    for (var i = 0; i < limit; i++) {
-      final checked = widget.selectedIds.contains(widget.items[i].id);
-      if (sm.refRows[i].checked != checked) {
-        sm.setRowChecked(sm.refRows[i], checked);
-      }
-    }
   }
 
   void _handleRightPointerDown(PointerDownEvent event) {

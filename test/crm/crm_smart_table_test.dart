@@ -29,8 +29,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 表头三态全选 + 两行复选框
-    expect(find.byType(Checkbox), findsNWidgets(3));
+    // 表头三态全选 + 两行复选框（自绘图标）
+    expect(find.byIcon(Icons.check_box_outline_blank_rounded), findsNWidgets(3));
     // 列标题无「三条杠」菜单/调整图标
     expect(find.byIcon(Icons.dehaze), findsNothing);
   });
@@ -78,8 +78,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 点表头全选复选框（表头在树中先于单元格，取第一个 Checkbox）
-    await tester.tap(find.byType(Checkbox).first);
+    // 点表头全选复选框（表头自绘 overlay 在 Stack 最上层，取最后一个图标）
+    await tester.tap(find.byIcon(Icons.check_box_outline_blank_rounded).last);
     await tester.pumpAndSettle();
     expect(selected, hasLength(2));
 
@@ -95,7 +95,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(Checkbox).first);
+    await tester.tap(find.byIcon(Icons.check_box_rounded).last);
     await tester.pumpAndSettle();
     expect(selected, isEmpty);
   });
@@ -121,6 +121,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // 表头全选 + 两行复选框均融合在首列（而非独立列）
-    expect(find.byType(Checkbox), findsNWidgets(3));
+    expect(find.byIcon(Icons.check_box_outline_blank_rounded), findsNWidgets(3));
   });
 }
