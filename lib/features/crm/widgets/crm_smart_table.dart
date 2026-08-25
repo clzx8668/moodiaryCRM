@@ -61,6 +61,9 @@ class CrmSmartTable extends StatefulWidget {
   /// 首列统一宽度（null = 按屏宽自适应）；用于各表统一首列宽度
   final double? firstColumnWidth;
 
+  /// 列宽是否锁定（锁定后禁止拖拽调整非首列列宽）
+  final bool columnWidthLocked;
+
   const CrmSmartTable({
     super.key,
     required this.items,
@@ -79,6 +82,7 @@ class CrmSmartTable extends StatefulWidget {
     this.relationFields = const {},
     this.freezeFirstColumn = true,
     this.firstColumnWidth,
+    this.columnWidthLocked = true,
   });
 
   @override
@@ -114,6 +118,10 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
   void didUpdateWidget(covariant CrmSmartTable oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.items != widget.items || oldWidget.fields != widget.fields) {
+      _build();
+    } else if (oldWidget.firstColumnWidth != widget.firstColumnWidth ||
+        oldWidget.freezeFirstColumn != widget.freezeFirstColumn ||
+        oldWidget.columnWidthLocked != widget.columnWidthLocked) {
       _build();
     }
   }
@@ -273,7 +281,8 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
       enableSorting: false,
       // 隐藏列标题右侧「三条杠」菜单/调整图标；列操作全部走右键菜单
       enableContextMenu: false,
-      enableDropToResize: false,
+      // 列宽锁定开关：解锁后可拖拽调整（非首列），首列宽度始终由设置/自适应控制
+      enableDropToResize: !isFirst && !widget.columnWidthLocked,
       enableFilterMenuItem: true,
       enableHideColumnMenuItem: true,
       enableSetColumnsMenuItem: true,
@@ -505,6 +514,8 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
           gridBorderColor: Theme.of(context).colorScheme.outlineVariant,
           borderColor: Theme.of(context).colorScheme.outlineVariant,
           iconColor: Theme.of(context).colorScheme.outline,
+          // 解锁列宽时的拖拽提示图标（低调，非三条杠）
+          columnResizeIcon: Icons.drag_indicator,
           enableGridBorderShadow: false,
         ),
         columnSize: const PlutoGridColumnSizeConfig(

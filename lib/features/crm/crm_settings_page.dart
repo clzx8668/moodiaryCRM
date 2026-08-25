@@ -77,6 +77,17 @@ class _CrmSettingsPageState extends State<CrmSettingsPage> {
                 onTap: () => _editFirstColumnWidth(context),
               ),
               const Divider(height: 1),
+              SwitchListTile(
+                secondary: const Icon(Icons.lock_outline_rounded),
+                title: const Text('锁定列宽'),
+                subtitle: const Text('开启后禁止拖拽调整列宽；关闭可拖拽调整，调好后再锁定'),
+                value: CrmPrefs.columnWidthLocked(),
+                onChanged: (v) async {
+                  await CrmPrefs.setColumnWidthLocked(v);
+                  if (mounted) setState(() {});
+                },
+              ),
+              const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.view_column_outlined),
                 title: const Text('恢复全部列设置为默认'),

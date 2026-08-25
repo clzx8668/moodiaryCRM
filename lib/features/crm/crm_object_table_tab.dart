@@ -1682,6 +1682,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                             ),
                                         firstColumnWidth:
                                             CrmPrefs.firstColumnWidth(),
+                                        columnWidthLocked:
+                                            CrmPrefs.columnWidthLocked(),
                                       ),
                               ),
                               if (_panels.isNotEmpty &&

@@ -106,6 +106,8 @@ class PrefUtil {
     'crmTableFreezeFirst',
     // 表格首列统一宽度（0/缺省=按屏宽自适应）
     'crmFirstColumnWidth',
+    // 表格列宽锁定开关（锁定后禁止拖拽调整列宽）
+    'crmColumnWidthLocked',
     // 报价模板（JSON）
     'crmQuoteTemplates',
   };

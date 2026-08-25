@@ -43,16 +43,24 @@ class _CrmHomePageState extends State<CrmHomePage>
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
     _tabController.addListener(_onTabChanged);
+    // 设置页修改表格偏好后即时刷新（首列宽度/冻结/列宽锁定等）
+    CrmPrefs.prefsVersion.addListener(_onPrefsChanged);
     _loadCustomObjects();
   }
 
   @override
   void dispose() {
     _globalDebounce?.cancel();
+    CrmPrefs.prefsVersion.removeListener(_onPrefsChanged);
     _tabController.dispose();
     _tableController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onPrefsChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   void _onTabChanged() {
