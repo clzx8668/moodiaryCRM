@@ -180,11 +180,20 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
       CrmColumnKind.boolean => PlutoColumnTextAlign.center,
       _ => PlutoColumnTextAlign.start,
     };
+    // 首列（复选框融合列）保持足够宽度且不参与 scale 自动缩放，
+    // 避免窄容器下复选框挤占内容（报价/发票等短首列表现尤其明显）
+    final savedWidth = widget.columnWidths[field];
+    final columnWidth = isFirst
+        ? (savedWidth ?? 200.0) < 180
+              ? 180.0
+              : (savedWidth ?? 200.0)
+        : savedWidth ?? _columnWidth(field);
     return PlutoColumn(
       title: widget.columnTitles[field] ?? _columnTitle(field),
       field: field,
       type: _columnType(field, labels),
-      width: widget.columnWidths[field] ?? _columnWidth(field),
+      width: columnWidth,
+      suppressedAutoSize: isFirst,
       textAlign: align,
       titleTextAlign: align,
       // 复选框与首列融合（pluto 原生 enableRowChecked：表头全选 + 行内勾选）

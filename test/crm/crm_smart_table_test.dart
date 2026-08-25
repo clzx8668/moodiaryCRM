@@ -99,4 +99,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(selected, isEmpty);
   });
+
+  testWidgets('报价/发票等短首列：复选框仍与首列融合，不被缩放挤压', (tester) async {
+    final items = [
+      for (final no in ['QT-20260825-001', 'QT-20260825-002'])
+        CrmEntityCache()
+          ..id = 'id-$no'
+          ..twentyId = 'twenty-$no'
+          ..entityType = 'quote'
+          ..name = no
+          ..setData({'quoteNo': no, 'status': 'draft'}),
+    ];
+    await tester.pumpWidget(
+      wrap(
+        CrmSmartTable(
+          items: items,
+          fields: const ['quoteNo', 'status'],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 表头全选 + 两行复选框均融合在首列（而非独立列）
+    expect(find.byType(Checkbox), findsNWidgets(3));
+  });
 }
