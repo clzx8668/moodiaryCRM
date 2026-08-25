@@ -1680,6 +1680,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                             CrmPrefs.freezeFirstColumn(
                                               widget.objectType,
                                             ),
+                                        firstColumnWidth:
+                                            CrmPrefs.firstColumnWidth(),
                                       ),
                               ),
                               if (_panels.isNotEmpty &&

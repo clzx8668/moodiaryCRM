@@ -8,6 +8,7 @@ class CrmPrefs {
   static const String _tabVisiblePrefix = 'crmTabVisible_';
   static const String defaultCurrencyKey = 'crmDefaultCurrency';
   static const String freezeFirstColumnKey = 'crmTableFreezeFirst';
+  static const String firstColumnWidthKey = 'crmFirstColumnWidth';
 
   /// 对象页签是否在 CRM 页面显示（默认全部显示）。
   static bool tabVisible(String type) =>
@@ -40,6 +41,15 @@ class CrmPrefs {
         type == null ? freezeFirstColumnKey : '${freezeFirstColumnKey}_$type',
         value,
       );
+
+  /// 首列统一宽度（0/未设置 = 按屏宽自适应 300/200/180）。
+  static double? firstColumnWidth() {
+    final raw = PrefUtil.getValue<int>(firstColumnWidthKey) ?? 0;
+    return raw <= 0 ? null : raw.toDouble();
+  }
+
+  static Future<void> setFirstColumnWidth(int? width) =>
+      PrefUtil.setValue<int>(firstColumnWidthKey, width ?? 0);
 
   /// 已启用的基础对象 Tab（按 [kCrmTabs] 顺序，过滤被隐藏的）。
   static List<CrmTabDef> enabledTabs() =>

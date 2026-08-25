@@ -58,6 +58,9 @@ class CrmSmartTable extends StatefulWidget {
   /// 第一列（复选框列）是否冻结（默认冻结，表头全选方框跟随）
   final bool freezeFirstColumn;
 
+  /// 首列统一宽度（null = 按屏宽自适应）；用于各表统一首列宽度
+  final double? firstColumnWidth;
+
   const CrmSmartTable({
     super.key,
     required this.items,
@@ -75,6 +78,7 @@ class CrmSmartTable extends StatefulWidget {
     this.onSelectionChanged,
     this.relationFields = const {},
     this.freezeFirstColumn = true,
+    this.firstColumnWidth,
   });
 
   @override
@@ -187,10 +191,10 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
       CrmColumnKind.boolean => PlutoColumnTextAlign.center,
       _ => PlutoColumnTextAlign.start,
     };
-    final savedWidth = widget.columnWidths[field];
+    // 首列宽度统一：优先全局设置值，否则按屏宽自适应；忽略各表历史保存的窄值
     final columnWidth = isFirst
-        ? savedWidth ?? _responsiveFirstColumnWidth
-        : savedWidth ?? _columnWidth(field);
+        ? widget.firstColumnWidth ?? _responsiveFirstColumnWidth
+        : widget.columnWidths[field] ?? _columnWidth(field);
     if (isFirst) _firstColumnWidth = columnWidth;
     return PlutoColumn(
       // 首列标题由自绘表头渲染（含全选复选框，与行内复选框对齐、间隙 4px）

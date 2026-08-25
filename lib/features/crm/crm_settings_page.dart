@@ -67,6 +67,17 @@ class _CrmSettingsPageState extends State<CrmSettingsPage> {
               ),
               const Divider(height: 1),
               ListTile(
+                leading: const Icon(Icons.width_normal_outlined),
+                title: const Text('首列宽度'),
+                subtitle: Text(
+                  CrmPrefs.firstColumnWidth() == null
+                      ? '自适应（桌面 300 / 平板 200 / 移动端 180）'
+                      : '固定 ${CrmPrefs.firstColumnWidth()!.toInt()}px（0 恢复自适应）',
+                ),
+                onTap: () => _editFirstColumnWidth(context),
+              ),
+              const Divider(height: 1),
+              ListTile(
                 leading: const Icon(Icons.view_column_outlined),
                 title: const Text('恢复全部列设置为默认'),
                 subtitle: const Text('清空各表格自定义的列显示/顺序/隐藏'),
@@ -198,6 +209,44 @@ class _CrmSettingsPageState extends State<CrmSettingsPage> {
         },
       ),
     );
+  }
+
+  /// 首列宽度设置：输入像素值（0 = 按屏宽自适应）。
+  Future<void> _editFirstColumnWidth(BuildContext context) async {
+    final controller = TextEditingController(
+      text: CrmPrefs.firstColumnWidth()?.toInt().toString() ?? '0',
+    );
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('首列宽度'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: '像素（0 = 自适应 300/200/180）',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final width = int.tryParse(controller.text.trim());
+    if (width == null || width < 0) return;
+    await CrmPrefs.setFirstColumnWidth(width == 0 ? null : width);
+    if (mounted) setState(() {});
   }
 
   Widget _customObjectTile(

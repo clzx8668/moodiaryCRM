@@ -104,6 +104,8 @@ class PrefUtil {
     'crmDefaultCurrency',
     // 表格第一列（复选框列）冻结开关
     'crmTableFreezeFirst',
+    // 表格首列统一宽度（0/缺省=按屏宽自适应）
+    'crmFirstColumnWidth',
     // 报价模板（JSON）
     'crmQuoteTemplates',
   };
