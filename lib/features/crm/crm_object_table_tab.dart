@@ -14,6 +14,7 @@ import 'package:moodiary/features/crm/local/crm_entity_creator.dart';
 import 'package:moodiary/features/crm/local/crm_entity_field_updater.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
+import 'package:moodiary/features/crm/local/crm_prefs.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/crm/widgets/crm_smart_table.dart';
 import 'package:moodiary/persistence/pref.dart';
@@ -1672,6 +1673,8 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                           for (final f in _fields)
                                             if (f.type == 'relation') f.name,
                                         },
+                                        freezeFirstColumn:
+                                            CrmPrefs.freezeFirstColumn(),
                                       ),
                               ),
                               if (_panels.isNotEmpty &&

@@ -7,6 +7,7 @@ import 'package:moodiary/features/crm/local/crm_prefs.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
+import 'package:moodiary/persistence/isar.dart';
 
 /// CRM 模块首页（本地优先）：顶部 Tab 展示基础对象 + 自定义对象。
 class CrmHomePage extends StatefulWidget {
@@ -213,11 +214,29 @@ class _CrmHomePageState extends State<CrmHomePage>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Column(
-          children: [
-            Padding(
+    // 移动端对齐系统状态栏（信号/电量），与其它模块页面一致；桌面端 SafeArea 无副作用
+    return SafeArea(
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              if (IsarUtil.dbDegraded)
+                Container(
+                  width: double.infinity,
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: Text(
+                    '数据库初始化失败，当前数据不会保存。'
+                    '${IsarUtil.dbDegradedReason ?? ''}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+              Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 12, 6),
               child: Row(
                 children: [
@@ -338,7 +357,8 @@ class _CrmHomePageState extends State<CrmHomePage>
             child: _buildGlobalSearchPanel(),
           ),
         ],
-      ],
+        ],
+      ),
     );
   }
 

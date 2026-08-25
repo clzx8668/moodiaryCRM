@@ -56,7 +56,9 @@ android {
         versionName = flutterVersionName
         ndk {
             //noinspection ChromeOsAbiSupport
-            abiFilters 'arm64-v8a'
+            // arm64-v8a：真机；x86_64：主流模拟器（sqlite3 等原生库需匹配 ABI，
+            // 否则数据库打不开 → 数据无法持久化）
+            abiFilters 'arm64-v8a', 'x86_64'
         }
     }
 
@@ -86,4 +88,3 @@ dependencies {
     implementation 'com.github.gzu-liyujiang:Android_CN_OAID:4.2.11'
     implementation 'com.google.android.material:material:1.12.0'
 }
-

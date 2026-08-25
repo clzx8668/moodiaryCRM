@@ -102,6 +102,8 @@ class PrefUtil {
     'lanSyncContentScope',
     // CRM 默认币种
     'crmDefaultCurrency',
+    // 表格第一列（复选框列）冻结开关
+    'crmTableFreezeFirst',
     // 报价模板（JSON）
     'crmQuoteTemplates',
   };

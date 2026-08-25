@@ -7,6 +7,7 @@ import 'package:moodiary/persistence/pref.dart';
 class CrmPrefs {
   static const String _tabVisiblePrefix = 'crmTabVisible_';
   static const String defaultCurrencyKey = 'crmDefaultCurrency';
+  static const String freezeFirstColumnKey = 'crmTableFreezeFirst';
 
   /// 对象页签是否在 CRM 页面显示（默认全部显示）。
   static bool tabVisible(String type) =>
@@ -21,6 +22,13 @@ class CrmPrefs {
 
   static Future<void> setDefaultCurrency(String code) =>
       PrefUtil.setValue<String>(defaultCurrencyKey, code);
+
+  /// 表格第一列（复选框列）是否冻结（默认冻结）。
+  static bool freezeFirstColumn() =>
+      PrefUtil.getValue<bool>(freezeFirstColumnKey) ?? true;
+
+  static Future<void> setFreezeFirstColumn(bool value) =>
+      PrefUtil.setValue<bool>(freezeFirstColumnKey, value);
 
   /// 已启用的基础对象 Tab（按 [kCrmTabs] 顺序，过滤被隐藏的）。
   static List<CrmTabDef> enabledTabs() =>

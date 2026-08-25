@@ -55,6 +55,17 @@ class _CrmSettingsPageState extends State<CrmSettingsPage> {
             children: [
               _defaultCurrencyTile(),
               const Divider(height: 1),
+              SwitchListTile(
+                secondary: const Icon(Icons.push_pin_outlined),
+                title: const Text('表格第一列冻结'),
+                subtitle: const Text('冻结复选框列，横向滚动时保持可见（默认开启）'),
+                value: CrmPrefs.freezeFirstColumn(),
+                onChanged: (v) async {
+                  await CrmPrefs.setFreezeFirstColumn(v);
+                  if (mounted) setState(() {});
+                },
+              ),
+              const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.view_column_outlined),
                 title: const Text('恢复全部列设置为默认'),

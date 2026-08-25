@@ -47,7 +47,7 @@ Future<void> _initSystem() async {
     await IsarUtil.initIsar().timeout(const Duration(seconds: 20));
   } catch (e) {
     logger.e('数据库初始化异常，切换内存库兜底', error: e);
-    await _fallbackDatabase();
+    await _fallbackDatabase(e);
   }
   try {
     await HiveUtil().init().timeout(const Duration(seconds: 10));
@@ -73,8 +73,20 @@ Future<void> _initSystem() async {
   );
 }
 
-/// 数据库打开失败/超时时的兜底：切换内存库保证应用可启动（数据不持久）。
-Future<void> _fallbackDatabase() async {
+/// 数据库打开失败/超时时的兜底：切换内存库保证应用可启动（数据不持久），
+/// 并记录原因供 UI 提示与排查（release 包也写入文件）。
+Future<void> _fallbackDatabase(Object? error) async {
+  IsarUtil.dbDegraded = true;
+  IsarUtil.dbDegradedReason = error?.toString();
+  try {
+    final dir = await getApplicationSupportDirectory();
+    final file = File(p.join(dir.path, 'logs', 'startup.log'));
+    await file.create(recursive: true);
+    await file.writeAsString(
+      '${DateTime.now()} DB_FALLBACK: $error\n',
+      mode: FileMode.append,
+    );
+  } catch (_) {}
   try {
     // ignore: invalid_use_of_visible_for_testing_member
     IsarUtil.overrideDbForTest(AppDatabase(NativeDatabase.memory()));

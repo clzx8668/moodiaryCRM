@@ -36,6 +36,10 @@ import 'package:uuid/uuid.dart';
 class IsarUtil {
   static AppDatabase? _db;
 
+  /// 启动时数据库初始化失败/超时标记（UI 提示数据未持久化）
+  static bool dbDegraded = false;
+  static String? dbDegradedReason;
+
   /// 测试接缝：可注入内存数据库
   static AppDatabase? _testDb;
 

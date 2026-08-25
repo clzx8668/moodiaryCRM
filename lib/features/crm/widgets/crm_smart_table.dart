@@ -52,6 +52,9 @@ class CrmSmartTable extends StatefulWidget {
   /// 关系字段名集合（点击单元格弹出原位搜索式关联编辑）
   final Set<String> relationFields;
 
+  /// 第一列（复选框列）是否冻结（默认冻结，表头全选方框跟随）
+  final bool freezeFirstColumn;
+
   const CrmSmartTable({
     super.key,
     required this.items,
@@ -67,6 +70,7 @@ class CrmSmartTable extends StatefulWidget {
     this.selectedIds = const {},
     this.onSelectionChanged,
     this.relationFields = const {},
+    this.freezeFirstColumn = true,
   });
 
   @override
@@ -122,7 +126,9 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
         enableHideColumnMenuItem: false,
         enableSetColumnsMenuItem: false,
         enableColumnDrag: false,
-        frozen: PlutoColumnFrozen.start,
+        frozen: widget.freezeFirstColumn
+            ? PlutoColumnFrozen.start
+            : PlutoColumnFrozen.none,
         renderer: (rendererContext) {
           final rowIdx = rendererContext.rowIdx;
           if (rowIdx < 0 || rowIdx >= widget.items.length) {
@@ -502,17 +508,18 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
           grid,
           _buildSelectHeaderCheckbox(),
           // 隐藏复选框列与首数据列之间的列间表格线（复选框列固定 36px 首列）
-          Positioned(
-            left: 35.5,
-            top: 1,
-            bottom: 1,
-            width: 2,
-            child: IgnorePointer(
-              child: ColoredBox(
-                color: Theme.of(context).colorScheme.surface,
+          if (widget.freezeFirstColumn)
+            Positioned(
+              left: 35.5,
+              top: 1,
+              bottom: 1,
+              width: 2,
+              child: IgnorePointer(
+                child: ColoredBox(
+                  color: Theme.of(context).colorScheme.surface,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -537,6 +544,7 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
 
   /// 复选框列（固定首列）表头：全选 / 取消全选。
   Widget _buildSelectHeaderCheckbox() {
+    if (!widget.freezeFirstColumn) return const SizedBox.shrink();
     final items = widget.items;
     if (items.isEmpty) return const SizedBox.shrink();
     final allSelected = items.every(
