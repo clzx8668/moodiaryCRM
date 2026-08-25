@@ -88,6 +88,16 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
   Timer? _resizeDebounce;
   PlutoGridStateManager? _stateManager;
   Offset? _rightClickDown;
+  double _layoutWidth = 0;
+
+  /// 首列（复选框融合列）按屏宽响应式宽度：
+  /// ≥900 → 200；600–900 → 160（80%）；<600（移动端）→ 120（60%）。
+  double get _responsiveFirstColumnWidth {
+    const base = 200.0;
+    if (_layoutWidth >= 900) return base;
+    if (_layoutWidth >= 600) return base * 0.8;
+    return base * 0.6;
+  }
 
   @override
   void initState() {
@@ -180,19 +190,19 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
       CrmColumnKind.boolean => PlutoColumnTextAlign.center,
       _ => PlutoColumnTextAlign.start,
     };
-    // 首列（复选框融合列）保持足够宽度且不参与 scale 自动缩放，
-    // 避免窄容器下复选框挤占内容（报价/发票等短首列表现尤其明显）
     final savedWidth = widget.columnWidths[field];
     final columnWidth = isFirst
-        ? (savedWidth ?? 200.0) < 180
-              ? 180.0
-              : (savedWidth ?? 200.0)
+        ? savedWidth ?? _responsiveFirstColumnWidth
         : savedWidth ?? _columnWidth(field);
     return PlutoColumn(
       title: widget.columnTitles[field] ?? _columnTitle(field),
       field: field,
       type: _columnType(field, labels),
       width: columnWidth,
+      // 压缩复选框左侧空白（Twenty 复选框列 30px，融合模式下收紧内边距）
+      cellPadding: isFirst
+          ? const EdgeInsets.only(left: 4, right: 8)
+          : null,
       suppressedAutoSize: isFirst,
       textAlign: align,
       titleTextAlign: align,
@@ -366,6 +376,12 @@ class _CrmSmartTableState extends State<CrmSmartTable> {
 
   @override
   Widget build(BuildContext context) {
+    // 屏宽变化时重建列，应用响应式首列宽度（build 期间直接赋值，不触发 setState）
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    if (screenWidth != _layoutWidth) {
+      _layoutWidth = screenWidth;
+      _build();
+    }
     final grid = PlutoGrid(
       columns: _columns,
       rows: _rows,
