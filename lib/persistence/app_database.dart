@@ -834,11 +834,11 @@ class AppDatabase extends _$AppDatabase {
       // v15 → v16：金额实体补币种列
       if (from < 16) {
         final db = m.database as AppDatabase;
-        await m.addColumn(db.crmContracts, db.crmContracts.currency);
-        await m.addColumn(db.crmPayments, db.crmPayments.currency);
-        await m.addColumn(db.crmInvoices, db.crmInvoices.currency);
-        await m.addColumn(db.crmQuotes, db.crmQuotes.currency);
-        await m.addColumn(db.crmProducts, db.crmProducts.currency);
+        await _addColumnIfMissing(m, db.crmContracts, db.crmContracts.currency);
+        await _addColumnIfMissing(m, db.crmPayments, db.crmPayments.currency);
+        await _addColumnIfMissing(m, db.crmInvoices, db.crmInvoices.currency);
+        await _addColumnIfMissing(m, db.crmQuotes, db.crmQuotes.currency);
+        await _addColumnIfMissing(m, db.crmProducts, db.crmProducts.currency);
       }
     },
     beforeOpen: (details) async {
@@ -849,5 +849,21 @@ class AppDatabase extends _$AppDatabase {
   /// 打开应用数据库（桌面/移动端均使用 sqlite3）
   static Future<AppDatabase> open() async {
     return AppDatabase(driftDatabase(name: 'moodiary'));
+  }
+}
+
+/// 迁移幂等：目标列已存在时跳过 `ADD COLUMN`（旧库/中断迁移可能已含该列，
+/// 直接 ALTER 会抛 `duplicate column name` 导致数据库打不开）。
+Future<void> _addColumnIfMissing(
+  Migrator m,
+  TableInfo table,
+  GeneratedColumn column,
+) async {
+  final rows = await m.database
+      .customSelect('PRAGMA table_info(${table.aliasedName})')
+      .get();
+  final hasColumn = rows.any((r) => r.data['name'] == column.name);
+  if (!hasColumn) {
+    await m.addColumn(table, column);
   }
 }
