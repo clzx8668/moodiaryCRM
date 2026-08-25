@@ -58,7 +58,7 @@ class _CrmSettingsPageState extends State<CrmSettingsPage> {
               SwitchListTile(
                 secondary: const Icon(Icons.push_pin_outlined),
                 title: const Text('表格第一列冻结'),
-                subtitle: const Text('冻结复选框列，横向滚动时保持可见（默认开启）'),
+                subtitle: const Text('全局默认：各表首列（复选框+首列内容）冻结；可在各表列设置中单独调整'),
                 value: CrmPrefs.freezeFirstColumn(),
                 onChanged: (v) async {
                   await CrmPrefs.setFreezeFirstColumn(v);

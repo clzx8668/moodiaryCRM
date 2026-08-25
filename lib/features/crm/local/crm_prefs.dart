@@ -23,12 +23,23 @@ class CrmPrefs {
   static Future<void> setDefaultCurrency(String code) =>
       PrefUtil.setValue<String>(defaultCurrencyKey, code);
 
-  /// 表格第一列（复选框列）是否冻结（默认冻结）。
-  static bool freezeFirstColumn() =>
-      PrefUtil.getValue<bool>(freezeFirstColumnKey) ?? true;
+  /// 表格首列（复选框+首列内容融合）是否冻结。
+  /// [type] 非空时优先按对象单独设置；否则读全局默认（默认冻结）。
+  static bool freezeFirstColumn([String? type]) {
+    if (type != null) {
+      final perTable = PrefUtil.getValue<bool>(
+        '${freezeFirstColumnKey}_$type',
+      );
+      if (perTable != null) return perTable;
+    }
+    return PrefUtil.getValue<bool>(freezeFirstColumnKey) ?? true;
+  }
 
-  static Future<void> setFreezeFirstColumn(bool value) =>
-      PrefUtil.setValue<bool>(freezeFirstColumnKey, value);
+  static Future<void> setFreezeFirstColumn(bool value, {String? type}) =>
+      PrefUtil.setValue<bool>(
+        type == null ? freezeFirstColumnKey : '${freezeFirstColumnKey}_$type',
+        value,
+      );
 
   /// 已启用的基础对象 Tab（按 [kCrmTabs] 顺序，过滤被隐藏的）。
   static List<CrmTabDef> enabledTabs() =>

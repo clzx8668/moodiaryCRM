@@ -1632,6 +1632,9 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                         ),
                                         items: items,
                                         fields: effectiveColumns,
+                                        columnTitles: {
+                                          for (final f in _fields) f.name: f.label,
+                                        },
                                         selectOptions: {
                                           for (final f in _fields)
                                             if (f.type == 'select' ||
@@ -1674,7 +1677,9 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
                                             if (f.type == 'relation') f.name,
                                         },
                                         freezeFirstColumn:
-                                            CrmPrefs.freezeFirstColumn(),
+                                            CrmPrefs.freezeFirstColumn(
+                                              widget.objectType,
+                                            ),
                                       ),
                               ),
                               if (_panels.isNotEmpty &&
@@ -1788,6 +1793,7 @@ class _CrmObjectTableTabState extends State<CrmObjectTableTab> {
         );
       case _PanelMode.columns:
         return CrmColumnSettingsPanel(
+          objectType: widget.objectType,
           fields: frame.fields,
           allFieldNames: _lastAll,
           visible: _effectiveColumns(_lastAll),

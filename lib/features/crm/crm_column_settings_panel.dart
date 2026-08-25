@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:moodiary/features/crm/local/crm_field_defs.dart';
+import 'package:moodiary/features/crm/local/crm_prefs.dart';
 
 /// 列设置内联面板（Twenty 式设置抽屉，替代弹窗）。
 class CrmColumnSettingsPanel extends StatefulWidget {
+  final String objectType;
   final List<LocalObjectField> fields;
   final List<String> allFieldNames;
   final List<String> visible;
@@ -12,6 +14,7 @@ class CrmColumnSettingsPanel extends StatefulWidget {
 
   const CrmColumnSettingsPanel({
     super.key,
+    required this.objectType,
     required this.fields,
     required this.allFieldNames,
     required this.visible,
@@ -60,6 +63,22 @@ class _CrmColumnSettingsPanelState extends State<CrmColumnSettingsPanel> {
                 ),
               ],
             ),
+          ),
+          const Divider(height: 1),
+          SwitchListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+            secondary: const Icon(Icons.push_pin_outlined, size: 18),
+            title: const Text('首列冻结（复选框+首列内容）'),
+            subtitle: const Text('关闭后可右键列标题自定义冻结'),
+            value: CrmPrefs.freezeFirstColumn(widget.objectType),
+            onChanged: (v) async {
+              await CrmPrefs.setFreezeFirstColumn(
+                v,
+                type: widget.objectType,
+              );
+              if (mounted) setState(() {});
+            },
           ),
           const Divider(height: 1),
           Padding(

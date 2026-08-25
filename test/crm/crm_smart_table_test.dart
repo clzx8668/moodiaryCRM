@@ -78,8 +78,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 点表头复选框（树中最后一个 Checkbox）
-    await tester.tap(find.byType(Checkbox).last);
+    // 点表头全选复选框（表头在树中先于单元格，取第一个 Checkbox）
+    await tester.tap(find.byType(Checkbox).first);
     await tester.pumpAndSettle();
     expect(selected, hasLength(2));
 
@@ -95,7 +95,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(Checkbox).last);
+    await tester.tap(find.byType(Checkbox).first);
     await tester.pumpAndSettle();
     expect(selected, isEmpty);
   });
