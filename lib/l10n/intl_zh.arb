@@ -115,6 +115,8 @@
   "homeNavigatorMedia": "媒体",
   "homeNavigatorSetting": "设置",
   "homeNavigatorAssistant": "助手",
+  "homeNavigatorCrm": "CRM",
+  "homeNavigatorAi": "AI",
   "homePageAddDiaryButton": "新建日记",
   "homeNewDiaryRichText": "富文本",
   "homeNewDiaryMarkdown": "Markdown",

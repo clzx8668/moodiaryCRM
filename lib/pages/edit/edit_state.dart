@@ -43,8 +43,8 @@ class EditState {
 
   RxString durationString = ''.obs;
 
-  // 是否展示保存动画
-  bool isSaving = false;
+  // 是否保存中（保存态转圈）
+  RxBool isSaving = false.obs;
 
   // 是否完成初始化
   bool isInit = false;

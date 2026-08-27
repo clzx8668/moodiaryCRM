@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/category.dart';
+import 'package:moodiary/common/values/diary_sort.dart';
 import 'package:moodiary/common/values/view_mode.dart';
 import 'package:moodiary/components/scroll/fix_scroll.dart';
 import 'package:moodiary/persistence/isar.dart';
@@ -28,6 +29,17 @@ class DiaryState {
   //视图模式状态
   late Rx<ViewModeType> viewModeType =
       ViewModeType.getType(PrefUtil.getValue<int>('homeViewMode')!).obs;
+
+  // 记录排序方式（影响列表/网格/块三视图）
+  late Rx<DiarySort> sort = DiarySort.fromIndex(
+    PrefUtil.getValue<int>('homeSortOrder') ?? 0,
+  ).obs;
+
+  // 标签筛选（为空=不筛选）
+  final RxList<String> filterTags = <String>[].obs;
+
+  // 是否有生效筛选
+  final RxBool filterActive = false.obs;
 
   //当前tab bar位置
   late int currentTabBarIndex;

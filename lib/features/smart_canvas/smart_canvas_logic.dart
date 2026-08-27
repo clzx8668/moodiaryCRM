@@ -35,6 +35,15 @@ class SmartCanvasLogic extends GetxController {
   static const int collapseThreshold = 500;
 
   bool _streamCancelRequested = false;
+  RxBool chatStreaming = false.obs;
+  String? _chatStreamingBlockId;
+  StreamSubscription<dynamic>? _syncSub;
+
+  /// 详情页 AI 交流进行中（底部输入框显示停止）。
+  bool get isChatStreaming => chatStreaming.value;
+
+  /// 当前正在流式的对话块 id（用于气泡流式态）。
+  String? get chatStreamingBlockId => _chatStreamingBlockId;
 
   SmartCanvasLogic({
     CanvasDatasource? datasource,
@@ -59,12 +68,18 @@ class SmartCanvasLogic extends GetxController {
   }
 
   void _subscribeSyncEvents() {
-    SyncEventService.instance.syncEvents.listen((event) {
+    _syncSub = SyncEventService.instance.syncEvents.listen((event) {
       onSyncEvent(
         phase: event.phase.name,
         progress: event.progress,
       );
     });
+  }
+
+  @override
+  void onClose() {
+    _syncSub?.cancel();
+    super.onClose();
   }
 
   Future<void> init() async {
@@ -263,6 +278,156 @@ class SmartCanvasLogic extends GetxController {
       content: content,
     );
     blockList.replace(converted);
+  }
+
+  /// 详情页 AI 交流：瀑布流式对话，**持久化为 source=ai 块**（role=user/assistant）。
+  Future<void> sendChat(String text) async {
+    final q = text.trim();
+    if (q.isEmpty) return;
+    if (chatStreaming.value) {
+      toast.info(message: '正在生成，请稍候');
+      return;
+    }
+    await loadAiProvider();
+    if (!aiProvider.isConfigured) {
+      toast.info(message: 'AI 未配置，请在设置中填写 API Key');
+      return;
+    }
+    final user = await datasource.createChatBlock(
+      diary: canvasState.diary,
+      role: 'user',
+      content: q,
+    );
+    final assistant = await datasource.createChatBlock(
+      diary: canvasState.diary,
+      role: 'assistant',
+      content: '',
+    );
+    blockList.blocks.addAll([user, assistant]);
+    await _streamChatBlock(assistant, userQuestion: q);
+  }
+
+  /// 针对某条助手块重新生成。
+  Future<void> regenerateAnswer(String blockId) async {
+    if (chatStreaming.value) {
+      toast.info(message: '正在生成，请稍候');
+      return;
+    }
+    final assistant = blockList.byId(blockId);
+    if (assistant == null) return;
+    final userQuestion = _prevUserQuestion(blockId);
+    if (userQuestion.isEmpty) return;
+    await loadAiProvider();
+    if (!aiProvider.isConfigured) {
+      toast.info(message: 'AI 未配置，请在设置中填写 API Key');
+      return;
+    }
+    assistant
+      ..content = ''
+      ..streamBuffer = ''
+      ..updatedAt = DateTime.now();
+    await datasource.saveBlock(assistant);
+    blockList.replace(assistant);
+    await _streamChatBlock(assistant, userQuestion: userQuestion);
+  }
+
+  String _prevUserQuestion(String blockId) {
+    final blocks = blockList.blocks.value
+        .where((b) => b.meta.isAi && b.meta.role.isNotEmpty)
+        .toList();
+    final sorted = [...blocks]..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final idx = sorted.indexWhere((b) => b.id == blockId);
+    for (var i = idx - 1; i >= 0; i--) {
+      if (sorted[i].meta.role == 'user') return sorted[i].content;
+    }
+    return '';
+  }
+
+  Future<void> _streamChatBlock(
+    Block assistant, {
+    required String userQuestion,
+  }) async {
+    chatStreaming.value = true;
+    _chatStreamingBlockId = assistant.id;
+    await SyncLogService.instance.write(
+      level: SyncLogLevel.info,
+      operation: 'ai',
+      target: 'chat',
+      detail: '详情页 AI 交流开始：$userQuestion',
+    );
+    final chatTurns = blockList.blocks.value
+        .where((b) => b.meta.isAi && b.meta.role.isNotEmpty)
+        .toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final history = <AiChatMessage>[
+      const AiChatMessage(
+        role: 'system',
+        content: '你是用户的智能记录助手。请结合上下文，用简洁、结构化的 Markdown 回答。',
+      ),
+      for (final b in chatTurns)
+        if (b.meta.role == 'user' || b.meta.role == 'assistant')
+          AiChatMessage(role: b.meta.role, content: b.content),
+    ];
+    var acc = '';
+    try {
+      await for (final chunk in aiProvider.streamChat(history)) {
+        if (_streamCancelRequested) break;
+        if (chunk.error != null) {
+          assistant.content = acc;
+          await datasource.saveBlock(assistant);
+          blockList.replace(assistant);
+          toast.error(message: chunk.error!);
+          return;
+        }
+        acc += chunk.text;
+        assistant.content = acc;
+        if (acc.length % 50 < chunk.text.length) {
+          await datasource.persistStreamBuffer(assistant, acc);
+          blockList.replace(assistant);
+        }
+        if (chunk.done) break;
+      }
+    } finally {
+      chatStreaming.value = false;
+      _chatStreamingBlockId = null;
+    }
+
+    if (_streamCancelRequested) {
+      _streamCancelRequested = false;
+      if (acc.isEmpty) {
+        await datasource.softDeleteBlock(assistant.id);
+        blockList.remove(assistant.id);
+      } else {
+        await datasource.saveBlock(assistant);
+        blockList.replace(assistant);
+      }
+      toast.info(message: '已停止生成');
+      return;
+    }
+
+    if (acc.trim().isEmpty) {
+      await datasource.softDeleteBlock(assistant.id);
+      blockList.remove(assistant.id);
+      toast.info(message: 'AI 未返回内容');
+      return;
+    }
+    assistant
+      ..content = acc.trim()
+      ..streamBuffer = ''
+      ..streamComplete = true
+      ..updatedAt = DateTime.now();
+    await datasource.saveBlock(assistant);
+    blockList.replace(assistant);
+  }
+
+  /// LLM 模型选择回调（预留：打开模型选择）。
+  void pickChatModel() {
+    toast.info(message: '模型选择接入中');
+  }
+
+  /// @ 知识库回调（预留）。
+  void pickChatKnowledge() {
+    toast.info(message: '@ 知识库接入中');
   }
 
   /// 待办勾选

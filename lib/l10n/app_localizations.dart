@@ -788,6 +788,18 @@ abstract class AppLocalizations {
   /// **'助手'**
   String get homeNavigatorAssistant;
 
+  /// No description provided for @homeNavigatorCrm.
+  ///
+  /// In zh, this message translates to:
+  /// **'CRM'**
+  String get homeNavigatorCrm;
+
+  /// No description provided for @homeNavigatorAi.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI'**
+  String get homeNavigatorAi;
+
   /// No description provided for @homePageAddDiaryButton.
   ///
   /// In zh, this message translates to:

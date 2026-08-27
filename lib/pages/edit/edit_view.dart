@@ -14,7 +14,6 @@ import 'package:moodiary/components/base/button.dart';
 import 'package:moodiary/components/base/sheet.dart';
 import 'package:moodiary/components/base/tile/setting_tile.dart';
 import 'package:moodiary/components/category_add/category_add_view.dart';
-import 'package:moodiary/components/lottie_modal/lottie_modal.dart';
 import 'package:moodiary/components/markdown_bar/markdown_bar.dart';
 import 'package:moodiary/components/markdown_embed/image_embed.dart';
 import 'package:moodiary/components/mood_icon/mood_icon_view.dart';
@@ -732,7 +731,8 @@ class EditPage extends StatelessWidget {
         spacing: 8.0,
         children: [
           IconButton.filled(
-            icon: const Icon(Icons.keyboard_command_key),
+            icon: const Icon(Icons.info_outline_rounded),
+            tooltip: '日记信息',
             style: const ButtonStyle(
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
@@ -848,24 +848,22 @@ class EditPage extends StatelessWidget {
     Widget buildWriting() {
       return Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 8.0,
+              children: [
+                buildType(),
+                if (state.showWriteTime) buildTimer(),
+                if (state.showWordCount) buildCount(),
+              ],
+            ),
+          ),
           Flexible(
             child: Stack(
               children: [
                 buildContent(),
-                Positioned(
-                  top: 2,
-                  left: 16,
-                  right: 16,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    spacing: 8.0,
-                    children: [
-                      buildType(),
-                      if (state.showWriteTime) buildTimer(),
-                      if (state.showWordCount) buildCount(),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -904,17 +902,27 @@ class EditPage extends StatelessWidget {
                   ),
                   centerTitle: true,
                   actions: [
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: IconButton(
-                        icon: const Icon(Icons.check_rounded),
-                        onPressed: () {
-                          logic.unFocus();
-                          logic.saveDiary(context: context);
-                        },
-                        tooltip: context.l10n.save,
-                      ),
-                    ),
+                    Obx(() {
+                      return Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: state.isSaving.value
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : IconButton(
+                                onPressed: () {
+                                  logic.unFocus();
+                                  logic.saveDiary(context: context);
+                                },
+                                icon: const Icon(Icons.check_rounded),
+                                tooltip: context.l10n.save,
+                              ),
+                      );
+                    }),
                   ],
                 ),
                 body: SafeArea(
@@ -926,14 +934,7 @@ class EditPage extends StatelessWidget {
               );
             },
           ),
-          GetBuilder<EditLogic>(
-            id: 'modal',
-            builder: (_) {
-              return state.isSaving
-                  ? const LottieModal(type: LoadingType.cat)
-                  : const SizedBox.shrink();
-            },
-          ),
+          const SizedBox.shrink(),
         ],
       ),
     );

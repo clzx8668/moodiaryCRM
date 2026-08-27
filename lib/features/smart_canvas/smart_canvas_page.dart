@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/components/base/button.dart';
 import 'package:moodiary/components/mood_icon/mood_icon_view.dart';
 import 'package:moodiary/features/ai/prompts.dart';
+import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/block/models/block.dart';
-import 'package:moodiary/features/smart_canvas/services/append_input_bar.dart';
 import 'package:moodiary/features/smart_canvas/services/card_action_router.dart';
+import 'package:moodiary/features/smart_canvas/editors/markdown_editor_page.dart';
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
+import 'package:moodiary/features/smart_canvas/widgets/chat_bubble.dart';
 import 'package:moodiary/features/smart_canvas/widgets/smart_card.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/src/rust/api/ffi_api.dart' as rust_ffi;
@@ -17,8 +20,13 @@ import 'package:moodiary/utils/notice_util.dart';
 
 /// 中间详情页（SmartCanvasPage）：智能卡片工作台。
 ///
-/// 结构：SliverAppBar（日记元信息） + 卡片栈 + 底部常驻追加输入条。
-/// 交互：点卡片按类型路由（CardActionRouter），卡片菜单触发 AI 处理。
+/// 布局（参照闪念贝壳详情页）：
+/// - 头部：SliverAppBar（日记标题/返回/同步/更多）；
+/// - 笔记区：非 AI 来源的卡片（色条 + 时间 + 内容 + #标签 + 复制/菜单）；
+/// - 「+ 追加笔记」按钮：笔记区左下角，随新笔记下移，点击聚焦底部输入条；
+/// - 短横线分隔：「内容由 AI 生成」；
+/// - AI 交互区：AI 来源的卡片（「已生成卡片：<模板>」+ 内容 + 查看更多/复制/删除）；
+/// - 底部常驻追加输入条。
 class SmartCanvasPage extends StatefulWidget {
   const SmartCanvasPage({super.key});
 
@@ -29,6 +37,8 @@ class SmartCanvasPage extends StatefulWidget {
 class _SmartCanvasPageState extends State<SmartCanvasPage> {
   late final String _tag;
   late final SmartCanvasLogic logic;
+  final TextEditingController _aiInput = TextEditingController();
+  final FocusNode _aiFocus = FocusNode();
 
   @override
   void initState() {
@@ -37,6 +47,17 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     logic = Get.isRegistered<SmartCanvasLogic>(tag: _tag)
         ? Get.find<SmartCanvasLogic>(tag: _tag)
         : Get.put(SmartCanvasLogic(), tag: _tag);
+  }
+
+  @override
+  void dispose() {
+    _aiInput.dispose();
+    _aiFocus.dispose();
+    // 手动注册的 SmartCanvasLogic 需显式删除，否则每次进详情页泄漏
+    if (Get.isRegistered<SmartCanvasLogic>(tag: _tag)) {
+      Get.delete<SmartCanvasLogic>(tag: _tag, force: true);
+    }
+    super.dispose();
   }
 
   Future<void> _showAiTemplateSheet(Block block) async {
@@ -49,7 +70,10 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
           children: [
             Padding(
               padding: const EdgeInsets.all(8),
-              child: Text('AI 处理模板', style: Theme.of(context).textTheme.titleMedium),
+              child: Text(
+                'AI 处理模板',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
             for (final t in AiTemplates.all)
               ListTile(
@@ -94,6 +118,15 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     await rust_ffi.emitDemoSyncEvents();
   }
 
+  /// 桌面端约束主列阅读宽度，移动端全宽。
+  double _contentPadX(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    const maxWidth = 720.0;
+    if (w <= 1024) return 16.0;
+    final side = (w - maxWidth) / 2;
+    return side < 16.0 ? 16.0 : side;
+  }
+
   Widget _buildMetaChips(BuildContext context) {
     final diary = logic.canvasState.diary;
     final colorScheme = Theme.of(context).colorScheme;
@@ -104,19 +137,19 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
           MoodIconComponent(value: diary.mood),
           const SizedBox(width: 8),
           Text(
-            DateFormat.yMMMd().add_Hms().format(diary.time),
+            DateFormat('M月d日 HH:mm').format(diary.time),
             style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(width: 8),
           for (final tag in diary.tags.take(6))
             Padding(
               padding: const EdgeInsets.only(right: 6),
-              child: Chip(
-                label: Text(tag),
-                labelStyle: const TextStyle(fontSize: 11),
-                visualDensity: VisualDensity.compact,
-                side: BorderSide.none,
-                backgroundColor: colorScheme.surfaceContainerHighest,
+              child: Text(
+                '#$tag',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
         ],
@@ -124,39 +157,158 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     );
   }
 
-  Widget _buildCardList(BuildContext context) {
-    return Obx(() {
-      final blocks = logic.blockList.blocks.value;
-      if (blocks.isEmpty) {
-        if (logic.blockList.loading.value) {
-          return const Padding(
-            padding: EdgeInsets.all(48),
-            child: Center(child: CircularProgressIndicator()),
+  /// 笔记区 + 追加按钮 + 分隔线 + AI 交互区，统一成一列 slivers。
+  List<Widget> _contentSlivers(BuildContext context) {
+    final padX = _contentPadX(context);
+
+    return [
+      Obx(() {
+        final blocks = logic.blockList.blocks.value;
+        final diary = logic.canvasState.diary;
+        if (logic.blockList.loading.value && blocks.isEmpty) {
+          return const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(48),
+              child: Center(child: CircularProgressIndicator()),
+            ),
           );
         }
-        return Padding(
-          padding: const EdgeInsets.all(48),
-          child: Center(
-            child: Text(
-              '暂无卡片，在下方输入框追加笔记',
-              style: Theme.of(context).textTheme.bodyMedium,
+        if (blocks.isEmpty) {
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(padX, 24, padX, 8),
+              child: Center(
+                child: Text(
+                  '还没有内容，点「追加笔记」写下第一条吧',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        final notes = blocks.where((b) => !b.meta.isAi).toList();
+        final ais = blocks.where((b) => b.meta.isAi).toList();
+        final slivers = <Widget>[];
+
+        // 笔记区
+        if (notes.isNotEmpty) {
+          slivers.add(
+            SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: padX),
+              sliver: SliverList.separated(
+                itemBuilder: (context, index) =>
+                    _buildCard(context, notes[index], diary, isAi: false),
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                itemCount: notes.length,
+              ),
+            ),
+          );
+        }
+
+        // 「+ 追加笔记」按钮（左下角，随新笔记下移）
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(padX, notes.isNotEmpty ? 12 : 0, padX, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _openAppendEditor,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('追加笔记'),
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ),
             ),
           ),
         );
-      }
-      return Column(
-        children: [
-          for (final block in blocks)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildCard(context, block),
+
+        // 短横线分隔「内容由 AI 生成」+ AI 交互区
+        if (ais.isNotEmpty) {
+          slivers.add(
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: padX, vertical: 6),
+                child: Row(
+                  children: [
+                    const Expanded(child: Divider(height: 1)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Text(
+                        '内容由 AI 生成',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    const Expanded(child: Divider(height: 1)),
+                  ],
+                ),
+              ),
             ),
-        ],
-      );
-    });
+          );
+          // 瀑布流 AI 对话（持久化 source=ai 块）
+          final chatAis = ais.where((b) => b.meta.role.isNotEmpty).toList();
+          if (chatAis.isNotEmpty) {
+            slivers.add(
+              SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: padX),
+                sliver: SliverList.separated(
+                  itemBuilder: (context, index) {
+                    final block = chatAis[index];
+                    return ChatBubble(
+                      block: block,
+                      isStreaming: logic.chatStreamingBlockId == block.id,
+                      onCopy: () {
+                        Clipboard.setData(
+                          ClipboardData(text: block.content),
+                        );
+                        toast.success(message: '已复制');
+                      },
+                      onRegenerate: () => logic.regenerateAnswer(block.id),
+                      onStop: logic.cancelStreaming,
+                    );
+                  },
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemCount: chatAis.length,
+                ),
+              ),
+            );
+          }
+          // 已保存的模板 AI 卡片
+          final cardAis = ais.where((b) => b.meta.role.isEmpty).toList();
+          if (cardAis.isNotEmpty) {
+            slivers.add(
+              SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: padX),
+                sliver: SliverList.separated(
+                  itemBuilder: (context, index) =>
+                      _buildCard(context, cardAis[index], diary, isAi: true),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
+                  itemCount: cardAis.length,
+                ),
+              ),
+            );
+          }
+        }
+
+        return SliverMainAxisGroup(slivers: slivers);
+      }),
+    ];
   }
 
-  Widget _buildCard(BuildContext context, Block block) {
+  Widget _buildCard(
+    BuildContext context,
+    Block block,
+    Diary diary, {
+    required bool isAi,
+  }) {
     final expanded = logic.isExpanded(block);
     final isStreaming = logic.streaming.isStreaming(block.id);
     final streamBuffer = isStreaming
@@ -168,18 +320,18 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     return SmartCard(
       key: ValueKey(block.id),
       block: block,
+      diary: diary,
       expanded: expanded,
       streamBuffer: streamBuffer,
       isStreaming: isStreaming,
+      isAi: isAi,
       onTap: () => resolveCardAction(block).execute(context, logic, block),
       onToggleExpand: () => logic.toggleExpand(block),
       onToggleTodo: (b) => logic.toggleTodo(b),
       onAi: () => _showAiTemplateSheet(block),
       onConvertTodo: () => logic.convertToTodo(block),
       onCopy: () {
-        Clipboard.setData(
-          ClipboardData(text: block.content),
-        );
+        Clipboard.setData(ClipboardData(text: block.content));
         toast.success(message: '已复制卡片内容');
       },
       onStop: isStreaming ? logic.cancelStreaming : null,
@@ -232,10 +384,11 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           value: 'edit_diary',
                           child: Text('编辑整篇日记'),
                         ),
-                        const PopupMenuItem(
-                          value: 'demo_sync',
-                          child: Text('测试同步事件流'),
-                        ),
+                        if (kDebugMode)
+                          const PopupMenuItem(
+                            value: 'demo_sync',
+                            child: Text('测试同步事件流'),
+                          ),
                       ],
                       onSelected: (v) {
                         if (v == 'edit_diary') {
@@ -253,17 +406,30 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                     child: _buildMetaChips(context),
                   ),
                 ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverToBoxAdapter(child: _buildCardList(context)),
-                ),
+                ..._contentSlivers(context),
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
               ],
             ),
           ),
-          AppendInputBar(
-            onSend: (text, template) => logic.appendNote(text, template: template),
-          ),
+          Obx(() {
+            return SmartInputBar(
+              controller: _aiInput,
+              focusNode: _aiFocus,
+              startActive: false,
+              streaming: logic.isChatStreaming,
+              collapsedHint: '按住输入语音',
+              activeHint: '问问这条记录，或输入问题…',
+              modelLabel: '记录问答',
+              onModelSelect: logic.pickChatModel,
+              onAt: logic.pickChatKnowledge,
+              onToggleVoice: () => toast.info(message: '语音功能接入中'),
+              onSend: (text) {
+                _aiInput.clear();
+                logic.sendChat(text);
+              },
+              onStop: logic.cancelStreaming,
+            );
+          }),
         ],
       ),
     );
@@ -280,4 +446,26 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
       }
     });
   }
+
+  void _openAppendEditor() {
+    final diary = logic.canvasState.diary;
+    Navigator.of(context)
+        .push<bool>(
+          MaterialPageRoute(
+            builder: (_) => BlockMarkdownEditorPage(
+              payload: MarkdownEditPayload(
+                diaryId: diary.id,
+                blockId: '',
+                title: '追加笔记',
+              ),
+            ),
+          ),
+        )
+        .then((changed) {
+      if (changed == true) {
+        logic.reloadBlocks();
+      }
+    });
+  }
+
 }

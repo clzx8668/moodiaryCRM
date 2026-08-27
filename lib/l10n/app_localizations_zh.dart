@@ -358,6 +358,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeNavigatorAssistant => '助手';
 
   @override
+  String get homeNavigatorCrm => 'CRM';
+
+  @override
+  String get homeNavigatorAi => 'AI';
+
+  @override
   String get homePageAddDiaryButton => '新建日记';
 
   @override

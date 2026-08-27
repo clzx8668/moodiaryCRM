@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:moodiary/api/api.dart';
 import 'package:moodiary/common/values/view_mode.dart';
+import 'package:moodiary/common/values/diary_sort.dart';
 import 'package:moodiary/components/diary_tab_view/diary_tab_view_logic.dart';
 import 'package:moodiary/components/scroll/fix_scroll.dart';
 import 'package:moodiary/pages/home/home_logic.dart';
@@ -247,6 +248,37 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
     state.viewModeType.value = viewModeType;
     _checkShowTop();
     await PrefUtil.setValue<int>('homeViewMode', viewModeType.number);
+  }
+
+  // 切换记录排序（列表/网格/块三视图共用）
+  Future<void> changeSort(DiarySort sort) async {
+    state.sort.value = sort;
+    await PrefUtil.setValue<int>('homeSortOrder', sort.value);
+    await refreshAll();
+  }
+
+  // 应用标签筛选（列表/网格/块三视图共用）
+  void applyTagFilter(List<String> tags) {
+    state.filterTags.assignAll(tags);
+    state.filterActive.value = tags.isNotEmpty;
+  }
+
+  // 清除筛选
+  void clearFilter() {
+    state.filterTags.clear();
+    state.filterActive.value = false;
+  }
+
+  // 收集所有日记的标签（去重）
+  Future<List<String>> collectAllTags() async {
+    final diaries = await IsarUtil.getAllDiariesSorted();
+    final tags = <String>{};
+    for (final d in diaries) {
+      for (final t in d.tags) {
+        if (t.trim().isNotEmpty) tags.add(t.trim());
+      }
+    }
+    return tags.toList()..sort();
   }
 
   // 回到顶部函数

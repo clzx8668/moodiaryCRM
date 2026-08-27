@@ -1,0 +1,261 @@
+import 'package:flutter/material.dart';
+
+/// 通用两态输入框（详情页常驻 / AI 知识库页 / 快速收集 复用）。
+///
+/// - 折叠态（默认）：一行，左侧 [大模型选择][@]，中间「按住输入语音」可点按激活 / 长按语音，
+///   右侧 [语音/键盘互斥][+]；发送按钮隐藏。
+/// - 激活态：两层，上层输入框自动变高，下层功能栏（模型/@/语音/+ + 发送/停止）。
+/// - [startActive] = true 时（快速收集）进入即激活态。
+class SmartInputBar extends StatefulWidget {
+  final TextEditingController controller;
+  final FocusNode? focusNode;
+  final bool streaming;
+  final bool startActive;
+  final String collapsedHint;
+  final String activeHint;
+  final ValueChanged<String> onSend;
+  final VoidCallback? onStop;
+  final bool voiceMode;
+  final VoidCallback? onToggleVoice;
+  final VoidCallback? onLongPressVoice;
+  final String modelLabel;
+  final VoidCallback? onModelSelect;
+  final VoidCallback? onAt;
+  final VoidCallback? onPlus;
+
+  const SmartInputBar({
+    super.key,
+    required this.controller,
+    this.focusNode,
+    required this.streaming,
+    this.startActive = false,
+    this.collapsedHint = '按住输入语音',
+    this.activeHint = '输入内容…',
+    required this.onSend,
+    this.onStop,
+    this.voiceMode = false,
+    this.onToggleVoice,
+    this.onLongPressVoice,
+    this.modelLabel = '快速',
+    this.onModelSelect,
+    this.onAt,
+    this.onPlus,
+  });
+
+  @override
+  State<SmartInputBar> createState() => _SmartInputBarState();
+}
+
+class _SmartInputBarState extends State<SmartInputBar> {
+  late bool _active;
+
+  @override
+  void initState() {
+    super.initState();
+    _active = widget.startActive;
+    widget.controller.addListener(_onChanged);
+    widget.focusNode?.addListener(_onFocusChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onChanged);
+    widget.focusNode?.removeListener(_onFocusChanged);
+    super.dispose();
+  }
+
+  void _onChanged() => setState(() {});
+
+  void _onFocusChanged() {
+    // 非快速收集（resident）：失焦且无输入时收缩回一行
+    if (!widget.startActive &&
+        !(widget.focusNode?.hasFocus ?? false) &&
+        widget.controller.text.trim().isEmpty) {
+      setState(() => _active = false);
+    }
+  }
+
+  void _submit() {
+    final text = widget.controller.text.trim();
+    if (text.isEmpty) return;
+    widget.onSend(text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _active ? _buildActive(context) : _buildCollapsed(context);
+  }
+
+  Widget _buildCollapsed(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      padding: const EdgeInsets.fromLTRB(6, 2, 4, 2),
+      child: Row(
+        children: [
+          _modelButton(context),
+          _roundIcon(Icons.alternate_email_rounded, '知识库', widget.onAt),
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () {
+                setState(() => _active = true);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  widget.focusNode?.requestFocus();
+                });
+              },
+              onLongPress: widget.onLongPressVoice,
+              child: Container(
+                height: 44,
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      widget.voiceMode
+                          ? Icons.mic_none_rounded
+                          : Icons.keyboard_alt_outlined,
+                      size: 18,
+                      color: colorScheme.outline,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.voiceMode ? '按住 说话' : widget.collapsedHint,
+                      style: TextStyle(color: colorScheme.outline),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          _roundIcon(
+            widget.voiceMode
+                ? Icons.keyboard_alt_outlined
+                : Icons.mic_none_rounded,
+            widget.voiceMode ? '切键盘' : '切语音',
+            widget.onToggleVoice,
+          ),
+          _roundIcon(Icons.add_circle_outline_rounded, '添加附件', widget.onPlus,
+              iconSize: 26),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActive(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasText = widget.controller.text.trim().isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: TextField(
+            controller: widget.controller,
+            focusNode: widget.focusNode,
+            autofocus: widget.startActive,
+            minLines: 1,
+            maxLines: 5,
+            textInputAction: TextInputAction.newline,
+            decoration: InputDecoration(
+              hintText: widget.activeHint,
+              isDense: true,
+              border: const OutlineInputBorder(borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _modelButton(context),
+            _roundIcon(Icons.alternate_email_rounded, '知识库', widget.onAt),
+            const Spacer(),
+            _roundIcon(
+              widget.voiceMode
+                  ? Icons.keyboard_alt_outlined
+                  : Icons.mic_none_rounded,
+              widget.voiceMode ? '切键盘' : '切语音',
+              widget.onToggleVoice,
+            ),
+            _roundIcon(Icons.add_circle_outline_rounded, '添加附件', widget.onPlus,
+                iconSize: 26),
+            const SizedBox(width: 4),
+            widget.streaming
+                ? IconButton.filled(
+                    onPressed: widget.onStop,
+                    icon: const Icon(Icons.stop_rounded),
+                    tooltip: '停止生成',
+                  )
+                : IconButton.filled(
+                    onPressed: hasText ? _submit : null,
+                    icon: const Icon(Icons.arrow_upward_rounded),
+                    tooltip: '发送',
+                  ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _modelButton(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return PopupMenuButton<String>(
+      tooltip: '大模型选择',
+      padding: EdgeInsets.zero,
+      onSelected: (_) => widget.onModelSelect?.call(),
+      itemBuilder: (_) => const [
+        PopupMenuItem(value: 'switch', child: Text('切换模型')),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.auto_awesome_rounded,
+                size: 14, color: colorScheme.primary),
+            const SizedBox(width: 4),
+            Text(
+              widget.modelLabel,
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Icon(Icons.arrow_drop_down_rounded,
+                size: 16, color: colorScheme.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _roundIcon(
+    IconData icon,
+    String tooltip,
+    VoidCallback? onTap, {
+    double iconSize = 20,
+  }) {
+    return IconButton(
+      onPressed: onTap,
+      icon: Icon(icon, size: iconSize),
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+    );
+  }
+}

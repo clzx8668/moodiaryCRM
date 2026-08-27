@@ -364,6 +364,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeNavigatorAssistant => 'Assistant';
 
   @override
+  String get homeNavigatorCrm => 'CRM';
+
+  @override
+  String get homeNavigatorAi => 'AI';
+
+  @override
   String get homePageAddDiaryButton => 'Create a diary';
 
   @override

@@ -12,6 +12,7 @@ class AiTemplates {
   static const String meeting = 'meeting';
   static const String translate = 'translate';
   static const String summary = 'summary';
+  static const String chat = 'chat';
 
   static const List<String> all = [
     todo,
@@ -39,6 +40,8 @@ class AiTemplates {
         return '翻译';
       case summary:
         return '总结';
+      case chat:
+        return '对话';
       default:
         return id;
     }

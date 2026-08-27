@@ -32,6 +32,15 @@ class _BlockMarkdownEditorPageState extends State<BlockMarkdownEditorPage> {
   }
 
   Future<void> _load() async {
+    if (widget.payload.blockId.isEmpty) {
+      // 追加笔记：新建块模式，无需加载既有 block
+      if (!mounted) return;
+      setState(() {
+        _controller.text = '';
+        _loaded = true;
+      });
+      return;
+    }
     final block = await _datasource.loadBlock(widget.payload.blockId);
     if (!mounted) return;
     setState(() {
@@ -49,14 +58,27 @@ class _BlockMarkdownEditorPageState extends State<BlockMarkdownEditorPage> {
 
   Future<void> _save() async {
     if (_saving) return;
-    final block = await _datasource.loadBlock(widget.payload.blockId);
-    if (block == null) {
-      toast.error(message: '卡片不存在或已删除');
-      return;
-    }
     setState(() => _saving = true);
     try {
-      await _datasource.updateBlockContent(block, _controller.text);
+      if (widget.payload.blockId.isEmpty) {
+        // 追加笔记：在既有日记下新增 source=appended 的 text 块
+        final diary = await _datasource.loadDiary(widget.payload.diaryId);
+        if (diary == null) {
+          toast.error(message: '所属日记不存在或已删除');
+          return;
+        }
+        await _datasource.appendNote(
+          diary: diary,
+          text: _controller.text,
+        );
+      } else {
+        final block = await _datasource.loadBlock(widget.payload.blockId);
+        if (block == null) {
+          toast.error(message: '卡片不存在或已删除');
+          return;
+        }
+        await _datasource.updateBlockContent(block, _controller.text);
+      }
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {

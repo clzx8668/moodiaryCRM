@@ -46,6 +46,9 @@ class BlockMeta {
   /// 内容向 Twenty 推送的状态：''（未推送）/ pending / synced / error
   String crmSyncStatus;
 
+  /// AI 对话角色：''（非对话）/ 'user' / 'assistant'（用于瀑布流展示与持久化）
+  String role;
+
   BlockMeta({
     this.source = sourceInitial,
     this.syncStatus = syncSynced,
@@ -57,6 +60,7 @@ class BlockMeta {
     this.sourceContent = '',
     this.dueDate = '',
     this.crmSyncStatus = '',
+    this.role = '',
   });
 
   bool get isAi => source == sourceAi;
@@ -81,6 +85,7 @@ class BlockMeta {
       sourceContent: sourceContent,
       dueDate: dueDate,
       crmSyncStatus: crmSyncStatus,
+      role: role,
     );
   }
 
@@ -96,6 +101,7 @@ class BlockMeta {
       'sourceContent': sourceContent,
       'dueDate': dueDate,
       'crmSyncStatus': crmSyncStatus,
+      'role': role,
     };
   }
 
@@ -111,6 +117,7 @@ class BlockMeta {
       sourceContent: json['sourceContent'] as String? ?? '',
       dueDate: json['dueDate'] as String? ?? '',
       crmSyncStatus: json['crmSyncStatus'] as String? ?? '',
+      role: json['role'] as String? ?? '',
     );
   }
 
@@ -141,7 +148,8 @@ class BlockMeta {
           title == other.title &&
           sourceContent == other.sourceContent &&
           dueDate == other.dueDate &&
-          crmSyncStatus == other.crmSyncStatus;
+          crmSyncStatus == other.crmSyncStatus &&
+          role == other.role;
 
   @override
   int get hashCode =>
@@ -156,5 +164,6 @@ class BlockMeta {
         sourceContent,
         dueDate,
         crmSyncStatus,
+        role,
       );
 }

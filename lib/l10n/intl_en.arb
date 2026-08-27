@@ -115,6 +115,8 @@
   "homeNavigatorMedia": "Media",
   "homeNavigatorSetting": "Setting",
   "homeNavigatorAssistant": "Assistant",
+  "homeNavigatorCrm": "CRM",
+  "homeNavigatorAi": "AI",
   "homePageAddDiaryButton": "Create a diary",
   "homeNewDiaryRichText": "Rich Text",
   "homeNewDiaryMarkdown": "Markdown",

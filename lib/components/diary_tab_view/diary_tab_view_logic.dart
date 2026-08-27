@@ -25,6 +25,7 @@ class DiaryTabViewLogic extends GetxController {
       state.categoryId,
       0,
       state.initLen,
+      sort: diaryLogic.state.sort.value,
     );
     state.isFetching.value = false;
   }
@@ -35,6 +36,7 @@ class DiaryTabViewLogic extends GetxController {
       state.categoryId,
       0,
       state.initLen,
+      sort: diaryLogic.state.sort.value,
     );
     state.isFetching.value = false;
   }
@@ -44,6 +46,7 @@ class DiaryTabViewLogic extends GetxController {
       state.categoryId,
       state.diaryList.length,
       state.pageLen,
+      sort: diaryLogic.state.sort.value,
     );
   }
 }

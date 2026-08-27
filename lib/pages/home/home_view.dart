@@ -15,7 +15,6 @@ import 'package:moodiary/pages/home/calendar/calendar_view.dart';
 import 'package:moodiary/pages/home/diary/diary_view.dart';
 import 'package:moodiary/pages/home/media/media_view.dart';
 import 'package:moodiary/pages/home/setting/setting_view.dart';
-import 'package:unicons/unicons.dart';
 
 import 'home_logic.dart';
 
@@ -55,40 +54,48 @@ class HomePage extends StatelessWidget {
                                         selectedIcon: const Icon(Icons.article),
                                       ),
                                       NavigationDestination(
-                                        icon: const Icon(UniconsLine.calender),
+                                        icon: const Icon(
+                                          Icons.calendar_month_outlined,
+                                        ),
                                         label:
                                             context.l10n.homeNavigatorCalendar,
                                         selectedIcon: const Icon(
-                                          UniconsSolid.calender,
+                                          Icons.calendar_month_rounded,
                                         ),
                                       ),
                                       NavigationDestination(
-                                        icon: const Icon(UniconsLine.image_v),
+                                        icon: const Icon(
+                                          Icons.photo_library_outlined,
+                                        ),
                                         label: context.l10n.homeNavigatorMedia,
                                         selectedIcon: const Icon(
-                                          UniconsSolid.image_v,
+                                          Icons.photo_library_rounded,
                                         ),
                                       ),
-                                      const NavigationDestination(
-                                        icon: Icon(Icons.business_outlined),
-                                        label: 'CRM',
-                                        selectedIcon: Icon(Icons.business_rounded),
+                                      NavigationDestination(
+                                        icon: const Icon(Icons.business_outlined),
+                                        label: context.l10n.homeNavigatorCrm,
+                                        selectedIcon: const Icon(
+                                          Icons.business_rounded,
+                                        ),
                                       ),
-                                      const NavigationDestination(
-                                        icon: Icon(Icons.auto_awesome_outlined),
-                                        label: 'AI',
-                                        selectedIcon: Icon(
+                                      NavigationDestination(
+                                        icon: const Icon(
+                                          Icons.auto_awesome_outlined,
+                                        ),
+                                        label: context.l10n.homeNavigatorAi,
+                                        selectedIcon: const Icon(
                                           Icons.auto_awesome_rounded,
                                         ),
                                       ),
                                       NavigationDestination(
                                         icon: const Icon(
-                                          UniconsLine.layer_group,
+                                          Icons.settings_outlined,
                                         ),
                                         label:
                                             context.l10n.homeNavigatorSetting,
                                         selectedIcon: const Icon(
-                                          UniconsSolid.layer_group,
+                                          Icons.settings_rounded,
                                         ),
                                       ),
                                     ]

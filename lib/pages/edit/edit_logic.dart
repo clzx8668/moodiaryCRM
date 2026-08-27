@@ -47,6 +47,9 @@ class EditLogic extends GetxController {
 
   late final KeyboardObserver keyboardObserver;
 
+  /// 是否有未保存改动（用于返回时自动保存，避免内容归一化带来的误判）
+  bool _dirty = false;
+
   @override
   void onInit() {
     if (state.showWriteTime) _calculateDuration();
@@ -74,6 +77,7 @@ class EditLogic extends GetxController {
   void onReady() async {
     await _initEdit();
     markdownTextEditingController?.addListener(_listenCount);
+    titleTextEditingController.addListener(() => _dirty = true);
     super.onReady();
   }
 
@@ -183,6 +187,7 @@ class EditLogic extends GetxController {
 
   void _listenCount() {
     state.totalCount.value = markdownTextEditingController?.text.length ?? 0;
+    _dirty = true;
   }
 
   // 在 Markdown 光标处插入图片语法
@@ -355,7 +360,8 @@ class EditLogic extends GetxController {
 
   //保存日记
   Future<void> saveDiary({required BuildContext context}) async {
-    state.isSaving = true;
+    if (state.isSaving.value) return;
+    state.isSaving.value = true;
     update(['modal']);
     // 根据文本中的实际内容移除不需要的资源
     final originContent = markdownTextEditingController!.text.trim();
@@ -414,8 +420,10 @@ class EditLogic extends GetxController {
       oldDiary: state.originalDiary,
       newDiary: state.currentDiary,
     );
+    _dirty = false;
     // 智能块结构：同步该日记的首个 text Block
     await IsarUtil.upsertDiaryTextBlock(state.currentDiary);
+    state.isSaving.value = false;
     state.isNew
         ? Get.back(result: state.currentDiary.categoryId ?? '')
         : Get.back(result: 'changed');
@@ -434,10 +442,16 @@ class EditLogic extends GetxController {
     final DateTime currentTime = DateTime.now();
     if (oldTime != null &&
         currentTime.difference(oldTime!) < const Duration(seconds: 3)) {
-      Get.back();
+      if (_dirty) {
+        // 有未保存改动：失焦并自动保存后再返回（与 CRM 失焦自动保存语义一致）
+        unFocus();
+        saveDiary(context: context);
+      } else {
+        Get.back();
+      }
     } else {
       oldTime = currentTime;
-      toast.info(message: context.l10n.backAgainToExit);
+      toast.info(message: '再点一次返回（有改动会自动保存）');
     }
   }
 
@@ -456,6 +470,7 @@ class EditLogic extends GetxController {
         month: nowDateTime.month,
         day: nowDateTime.day,
       );
+      _dirty = true;
       update(['Date']);
     }
   }
@@ -470,6 +485,7 @@ class EditLogic extends GetxController {
         hour: nowTime.hour,
         minute: nowTime.minute,
       );
+      _dirty = true;
       update(['Date']);
     }
   }
@@ -487,6 +503,7 @@ class EditLogic extends GetxController {
 
   void changeRate(value) {
     state.currentDiary.mood = value;
+    _dirty = true;
     update(['Mood']);
   }
 
@@ -599,6 +616,7 @@ class EditLogic extends GetxController {
         return;
       }
       state.currentDiary.tags.add(tag);
+      _dirty = true;
       update(['Tag']);
     } else {
       toast.info(message: context.l10n.editAddTagCannotEmpty);
@@ -608,11 +626,14 @@ class EditLogic extends GetxController {
   //移除一个标签
   void removeTag(index) {
     state.currentDiary.tags.removeAt(index);
+    _dirty = true;
     update(['Tag']);
   }
 
   void selectCategory(String? id) {
+    if (state.currentDiary.categoryId == id) return;
     state.currentDiary.categoryId = id;
+    _dirty = true;
     if (id == null) {
       state.categoryName = '';
     } else {

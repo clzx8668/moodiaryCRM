@@ -70,6 +70,8 @@ class PrefUtil {
     'customTitleName',
     //首页视图模式
     'homeViewMode',
+    //首页记录排序
+    'homeSortOrder',
     //自动获取天气
     'autoWeather',
     //webdav配置
@@ -230,6 +232,7 @@ class PrefUtil {
       'homeViewMode',
       _prefs.getInt('homeViewMode') ?? ViewModeType.list.number,
     );
+    await _prefs.setInt('homeSortOrder', _prefs.getInt('homeSortOrder') ?? 0);
     await _prefs.setBool('autoWeather', _prefs.getBool('autoWeather') ?? false);
     await _prefs.setStringList(
       'webDavOption',

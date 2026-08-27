@@ -136,6 +136,30 @@ class CanvasDatasource {
     return block;
   }
 
+  /// 创建 AI 对话块（持久化，role=user/assistant），不刷新笔记投影（对话与笔记分区）。
+  Future<Block> createChatBlock({
+    required Diary diary,
+    required String role,
+    required String content,
+  }) async {
+    final blocks = await loadBlocks(diary.id);
+    final sortOrder = blocks.isEmpty
+        ? 0
+        : blocks.map((b) => b.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+    final now = DateTime.now();
+    final block = Block()
+      ..id = const Uuid().v7()
+      ..diaryId = diary.id
+      ..blockType = BlockType.text
+      ..content = content.trim()
+      ..sortOrder = sortOrder
+      ..createdAt = now
+      ..updatedAt = now
+      ..meta = BlockMeta(source: BlockMeta.sourceAi, role: role);
+    await IsarUtil.insertBlock(block);
+    return block;
+  }
+
   /// 流式中途持久化（断点恢复，每 ~50 token 调用一次）
   Future<void> persistStreamBuffer(Block block, String buffer) async {
     block

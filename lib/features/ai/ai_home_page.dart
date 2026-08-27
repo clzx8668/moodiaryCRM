@@ -9,6 +9,7 @@ import 'package:moodiary/features/ai/ai_note_saver.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
 import 'package:moodiary/features/ai/models/ai_chat_session.dart';
+import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/block/block_renderer.dart';
 import 'package:moodiary/features/rag/knowledge_base_page.dart';
 import 'package:moodiary/features/rag/models/knowledge_base.dart';
@@ -972,65 +973,15 @@ class _AiHomePageState extends State<AiHomePage> {
   }
 
   Widget _buildInputBar(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final hasText = _input.text.trim().isNotEmpty;
-    return Material(
-      color: colorScheme.surface,
-      elevation: 4,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _input,
-                      minLines: 1,
-                      maxLines: 5,
-                      textInputAction: TextInputAction.newline,
-                      decoration: InputDecoration(
-                        hintText: '输入问题，Enter 发送，Shift+Enter 换行…',
-                        isDense: true,
-                        filled: true,
-                        fillColor: colorScheme.surfaceContainerHighest,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 11,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      onSubmitted: (_) {
-                        // 仅回车触发；换行用 Shift+Enter（移动端用发送按钮）
-                        _send();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _streaming
-                      ? IconButton.filled(
-                          onPressed: _stopStreaming,
-                          icon: const Icon(Icons.stop_rounded),
-                          tooltip: '停止生成',
-                        )
-                      : IconButton.filled(
-                          onPressed: hasText ? _send : null,
-                          icon: const Icon(Icons.arrow_upward_rounded),
-                          tooltip: '发送',
-                        ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+    return SmartInputBar(
+      controller: _input,
+      startActive: false,
+      streaming: _streaming,
+      collapsedHint: '按住输入语音',
+      activeHint: '输入问题，Enter 发送，Shift+Enter 换行…',
+      modelLabel: 'AI',
+      onSend: (_) => _send(),
+      onStop: _stopStreaming,
     );
   }
 }

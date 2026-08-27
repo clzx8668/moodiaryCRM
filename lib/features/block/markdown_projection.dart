@@ -10,7 +10,8 @@ class MarkdownProjection {
   /// 单条记录聚合投影：未删除 Block 按 sortOrder 升序拼接。
   static String aggregate(List<Block> blocks) {
     final visible = blocks
-        .where((b) => !b.isDeleted)
+        // 排除 AI 对话块（role.user/assistant），对话与笔记分区
+        .where((b) => !b.isDeleted && !(b.meta.isAi && b.meta.role.isNotEmpty))
         .toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     return visible.map(blockToMarkdown).where((s) => s.trim().isNotEmpty).join(

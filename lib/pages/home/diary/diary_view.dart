@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/values/view_mode.dart';
+import 'package:moodiary/common/values/diary_sort.dart';
 import 'package:moodiary/components/base/loading.dart';
 import 'package:moodiary/components/base/sheet.dart';
 import 'package:moodiary/components/base/text.dart';
@@ -15,6 +16,106 @@ import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/utils/webdav_util.dart';
 
 import 'diary_logic.dart';
+
+/// 首页筛选弹层：按标签多选（列表/网格/块三视图共用）
+class _DiaryFilterSheet extends StatefulWidget {
+  final DiaryLogic logic;
+
+  const _DiaryFilterSheet({required this.logic});
+
+  @override
+  State<_DiaryFilterSheet> createState() => _DiaryFilterSheetState();
+}
+
+class _DiaryFilterSheetState extends State<_DiaryFilterSheet> {
+  late final Set<String> _selected;
+  List<String>? _allTags;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.logic.state.filterTags.toSet();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final tags = await widget.logic.collectAllTags();
+    if (!mounted) return;
+    setState(() => _allTags = tags);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('筛选（按标签）', style: context.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (_allTags == null)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_allTags!.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  '暂无标签可筛选',
+                  style: context.textTheme.bodySmall,
+                ),
+              )
+            else
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final tag in _allTags!)
+                      CheckboxListTile(
+                        dense: true,
+                        value: _selected.contains(tag),
+                        title: Text('#$tag'),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        onChanged: (v) => setState(() {
+                          if (v == true) {
+                            _selected.add(tag);
+                          } else {
+                            _selected.remove(tag);
+                          }
+                        }),
+                      ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    widget.logic.clearFilter();
+                    Navigator.pop(context);
+                  },
+                  child: const Text('清除'),
+                ),
+                const Spacer(),
+                FilledButton(
+                  onPressed: () {
+                    widget.logic.applyTagFilter(_selected.toList());
+                    Navigator.pop(context);
+                  },
+                  child: const Text('应用'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class DiaryPage extends StatelessWidget {
   const DiaryPage({super.key});
@@ -97,6 +198,36 @@ class DiaryPage extends StatelessWidget {
               indicatorPadding: const EdgeInsets.symmetric(vertical: 12.0),
               tabs: allTabs,
             ),
+          ),
+          Obx(() {
+            final current = state.sort.value;
+            return PopupMenuButton<DiarySort>(
+              tooltip: '排序',
+              icon: const Icon(Icons.sort_rounded),
+              onSelected: logic.changeSort,
+              itemBuilder: (context) => [
+                for (final s in DiarySort.values)
+                  CheckedPopupMenuItem(
+                    checked: s == current,
+                    value: s,
+                    child: Text(s.label),
+                  ),
+              ],
+            );
+          }),
+          IconButton(
+            tooltip: '筛选',
+            icon: Icon(
+              state.filterActive.value
+                  ? Icons.filter_alt_rounded
+                  : Icons.filter_alt_outlined,
+            ),
+            onPressed: () {
+              showFloatingModalBottomSheet(
+                context: context,
+                builder: (context) => _DiaryFilterSheet(logic: logic),
+              );
+            },
           ),
         ],
       );

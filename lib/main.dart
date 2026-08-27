@@ -30,6 +30,7 @@ import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/src/rust/frb_generated.dart';
 import 'package:moodiary/utils/log_util.dart';
 import 'package:moodiary/utils/media_util.dart';
+import 'package:moodiary/utils/resource_cleanup.dart';
 import 'package:moodiary/utils/theme_util.dart';
 import 'package:moodiary/utils/webdav_util.dart';
 import 'package:path/path.dart' as p;
@@ -64,6 +65,17 @@ Future<void> _initSystem() async {
     logger.e('主题构建失败', error: e);
   }
   fvp.registerWith();
+  // 注册退出清理任务（按注册逆序执行：rust → db → sync）
+  ResourceCleanupManager.instance
+    ..register('rust', () async {
+      try {
+        RustLib.dispose();
+      } catch (_) {}
+    })
+    ..register('db', IsarUtil.closeDatabase)
+    ..register('sync', () async {
+      SyncEventService.instance.stop();
+    });
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -187,10 +199,45 @@ void main() async {
   runApp(Moodiary(locale: locale));
 }
 
-class Moodiary extends StatelessWidget {
+class Moodiary extends StatefulWidget {
   final Locale locale;
 
   const Moodiary({super.key, required this.locale});
+
+  @override
+  State<Moodiary> createState() => _MoodiaryState();
+}
+
+class _MoodiaryState extends State<Moodiary> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// 桌面平台请求退出：先释放资源，再允许退出；若仍卡住 3 秒后强制退出。
+  @override
+  Future<AppExitResponse> didRequestAppExit() async {
+    try {
+      await ResourceCleanupManager.instance.cleanupAll(
+        timeout: const Duration(seconds: 3),
+      );
+    } catch (e) {
+      logger.e('退出清理异常', error: e);
+    }
+    // 兜底：清理/收尾若仍卡住，3 秒后强制结束
+    Timer(const Duration(seconds: 3), () {
+      logger.i('💀 退出兜底：强制结束进程');
+      exit(0);
+    });
+    return AppExitResponse.exit;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -230,7 +277,7 @@ class Moodiary extends StatelessWidget {
       },
       theme: theme.$1,
       darkTheme: theme.$2,
-      locale: locale,
+      locale: widget.locale,
       themeMode: ThemeMode.values[
         (PrefUtil.getValue<int>('themeMode') ?? 0).clamp(
           0,

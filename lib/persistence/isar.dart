@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:moodiary/common/models/isar/category.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
+import 'package:moodiary/common/values/diary_sort.dart';
 import 'package:moodiary/common/models/isar/font.dart' hide fastHash;
 import 'package:moodiary/common/models/isar/sync_record.dart' hide fastHash;
 import 'package:moodiary/common/models/map.dart';
@@ -47,6 +48,18 @@ class IsarUtil {
 
   /// 公开数据库实例（供 CRM 本地仓储等模块复用）
   static AppDatabase get database => _database;
+
+  /// 关闭数据库（应用退出前释放 NativeDatabase/驱动线程）。
+  static Future<void> closeDatabase() async {
+    try {
+      await _testDb?.close();
+    } catch (_) {}
+    try {
+      await _db?.close();
+    } catch (_) {}
+    _db = null;
+    _testDb = null;
+  }
 
   @visibleForTesting
   static void overrideDbForTest(AppDatabase db) {
@@ -474,6 +487,16 @@ class IsarUtil {
     return count > 0;
   }
 
+  /// 软删除日记（移入回收站）
+  static Future<void> moveDiaryToRecycle(int isarId) async {
+    final diary = await getDiaryByID(isarId);
+    if (diary == null) return;
+    await updateADiary(
+      oldDiary: diary,
+      newDiary: diary.clone()..show = false,
+    );
+  }
+
   static Future<List<Diary>> getRecycleBinDiaries() async {
     final rows = await (_database.select(_database.diaries)
           ..where((t) => t.show.equals(false))
@@ -644,8 +667,18 @@ class IsarUtil {
   static Future<List<Diary>> getDiaryByCategory(
     String? categoryId,
     int offset,
-    int limit,
+    int limit, {
+    DiarySort sort = DiarySort.createdDesc,
+  }
   ) async {
+    final order = switch (sort) {
+      DiarySort.createdDesc => OrderingTerm.desc(_database.diaries.time),
+      DiarySort.createdAsc => OrderingTerm.asc(_database.diaries.time),
+      DiarySort.modifiedDesc =>
+        OrderingTerm.desc(_database.diaries.lastModified),
+      DiarySort.modifiedAsc => OrderingTerm.asc(_database.diaries.lastModified),
+      DiarySort.name => OrderingTerm.asc(_database.diaries.title),
+    };
     final query = _database.select(_database.diaries)
       ..where(
         (t) =>
@@ -654,7 +687,7 @@ class IsarUtil {
                 ? const Constant(true)
                 : t.categoryId.equals(categoryId)),
       )
-      ..orderBy([(t) => OrderingTerm.desc(t.time)])
+      ..orderBy([(t) => order])
       ..limit(limit, offset: offset);
     final rows = await query.get();
     return rows.map(_diaryFromRow).toList();
@@ -1007,6 +1040,13 @@ class IsarUtil {
   static Future<void> softDeleteBlock(String blockId) async {
     await (_database.update(_database.blocks)
           ..where((t) => t.id.equals(blockId)))
+        .write(const BlocksCompanion(isDeleted: Value(true)));
+  }
+
+  /// 软删某日记下所有子笔记块（删除记录时同步清理）。
+  static Future<void> softDeleteBlocksByDiary(String diaryId) async {
+    await (_database.update(_database.blocks)
+          ..where((t) => t.diaryId.equals(diaryId)))
         .write(const BlocksCompanion(isDeleted: Value(true)));
   }
 
