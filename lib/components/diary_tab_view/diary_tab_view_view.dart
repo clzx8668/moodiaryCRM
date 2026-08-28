@@ -92,32 +92,31 @@ class _DiaryTabViewComponentState extends State<DiaryTabViewComponent> {
   }
 
   Widget _buildSelectionBar() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-        child: Row(
-          children: [
-            Text(
-              '已选 ${_selected.length} 条',
-              style: Theme.of(context).textTheme.bodySmall,
+    // 固定在列表上方（不随 CustomScrollView 滚动），长列表时始终可见
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+      child: Row(
+        children: [
+          Text(
+            '已选 ${_selected.length} 条',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: _deleteSelected,
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            const Spacer(),
-            TextButton(
-              onPressed: _deleteSelected,
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error,
-              ),
-              child: const Text('删除'),
-            ),
-            TextButton(
-              onPressed: () => setState(() {
-                _selectionMode = false;
-                _selected.clear();
-              }),
-              child: const Text('取消'),
-            ),
-          ],
-        ),
+            child: const Text('删除'),
+          ),
+          TextButton(
+            onPressed: () => setState(() {
+              _selectionMode = false;
+              _selected.clear();
+            }),
+            child: const Text('取消'),
+          ),
+        ],
       ),
     );
   }
@@ -219,33 +218,42 @@ class _DiaryTabViewComponentState extends State<DiaryTabViewComponent> {
 
     return Padding(
       padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
-      child: ClipRRect(
-        clipper: TopRRectClipper(
-          topOffset: sliverHandle.layoutExtent ?? barHeight,
-        ),
-        child: CustomScrollView(
-          cacheExtent: size.height * 2,
-          slivers: [
-            SliverOverlapInjector(handle: sliverHandle),
-            if (_selectionMode) _buildSelectionBar(),
-            Obx(() {
-              return SliverAnimatedSwitcher(
-                duration: const Duration(milliseconds: 150),
-                reverseDuration: const Duration(milliseconds: 100),
-                child:
-                    state.isFetching.value
-                        ? _buildPlaceholder(placeholderHeight)
-                        : state.diaryList.isEmpty
-                        ? _buildEmpty(context, placeholderHeight)
-                        : switch (logic.diaryLogic.state.viewModeType.value) {
-                          ViewModeType.list => buildList(),
-                          ViewModeType.grid => buildGrid(),
-                          ViewModeType.block => buildBlock(logic),
-                        },
-              );
-            }),
-          ],
-        ),
+      child: Column(
+        children: [
+          // 多选操作条固定于列表上方，不随列表滚动
+          if (_selectionMode) _buildSelectionBar(),
+          Expanded(
+            child: ClipRRect(
+              clipper: TopRRectClipper(
+                topOffset: sliverHandle.layoutExtent ?? barHeight,
+              ),
+              child: CustomScrollView(
+                cacheExtent: size.height * 2,
+                slivers: [
+                  SliverOverlapInjector(handle: sliverHandle),
+                  Obx(() {
+                    return SliverAnimatedSwitcher(
+                      duration: const Duration(milliseconds: 150),
+                      reverseDuration: const Duration(milliseconds: 100),
+                      child:
+                          state.isFetching.value
+                              ? _buildPlaceholder(placeholderHeight)
+                              : state.diaryList.isEmpty
+                              ? _buildEmpty(context, placeholderHeight)
+                              : switch (
+                                  logic.diaryLogic.state.viewModeType.value
+                                ) {
+                                ViewModeType.list => buildList(),
+                                ViewModeType.grid => buildGrid(),
+                                ViewModeType.block => buildBlock(logic),
+                              },
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
