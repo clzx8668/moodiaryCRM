@@ -445,6 +445,8 @@ class EditLogic extends GetxController {
 
     if (_blockId != null) {
       // 子笔记编辑 / 追加：正文写回 Block，标题改动同步到日记
+      // 标题 = 集合标题：无论从哪张 Block 卡进入，标题框都写回所属 Diary.title
+      state.currentDiary.title = titleTextEditingController.text;
       if (_blockId!.isEmpty) {
         await _saveAppendBlock(content);
       } else {

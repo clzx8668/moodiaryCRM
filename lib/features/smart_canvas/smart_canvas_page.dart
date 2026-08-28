@@ -477,6 +477,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     )?.then((result) {
       if (result == 'changed') {
         logic.reloadBlocks();
+        // 追加模式下标题改动写回集合标题，返回后同步刷新 AppBar 标题
+        logic.refreshDiary();
       }
     });
   }

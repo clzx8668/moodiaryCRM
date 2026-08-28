@@ -120,6 +120,14 @@ class SmartCanvasLogic extends GetxController {
     blockList.blocks.assignAll(blocks);
   }
 
+  /// 重新加载当前日记并刷新 AppBar 标题（追加/编辑后标题变化即时生效）。
+  Future<void> refreshDiary() async {
+    final fresh = await datasource.loadDiary(canvasState.diary.id);
+    if (fresh == null) return;
+    canvasState.diary = fresh;
+    canvasState.diaryTitle.value = fresh.title;
+  }
+
   /// 追加笔记（无模板 = 纯追加；带模板 = 追加后触发 AI 处理）
   Future<void> appendNote(String text, {String template = ''}) async {
     final trimmed = text.trim();
