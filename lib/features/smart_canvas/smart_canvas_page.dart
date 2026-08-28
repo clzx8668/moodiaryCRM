@@ -174,15 +174,35 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
           );
         }
         if (blocks.isEmpty) {
+          final colorScheme = Theme.of(context).colorScheme;
           return SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(padX, 24, padX, 8),
+              padding: EdgeInsets.fromLTRB(padX, 40, padX, 8),
               child: Center(
-                child: Text(
-                  '还没有内容，点「追加笔记」写下第一条吧',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.edit_note_rounded,
+                      size: 44,
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.7,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '还没有内容，写下第一条笔记吧',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.tonalIcon(
+                      onPressed: _openAppendEditor,
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text('写第一张卡片'),
+                    ),
+                  ],
                 ),
               ),
             ),

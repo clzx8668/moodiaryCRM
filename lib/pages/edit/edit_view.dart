@@ -802,6 +802,8 @@ class EditPage extends StatelessWidget {
 
     Widget buildContent() {
       // 架构决策（2026-08-19）：统一 Markdown 编辑器
+      // 桌面端约束阅读宽度（≈760px 居中），移动端保持全宽
+      const double contentMaxWidth = 760;
       return Positioned.fill(
         child: Obx(() {
           return AnimatedSwitcher(
@@ -813,32 +815,45 @@ class EditPage extends StatelessWidget {
                       behavior: HitTestBehavior.translucent,
                       child: Align(
                         alignment: Alignment.topCenter,
-                        child: TextField(
-                          controller: logic.markdownTextEditingController,
-                          focusNode: logic.contentFocusNode,
-                          maxLength: null,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            hintText: context.l10n.editContent,
-                            contentPadding: const EdgeInsets.fromLTRB(
-                              16,
-                              20,
-                              16,
-                              20,
-                            ),
-                            hintStyle: context.textTheme.bodyLarge?.copyWith(
-                              fontSize: 20,
-                              height: 1.5,
-                              color: Colors.grey.withValues(alpha: 0.6),
-                            ),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: contentMaxWidth,
                           ),
-                          maxLines: null,
+                          child: TextField(
+                            controller: logic.markdownTextEditingController,
+                            focusNode: logic.contentFocusNode,
+                            maxLength: null,
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: context.l10n.editContent,
+                              contentPadding: const EdgeInsets.fromLTRB(
+                                16,
+                                20,
+                                16,
+                                20,
+                              ),
+                              hintStyle: context.textTheme.bodyLarge?.copyWith(
+                                fontSize: 20,
+                                height: 1.5,
+                                color: Colors.grey.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            maxLines: null,
+                          ),
                         ),
                       ),
                     )
-                    : _buildMarkdownWidget(
-                      brightness: context.theme.colorScheme.brightness,
-                      data: logic.markdownTextEditingController!.text,
+                    : Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: contentMaxWidth,
+                        ),
+                        child: _buildMarkdownWidget(
+                          brightness: context.theme.colorScheme.brightness,
+                          data: logic.markdownTextEditingController!.text,
+                        ),
+                      ),
                     ),
           );
         }),
