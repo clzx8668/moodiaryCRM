@@ -273,7 +273,14 @@ class SmartCard extends StatelessWidget {
         PopupMenuButton<String>(
           tooltip: '更多',
           padding: EdgeInsets.zero,
-          icon: const Icon(Icons.more_vert_rounded, size: 18),
+          iconSize: 16,
+          style: IconButton.styleFrom(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            minimumSize: const Size(28, 26),
+            maximumSize: const Size(28, 26),
+            padding: EdgeInsets.zero,
+          ),
+          icon: const Icon(Icons.more_vert_rounded),
           onSelected: (v) {
             switch (v) {
               case 'edit':
@@ -347,9 +354,15 @@ class _FootIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       onPressed: onTap,
-      icon: Icon(icon, size: 18),
+      icon: Icon(icon, size: 16),
       tooltip: tooltip,
-      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      style: IconButton.styleFrom(
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        minimumSize: const Size(28, 26),
+        maximumSize: const Size(28, 26),
+        padding: EdgeInsets.zero,
+      ),
       color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
     );
   }
