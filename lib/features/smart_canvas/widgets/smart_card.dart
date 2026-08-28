@@ -236,16 +236,8 @@ class SmartCard extends StatelessWidget {
               onTap: onResume,
             )
           else
-            TextButton.icon(
-              onPressed: onToggleExpand,
-              icon: const Icon(Icons.unfold_more_rounded, size: 16),
-              label: const Text('查看更多'),
-              style: TextButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                foregroundColor: colorScheme.onSurfaceVariant,
-              ),
-            ),
+            // 展开/收起统一由正文卡片（TextCard）内的按钮控制，避免重复入口
+            const SizedBox.shrink(),
           const Spacer(),
           _FootIcon(
             icon: Icons.copy_rounded,

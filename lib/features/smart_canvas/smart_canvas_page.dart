@@ -163,6 +163,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
 
     return [
       Obx(() {
+        // 注册展开/收起信号依赖：点击「展开全文/收起」后整列重建
+        logic.expandTick.value;
         final blocks = logic.blockList.blocks.value;
         final diary = logic.canvasState.diary;
         if (logic.blockList.loading.value && blocks.isEmpty) {

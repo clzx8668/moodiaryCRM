@@ -31,6 +31,10 @@ class SmartCanvasLogic extends GetxController {
   /// 展开的卡片 id 集合（折叠策略）
   final Set<String> expandedIds = <String>{};
 
+  /// 展开/收起变更信号：Obx 列表依赖此信号重建
+  /// （RxSet.contains 不注册 Obx 依赖，需显式信号驱动）
+  final RxInt expandTick = 0.obs;
+
   /// 卡片折叠阈值（超过则默认折叠）
   static const int collapseThreshold = 500;
 
@@ -483,7 +487,7 @@ class SmartCanvasLogic extends GetxController {
     } else {
       expandedIds.add(block.id);
     }
-    update(['expand:${block.id}']);
+    expandTick.value++;
   }
 
   void onSyncEvent({required String phase, double progress = 0, String error = ''}) {
