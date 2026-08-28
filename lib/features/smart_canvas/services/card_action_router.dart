@@ -1,11 +1,15 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/smart_canvas/editors/entity_editor_page.dart';
-import 'package:moodiary/features/smart_canvas/editors/markdown_editor_page.dart';
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
+import 'package:moodiary/features/smart_canvas/services/canvas_datasource.dart';
+import 'package:moodiary/pages/edit/edit_arguments.dart';
+import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/utils/file_util.dart';
+import 'package:moodiary/utils/notice_util.dart';
 
 /// 卡片点击路由（策略模式）：文档卡 → Markdown 编辑器，实体卡 → 表单页，
 /// 待办 → 原地勾选，图片 → 全屏预览，图表 → 查看。
@@ -28,18 +32,20 @@ class MarkdownEditAction implements CardAction {
     SmartCanvasLogic logic,
     Block block,
   ) async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => BlockMarkdownEditorPage(
-          payload: MarkdownEditPayload(
-            diaryId: block.diaryId,
-            blockId: block.id,
-            title: block.meta.title.isEmpty ? '编辑卡片' : block.meta.title,
-          ),
-        ),
+    final diary = await CanvasDatasource().loadDiary(block.diaryId);
+    if (diary == null) {
+      toast.error(message: '所属日记不存在或已删除');
+      return;
+    }
+    final changed = await Get.toNamed(
+      AppRoutes.editPage,
+      arguments: EditArguments(
+        diary: diary.clone(),
+        blockId: block.id,
+        initialContent: block.content,
       ),
     );
-    if (changed == true) {
+    if (changed == 'changed') {
       await logic.reloadBlock(block.id);
     }
   }

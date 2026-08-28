@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/components/frosted_glass_overlay/frosted_glass_overlay_logic.dart';
+import 'package:moodiary/pages/edit/edit_arguments.dart';
 import 'package:moodiary/pages/home/calendar/calendar_logic.dart';
 import 'package:moodiary/pages/home/diary/diary_logic.dart';
 import 'package:moodiary/persistence/pref.dart';
@@ -154,7 +155,7 @@ class HomeLogic extends GetxController with GetTickerProviderStateMixin {
     /// 需要注意，返回值为 '' 时才是没有选择分类，而返回值为 null 时，是没有进行操作直接返回
     final res = await Get.toNamed(
       AppRoutes.editPage,
-      arguments: [type, categoryId],
+      arguments: EditArguments(type: type, categoryId: categoryId),
     );
     _fabAnimationController.reset();
     isFabExpanded.value = false;

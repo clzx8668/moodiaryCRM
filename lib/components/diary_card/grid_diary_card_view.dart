@@ -51,14 +51,6 @@ class GirdDiaryCardComponent extends StatelessWidget with BasicCardLogic {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     spacing: 4.0,
                     children: [
-                      if (diary.title.isNotEmpty)
-                        EllipsisText(
-                          diary.title.trim(),
-                          maxLines: 1,
-                          style: context.textTheme.titleMedium?.copyWith(
-                            color: context.theme.colorScheme.onSurface,
-                          ),
-                        ),
                       if (diary.contentText.isNotEmpty)
                         EllipsisText(
                           diary.contentText.trim().removeLineBreaks(),

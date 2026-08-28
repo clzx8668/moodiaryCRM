@@ -10,10 +10,10 @@ import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/smart_canvas/services/card_action_router.dart';
-import 'package:moodiary/features/smart_canvas/editors/markdown_editor_page.dart';
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
 import 'package:moodiary/features/smart_canvas/widgets/chat_bubble.dart';
 import 'package:moodiary/features/smart_canvas/widgets/smart_card.dart';
+import 'package:moodiary/pages/edit/edit_arguments.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/src/rust/api/ffi_api.dart' as rust_ffi;
 import 'package:moodiary/utils/notice_util.dart';
@@ -401,8 +401,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                       tooltip: '更多',
                       itemBuilder: (_) => [
                         const PopupMenuItem(
-                          value: 'edit_diary',
-                          child: Text('编辑整篇日记'),
+                          value: 'consolidate',
+                          child: Text('笔记整合'),
                         ),
                         if (kDebugMode)
                           const PopupMenuItem(
@@ -411,8 +411,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           ),
                       ],
                       onSelected: (v) {
-                        if (v == 'edit_diary') {
-                          _openWholeDiaryEditor();
+                        if (v == 'consolidate') {
+                          _openConsolidateEditor();
                         } else if (v == 'demo_sync') {
                           _runDemoSyncEvents();
                         }
@@ -455,11 +455,11 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     );
   }
 
-  void _openWholeDiaryEditor() {
+  void _openConsolidateEditor() {
     final diary = logic.canvasState.diary;
     Get.toNamed(
       AppRoutes.editPage,
-      arguments: diary.clone(),
+      arguments: EditArguments(diary: diary.clone(), consolidate: true),
     )?.then((result) {
       if (result == 'changed') {
         logic.init();
@@ -469,20 +469,11 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
 
   void _openAppendEditor() {
     final diary = logic.canvasState.diary;
-    Navigator.of(context)
-        .push<bool>(
-          MaterialPageRoute(
-            builder: (_) => BlockMarkdownEditorPage(
-              payload: MarkdownEditPayload(
-                diaryId: diary.id,
-                blockId: '',
-                title: '追加笔记',
-              ),
-            ),
-          ),
-        )
-        .then((changed) {
-      if (changed == true) {
+    Get.toNamed(
+      AppRoutes.editPage,
+      arguments: EditArguments(diary: diary.clone(), blockId: ''),
+    )?.then((result) {
+      if (result == 'changed') {
         logic.reloadBlocks();
       }
     });

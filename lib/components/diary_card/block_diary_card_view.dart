@@ -35,11 +35,6 @@ class BlockDiaryCardComponent extends StatelessWidget with BasicCardLogic {
   List<Block> get _noteBlocks =>
       blocks.where((b) => !b.meta.isAi).toList();
 
-  String get _title {
-    if (diary.title.trim().isNotEmpty) return diary.title.trim();
-    return '未命名日记';
-  }
-
   String get _preview {
     if (diary.contentText.trim().isNotEmpty) {
       return diary.contentText.trim().removeLineBreaks();
@@ -130,15 +125,6 @@ class BlockDiaryCardComponent extends StatelessWidget with BasicCardLogic {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                _title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
               if (_preview.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 EllipsisText(

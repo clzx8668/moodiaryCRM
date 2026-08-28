@@ -15,6 +15,7 @@ import 'package:moodiary/common/values/keyboard_state.dart';
 import 'package:moodiary/components/base/text.dart';
 import 'package:moodiary/components/keyboard_listener/keyboard_listener.dart';
 import 'package:moodiary/features/block/delta_to_markdown.dart';
+import 'package:moodiary/features/smart_canvas/services/canvas_datasource.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
@@ -28,6 +29,7 @@ import 'package:moodiary/utils/notice_util.dart';
 import 'package:path/path.dart';
 import 'package:uuid/uuid.dart';
 
+import 'edit_arguments.dart';
 import 'edit_state.dart';
 
 class EditLogic extends GetxController {
@@ -49,6 +51,12 @@ class EditLogic extends GetxController {
 
   /// 是否有未保存改动（用于返回时自动保存，避免内容归一化带来的误判）
   bool _dirty = false;
+
+  /// 子笔记编辑模式：非空 = 编辑既有 Block；'' = 追加新 Block；null = 整篇/新建/整合
+  String? _blockId;
+
+  /// 笔记整合模式：保存后删除该日记下所有子笔记（保留 AI 对话）块
+  bool _consolidate = false;
 
   @override
   void onInit() {
@@ -94,73 +102,103 @@ class EditLogic extends GetxController {
   }
 
   Future<void> _initEdit() async {
-    //如果是新增，更具不同的分类展示不同的操作
-    if (Get.arguments.runtimeType == List<Object?>) {
-      // 配置日记类型
-      // 架构决策（2026-08-19）：统一 Markdown，放弃 Quill 富文本
-      state.type = DiaryType.markdown;
-      markdownTextEditingController = TextEditingController();
-      state.currentDiary = Diary();
-      if (state.autoWeather) {
-        unawaited(getPositionAndWeather(context: Get.context!));
-      }
-      if (state.autoCategory) selectCategory(Get.arguments[1] as String?);
-    } else {
-      //如果是编辑，将日记对象赋值
-      state.isNew = false;
-      state.originalDiary = Get.arguments as Diary;
-      state.type = DiaryType.values.firstWhere(
-        (type) => type.value == state.originalDiary!.type,
+    final args = Get.arguments;
+    if (args is EditArguments) {
+      await _initFromArguments(args);
+    } else if (args is List) {
+      // 兼容旧调用（新建）：[type, categoryId]
+      await _initNew(
+        type: DiaryType.markdown,
+        categoryId: args.length > 1 ? args[1] as String? : null,
       );
-      state.currentDiary = state.originalDiary!.clone();
-      // 获取分类名称
-      if (state.originalDiary!.categoryId != null) {
-        state.categoryName =
-            IsarUtil.getCategoryName(
-              state.originalDiary!.categoryId!,
-            )!.categoryName;
-      }
-      // 初始化标题控制器
-      titleTextEditingController.text = state.originalDiary!.title;
-      // 待替换的字符串map
-      final Map<String, String> replaceMap = {};
-      //临时拷贝一份图片数据
-      for (final name in state.originalDiary!.imageName) {
-        // 生成一个临时文件
-        final xFile = XFile(FileUtil.getRealPath('image', name));
-        replaceMap[name] = xFile.path;
-        state.imageFileList.add(xFile);
-      }
-      //临时拷贝一份拷贝音频数据到缓存目录
-      for (final name in state.originalDiary!.audioName) {
-        state.audioNameList.add(name);
-        await File(
-          FileUtil.getRealPath('audio', name),
-        ).copy(FileUtil.getCachePath(name));
-      }
-      //临时拷贝一份视频数据，别忘记了缩略图
-      for (final name in state.originalDiary!.videoName) {
-        // 生成一个临时文件
-        final videoXFile = XFile(FileUtil.getRealPath('video', name));
-        replaceMap[name] = videoXFile.path;
-        state.videoFileList.add(videoXFile);
-      }
-      // 旧版 Delta 内容统一转换为 Markdown
-      final markdown =
-          state.originalDiary!.type == DiaryType.markdown.value
-          ? state.originalDiary!.content
-          : DeltaToMarkdown.convertIfDelta(state.originalDiary!.content);
-      markdownTextEditingController = TextEditingController(
-        text: await Kmp.replaceWithKmp(
-          text: markdown,
-          replacements: replaceMap,
-        ),
-      );
-      state.type = DiaryType.markdown;
-      state.totalCount.value = _toPlainText().length;
+    } else if (args is Diary) {
+      // 兼容旧调用：整篇编辑
+      await _initEditDiary(args);
     }
     state.isInit = true;
     update(['body']);
+  }
+
+  Future<void> _initFromArguments(EditArguments args) async {
+    if (args.diary == null) {
+      await _initNew(
+        type: args.type ?? DiaryType.markdown,
+        categoryId: args.categoryId,
+      );
+      return;
+    }
+    _blockId = args.blockId;
+    _consolidate = args.consolidate;
+    await _initEditDiary(args.diary!);
+    if (args.initialContent != null) {
+      // 子笔记编辑 / 笔记整合：用传入的初始正文覆盖日记内容
+      markdownTextEditingController?.text = args.initialContent!;
+      state.currentDiary.content = args.initialContent!;
+      state.totalCount.value = _toPlainText().length;
+    }
+  }
+
+  /// 新建模式初始化（架构决策 2026-08-19：统一 Markdown）
+  Future<void> _initNew({
+    DiaryType type = DiaryType.markdown,
+    String? categoryId,
+  }) async {
+    state.type = type;
+    markdownTextEditingController = TextEditingController();
+    state.currentDiary = Diary();
+    if (state.autoWeather) {
+      unawaited(getPositionAndWeather(context: Get.context!));
+    }
+    if (state.autoCategory) selectCategory(categoryId);
+  }
+
+  /// 编辑模式初始化（整篇 / 子笔记 / 笔记整合共用）：装载日记资源与 Markdown 正文。
+  Future<void> _initEditDiary(Diary diary) async {
+    state.isNew = false;
+    state.originalDiary = diary;
+    state.type = DiaryType.values.firstWhere(
+      (type) => type.value == diary.type,
+    );
+    state.currentDiary = diary.clone();
+    // 获取分类名称
+    if (diary.categoryId != null) {
+      state.categoryName = IsarUtil.getCategoryName(diary.categoryId!)!.categoryName;
+    }
+    // 初始化标题控制器
+    titleTextEditingController.text = diary.title;
+    // 待替换的字符串map
+    final Map<String, String> replaceMap = {};
+    // 临时拷贝一份图片数据
+    for (final name in diary.imageName) {
+      final xFile = XFile(FileUtil.getRealPath('image', name));
+      replaceMap[name] = xFile.path;
+      state.imageFileList.add(xFile);
+    }
+    // 临时拷贝一份音频数据到缓存目录
+    for (final name in diary.audioName) {
+      state.audioNameList.add(name);
+      await File(
+        FileUtil.getRealPath('audio', name),
+      ).copy(FileUtil.getCachePath(name));
+    }
+    // 临时拷贝一份视频数据，别忘记了缩略图
+    for (final name in diary.videoName) {
+      final videoXFile = XFile(FileUtil.getRealPath('video', name));
+      replaceMap[name] = videoXFile.path;
+      state.videoFileList.add(videoXFile);
+    }
+    // 旧版 Delta 内容统一转换为 Markdown
+    final markdown = diary.type == DiaryType.markdown.value
+        ? diary.content
+        : DeltaToMarkdown.convertIfDelta(diary.content);
+    markdownTextEditingController = TextEditingController(
+      text: await Kmp.replaceWithKmp(
+        text: markdown,
+        replacements: replaceMap,
+      ),
+    );
+    state.type = DiaryType.markdown;
+    state.totalCount.value = _toPlainText().length;
   }
 
   //计算写作时长
@@ -394,35 +432,50 @@ class EditLogic extends GetxController {
       text: originContent,
       replacements: {...imageNameMap, ...videoNameMap, ...audioNameMap},
     );
-    final contentText = _toPlainText().removeLineBreaks();
-    final tokenizer = await JiebaRs.cutAll(text: contentText);
-    final keywords = await JiebaRs.extractKeywordsTfidf(
-      text: contentText,
-      topK: BigInt.from(5),
-      allowedPos: [],
-    );
-    final sortByWeight = keywords..sort((a, b) => b.weight.compareTo(a.weight));
-    final sortedKeywords = sortByWeight.map((e) => e.keyword).toList();
-    state.currentDiary
-      ..title = titleTextEditingController.text
-      ..content = content
-      ..type = DiaryType.markdown.value
-      ..contentText = contentText
-      ..audioName = state.audioNameList
-      ..imageName = imageNameMap.values.toList()
-      ..videoName = videoNameMap.values.toList()
-      ..tokenizer = tokenizer
-      ..keywords = sortedKeywords
-      ..imageColor = await getCoverColor()
-      ..aspect = await getCoverAspect();
 
-    await IsarUtil.updateADiary(
-      oldDiary: state.originalDiary,
-      newDiary: state.currentDiary,
-    );
+    if (_blockId != null) {
+      // 子笔记编辑 / 追加：正文写回 Block，标题改动同步到日记
+      if (_blockId!.isEmpty) {
+        await _saveAppendBlock(content);
+      } else {
+        await _saveEditBlock(content);
+      }
+    } else if (_consolidate) {
+      // 笔记整合：融合全文写回主日记并删除子笔记
+      await _saveConsolidated(content);
+    } else {
+      // 新建 / 整篇编辑（原有逻辑）
+      final contentText = _toPlainText().removeLineBreaks();
+      final tokenizer = await JiebaRs.cutAll(text: contentText);
+      final keywords = await JiebaRs.extractKeywordsTfidf(
+        text: contentText,
+        topK: BigInt.from(5),
+        allowedPos: [],
+      );
+      final sortByWeight = keywords
+        ..sort((a, b) => b.weight.compareTo(a.weight));
+      final sortedKeywords = sortByWeight.map((e) => e.keyword).toList();
+      state.currentDiary
+        ..title = titleTextEditingController.text
+        ..content = content
+        ..type = DiaryType.markdown.value
+        ..contentText = contentText
+        ..audioName = state.audioNameList
+        ..imageName = imageNameMap.values.toList()
+        ..videoName = videoNameMap.values.toList()
+        ..tokenizer = tokenizer
+        ..keywords = sortedKeywords
+        ..imageColor = await getCoverColor()
+        ..aspect = await getCoverAspect();
+
+      await IsarUtil.updateADiary(
+        oldDiary: state.originalDiary,
+        newDiary: state.currentDiary,
+      );
+      // 智能块结构：同步该日记的首个 text Block
+      await IsarUtil.upsertDiaryTextBlock(state.currentDiary);
+    }
     _dirty = false;
-    // 智能块结构：同步该日记的首个 text Block
-    await IsarUtil.upsertDiaryTextBlock(state.currentDiary);
     state.isSaving.value = false;
     state.isNew
         ? Get.back(result: state.currentDiary.categoryId ?? '')
@@ -434,6 +487,53 @@ class EditLogic extends GetxController {
               ? context.l10n.editSaveSuccess
               : context.l10n.editChangeSuccess,
     );
+  }
+
+  /// 子笔记编辑保存：正文更新到既有 Block 并刷新聚合投影。
+  Future<void> _saveEditBlock(String content) async {
+    final block = await IsarUtil.getBlockById(_blockId!);
+    if (block == null) {
+      toast.error(message: '卡片不存在或已删除');
+      return;
+    }
+    await CanvasDatasource().updateBlockContent(block, content);
+    await _syncTitleChange();
+  }
+
+  /// 追加子笔记保存：在所属日记下新增 source=appended 的 text 块。
+  Future<void> _saveAppendBlock(String content) async {
+    final diary = await IsarUtil.getDiaryById(state.currentDiary.id);
+    if (diary == null) {
+      toast.error(message: '所属日记不存在或已删除');
+      return;
+    }
+    await CanvasDatasource().appendNote(diary: diary, text: content);
+    await _syncTitleChange();
+  }
+
+  /// 笔记整合保存：融合全文写回主日记，随后删除子笔记（保留 AI 对话块）。
+  Future<void> _saveConsolidated(String content) async {
+    final contentText = _toPlainText().removeLineBreaks();
+    state.currentDiary
+      ..title = titleTextEditingController.text
+      ..content = content
+      ..contentText = contentText;
+    await IsarUtil.updateADiary(
+      oldDiary: state.originalDiary,
+      newDiary: state.currentDiary,
+    );
+    // 融合后删除子笔记，主日记承载全部内容；下次进入详情页由 initial 卡物化
+    await IsarUtil.softDeleteNoteBlocksByDiary(state.currentDiary.id);
+  }
+
+  /// 子笔记模式下标题改动同步到日记（不覆盖聚合投影）。
+  Future<void> _syncTitleChange() async {
+    if (state.originalDiary?.title == state.currentDiary.title) return;
+    final fresh = await IsarUtil.getDiaryById(state.currentDiary.id);
+    if (fresh == null) return;
+    fresh.title = state.currentDiary.title;
+    fresh.lastModified = DateTime.now();
+    await IsarUtil.updateADiary(oldDiary: fresh, newDiary: fresh);
   }
 
   DateTime? oldTime;

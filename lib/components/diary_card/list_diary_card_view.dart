@@ -58,19 +58,10 @@ class ListDiaryCardComponent extends StatelessWidget with BasicCardLogic {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     spacing: 4.0,
                     children: [
-                      if (diary.title.isNotEmpty) ...[
-                        EllipsisText(
-                          diary.title.trim(),
-                          style: context.textTheme.titleMedium?.copyWith(
-                            color: context.theme.colorScheme.onSurface,
-                          ),
-                          maxLines: 1,
-                        ),
-                      ],
                       Expanded(
                         child: EllipsisText(
                           diary.contentText.trim().removeLineBreaks(),
-                          maxLines: diary.title.isNotEmpty ? 3 : 4,
+                          maxLines: 4,
                           style: context.textTheme.bodyMedium?.copyWith(
                             color: context.theme.colorScheme.onSurface,
                           ),

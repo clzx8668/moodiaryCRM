@@ -1050,6 +1050,18 @@ class IsarUtil {
         .write(const BlocksCompanion(isDeleted: Value(true)));
   }
 
+  /// 软删某日记下所有「子笔记」块（保留 AI 对话块）。
+  ///
+  /// 用于笔记整合：融合全文写回主日记后清理子笔记，AI 对话区不受影响。
+  static Future<void> softDeleteNoteBlocksByDiary(String diaryId) async {
+    final blocks = await getBlocksByDiary(diaryId);
+    for (final block in blocks) {
+      if (!(block.meta.isAi && block.meta.role.isNotEmpty)) {
+        await softDeleteBlock(block.id);
+      }
+    }
+  }
+
   static Future<List<block_model.Block>> getBlocksByType(
     block_model.BlockType type, {
     bool includeDeleted = false,
