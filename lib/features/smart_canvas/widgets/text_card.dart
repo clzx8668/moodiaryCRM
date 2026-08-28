@@ -77,7 +77,8 @@ class TextCard extends StatelessWidget {
               customBorder: const CircleBorder(),
               onTap: onToggleExpand,
               child: Padding(
-                padding: const EdgeInsets.all(4),
+                // 底部不保留内边距：让箭头与下方标签/操作行贴近（≈2px）
+                padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
                 child: Icon(
                   expanded
                       ? Icons.expand_less_rounded

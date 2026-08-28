@@ -101,7 +101,7 @@ class SmartCard extends StatelessWidget {
               isAi ? _buildAiHead(context) : _buildNoteHead(context),
               const SizedBox(height: 10),
               _buildBody(context),
-              const SizedBox(height: 6),
+              const SizedBox(height: 2),
               _buildFoot(context),
             ],
           ),
