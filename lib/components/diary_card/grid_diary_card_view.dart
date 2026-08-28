@@ -11,9 +11,21 @@ import 'package:moodiary/components/diary_card/basic_card_logic.dart';
 import 'package:moodiary/utils/file_util.dart';
 
 class GirdDiaryCardComponent extends StatelessWidget with BasicCardLogic {
-  const GirdDiaryCardComponent({super.key, required this.diary});
+  const GirdDiaryCardComponent({
+    super.key,
+    required this.diary,
+    this.selectionMode = false,
+    this.selected = false,
+    this.onSelectionChanged,
+    this.onLongPress,
+  });
 
   final Diary diary;
+
+  final bool selectionMode;
+  final bool selected;
+  final VoidCallback? onSelectionChanged;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +43,19 @@ class GirdDiaryCardComponent extends StatelessWidget with BasicCardLogic {
     }
 
     return Card.filled(
-      color: context.theme.colorScheme.surfaceContainerLow,
+      color: selected
+          ? context.theme.colorScheme.primaryContainer
+          : context.theme.colorScheme.surfaceContainerLow,
       margin: EdgeInsets.zero,
       child: InkWell(
         borderRadius: AppBorderRadius.mediumBorderRadius,
-        onTap: () {
-          toDiary(diary);
-        },
+        onTap: selectionMode
+            ? onSelectionChanged
+            : () {
+                toDiary(diary);
+              },
+        onLongPress: onLongPress,
+        onSecondaryTap: onLongPress,
         child: Stack(
           children: [
             Column(

@@ -15,11 +15,20 @@ class ListDiaryCardComponent extends StatelessWidget with BasicCardLogic {
     super.key,
     required this.diary,
     required this.tag,
+    this.selectionMode = false,
+    this.selected = false,
+    this.onSelectionChanged,
+    this.onLongPress,
   });
 
   final Diary diary;
 
   final String tag;
+
+  final bool selectionMode;
+  final bool selected;
+  final VoidCallback? onSelectionChanged;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +46,19 @@ class ListDiaryCardComponent extends StatelessWidget with BasicCardLogic {
     }
 
     return Card.filled(
-      color: context.theme.colorScheme.surfaceContainerLow,
+      color: selected
+          ? context.theme.colorScheme.primaryContainer
+          : context.theme.colorScheme.surfaceContainerLow,
       margin: EdgeInsets.zero,
       child: InkWell(
         borderRadius: AppBorderRadius.mediumBorderRadius,
-        onTap: () async {
-          await toDiary(diary);
-        },
+        onTap: selectionMode
+            ? onSelectionChanged
+            : () async {
+                await toDiary(diary);
+              },
+        onLongPress: onLongPress,
+        onSecondaryTap: onLongPress,
         child: SizedBox(
           height: 132.0,
           child: Row(

@@ -19,16 +19,107 @@ import 'package:waterfall_flow/waterfall_flow.dart';
 
 import 'diary_tab_view_logic.dart';
 
-class DiaryTabViewComponent extends StatelessWidget {
+class DiaryTabViewComponent extends StatefulWidget {
   const DiaryTabViewComponent({super.key, required this.categoryId});
 
   final String? categoryId;
+
+  @override
+  State<DiaryTabViewComponent> createState() => _DiaryTabViewComponentState();
+}
+
+class _DiaryTabViewComponentState extends State<DiaryTabViewComponent> {
+  /// 三视图共享的多选状态（长按/右键进入，列表/网格/块一致）
+  bool _selectionMode = false;
+  final Set<String> _selected = <String>{};
 
   /// 按当前标签筛选过滤（列表/网格共用）
   List<Diary> _visibleDiaries(List<Diary> all, DiaryTabViewLogic logic) {
     final tags = logic.diaryLogic.state.filterTags;
     if (tags.isEmpty) return all;
     return all.where((d) => d.tags.any(tags.contains)).toList();
+  }
+
+  void _toggleSelect(String id) {
+    setState(() {
+      if (_selected.contains(id)) {
+        _selected.remove(id);
+      } else {
+        _selected.add(id);
+      }
+    });
+  }
+
+  void _enterSelect(String id) {
+    setState(() {
+      _selectionMode = true;
+      _selected.add(id);
+    });
+  }
+
+  Future<void> _deleteSelected() async {
+    if (_selected.isEmpty) return;
+    final logicTag = widget.categoryId ?? 'default';
+    final state = Bind.find<DiaryTabViewLogic>(tag: logicTag).state;
+    try {
+      for (final id in _selected) {
+        Diary? diary;
+        for (final d in state.diaryList) {
+          if (d.id == id) {
+            diary = d;
+            break;
+          }
+        }
+        if (diary != null) {
+          await IsarUtil.moveDiaryToRecycle(diary.isarId);
+        }
+        // 同步软删该日记下的子笔记块，避免残留
+        await IsarUtil.softDeleteBlocksByDiary(id);
+      }
+      toast.success(message: '已删除 ${_selected.length} 条记录');
+    } catch (e) {
+      toast.error(message: '删除失败：$e');
+    }
+    setState(() {
+      _selectionMode = false;
+      _selected.clear();
+    });
+    try {
+      await Bind.find<DiaryLogic>().refreshAll();
+    } catch (_) {
+      // 分类/列表刷新失败则忽略（各视图自身随 diaryList 重建）
+    }
+  }
+
+  Widget _buildSelectionBar() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+        child: Row(
+          children: [
+            Text(
+              '已选 ${_selected.length} 条',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: _deleteSelected,
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              child: const Text('删除'),
+            ),
+            TextButton(
+              onPressed: () => setState(() {
+                _selectionMode = false;
+                _selected.clear();
+              }),
+              child: const Text('取消'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildPlaceholder(double height) {
@@ -50,10 +141,10 @@ class DiaryTabViewComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final logicTag = categoryId ?? 'default';
+    final logicTag = widget.categoryId ?? 'default';
     final barHeight = 46 + kToolbarHeight + MediaQuery.paddingOf(context).top;
     final logic = Get.put(
-      DiaryTabViewLogic(categoryId: categoryId),
+      DiaryTabViewLogic(categoryId: widget.categoryId),
       tag: logicTag,
     );
     final state = Bind.find<DiaryTabViewLogic>(tag: logicTag).state;
@@ -75,7 +166,14 @@ class DiaryTabViewComponent extends StatelessWidget {
             crossAxisSpacing: 8.0,
           ),
           delegate: SliverChildBuilderDelegate((context, index) {
-            return GirdDiaryCardComponent(diary: items[index]);
+            final diary = items[index];
+            return GirdDiaryCardComponent(
+              diary: diary,
+              selectionMode: _selectionMode,
+              selected: _selected.contains(diary.id),
+              onSelectionChanged: () => _toggleSelect(diary.id),
+              onLongPress: () => _enterSelect(diary.id),
+            );
           }, childCount: items.length),
         );
       }, key: const ValueKey('grid'));
@@ -86,9 +184,14 @@ class DiaryTabViewComponent extends StatelessWidget {
         final items = _visibleDiaries(state.diaryList, logic);
         return SliverList.separated(
           itemBuilder: (context, index) {
+            final diary = items[index];
             return ListDiaryCardComponent(
               tag: index.toString(),
-              diary: items[index],
+              diary: diary,
+              selectionMode: _selectionMode,
+              selected: _selected.contains(diary.id),
+              onSelectionChanged: () => _toggleSelect(diary.id),
+              onLongPress: () => _enterSelect(diary.id),
             );
           },
           separatorBuilder: (context, index) {
@@ -100,7 +203,14 @@ class DiaryTabViewComponent extends StatelessWidget {
     }
 
     Widget buildBlock(DiaryTabViewLogic logic) {
-      return _BlockView(categoryId: categoryId, tabLogic: logic);
+      return _BlockView(
+        categoryId: widget.categoryId,
+        tabLogic: logic,
+        selectionMode: _selectionMode,
+        selectedIds: _selected,
+        onToggleSelect: _toggleSelect,
+        onEnterSelect: _enterSelect,
+      );
     }
 
     final sliverHandle = NestedScrollView.sliverOverlapAbsorberHandleFor(
@@ -117,6 +227,7 @@ class DiaryTabViewComponent extends StatelessWidget {
           cacheExtent: size.height * 2,
           slivers: [
             SliverOverlapInjector(handle: sliverHandle),
+            if (_selectionMode) _buildSelectionBar(),
             Obx(() {
               return SliverAnimatedSwitcher(
                 duration: const Duration(milliseconds: 150),
@@ -141,12 +252,24 @@ class DiaryTabViewComponent extends StatelessWidget {
 
 }
 
-/// 块视图：一条笔记一张卡（色条数量=子笔记数），支持长按/右键多选并删除整条记录。
+/// 块视图：一条笔记一张卡（色条数量=子笔记数）。
+/// 多选状态由 DiaryTabViewComponent 统一管理（与列表/网格一致）。
 class _BlockView extends StatefulWidget {
   final String? categoryId;
   final DiaryTabViewLogic tabLogic;
+  final bool selectionMode;
+  final Set<String> selectedIds;
+  final void Function(String id) onToggleSelect;
+  final void Function(String id) onEnterSelect;
 
-  const _BlockView({this.categoryId, required this.tabLogic});
+  const _BlockView({
+    this.categoryId,
+    required this.tabLogic,
+    required this.selectionMode,
+    required this.selectedIds,
+    required this.onToggleSelect,
+    required this.onEnterSelect,
+  });
 
   @override
   State<_BlockView> createState() => _BlockViewState();
@@ -154,8 +277,6 @@ class _BlockView extends StatefulWidget {
 
 class _BlockViewState extends State<_BlockView> {
   bool _loading = true;
-  bool _selectionMode = false;
-  final Set<String> _selected = <String>{};
   Map<String, List<Block>> _blocksByDiary = {};
   StreamSubscription<void>? _listener;
   StreamSubscription<void>? _tagListener;
@@ -192,49 +313,6 @@ class _BlockViewState extends State<_BlockView> {
     });
   }
 
-  void _toggleSelect(String id) {
-    setState(() {
-      if (_selected.contains(id)) {
-        _selected.remove(id);
-      } else {
-        _selected.add(id);
-      }
-    });
-  }
-
-  Future<void> _deleteSelected() async {
-    if (_selected.isEmpty) return;
-    try {
-      for (final id in _selected) {
-        Diary? diary;
-        for (final d in widget.tabLogic.state.diaryList) {
-          if (d.id == id) {
-            diary = d;
-            break;
-          }
-        }
-        if (diary != null) {
-          await IsarUtil.moveDiaryToRecycle(diary.isarId);
-        }
-        // 同步软删该日记下的子笔记块，避免残留
-        await IsarUtil.softDeleteBlocksByDiary(id);
-      }
-      toast.success(message: '已删除 ${_selected.length} 条记录');
-    } catch (e) {
-      toast.error(message: '删除失败：$e');
-    }
-    setState(() {
-      _selectionMode = false;
-      _selected.clear();
-    });
-    try {
-      await Bind.find<DiaryLogic>().refreshAll();
-    } catch (_) {
-      // 分类/列表刷新失败则忽略（块视图自身已重载）
-    }
-    await _load();
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -246,38 +324,6 @@ class _BlockViewState extends State<_BlockView> {
       );
     }
     final slivers = <Widget>[];
-    if (_selectionMode) {
-      slivers.add(
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-            child: Row(
-              children: [
-                Text(
-                  '已选 ${_selected.length} 条',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: _deleteSelected,
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.error,
-                  ),
-                  child: const Text('删除'),
-                ),
-                TextButton(
-                  onPressed: () => setState(() {
-                    _selectionMode = false;
-                    _selected.clear();
-                  }),
-                  child: const Text('取消'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
     final all = widget.tabLogic.state.diaryList;
     final tags = widget.tabLogic.diaryLogic.state.filterTags;
     final diaries = tags.isEmpty
@@ -306,17 +352,14 @@ class _BlockViewState extends State<_BlockView> {
             itemBuilder: (context, index) {
               final diary = diaries[index];
               final blocks = _blocksByDiary[diary.id] ?? <Block>[];
-              final selected = _selected.contains(diary.id);
+              final selected = widget.selectedIds.contains(diary.id);
               return BlockDiaryCardComponent(
                 diary: diary,
                 blocks: blocks,
-                selectionMode: _selectionMode,
+                selectionMode: widget.selectionMode,
                 selected: selected,
-                onSelectionChanged: () => _toggleSelect(diary.id),
-                onLongPress: () => setState(() {
-                  _selectionMode = true;
-                  _selected.add(diary.id);
-                }),
+                onSelectionChanged: () => widget.onToggleSelect(diary.id),
+                onLongPress: () => widget.onEnterSelect(diary.id),
               );
             },
             separatorBuilder: (context, index) =>
