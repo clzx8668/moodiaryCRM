@@ -920,53 +920,57 @@ class _AiHomePageState extends State<AiHomePage> {
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 760),
-        child: Row(
-          children: [
-            ActionChip(
-              avatar: const Icon(Icons.memory_rounded, size: 16),
-              label: Text(
-                _currentModel ?? '模型',
-                style: const TextStyle(fontSize: 12),
-              ),
-              visualDensity: VisualDensity.compact,
-              onPressed: _pickChatModel,
-            ),
-            const SizedBox(width: 8),
-            if (_kbEnabled) ...[
+        // 横向可滚动：窄屏下模型/知识库/联网 chips 不溢出
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
               ActionChip(
-                avatar: const Icon(Icons.menu_book_outlined, size: 16),
+                avatar: const Icon(Icons.memory_rounded, size: 16),
                 label: Text(
-                  _kb == null ? '知识库：关闭' : '知识库：${_kb!.name}',
+                  _currentModel ?? '模型',
                   style: const TextStyle(fontSize: 12),
                 ),
                 visualDensity: VisualDensity.compact,
-                onPressed: _pickKnowledgeBase,
+                onPressed: _pickChatModel,
               ),
               const SizedBox(width: 8),
-            ],
-            ActionChip(
-              avatar: Icon(
-                _online ? Icons.public_rounded : Icons.public_off_rounded,
-                size: 16,
-                color: _online ? colorScheme.primary : null,
-              ),
-              label: Text(
-                _online ? '联网：开' : '联网：关',
-                style: const TextStyle(fontSize: 12),
-              ),
-              visualDensity: VisualDensity.compact,
-              onPressed: () => setState(() => _online = !_online),
-            ),
-            const Spacer(),
-            TextButton.icon(
-              onPressed: _messages.isEmpty ? null : _clearConversation,
-              icon: const Icon(Icons.delete_sweep_outlined, size: 16),
-              label: const Text('清空', style: TextStyle(fontSize: 12)),
-              style: TextButton.styleFrom(
+              if (_kbEnabled) ...[
+                ActionChip(
+                  avatar: const Icon(Icons.menu_book_outlined, size: 16),
+                  label: Text(
+                    _kb == null ? '知识库：关闭' : '知识库：${_kb!.name}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _pickKnowledgeBase,
+                ),
+                const SizedBox(width: 8),
+              ],
+              ActionChip(
+                avatar: Icon(
+                  _online ? Icons.public_rounded : Icons.public_off_rounded,
+                  size: 16,
+                  color: _online ? colorScheme.primary : null,
+                ),
+                label: Text(
+                  _online ? '联网：开' : '联网：关',
+                  style: const TextStyle(fontSize: 12),
+                ),
                 visualDensity: VisualDensity.compact,
+                onPressed: () => setState(() => _online = !_online),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: _messages.isEmpty ? null : _clearConversation,
+                icon: const Icon(Icons.delete_sweep_outlined, size: 16),
+                label: const Text('清空', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
