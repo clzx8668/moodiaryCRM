@@ -92,31 +92,16 @@ class _DiaryTabViewComponentState extends State<DiaryTabViewComponent> {
   }
 
   Widget _buildSelectionBar() {
-    // 固定在列表上方（不随 CustomScrollView 滚动），长列表时始终可见
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-      child: Row(
-        children: [
-          Text(
-            '已选 ${_selected.length} 条',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: _deleteSelected,
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: const Text('删除'),
-          ),
-          TextButton(
-            onPressed: () => setState(() {
-              _selectionMode = false;
-              _selected.clear();
-            }),
-            child: const Text('取消'),
-          ),
-        ],
+    // 吸顶固定（pinned），不随列表滚动；仅多选激活时出现
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _SelectionBarHeaderDelegate(
+        count: _selected.length,
+        onDelete: _deleteSelected,
+        onCancel: () => setState(() {
+          _selectionMode = false;
+          _selected.clear();
+        }),
       ),
     );
   }
@@ -218,46 +203,110 @@ class _DiaryTabViewComponentState extends State<DiaryTabViewComponent> {
 
     return Padding(
       padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
-      child: Column(
-        children: [
-          // 多选操作条固定于列表上方，不随列表滚动
-          if (_selectionMode) _buildSelectionBar(),
-          Expanded(
-            child: ClipRRect(
-              clipper: TopRRectClipper(
-                topOffset: sliverHandle.layoutExtent ?? barHeight,
-              ),
-              child: CustomScrollView(
-                cacheExtent: size.height * 2,
-                slivers: [
-                  SliverOverlapInjector(handle: sliverHandle),
-                  Obx(() {
-                    return SliverAnimatedSwitcher(
-                      duration: const Duration(milliseconds: 150),
-                      reverseDuration: const Duration(milliseconds: 100),
-                      child:
-                          state.isFetching.value
-                              ? _buildPlaceholder(placeholderHeight)
-                              : state.diaryList.isEmpty
-                              ? _buildEmpty(context, placeholderHeight)
-                              : switch (
-                                  logic.diaryLogic.state.viewModeType.value
-                                ) {
-                                ViewModeType.list => buildList(),
-                                ViewModeType.grid => buildGrid(),
-                                ViewModeType.block => buildBlock(logic),
-                              },
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ),
-        ],
+      child: ClipRRect(
+        clipper: TopRRectClipper(
+          topOffset: sliverHandle.layoutExtent ?? barHeight,
+        ),
+        child: CustomScrollView(
+          cacheExtent: size.height * 2,
+          slivers: [
+            SliverOverlapInjector(handle: sliverHandle),
+            // 多选操作条：激活时吸顶显示，未激活不占位
+            if (_selectionMode) _buildSelectionBar(),
+            Obx(() {
+              return SliverAnimatedSwitcher(
+                duration: const Duration(milliseconds: 150),
+                reverseDuration: const Duration(milliseconds: 100),
+                child:
+                    state.isFetching.value
+                        ? _buildPlaceholder(placeholderHeight)
+                        : state.diaryList.isEmpty
+                        ? _buildEmpty(context, placeholderHeight)
+                        : switch (logic.diaryLogic.state.viewModeType.value) {
+                          ViewModeType.list => buildList(),
+                          ViewModeType.grid => buildGrid(),
+                          ViewModeType.block => buildBlock(logic),
+                        },
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
 
+}
+
+/// 多选操作条吸顶代理：固定在列表上方、不随滚动，行高紧凑（仅比文字略高）。
+class _SelectionBarHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final int count;
+  final VoidCallback onDelete;
+  final VoidCallback onCancel;
+
+  const _SelectionBarHeaderDelegate({
+    required this.count,
+    required this.onDelete,
+    required this.onCancel,
+  });
+
+  @override
+  double get minExtent => 32;
+
+  @override
+  double get maxExtent => 32;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      color: colorScheme.surface,
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 4, right: 4),
+        child: Row(
+          children: [
+            Text(
+              '已选 $count 条',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: onDelete,
+              style: TextButton.styleFrom(
+                foregroundColor: colorScheme.error,
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 26),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('删除'),
+            ),
+            TextButton(
+              onPressed: onCancel,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 26),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('取消'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _SelectionBarHeaderDelegate oldDelegate) {
+    return oldDelegate.count != count ||
+        oldDelegate.onDelete != onDelete ||
+        oldDelegate.onCancel != onCancel;
+  }
 }
 
 /// 块视图：一条笔记一张卡（色条数量=子笔记数）。
