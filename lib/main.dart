@@ -17,6 +17,7 @@ import 'package:moodiary/components/env_badge/badge.dart';
 import 'package:moodiary/components/frosted_glass_overlay/frosted_glass_overlay_view.dart';
 import 'package:moodiary/components/window_buttons/window_buttons.dart';
 import 'package:moodiary/config/env.dart';
+import 'package:moodiary/features/command_palette/command_palette.dart';
 import 'package:moodiary/features/sync_events/sync_event_service.dart';
 import 'package:moodiary/features/sync_log/sync_log.dart';
 import 'package:moodiary/l10n/app_localizations.dart';
@@ -27,6 +28,7 @@ import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/router/app_pages.dart';
 import 'package:moodiary/router/app_routes.dart';
+import 'package:moodiary/src/rust/api/ffi_api.dart' as rust_ffi;
 import 'package:moodiary/src/rust/frb_generated.dart';
 import 'package:moodiary/utils/log_util.dart';
 import 'package:moodiary/utils/media_util.dart';
@@ -69,6 +71,9 @@ Future<void> _initSystem() async {
   ResourceCleanupManager.instance
     ..register('rust', () async {
       try {
+        // 先通知 Rust 事件流循环优雅退出（关闭 broadcast 发送端），
+        // 再 dispose frb 运行时，避免三条无限循环持留运行时导致退出残留
+        await rust_ffi.shutdown();
         RustLib.dispose();
       } catch (_) {}
     })
@@ -213,12 +218,28 @@ class _MoodiaryState extends State<Moodiary> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // 全局命令面板快捷键：桌面 Ctrl+K / macOS ⌘K
+    HardwareKeyboard.instance.addHandler(_handleGlobalShortcut);
   }
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleGlobalShortcut);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  bool _handleGlobalShortcut(KeyEvent event) {
+    if (event is KeyDownEvent &&
+        HardwareKeyboard.instance.isControlPressed &&
+        event.logicalKey == LogicalKeyboardKey.keyK) {
+      final ctx = Get.context ?? context;
+      if (ctx.mounted) {
+        showCommandPalette(ctx);
+      }
+      return true;
+    }
+    return false;
   }
 
   /// 桌面平台请求退出：先释放资源，再允许退出；若仍卡住 3 秒后强制退出。

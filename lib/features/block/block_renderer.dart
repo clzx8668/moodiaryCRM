@@ -16,10 +16,14 @@ class MarkdownContentView extends StatelessWidget {
   final String data;
   final ColorScheme? customColorScheme;
 
+  /// 是否允许文本选择（SelectionArea）。详情页卡片内关闭，避免拦截点击进编辑器。
+  final bool selectable;
+
   const MarkdownContentView({
     super.key,
     required this.data,
     this.customColorScheme,
+    this.selectable = true,
   });
 
   @override
@@ -32,6 +36,7 @@ class MarkdownContentView extends StatelessWidget {
             : MarkdownConfig.defaultConfig;
     return MarkdownBlock(
       data: data,
+      selectable: selectable,
       config: config.copy(
         configs: [
           ImgConfig(

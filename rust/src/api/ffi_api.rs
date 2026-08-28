@@ -55,6 +55,7 @@ pub async fn sync_progress_stream(sink: StreamSink<SyncProgressEvent>) -> Result
     let mut rx = event_bus::subscribe_sync();
     flutter_rust_bridge::spawn(async move {
         while let Ok(event) = rx.recv().await {
+            // sink 失效（Dart 取消订阅）或 shutdown 关闭信道（recv 返回 Err）时退出
             if sink.add(event).is_err() {
                 break;
             }
@@ -86,6 +87,14 @@ pub async fn file_sync_stream(sink: StreamSink<FileSyncEvent>) -> Result<()> {
             }
         }
     });
+    Ok(())
+}
+
+/// 触发全局优雅关闭：通知所有事件流循环退出，释放 frb 运行时。
+///
+/// 应用退出清理时由 Dart 侧在 `RustLib.dispose()` 之前调用。
+pub async fn shutdown() -> Result<()> {
+    event_bus::shutdown_all();
     Ok(())
 }
 

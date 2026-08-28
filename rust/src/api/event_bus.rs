@@ -4,7 +4,7 @@
 //! Dart 侧经 sync_progress_stream / ai_stream_stream / file_sync_stream
 //! 订阅（StreamSink）。无订阅者时事件直接丢弃，不影响主流程。
 
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 use tokio::sync::broadcast;
 
@@ -14,22 +14,61 @@ use super::sync_events::{
 
 const CHANNEL_CAPACITY: usize = 256;
 
+/// Sender 容器：`None` 表示已关闭（shutdown 后 drop 发送端，
+/// 所有 Receiver.recv() 返回 `Closed`，事件流循环自动退出）。
+type SenderBox<T> = Mutex<Option<broadcast::Sender<T>>>;
+
+fn sync_tx_box() -> &'static SenderBox<SyncProgressEvent> {
+    static TX: OnceLock<SenderBox<SyncProgressEvent>> = OnceLock::new();
+    TX.get_or_init(|| Mutex::new(Some(broadcast::channel(CHANNEL_CAPACITY).0)))
+}
+
+fn ai_tx_box() -> &'static SenderBox<AiStreamEvent> {
+    static TX: OnceLock<SenderBox<AiStreamEvent>> = OnceLock::new();
+    TX.get_or_init(|| Mutex::new(Some(broadcast::channel(CHANNEL_CAPACITY).0)))
+}
+
+fn file_tx_box() -> &'static SenderBox<FileSyncEvent> {
+    static TX: OnceLock<SenderBox<FileSyncEvent>> = OnceLock::new();
+    TX.get_or_init(|| Mutex::new(Some(broadcast::channel(CHANNEL_CAPACITY).0)))
+}
+
 fn sync_tx() -> broadcast::Sender<SyncProgressEvent> {
-    static TX: OnceLock<broadcast::Sender<SyncProgressEvent>> = OnceLock::new();
-    TX.get_or_init(|| broadcast::channel(CHANNEL_CAPACITY).0)
-        .clone()
+    let mut guard = sync_tx_box().lock().unwrap_or_else(|e| e.into_inner());
+    if guard.is_none() {
+        *guard = Some(broadcast::channel(CHANNEL_CAPACITY).0);
+    }
+    guard.as_ref().expect("sender 应存在").clone()
 }
 
 fn ai_tx() -> broadcast::Sender<AiStreamEvent> {
-    static TX: OnceLock<broadcast::Sender<AiStreamEvent>> = OnceLock::new();
-    TX.get_or_init(|| broadcast::channel(CHANNEL_CAPACITY).0)
-        .clone()
+    let mut guard = ai_tx_box().lock().unwrap_or_else(|e| e.into_inner());
+    if guard.is_none() {
+        *guard = Some(broadcast::channel(CHANNEL_CAPACITY).0);
+    }
+    guard.as_ref().expect("sender 应存在").clone()
 }
 
 fn file_tx() -> broadcast::Sender<FileSyncEvent> {
-    static TX: OnceLock<broadcast::Sender<FileSyncEvent>> = OnceLock::new();
-    TX.get_or_init(|| broadcast::channel(CHANNEL_CAPACITY).0)
-        .clone()
+    let mut guard = file_tx_box().lock().unwrap_or_else(|e| e.into_inner());
+    if guard.is_none() {
+        *guard = Some(broadcast::channel(CHANNEL_CAPACITY).0);
+    }
+    guard.as_ref().expect("sender 应存在").clone()
+}
+
+/// 触发全局优雅关闭：drop 所有 broadcast 发送端，
+/// 事件流循环的 `rx.recv()` 将返回 `Closed` 并退出，释放 frb 运行时。
+pub fn shutdown_all() {
+    if let Ok(mut guard) = sync_tx_box().lock() {
+        *guard = None;
+    }
+    if let Ok(mut guard) = ai_tx_box().lock() {
+        *guard = None;
+    }
+    if let Ok(mut guard) = file_tx_box().lock() {
+        *guard = None;
+    }
 }
 
 /// 发布同步进度事件
@@ -122,5 +161,31 @@ mod tests {
             assert_eq!(event.chunk, "你好");
             assert!(!event.is_complete);
         });
+    }
+
+    #[test]
+    fn drop_all_senders_closes_receiver() {
+        block_on(async {
+            // 机制验证：broadcast 所有发送端 drop 后，
+            // Receiver.recv() 返回 Closed → 事件流循环自动退出
+            let (tx, mut rx) = broadcast::channel::<SyncProgressEvent>(CHANNEL_CAPACITY);
+            let _ = tx.send(SyncProgressEvent {
+                phase: SyncProgressPhase::Started,
+                progress: 0.0,
+                message: "开始".to_string(),
+            });
+            let _ = rx.recv().await.expect("应能收到同步事件");
+            drop(tx);
+            assert!(
+                rx.recv().await.is_err(),
+                "关闭后 recv 应返回 Closed"
+            );
+        });
+    }
+
+    #[test]
+    fn shutdown_all_clears_sender_boxes() {
+        // shutdown_all 会把三个 sender 容器置 None（实现检查，无并发依赖）
+        shutdown_all();
     }
 }

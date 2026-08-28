@@ -7,6 +7,9 @@ class TextCard extends StatelessWidget {
   final bool expanded;
   final VoidCallback onToggleExpand;
 
+  /// 是否允许文本选择；详情页卡片内关闭（点击优先进入编辑器）。
+  final bool selectable;
+
   /// 折叠阈值（与 SmartCanvasLogic.collapseThreshold 一致）
   final int collapseThreshold;
 
@@ -18,6 +21,7 @@ class TextCard extends StatelessWidget {
     required this.content,
     required this.expanded,
     required this.onToggleExpand,
+    this.selectable = true,
     this.collapseThreshold = 500,
     this.collapsedMaxHeight = 220,
   });
@@ -41,7 +45,10 @@ class TextCard extends StatelessWidget {
                   OverflowBox(
                     alignment: Alignment.topCenter,
                     maxHeight: double.infinity,
-                    child: MarkdownContentView(data: text),
+                    child: MarkdownContentView(
+                      data: text,
+                      selectable: selectable,
+                    ),
                   ),
                   // 底部渐变遮罩：指示还有更多内容
                   Positioned(
@@ -69,7 +76,7 @@ class TextCard extends StatelessWidget {
             ),
           )
         else
-          MarkdownContentView(data: text),
+          MarkdownContentView(data: text, selectable: selectable),
         if (needCollapse)
           Center(
             // 只保留箭头图标（展开 ▾ / 收起 ▴），紧凑精致、无文字

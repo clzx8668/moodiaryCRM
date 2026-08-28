@@ -46,6 +46,11 @@ Stream<AiStreamEvent> aiStreamStream() =>
 Stream<FileSyncEvent> fileSyncStream() =>
     RustLib.instance.api.crateApiFfiApiFileSyncStream();
 
+/// 触发全局优雅关闭：通知所有事件流循环退出，释放 frb 运行时。
+///
+/// 应用退出清理时由 Dart 侧在 `RustLib.dispose()` 之前调用。
+Future<void> shutdown() => RustLib.instance.api.crateApiFfiApiShutdown();
+
 /// 演示事件流（联调/冒烟用）：发布一轮 started→pulling→pushing→done。
 ///
 /// 真实同步引擎接入后，由 PullEngine/PushEngine 在各阶段调用

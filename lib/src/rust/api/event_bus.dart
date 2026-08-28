@@ -7,7 +7,12 @@ import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'sync_events.dart';
 
-// These functions are ignored because they are not marked as `pub`: `ai_tx`, `file_tx`, `subscribe_ai`, `subscribe_file`, `subscribe_sync`, `sync_tx`
+// These functions are ignored because they are not marked as `pub`: `ai_tx_box`, `ai_tx`, `file_tx_box`, `file_tx`, `subscribe_ai`, `subscribe_file`, `subscribe_sync`, `sync_tx_box`, `sync_tx`
+
+/// 触发全局优雅关闭：drop 所有 broadcast 发送端，
+/// 事件流循环的 `rx.recv()` 将返回 `Closed` 并退出，释放 frb 运行时。
+Future<void> shutdownAll() =>
+    RustLib.instance.api.crateApiEventBusShutdownAll();
 
 /// 发布同步进度事件
 Future<void> emitSyncProgress({

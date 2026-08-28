@@ -44,7 +44,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -473992273;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 397864373;
 
 // Section: executor
 
@@ -1469,6 +1469,75 @@ fn wire__crate__api__kmp__kmp_search_impl(
         },
     )
 }
+fn wire__crate__api__ffi_api__shutdown_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "shutdown",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::ffi_api::shutdown().await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__event_bus__shutdown_all_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "shutdown_all",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::api::event_bus::shutdown_all();
+                    })?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__ffi_api__sync_progress_events_since_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2213,16 +2282,18 @@ fn pde_ffi_dispatcher_primary_impl(
         33 => wire__crate__api__ffi_api__get_sync_status_impl(port, ptr, rust_vec_len, data_len),
         34 => wire__crate__api__jieba__init_jieba_impl(port, ptr, rust_vec_len, data_len),
         35 => wire__crate__api__kmp__kmp_search_impl(port, ptr, rust_vec_len, data_len),
-        36 => wire__crate__api__ffi_api__sync_progress_events_since_impl(
+        36 => wire__crate__api__ffi_api__shutdown_impl(port, ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__event_bus__shutdown_all_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__ffi_api__sync_progress_events_since_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => {
+        39 => {
             wire__crate__api__ffi_api__sync_progress_stream_impl(port, ptr, rust_vec_len, data_len)
         }
-        38 => wire__crate__api__ffi_api__trigger_full_sync_impl(port, ptr, rust_vec_len, data_len),
+        40 => wire__crate__api__ffi_api__trigger_full_sync_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

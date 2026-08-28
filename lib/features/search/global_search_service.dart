@@ -7,6 +7,7 @@ import 'package:moodiary/persistence/isar.dart';
 class GlobalSearchResult {
   final String type; // diary / block / crm
   final String id;
+  final String diaryId; // block 结果所属日记；diary 结果即自身 id
   final String title;
   final String snippet;
   final DateTime time;
@@ -14,6 +15,7 @@ class GlobalSearchResult {
   const GlobalSearchResult({
     required this.type,
     required this.id,
+    required this.diaryId,
     required this.title,
     required this.snippet,
     required this.time,
@@ -35,6 +37,7 @@ class GlobalSearchService {
         (Diary d) => GlobalSearchResult(
           type: 'diary',
           id: d.id,
+          diaryId: d.id,
           title: d.title.isEmpty ? '未命名日记' : d.title,
           snippet: d.contentText.length > 60
               ? d.contentText.substring(0, 60)
@@ -51,6 +54,7 @@ class GlobalSearchService {
         (Block b) => GlobalSearchResult(
           type: 'block',
           id: b.id,
+          diaryId: b.diaryId,
           title: 'Block（${b.blockType.name}）',
           snippet: b.content.length > 60 ? b.content.substring(0, 60) : b.content,
           time: b.updatedAt,
@@ -65,6 +69,7 @@ class GlobalSearchService {
         (CrmEntityCache c) => GlobalSearchResult(
           type: 'crm',
           id: c.twentyId,
+          diaryId: '',
           title: c.name,
           snippet: '${c.entityType} · ${c.twentyId}',
           time: c.updatedAt,

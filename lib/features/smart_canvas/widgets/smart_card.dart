@@ -316,6 +316,8 @@ class SmartCard extends StatelessWidget {
           content: block.content,
           expanded: expanded,
           onToggleExpand: onToggleExpand ?? () {},
+          // 卡片正文关闭文本选择：SelectionArea 不再拦截点击，点卡片进编辑器
+          selectable: false,
         );
       case BlockType.code:
         return CodeCard(content: block.content);
