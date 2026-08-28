@@ -13,6 +13,7 @@ import 'package:moodiary/features/smart_canvas/services/card_action_router.dart'
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
 import 'package:moodiary/features/smart_canvas/widgets/chat_bubble.dart';
 import 'package:moodiary/features/smart_canvas/widgets/smart_card.dart';
+import 'package:moodiary/features/voice/speech_service.dart';
 import 'package:moodiary/pages/edit/edit_arguments.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/src/rust/api/ffi_api.dart' as rust_ffi;
@@ -39,6 +40,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
   late final SmartCanvasLogic logic;
   final TextEditingController _aiInput = TextEditingController();
   final FocusNode _aiFocus = FocusNode();
+  bool _voiceMode = false;
 
   @override
   void initState() {
@@ -116,6 +118,26 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
   Future<void> _runDemoSyncEvents() async {
     toast.info(message: '正在发送演示同步事件…');
     await rust_ffi.emitDemoSyncEvents();
+  }
+
+  /// 语音识别：长按「按住 说话」开始，识别结果追加到输入框。
+  Future<void> _startVoiceInput() async {
+    if (SpeechService.instance.isListening) {
+      await SpeechService.instance.stopListening();
+      return;
+    }
+    final ok = await SpeechService.instance.startListening((text) {
+      if (text.trim().isEmpty) return;
+      final base = _aiInput.text.trim();
+      _aiInput.text = base.isEmpty ? text : '$base\n$text';
+      _aiInput.selection = TextSelection.collapsed(
+        offset: _aiInput.text.length,
+      );
+      toast.success(message: '已识别：$text');
+    });
+    if (!ok) {
+      toast.error(message: '当前设备不支持语音识别，请检查系统语音设置');
+    }
   }
 
   /// 桌面端约束主列阅读宽度，移动端全宽。
@@ -434,22 +456,30 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
             ),
           ),
           Obx(() {
-            return SmartInputBar(
-              controller: _aiInput,
-              focusNode: _aiFocus,
-              startActive: false,
-              streaming: logic.isChatStreaming,
-              collapsedHint: '按住输入语音',
-              activeHint: '问问这条记录，或输入问题…',
-              modelLabel: '记录问答',
-              onModelSelect: logic.pickChatModel,
-              onAt: logic.pickChatKnowledge,
-              onToggleVoice: () => toast.info(message: '语音功能接入中'),
-              onSend: (text) {
-                _aiInput.clear();
-                logic.sendChat(text);
-              },
-              onStop: logic.cancelStreaming,
+            // 桌面端与内容区同宽对齐（720 阅读宽度），移动端全宽
+            return Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: _contentPadX(context),
+              ),
+              child: SmartInputBar(
+                controller: _aiInput,
+                focusNode: _aiFocus,
+                startActive: false,
+                streaming: logic.isChatStreaming,
+                collapsedHint: '按住输入语音',
+                activeHint: '问问这条记录，或输入问题…',
+                modelLabel: '记录问答',
+                voiceMode: _voiceMode,
+                onToggleVoice: () => setState(() => _voiceMode = !_voiceMode),
+                onLongPressVoice: _startVoiceInput,
+                onModelSelect: logic.pickChatModel,
+                onAt: logic.pickChatKnowledge,
+                onSend: (text) {
+                  _aiInput.clear();
+                  logic.sendChat(text);
+                },
+                onStop: logic.cancelStreaming,
+              ),
             );
           }),
         ],

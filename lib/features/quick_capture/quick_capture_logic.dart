@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_saver.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
 import 'package:moodiary/features/sync_log/sync_log.dart';
+import 'package:moodiary/features/voice/speech_service.dart';
 import 'package:moodiary/utils/media_util.dart';
 import 'package:moodiary/utils/notice_util.dart';
 import 'package:path/path.dart' as p;
@@ -109,17 +110,32 @@ class QuickCaptureLogic extends GetxController {
     state.recording.value = false;
   }
 
-  /// 开始录音（占位）
-  void startRecording() {
+  /// 开始语音识别（长按「按住 说话」触发），识别结果通过 [onText] 回填输入框。
+  Future<void> startRecording({void Function(String text)? onText}) async {
     if (state.text.value.trim().isNotEmpty) return; // 有内容时按住说话失效
+    if (SpeechService.instance.isListening) {
+      await SpeechService.instance.stopListening();
+      state.recording.value = false;
+      return;
+    }
     state.recording.value = true;
+    final ok = await SpeechService.instance.startListening((text) {
+      if (text.trim().isEmpty) return;
+      onText?.call(text);
+      state.recording.value = false;
+      toast.success(message: '已识别：$text');
+    });
+    if (!ok) {
+      state.recording.value = false;
+      toast.error(message: '当前设备不支持语音识别，请检查系统语音设置');
+    }
   }
 
-  /// 结束录音（占位）
+  /// 结束语音识别
   Future<void> stopRecording() async {
     if (!state.recording.value) return;
     state.recording.value = false;
-    toast.info(message: '语音识别接入中，已为你预留录音入口');
+    await SpeechService.instance.stopListening();
   }
 
   /// 保存速记（发送）

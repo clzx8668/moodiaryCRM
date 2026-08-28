@@ -33,26 +33,91 @@ class CommandPalettePage extends StatefulWidget {
 
 class _CommandPalettePageState extends State<CommandPalettePage> {
   final TextEditingController _controller = TextEditingController();
+  final ScrollController _scroll = ScrollController();
   Timer? _debounce;
   List<GlobalSearchResult> _results = const [];
+  List<GlobalSearchResult> _recent = const [];
   bool _searching = false;
+  int _selectedIndex = 0;
+
+  static const List<String> _groupOrder = ['diary', 'block', 'crm'];
+  static const Map<String, String> _groupLabels = {
+    'diary': '日记',
+    'block': '子笔记',
+    'crm': 'CRM',
+  };
+
+  /// 当前展示的扁平结果（空输入 = 最近记录）
+  List<GlobalSearchResult> get _flat =>
+      _controller.text.trim().isEmpty ? _recent : _results;
+
+  /// 渲染条目：组标题 / 结果项
+  List<_PaletteEntry> _entries = [];
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_onQueryChanged);
+    _loadRecent();
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
+    _scroll.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadRecent() async {
+    final all = await IsarUtil.getAllDiariesSorted();
+    if (!mounted) return;
+    setState(() {
+      _recent = all
+          .take(5)
+          .map(
+            (d) => GlobalSearchResult(
+              type: 'diary',
+              id: d.id,
+              diaryId: d.id,
+              title: d.title.isEmpty ? '未命名日记' : d.title,
+              snippet: d.contentText.length > 60
+                  ? d.contentText.substring(0, 60)
+                  : d.contentText,
+              time: d.time,
+            ),
+          )
+          .toList();
+      _rebuildEntries();
+    });
   }
 
   void _onQueryChanged() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 150), _search);
+  }
+
+  void _rebuildEntries() {
+    final flat = _flat;
+    _entries = [];
+    for (final type in _groupOrder) {
+      final group = flat.where((r) => r.type == type).toList();
+      if (group.isEmpty) continue;
+      _entries.add(_PaletteEntry.header(type));
+      for (final r in group) {
+        _entries.add(_PaletteEntry.result(r));
+      }
+    }
+    if (_entries.isEmpty && flat.isNotEmpty) {
+      // 兜底：未知类型归入「其他」
+      _entries.add(_PaletteEntry.header('other'));
+      for (final r in flat) {
+        _entries.add(_PaletteEntry.result(r));
+      }
+    }
+    if (_selectedIndex >= flat.length) {
+      _selectedIndex = 0;
+    }
   }
 
   Future<void> _search() async {
@@ -62,6 +127,7 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
         setState(() {
           _results = const [];
           _searching = false;
+          _rebuildEntries();
         });
       }
       return;
@@ -72,7 +138,63 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
     setState(() {
       _results = results;
       _searching = false;
+      _rebuildEntries();
     });
+  }
+
+  /// 键盘导航：↑↓ 移动选择，Enter 打开选中项。
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.escape) {
+      Navigator.of(context).pop();
+      return KeyEventResult.handled;
+    }
+    final flat = _flat;
+    if (flat.isEmpty) return KeyEventResult.ignored;
+    if (key == LogicalKeyboardKey.arrowDown) {
+      setState(() {
+        _selectedIndex = (_selectedIndex + 1) % flat.length;
+        _scrollToSelected();
+      });
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowUp) {
+      setState(() {
+        _selectedIndex =
+            (_selectedIndex - 1 + flat.length) % flat.length;
+        _scrollToSelected();
+      });
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter) {
+      _open(flat[_selectedIndex]);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _scrollToSelected() {
+    // 找到选中结果的渲染位置（跳过组标题），近似滚动
+    var resultIdx = 0;
+    var itemIdx = 0;
+    for (final e in _entries) {
+      if (!e.isHeader) {
+        if (resultIdx == _selectedIndex) {
+          final target = itemIdx * 56.0;
+          if (_scroll.hasClients) {
+            _scroll.animateTo(
+              target > 200 ? target - 100 : 0,
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOut,
+            );
+          }
+          return;
+        }
+        resultIdx++;
+      }
+      itemIdx++;
+    }
   }
 
   Future<void> _open(GlobalSearchResult r) async {
@@ -109,14 +231,7 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
       backgroundColor: Colors.transparent,
       body: Focus(
         autofocus: true,
-        onKeyEvent: (node, event) {
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.escape) {
-            Navigator.of(context).pop();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
-        },
+        onKeyEvent: _handleKey,
         child: SafeArea(
           child: Align(
             alignment: Alignment.topCenter,
@@ -155,13 +270,13 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
                                   child: CircularProgressIndicator(),
                                 ),
                               )
-                            : _results.isEmpty
+                            : _flat.isEmpty
                             ? Center(
                                 child: Padding(
                                   padding: const EdgeInsets.all(24),
                                   child: Text(
                                     _controller.text.trim().isEmpty
-                                        ? '输入关键词，跨日记 / 子笔记 / CRM 搜索'
+                                        ? '没有最近记录，输入关键词搜索'
                                         : '没有匹配结果',
                                     style: TextStyle(
                                       color: colorScheme.onSurfaceVariant,
@@ -169,11 +284,37 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
                                   ),
                                 ),
                               )
-                            : ListView.separated(
+                            : ListView.builder(
+                                controller: _scroll,
                                 itemBuilder: (context, index) {
-                                  final r = _results[index];
+                                  final entry = _entries[index];
+                                  if (entry.isHeader) {
+                                    return Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        16,
+                                        10,
+                                        16,
+                                        4,
+                                      ),
+                                      child: Text(
+                                        _groupLabels[entry.type] ?? '其他',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  final r = entry.result!;
+                                  final resultIdx = _resultIndexOf(entry);
+                                  final selected = resultIdx == _selectedIndex;
                                   return ListTile(
                                     dense: true,
+                                    selected: selected,
+                                    selectedTileColor:
+                                        colorScheme.secondaryContainer
+                                            .withValues(alpha: 0.5),
                                     leading: Icon(
                                       _typeIcon(r.type),
                                       color: colorScheme.primary,
@@ -198,12 +339,7 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
                                     onTap: () => _open(r),
                                   );
                                 },
-                                separatorBuilder: (_, __) => const Divider(
-                                  height: 1,
-                                  indent: 16,
-                                  endIndent: 16,
-                                ),
-                                itemCount: _results.length,
+                                itemCount: _entries.length,
                               ),
                       ),
                     ],
@@ -216,4 +352,30 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
       ),
     );
   }
+
+  /// 当前渲染条目对应扁平结果中的序号（-1 表示组标题）。
+  int _resultIndexOf(_PaletteEntry entry) {
+    var resultIdx = 0;
+    for (final e in _entries) {
+      if (e.isHeader) continue;
+      if (identical(e, entry)) return resultIdx;
+      resultIdx++;
+    }
+    return -1;
+  }
+}
+
+/// 命令面板渲染条目：组标题或搜索结果。
+class _PaletteEntry {
+  final String type;
+  final GlobalSearchResult? result;
+
+  const _PaletteEntry._({required this.type, this.result});
+
+  factory _PaletteEntry.header(String type) => _PaletteEntry._(type: type);
+
+  factory _PaletteEntry.result(GlobalSearchResult r) =>
+      _PaletteEntry._(type: r.type, result: r);
+
+  bool get isHeader => result == null;
 }
