@@ -96,7 +96,8 @@ class _SmartInputBarState extends State<SmartInputBar> {
       padding: const EdgeInsets.fromLTRB(6, 2, 4, 2),
       child: Row(
         children: [
-          _modelButton(context),
+          // 模型按钮可收缩：模板名较长时避免功能栏右侧溢出
+          Flexible(child: _modelButton(context)),
           _roundIcon(Icons.alternate_email_rounded, '知识库', widget.onAt),
           Expanded(
             child: GestureDetector(
@@ -178,7 +179,8 @@ class _SmartInputBarState extends State<SmartInputBar> {
         const SizedBox(height: 8),
         Row(
           children: [
-            _modelButton(context),
+            // 模型按钮可收缩：模板名较长时避免功能栏右侧溢出
+            Flexible(child: _modelButton(context)),
             _roundIcon(Icons.alternate_email_rounded, '知识库', widget.onAt),
             const Spacer(),
             _roundIcon(
@@ -229,11 +231,15 @@ class _SmartInputBarState extends State<SmartInputBar> {
             Icon(Icons.auto_awesome_rounded,
                 size: 14, color: colorScheme.primary),
             const SizedBox(width: 4),
-            Text(
-              widget.modelLabel,
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
+            Flexible(
+              child: Text(
+                widget.modelLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             Icon(Icons.arrow_drop_down_rounded,
