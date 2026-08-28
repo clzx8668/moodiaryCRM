@@ -50,7 +50,7 @@ class TextCard extends StatelessWidget {
                     bottom: 0,
                     child: IgnorePointer(
                       child: Container(
-                        height: 48,
+                        height: 28,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
@@ -72,17 +72,20 @@ class TextCard extends StatelessWidget {
           MarkdownContentView(data: text),
         if (needCollapse)
           Center(
-            child: TextButton.icon(
-              onPressed: onToggleExpand,
-              style: TextButton.styleFrom(
-                foregroundColor: colorScheme.primary,
-                visualDensity: VisualDensity.compact,
+            // 只保留箭头图标（展开 ▾ / 收起 ▴），紧凑精致、无文字
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onToggleExpand,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  expanded
+                      ? Icons.expand_less_rounded
+                      : Icons.expand_more_rounded,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
               ),
-              icon: Icon(
-                expanded ? Icons.expand_less : Icons.expand_more,
-                size: 16,
-              ),
-              label: Text(expanded ? '收起' : '展开全文'),
             ),
           ),
       ],
