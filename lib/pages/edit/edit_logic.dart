@@ -135,6 +135,16 @@ class EditLogic extends GetxController {
       markdownTextEditingController?.text = args.initialContent!;
       state.currentDiary.content = args.initialContent!;
       state.totalCount.value = _toPlainText().length;
+    } else if (args.blockId == '') {
+      // 追加笔记：打开空白编辑器新建子笔记，不预填主笔记内容与媒体资源
+      markdownTextEditingController?.clear();
+      state.currentDiary.content = '';
+      state.currentDiary.contentText = '';
+      state.imageFileList.clear();
+      state.videoFileList.clear();
+      state.audioFileList.clear();
+      state.audioNameList.clear();
+      state.totalCount.value = 0;
     }
   }
 
