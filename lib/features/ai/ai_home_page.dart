@@ -675,7 +675,8 @@ class _AiHomePageState extends State<AiHomePage> {
   Widget _buildEmptyState(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Center(
-      child: Padding(
+      // 窄屏/矮屏下内容超高时可滚动，避免 bottom overflow
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
