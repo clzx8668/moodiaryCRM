@@ -7,6 +7,7 @@ import 'package:moodiary/features/crm/local/crm_prefs.dart';
 import 'package:moodiary/features/crm/crm_object_table_tab.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/local/crm_models.dart';
+import 'package:moodiary/features/crm/widgets/crm_opportunity_board.dart';
 import 'package:moodiary/persistence/isar.dart';
 
 /// CRM 模块首页（本地优先）：顶部 Tab 展示基础对象 + 自定义对象。
@@ -30,6 +31,14 @@ class _CrmHomePageState extends State<CrmHomePage>
   bool _globalOpen = false;
   Timer? _globalDebounce;
   final Map<String, int> _selectionCounts = {};
+
+  /// 商机对象是否切到看板视图（仅 opportunity Tab 生效）
+  bool _opportunityBoard = false;
+
+  String? get _activeType =>
+      (_tabs.isEmpty || _activeIndex < 0 || _activeIndex >= _tabs.length)
+      ? null
+      : _tabs[_activeIndex].type;
 
   int get _currentSelectionCount {
     if (_tabs.isEmpty || _activeIndex < 0 || _activeIndex >= _tabs.length) {
@@ -293,6 +302,17 @@ class _CrmHomePageState extends State<CrmHomePage>
                     icon: const Icon(Icons.dashboard_rounded),
                     onPressed: () => Get.to(() => const CrmDashboardPage()),
                   ),
+                  if (_activeType == 'opportunity')
+                    IconButton(
+                      tooltip: _opportunityBoard ? '切回表格' : '看板视图',
+                      icon: Icon(
+                        _opportunityBoard
+                            ? Icons.table_chart_outlined
+                            : Icons.view_kanban_outlined,
+                      ),
+                      onPressed: () =>
+                          setState(() => _opportunityBoard = !_opportunityBoard),
+                    ),
                 ],
               ),
             ),
@@ -326,22 +346,27 @@ class _CrmHomePageState extends State<CrmHomePage>
                         controller: _tabController,
                         children: [
                           for (var i = 0; i < _tabs.length; i++)
-                            CrmObjectTableTab(
-                              key: PageStorageKey('crm-tab-${_tabs[i].type}'),
-                              objectType: _tabs[i].type,
-                              title: _tabs[i].label,
-                              controller: _tableController,
-                              onRequestObjectView: _gotoTab,
-                              onSelectionCountChanged: (count) => setState(
-                                () => _selectionCounts[_tabs[i].type] = count,
+                            if (_tabs[i].type == 'opportunity' &&
+                                _opportunityBoard)
+                              const CrmOpportunityBoard()
+                            else
+                              CrmObjectTableTab(
+                                key: PageStorageKey('crm-tab-${_tabs[i].type}'),
+                                objectType: _tabs[i].type,
+                                title: _tabs[i].label,
+                                controller: _tableController,
+                                onRequestObjectView: _gotoTab,
+                                onSelectionCountChanged: (count) => setState(
+                                  () => _selectionCounts[_tabs[i].type] = count,
+                                ),
+                                controllerActive: i == _activeIndex,
+                                customObject: _tabs[i].type.startsWith('custom:')
+                                    ? _customObjects.firstWhere(
+                                        (o) =>
+                                            'custom:${o.id}' == _tabs[i].type,
+                                      )
+                                    : null,
                               ),
-                              controllerActive: i == _activeIndex,
-                              customObject: _tabs[i].type.startsWith('custom:')
-                                  ? _customObjects.firstWhere(
-                                      (o) => 'custom:${o.id}' == _tabs[i].type,
-                                    )
-                                  : null,
-                            ),
                         ],
                       ),
                     ),
