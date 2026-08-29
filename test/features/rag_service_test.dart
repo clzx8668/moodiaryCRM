@@ -88,16 +88,21 @@ void main() {
     );
   });
 
-  test('索引 Text 块并检索 topK', () async {
+  test('索引 Text/todo/code 块并检索 topK', () async {
     final kb = await service.createKnowledgeBase('测试库');
     await insertBlock('b1', content: '苹果 香蕉 会议');
     await insertBlock('b2', content: '合同 回款 发票');
     await insertBlock('b3', content: '苹果 市场 增长', type: BlockType.todo);
+    await insertBlock(
+      'b4',
+      content: 'SELECT * FROM orders',
+      type: BlockType.code,
+    );
 
     final indexed = await service.indexBlocks(knowledgeBaseId: kb.id);
-    // text 参与索引；todo/未完成 aiStream 不参与
-    expect(indexed, 2);
-    expect(await service.countEmbeddings(kb.id), 2);
+    // text/todo/code 参与索引；未完成 aiStream 不参与
+    expect(indexed, 4);
+    expect(await service.countEmbeddings(kb.id), 4);
 
     final hits = await service.search(kb.id, '苹果', topK: 5);
     expect(hits, isNotEmpty);

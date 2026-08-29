@@ -139,6 +139,8 @@ class RagService {
   static bool _indexable(Block block) {
     switch (block.blockType) {
       case BlockType.text:
+      case BlockType.todo:
+      case BlockType.code:
         return true;
       case BlockType.aiStream:
         return block.streamComplete && block.content.trim().isNotEmpty;
