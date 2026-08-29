@@ -4,6 +4,8 @@ import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/search/search_service.dart';
 import 'package:moodiary/features/ai/search/search_skill.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
+import 'package:moodiary/features/obsidian/obsidian_config.dart';
+import 'package:moodiary/features/obsidian/obsidian_service.dart';
 import 'package:moodiary/features/search/global_search_service.dart';
 
 /// AI 工具执行器（M4）：Function Calling 的工具注册与执行。
@@ -18,6 +20,7 @@ class ToolExecutor {
     register('note_search', _noteSearch);
     register('crm_query', _crmQuery);
     register('web_search', _webSearch);
+    register('obsidian_search', _obsidianSearch);
   }
 
   void register(
@@ -62,6 +65,17 @@ class ToolExecutor {
         'type': 'object',
         'properties': {
           'query': {'type': 'string', 'description': '搜索问题'},
+        },
+        'required': ['query'],
+      },
+    ),
+    AiToolDef(
+      name: 'obsidian_search',
+      description: '搜索 Obsidian Vault 中的笔记（需已配置并启用 Obsidian）',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'query': {'type': 'string', 'description': '搜索关键词'},
         },
         'required': ['query'],
       },
@@ -138,5 +152,22 @@ class ToolExecutor {
     }
     final results = await SearchService.fromPrefs().search(query, maxResults: 5);
     return SearchSkill.formatResults(results);
+  }
+
+  Future<String> _obsidianSearch(Map<String, dynamic> args) async {
+    final query = args['query']?.toString() ?? '';
+    if (query.trim().isEmpty) return '缺少搜索关键词';
+    if (!ObsidianConfig.isReady) {
+      return 'Obsidian 未启用（设置 → 数据源 → Obsidian）';
+    }
+    await ObsidianService.instance.scan();
+    final hits = ObsidianService.instance.search(query).take(5).toList();
+    if (hits.isEmpty) return '未找到相关 Obsidian 笔记';
+    return hits
+        .map(
+          (f) => '- ${f.relativePath}：'
+              '${f.content.length > 80 ? f.content.substring(0, 80) : f.content}',
+        )
+        .join('\n');
   }
 }

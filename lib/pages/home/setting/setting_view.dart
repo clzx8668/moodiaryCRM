@@ -19,6 +19,7 @@ import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
 import 'package:moodiary/features/crm/crm_settings_page.dart';
+import 'package:moodiary/features/obsidian/obsidian_settings_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -161,6 +162,15 @@ class SettingPage extends StatelessWidget {
                     logic.toHealthPage();
                   },
                   leading: const Icon(Icons.monitor_heart_rounded),
+                ),
+                AdaptiveListTile(
+                  title: const Text('Obsidian'),
+                  subtitle: const Text('配置本地 Vault：文件树 / 双链渲染 / AI 检索'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Get.to(() => const ObsidianSettingsPage());
+                  },
+                  leading: const Icon(Icons.link_rounded),
                 ),
                 AdaptiveListTile(
                   title: Text(context.l10n.settingClean),

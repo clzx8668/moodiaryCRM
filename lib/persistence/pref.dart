@@ -109,6 +109,9 @@ class PrefUtil {
     'aiSearchEngine',
     'aiSearchUrl',
     'aiSearchKey',
+    // Obsidian
+    'obsidianEnabled',
+    'obsidianVaultPath',
     // 局域网同步内容范围（notes/all）
     'lanSyncContentScope',
     // CRM 默认币种
@@ -312,6 +315,15 @@ class PrefUtil {
     );
     await _prefs.setString('aiSearchUrl', _prefs.getString('aiSearchUrl') ?? '');
     await _prefs.setString('aiSearchKey', _prefs.getString('aiSearchKey') ?? '');
+    // Obsidian（默认关闭；配置 Vault 路径并开启后首页显示子页）
+    await _prefs.setBool(
+      'obsidianEnabled',
+      _prefs.getBool('obsidianEnabled') ?? false,
+    );
+    await _prefs.setString(
+      'obsidianVaultPath',
+      _prefs.getString('obsidianVaultPath') ?? '',
+    );
     await _prefs.setString(
       'lanSyncContentScope',
       _prefs.getString('lanSyncContentScope') ?? 'all',

@@ -6,6 +6,7 @@ import 'package:moodiary/common/values/view_mode.dart';
 import 'package:moodiary/common/values/diary_sort.dart';
 import 'package:moodiary/components/diary_tab_view/diary_tab_view_logic.dart';
 import 'package:moodiary/components/scroll/fix_scroll.dart';
+import 'package:moodiary/features/obsidian/obsidian_config.dart';
 import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
@@ -28,10 +29,22 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
   void onInit() {
     autoSync();
     tabController = TabController(
-      length: state.categoryList.length + 1,
+      length: state.categoryList.length + 1 + (ObsidianConfig.isReady ? 1 : 0),
       vsync: this,
     );
     super.onInit();
+  }
+
+  /// Obsidian 开关/路径变化后重建 tab 控制器（Obsidian 固定为最后一个 tab）。
+  void refreshTabs() {
+    final old = tabController;
+    tabController = TabController(
+      length: state.categoryList.length + 1 + (ObsidianConfig.isReady ? 1 : 0),
+      vsync: this,
+    );
+    tabController.addListener(_tabBarListener);
+    old.dispose();
+    update();
   }
 
   @override
@@ -116,6 +129,10 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
       await homeLogic.showNavigatorBar();
     }
     if (offset == maxScrollExtent) {
+      if (tabController.index > state.categoryList.length) {
+        // Obsidian 页无分页，忽略
+        return;
+      }
       if (tabController.index == 0) {
         await Bind.find<DiaryTabViewLogic>(tag: 'default').paginationDiary();
       } else {

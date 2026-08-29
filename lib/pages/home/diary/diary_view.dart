@@ -6,6 +6,8 @@ import 'package:moodiary/common/values/diary_sort.dart';
 import 'package:moodiary/components/base/loading.dart';
 import 'package:moodiary/components/base/sheet.dart';
 import 'package:moodiary/components/base/text.dart';
+import 'package:moodiary/features/obsidian/obsidian_config.dart';
+import 'package:moodiary/features/obsidian/obsidian_page.dart';
 import 'package:moodiary/components/category_choice_sheet/category_choice_sheet_view.dart';
 import 'package:moodiary/components/diary_tab_view/diary_tab_view_view.dart';
 import 'package:moodiary/components/keepalive/keepalive.dart';
@@ -161,6 +163,15 @@ class DiaryPage extends StatelessWidget {
           );
         }),
       );
+      // Obsidian 子页（配置 Vault 并开启后显示，固定为最后一个 tab）
+      if (ObsidianConfig.isReady) {
+        allTabs.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8.0),
+            child: Tab(text: 'Obsidian'),
+          ),
+        );
+      }
       return Row(
         children: [
           IconButton(
@@ -257,6 +268,9 @@ class DiaryPage extends StatelessWidget {
           );
         }),
       );
+      if (ObsidianConfig.isReady) {
+        allViews.add(const KeepAliveWrapper(child: ObsidianPage()));
+      }
 
       return NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification notification) {
