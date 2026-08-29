@@ -50,6 +50,8 @@ class ObsidianService {
         DateTime.now().difference(_lastScan).inSeconds < 5) {
       return _files.length;
     }
+    // 先登记 vault 路径再遍历，_walk 里 p.relative 才能得到正确相对路径
+    _vaultPath = path;
     final root = Directory(path);
     if (!await root.exists()) return 0;
     final collected = <ObsidianFile>[];
@@ -58,7 +60,6 @@ class ObsidianService {
       (a, b) => a.relativePath.compareTo(b.relativePath),
     );
     _files = collected;
-    _vaultPath = path;
     _lastScan = DateTime.now();
     return _files.length;
   }

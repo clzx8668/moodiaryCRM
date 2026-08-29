@@ -29,17 +29,21 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
   void onInit() {
     autoSync();
     tabController = TabController(
-      length: state.categoryList.length + 1 + (ObsidianConfig.isReady ? 1 : 0),
+      length: _tabLength(),
       vsync: this,
     );
     super.onInit();
   }
 
+  /// 当前 tab 总数 = 「全部」+ 分类 + Obsidian（启用时固定末位）。
+  int _tabLength() =>
+      state.categoryList.length + 1 + (ObsidianConfig.isReady ? 1 : 0);
+
   /// Obsidian 开关/路径变化后重建 tab 控制器（Obsidian 固定为最后一个 tab）。
   void refreshTabs() {
     final old = tabController;
     tabController = TabController(
-      length: state.categoryList.length + 1 + (ObsidianConfig.isReady ? 1 : 0),
+      length: _tabLength(),
       vsync: this,
     );
     tabController.addListener(_tabBarListener);
@@ -167,6 +171,13 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
   /// 2. update ho
   void checkPageChange() {
     state.currentTabBarIndex = tabController.index;
+    if (state.currentTabBarIndex > state.categoryList.length) {
+      // Obsidian 页：无日记分页，全部分类态取消激活
+      state.keyMap.forEach((k, v) {
+        v.currentState?.onPageChange(false);
+      });
+      return;
+    }
     // 获取当前分类ID，若为默认分类，设为 'default'
     final String categoryId =
         state.currentTabBarIndex == 0
@@ -251,7 +262,7 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
     //重新创建控制器
     tabController.removeListener(_tabBarListener);
     tabController = TabController(
-      length: state.categoryList.length + 1,
+      length: _tabLength(),
       vsync: this,
       initialIndex: state.currentTabBarIndex,
     );

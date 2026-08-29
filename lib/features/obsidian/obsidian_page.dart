@@ -14,6 +14,7 @@ class ObsidianPage extends StatefulWidget {
 
 class _ObsidianPageState extends State<ObsidianPage> {
   final ObsidianService _service = ObsidianService.instance;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _loading = true;
   _Node? _tree;
   ObsidianFile? _selected;
@@ -25,9 +26,10 @@ class _ObsidianPageState extends State<ObsidianPage> {
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool force = false}) async {
     setState(() => _loading = true);
-    await _service.scan(force: true);
+    // 首次加载复用 5 秒幂等缓存；「刷新文件树」按钮才强制重扫
+    await _service.scan(force: force);
     if (!mounted) return;
     setState(() {
       _tree = _buildTree(_service.files);
@@ -54,10 +56,8 @@ class _ObsidianPageState extends State<ObsidianPage> {
       _selected = file;
       _refreshLinks();
     });
-    if (Navigator.of(context).canPop()) {
-      // 关闭抽屉（EndDrawer 打开时）
-      Scaffold.of(context).closeEndDrawer();
-    }
+    // 关闭抽屉（EndDrawer 打开时）
+    _scaffoldKey.currentState?.closeEndDrawer();
   }
 
   void _jumpToLink(String link) {
@@ -70,9 +70,10 @@ class _ObsidianPageState extends State<ObsidianPage> {
   }
 
   _Node? _buildTree(List<ObsidianFile> files) {
-    const root = _Node('', []);
+    final root = _Node('', []);
     for (final f in files) {
-      final parts = f.relativePath.split('/');
+      // Windows 下 p.relative 返回反斜杠路径，统一按 / 与 \ 拆分
+      final parts = f.relativePath.split(RegExp(r'[\\/]'));
       var node = root;
       for (var i = 0; i < parts.length - 1; i++) {
         node = node.childOrCreate(parts[i]);
@@ -86,6 +87,7 @@ class _ObsidianPageState extends State<ObsidianPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: Text(
           _selected == null ? 'Obsidian' : _selected!.linkName,
@@ -94,8 +96,13 @@ class _ObsidianPageState extends State<ObsidianPage> {
         leading: const PageBackButton(),
         actions: [
           IconButton(
+            tooltip: '文件目录树',
+            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+            icon: const Icon(Icons.account_tree_outlined),
+          ),
+          IconButton(
             tooltip: '刷新文件树',
-            onPressed: _load,
+            onPressed: () => _load(force: true),
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
@@ -226,7 +233,8 @@ class _Node {
   final List<_Node> children;
   final ObsidianFile? file;
 
-  const _Node(this.name, this.children, {this.file});
+  _Node(this.name, List<_Node> children, {this.file})
+      : children = List.of(children);
 
   _Node childOrCreate(String name) {
     for (final c in children) {
