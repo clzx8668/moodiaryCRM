@@ -41,6 +41,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
   final TextEditingController _aiInput = TextEditingController();
   final FocusNode _aiFocus = FocusNode();
   bool _voiceMode = false;
+  bool _listening = false;
 
   @override
   void initState() {
@@ -122,11 +123,9 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
 
   /// 语音识别：长按「按住 说话」开始，识别结果追加到输入框。
   Future<void> _startVoiceInput() async {
-    if (SpeechService.instance.isListening) {
-      await SpeechService.instance.stopListening();
-      return;
-    }
+    if (_listening || SpeechService.instance.isListening) return;
     final ok = await SpeechService.instance.startListening((text) {
+      if (mounted) setState(() => _listening = false);
       if (text.trim().isEmpty) return;
       final base = _aiInput.text.trim();
       _aiInput.text = base.isEmpty ? text : '$base\n$text';
@@ -135,9 +134,18 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
       );
       toast.success(message: '已识别：$text');
     });
-    if (!ok) {
+    if (ok) {
+      setState(() => _listening = true);
+    } else {
       toast.error(message: '当前设备不支持语音识别，请检查系统语音设置');
     }
+  }
+
+  /// 松手结束识别。
+  Future<void> _stopVoiceInput() async {
+    if (!_listening && !SpeechService.instance.isListening) return;
+    await SpeechService.instance.stopListening();
+    if (mounted) setState(() => _listening = false);
   }
 
   /// 桌面端约束主列阅读宽度，移动端全宽。
@@ -471,7 +479,9 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                 modelLabel: '记录问答',
                 voiceMode: _voiceMode,
                 onToggleVoice: () => setState(() => _voiceMode = !_voiceMode),
-                onLongPressVoice: _startVoiceInput,
+                onLongPressStart: _startVoiceInput,
+                onLongPressEnd: _stopVoiceInput,
+                listening: _listening,
                 onModelSelect: logic.pickChatModel,
                 onAt: logic.pickChatKnowledge,
                 onSend: (text) {

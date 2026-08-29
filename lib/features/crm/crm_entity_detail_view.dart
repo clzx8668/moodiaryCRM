@@ -304,11 +304,16 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
 
   Future<void> _commit(LocalObjectField field) async {
     if (_savingFields.contains(field.name)) return;
-    _savingFields.add(field.name);
     var raw = _controllers[field.name]!.text.trim();
     if (field.type == 'date') {
       raw = normalizeDateInput(raw) ?? raw;
     }
+    final error = _validateField(field, raw);
+    if (error != null) {
+      toast.error(message: error);
+      return; // 保持编辑态，待用户修正
+    }
+    _savingFields.add(field.name);
     try {
       await CrmEntityFieldUpdater.update(
         objectType: widget.objectType,
@@ -329,6 +334,37 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
     } finally {
       _savingFields.remove(field.name);
     }
+  }
+
+  /// 原位编辑校验：数字/金额/百分比范围与对象特有规则（回款、发票金额 > 0 等）。
+  String? _validateField(LocalObjectField field, String raw) {
+    if (raw.isEmpty) return null; // 留空允许清除字段
+
+    if (field.type == 'number') {
+      final value = double.tryParse(raw);
+      if (value == null) return '请输入有效数字';
+      if (field.name == 'probability' && (value < 0 || value > 100)) {
+        return '成交概率需在 0–100 之间';
+      }
+      if (field.name == 'taxRate' && (value < 0 || value > 100)) {
+        return '税率需在 0–100 之间';
+      }
+      if (field.name == 'warrantyMonths' && value < 0) {
+        return '质保月数不能为负';
+      }
+    }
+
+    if (field.type == 'currency') {
+      final value = double.tryParse(raw);
+      if (value == null) return '请输入有效金额';
+      if (value < 0) return '金额不能为负';
+      final mustBePositive = (widget.objectType == 'payment' &&
+              field.name == 'amount') ||
+          (widget.objectType == 'invoice' && field.name == 'amount');
+      if (mustBePositive && value <= 0) return '金额需大于 0';
+    }
+
+    return null;
   }
 
   Future<void> _commitSelect(LocalObjectField field, String value) async {

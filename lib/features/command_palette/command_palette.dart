@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/search/global_search_service.dart';
+import 'package:moodiary/pages/edit/edit_arguments.dart';
 import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/router/app_routes.dart';
 
-/// 全局命令面板（Ctrl+K / ⌘K）：跨日记 / 子笔记 / CRM 搜索并跳转。
+/// 全局命令面板（Ctrl+K / ⌘K）：跨日记 / 子笔记 / CRM 搜索并跳转，附带快捷命令。
 ///
 /// 覆盖层固定在顶部居中（桌面风格命令面板），Esc 或点击遮罩关闭。
 Future<void> showCommandPalette(BuildContext context) {
@@ -45,13 +47,15 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
     'diary': '日记',
     'block': '子笔记',
     'crm': 'CRM',
+    'recent': '最近',
+    'other': '其他',
   };
 
-  /// 当前展示的扁平结果（空输入 = 最近记录）
-  List<GlobalSearchResult> get _flat =>
-      _controller.text.trim().isEmpty ? _recent : _results;
+  static const List<_Command> _commands = [
+    _Command('new_diary', '新建日记', Icons.note_add_outlined, ['新建', 'new']),
+  ];
 
-  /// 渲染条目：组标题 / 结果项
+  /// 渲染条目：命令 / 组标题 / 结果项
   List<_PaletteEntry> _entries = [];
 
   @override
@@ -98,25 +102,50 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
   }
 
   void _rebuildEntries() {
-    final flat = _flat;
     _entries = [];
-    for (final type in _groupOrder) {
-      final group = flat.where((r) => r.type == type).toList();
-      if (group.isEmpty) continue;
-      _entries.add(_PaletteEntry.header(type));
-      for (final r in group) {
-        _entries.add(_PaletteEntry.result(r));
+    final q = _controller.text.trim();
+
+    if (q.isEmpty) {
+      _appendCommands(matchAll: true);
+      if (_recent.isNotEmpty) {
+        _entries.add(const _PaletteEntry.header('recent'));
+        for (final r in _recent) {
+          _entries.add(_PaletteEntry.result(r));
+        }
+      }
+    } else {
+      _appendCommands(matchAll: false);
+      for (final type in _groupOrder) {
+        final group = _results.where((r) => r.type == type).toList();
+        if (group.isEmpty) continue;
+        _entries.add(_PaletteEntry.header(type));
+        for (final r in group) {
+          _entries.add(_PaletteEntry.result(r));
+        }
+      }
+      final ungrouped =
+          _results.where((r) => !_groupOrder.contains(r.type)).toList();
+      if (ungrouped.isNotEmpty) {
+        _entries.add(const _PaletteEntry.header('other'));
+        for (final r in ungrouped) {
+          _entries.add(_PaletteEntry.result(r));
+        }
       }
     }
-    if (_entries.isEmpty && flat.isNotEmpty) {
-      // 兜底：未知类型归入「其他」
-      _entries.add(_PaletteEntry.header('other'));
-      for (final r in flat) {
-        _entries.add(_PaletteEntry.result(r));
-      }
-    }
-    if (_selectedIndex >= flat.length) {
+
+    if (_selectedIndex >= _selectableCount) {
       _selectedIndex = 0;
+    }
+  }
+
+  /// 追加命令入口：空输入时全部展示；有输入时按关键词匹配。
+  void _appendCommands({required bool matchAll}) {
+    final lower = _controller.text.trim().toLowerCase();
+    for (final c in _commands) {
+      final matched = matchAll || c.keywords.any((k) => lower.contains(k));
+      if (matched) {
+        _entries.add(_PaletteEntry.command(c));
+      }
     }
   }
 
@@ -150,50 +179,65 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
       Navigator.of(context).pop();
       return KeyEventResult.handled;
     }
-    final flat = _flat;
-    if (flat.isEmpty) return KeyEventResult.ignored;
+    if (_selectableCount == 0) return KeyEventResult.ignored;
     if (key == LogicalKeyboardKey.arrowDown) {
       setState(() {
-        _selectedIndex = (_selectedIndex + 1) % flat.length;
+        _selectedIndex = (_selectedIndex + 1) % _selectableCount;
         _scrollToSelected();
       });
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.arrowUp) {
       setState(() {
-        _selectedIndex =
-            (_selectedIndex - 1 + flat.length) % flat.length;
+        _selectedIndex = (_selectedIndex - 1 + _selectableCount) %
+            _selectableCount;
         _scrollToSelected();
       });
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.enter) {
-      _open(flat[_selectedIndex]);
+      final entry = _selectableAt(_selectedIndex);
+      if (entry != null) {
+        if (entry.isCommand) {
+          _runCommand(entry.command!);
+        } else {
+          _open(entry.result!);
+        }
+      }
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
   }
 
-  void _scrollToSelected() {
-    // 找到选中结果的渲染位置（跳过组标题），近似滚动
-    var resultIdx = 0;
-    var itemIdx = 0;
+  int get _selectableCount => _entries.where((e) => !e.isHeader).length;
+
+  _PaletteEntry? _selectableAt(int index) {
+    var i = 0;
     for (final e in _entries) {
-      if (!e.isHeader) {
-        if (resultIdx == _selectedIndex) {
-          final target = itemIdx * 56.0;
-          if (_scroll.hasClients) {
-            _scroll.animateTo(
-              target > 200 ? target - 100 : 0,
-              duration: const Duration(milliseconds: 120),
-              curve: Curves.easeOut,
-            );
-          }
-          return;
+      if (e.isHeader) continue;
+      if (i == index) return e;
+      i++;
+    }
+    return null;
+  }
+
+  void _scrollToSelected() {
+    var selectableIdx = 0;
+    for (var i = 0; i < _entries.length; i++) {
+      final e = _entries[i];
+      if (e.isHeader) continue;
+      if (selectableIdx == _selectedIndex) {
+        final target = i * 48.0;
+        if (_scroll.hasClients) {
+          _scroll.animateTo(
+            target > 160 ? target - 80 : 0,
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOut,
+          );
         }
-        resultIdx++;
+        return;
       }
-      itemIdx++;
+      selectableIdx++;
     }
   }
 
@@ -215,6 +259,17 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
     }
   }
 
+  Future<void> _runCommand(_Command c) async {
+    Navigator.of(context).pop();
+    switch (c.id) {
+      case 'new_diary':
+        await Get.toNamed(
+          AppRoutes.editPage,
+          arguments: const EditArguments(type: DiaryType.markdown),
+        );
+    }
+  }
+
   IconData _typeIcon(String type) {
     return switch (type) {
       'diary' => Icons.article_outlined,
@@ -227,6 +282,11 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final highlightStyle = TextStyle(
+      color: colorScheme.primary,
+      fontWeight: FontWeight.w700,
+      backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
+    );
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Focus(
@@ -270,14 +330,12 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
                                   child: CircularProgressIndicator(),
                                 ),
                               )
-                            : _flat.isEmpty
+                            : _entries.isEmpty
                             ? Center(
                                 child: Padding(
                                   padding: const EdgeInsets.all(24),
                                   child: Text(
-                                    _controller.text.trim().isEmpty
-                                        ? '没有最近记录，输入关键词搜索'
-                                        : '没有匹配结果',
+                                    '没有匹配结果',
                                     style: TextStyle(
                                       color: colorScheme.onSurfaceVariant,
                                     ),
@@ -286,6 +344,7 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
                               )
                             : ListView.builder(
                                 controller: _scroll,
+                                itemCount: _entries.length,
                                 itemBuilder: (context, index) {
                                   final entry = _entries[index];
                                   if (entry.isHeader) {
@@ -306,9 +365,36 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
                                       ),
                                     );
                                   }
+                                  if (entry.isCommand) {
+                                    final cmd = entry.command!;
+                                    final selected =
+                                        _selectableIndexOf(entry) ==
+                                            _selectedIndex;
+                                    return ListTile(
+                                      dense: true,
+                                      selected: selected,
+                                      selectedTileColor:
+                                          colorScheme.secondaryContainer
+                                              .withValues(alpha: 0.5),
+                                      leading: Icon(
+                                        cmd.icon,
+                                        color: colorScheme.primary,
+                                      ),
+                                      title: Text(cmd.label),
+                                      trailing: Text(
+                                        '命令',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                      onTap: () => _runCommand(cmd),
+                                    );
+                                  }
                                   final r = entry.result!;
-                                  final resultIdx = _resultIndexOf(entry);
-                                  final selected = resultIdx == _selectedIndex;
+                                  final selected =
+                                      _selectableIndexOf(entry) ==
+                                          _selectedIndex;
                                   return ListTile(
                                     dense: true,
                                     selected: selected,
@@ -319,13 +405,25 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
                                       _typeIcon(r.type),
                                       color: colorScheme.primary,
                                     ),
-                                    title: Text(
-                                      r.title,
+                                    title: Text.rich(
+                                      TextSpan(
+                                        children: _highlightSpans(
+                                          r.title,
+                                          _controller.text.trim(),
+                                          highlightStyle,
+                                        ),
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    subtitle: Text(
-                                      r.snippet,
+                                    subtitle: Text.rich(
+                                      TextSpan(
+                                        children: _highlightSpans(
+                                          r.snippet,
+                                          _controller.text.trim(),
+                                          highlightStyle,
+                                        ),
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -339,7 +437,6 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
                                     onTap: () => _open(r),
                                   );
                                 },
-                                itemCount: _entries.length,
                               ),
                       ),
                     ],
@@ -353,29 +450,81 @@ class _CommandPalettePageState extends State<CommandPalettePage> {
     );
   }
 
-  /// 当前渲染条目对应扁平结果中的序号（-1 表示组标题）。
-  int _resultIndexOf(_PaletteEntry entry) {
-    var resultIdx = 0;
+  /// 当前渲染条目对应可选条目中的序号（-1 表示组标题）。
+  int _selectableIndexOf(_PaletteEntry entry) {
+    var i = 0;
     for (final e in _entries) {
       if (e.isHeader) continue;
-      if (identical(e, entry)) return resultIdx;
-      resultIdx++;
+      if (identical(e, entry)) return i;
+      i++;
     }
     return -1;
   }
+
+  /// 高亮 [text] 中出现的 [query]（不区分大小写）。
+  List<InlineSpan> _highlightSpans(
+    String text,
+    String query,
+    TextStyle highlightStyle,
+  ) {
+    if (query.isEmpty) return [TextSpan(text: text)];
+    final spans = <InlineSpan>[];
+    final lower = text.toLowerCase();
+    final q = query.toLowerCase();
+    var start = 0;
+    var idx = lower.indexOf(q);
+    while (idx >= 0 && idx < text.length) {
+      if (idx > start) {
+        spans.add(TextSpan(text: text.substring(start, idx)));
+      }
+      spans.add(
+        TextSpan(
+          text: text.substring(idx, idx + query.length),
+          style: highlightStyle,
+        ),
+      );
+      start = idx + query.length;
+      idx = lower.indexOf(q, start);
+    }
+    if (start < text.length) {
+      spans.add(TextSpan(text: text.substring(start)));
+    }
+    return spans.isEmpty ? [TextSpan(text: text)] : spans;
+  }
 }
 
-/// 命令面板渲染条目：组标题或搜索结果。
+/// 命令面板中的快捷命令。
+class _Command {
+  const _Command(this.id, this.label, this.icon, this.keywords);
+
+  final String id;
+  final String label;
+  final IconData icon;
+
+  /// 小写关键词，命中任一则在搜索时展示该命令。
+  final List<String> keywords;
+}
+
+/// 命令面板渲染条目：命令 / 组标题 / 搜索结果。
 class _PaletteEntry {
   final String type;
   final GlobalSearchResult? result;
+  final _Command? command;
 
-  const _PaletteEntry._({required this.type, this.result});
+  const _PaletteEntry.header(this.type)
+      : result = null,
+        command = null;
 
-  factory _PaletteEntry.header(String type) => _PaletteEntry._(type: type);
+  _PaletteEntry.result(GlobalSearchResult r)
+      : type = r.type,
+        result = r,
+        command = null;
 
-  factory _PaletteEntry.result(GlobalSearchResult r) =>
-      _PaletteEntry._(type: r.type, result: r);
+  const _PaletteEntry.command(_Command c)
+      : type = 'command',
+        result = null,
+        command = c;
 
-  bool get isHeader => result == null;
+  bool get isHeader => result == null && command == null;
+  bool get isCommand => command != null;
 }

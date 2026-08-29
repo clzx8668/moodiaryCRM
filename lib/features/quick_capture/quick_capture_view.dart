@@ -85,13 +85,15 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                 onModelSelect: () => _showTemplatePicker(context, logic, state),
                 onAt: () => toast.info(message: '智能提及功能预留'),
                 onToggleVoice: logic.toggleVoiceMode,
-                onLongPressVoice: () => logic.startRecording(
+                onLongPressStart: () => logic.startRecording(
                   onText: (text) {
                     final base = _controller.text.trim();
                     _controller.text = base.isEmpty ? text : '$base\n$text';
                     state.text.value = _controller.text;
                   },
                 ),
+                onLongPressEnd: logic.stopRecording,
+                listening: state.recording.value,
                 onPlus: () => _showAttachmentGrid(context, logic),
                 onSend: (text) async {
                   state.text.value = text;

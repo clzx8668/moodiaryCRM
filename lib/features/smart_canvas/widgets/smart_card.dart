@@ -92,6 +92,9 @@ class SmartCard extends StatelessWidget {
       color: blockBackground(block.blockType, colorScheme),
       child: InkWell(
         onTap: onTap,
+        onSecondaryTapDown: (details) =>
+            _openContextMenu(context, details.globalPosition),
+        hoverColor: colorScheme.onSurface.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
@@ -281,29 +284,8 @@ class SmartCard extends StatelessWidget {
             padding: EdgeInsets.zero,
           ),
           icon: const Icon(Icons.more_vert_rounded),
-          onSelected: (v) {
-            switch (v) {
-              case 'edit':
-                onTap?.call();
-                break;
-              case 'ai':
-                onAi?.call();
-                break;
-              case 'todo':
-                onConvertTodo?.call();
-                break;
-              case 'delete':
-                onDelete?.call();
-                break;
-            }
-          },
-          itemBuilder: (_) => [
-            const PopupMenuItem(value: 'edit', child: Text('编辑')),
-            const PopupMenuItem(value: 'ai', child: Text('AI 处理')),
-            if (block.blockType != BlockType.todo)
-              const PopupMenuItem(value: 'todo', child: Text('转待办')),
-            const PopupMenuItem(value: 'delete', child: Text('删除')),
-          ],
+          onSelected: _dispatchMenu,
+          itemBuilder: (_) => _menuEntries(),
         ),
       ],
     );
@@ -336,6 +318,50 @@ class SmartCard extends StatelessWidget {
           onStop: onStop,
         );
     }
+  }
+
+  /// 卡片「更多」菜单项（⋮ 按钮与右键共用，保证移动/桌面一致）。
+  List<PopupMenuEntry<String>> _menuEntries() {
+    return [
+      const PopupMenuItem(value: 'edit', child: Text('编辑')),
+      const PopupMenuItem(value: 'ai', child: Text('AI 处理')),
+      if (block.blockType != BlockType.todo)
+        const PopupMenuItem(value: 'todo', child: Text('转待办')),
+      const PopupMenuItem(value: 'delete', child: Text('删除')),
+    ];
+  }
+
+  void _dispatchMenu(String value) {
+    switch (value) {
+      case 'edit':
+        onTap?.call();
+        break;
+      case 'ai':
+        onAi?.call();
+        break;
+      case 'todo':
+        onConvertTodo?.call();
+        break;
+      case 'delete':
+        onDelete?.call();
+        break;
+    }
+  }
+
+  /// 桌面右键：在指针位置弹出与 ⋮ 一致的菜单。
+  Future<void> _openContextMenu(BuildContext context, Offset globalPos) async {
+    final size = MediaQuery.sizeOf(context);
+    final value = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        globalPos.dx,
+        globalPos.dy,
+        size.width - globalPos.dx,
+        size.height - globalPos.dy,
+      ),
+      items: _menuEntries(),
+    );
+    if (value != null) _dispatchMenu(value);
   }
 }
 

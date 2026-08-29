@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 /// 语音识别服务（Android 系统语音识别 / Windows SAPI）。
 ///
 /// 全局单例：惰性初始化，识别结果以「最终结果」回调给调用方。
+/// 通过 [status] / [error] 暴露实时状态，供 UI 展示「识别中」等反馈。
 class SpeechService {
   SpeechService._();
 
@@ -12,6 +14,12 @@ class SpeechService {
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _initialized = false;
   bool _available = false;
+
+  /// 最近一次识别状态：`idle` / `listening` / `notListening` / `done` / `error`。
+  final ValueNotifier<String> status = ValueNotifier<String>('idle');
+
+  /// 最近一次识别错误信息（无错误时为 null）。
+  final ValueNotifier<String?> error = ValueNotifier<String?>(null);
 
   bool get isAvailable => _available;
 
@@ -22,8 +30,11 @@ class SpeechService {
     if (_initialized) return _available;
     _initialized = true;
     _available = await _speech.initialize(
-      onStatus: (_) {},
-      onError: (_) {},
+      onStatus: (s) => status.value = s,
+      onError: (e) {
+        error.value = e.errorMsg;
+        status.value = 'error';
+      },
     );
     return _available;
   }

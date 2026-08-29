@@ -113,11 +113,7 @@ class QuickCaptureLogic extends GetxController {
   /// 开始语音识别（长按「按住 说话」触发），识别结果通过 [onText] 回填输入框。
   Future<void> startRecording({void Function(String text)? onText}) async {
     if (state.text.value.trim().isNotEmpty) return; // 有内容时按住说话失效
-    if (SpeechService.instance.isListening) {
-      await SpeechService.instance.stopListening();
-      state.recording.value = false;
-      return;
-    }
+    if (SpeechService.instance.isListening) return;
     state.recording.value = true;
     final ok = await SpeechService.instance.startListening((text) {
       if (text.trim().isEmpty) return;

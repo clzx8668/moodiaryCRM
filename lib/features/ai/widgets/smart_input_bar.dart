@@ -17,7 +17,10 @@ class SmartInputBar extends StatefulWidget {
   final VoidCallback? onStop;
   final bool voiceMode;
   final VoidCallback? onToggleVoice;
-  final VoidCallback? onLongPressVoice;
+  final VoidCallback? onLongPressStart;
+  final VoidCallback? onLongPressEnd;
+  final VoidCallback? onLongPressCancel;
+  final bool listening;
   final String modelLabel;
   final VoidCallback? onModelSelect;
   final VoidCallback? onAt;
@@ -35,7 +38,10 @@ class SmartInputBar extends StatefulWidget {
     this.onStop,
     this.voiceMode = false,
     this.onToggleVoice,
-    this.onLongPressVoice,
+    this.onLongPressStart,
+    this.onLongPressEnd,
+    this.onLongPressCancel,
+    this.listening = false,
     this.modelLabel = '快速',
     this.onModelSelect,
     this.onAt,
@@ -46,19 +52,41 @@ class SmartInputBar extends StatefulWidget {
   State<SmartInputBar> createState() => _SmartInputBarState();
 }
 
-class _SmartInputBarState extends State<SmartInputBar> {
+class _SmartInputBarState extends State<SmartInputBar>
+    with SingleTickerProviderStateMixin {
   late bool _active;
+  late final AnimationController _pulse;
+  late final Animation<double> _pulseAnim;
 
   @override
   void initState() {
     super.initState();
     _active = widget.startActive;
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _pulseAnim = Tween<double>(begin: 0.4, end: 1).animate(
+      CurvedAnimation(parent: _pulse, curve: Curves.easeInOut),
+    );
     widget.controller.addListener(_onChanged);
     widget.focusNode?.addListener(_onFocusChanged);
   }
 
   @override
+  void didUpdateWidget(covariant SmartInputBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.listening && !oldWidget.listening) {
+      _pulse.repeat(reverse: true);
+    } else if (!widget.listening && oldWidget.listening) {
+      _pulse.stop();
+      _pulse.value = 0;
+    }
+  }
+
+  @override
   void dispose() {
+    _pulse.dispose();
     widget.controller.removeListener(_onChanged);
     widget.focusNode?.removeListener(_onFocusChanged);
     super.dispose();
@@ -108,24 +136,39 @@ class _SmartInputBarState extends State<SmartInputBar> {
                   widget.focusNode?.requestFocus();
                 });
               },
-              onLongPress: widget.onLongPressVoice,
+              onLongPressStart: widget.onLongPressStart == null
+                  ? null
+                  : (_) => widget.onLongPressStart!(),
+              onLongPressEnd: widget.onLongPressEnd == null
+                  ? null
+                  : (_) => widget.onLongPressEnd!(),
+              onLongPressCancel: widget.onLongPressCancel,
               child: Container(
                 height: 44,
                 alignment: Alignment.center,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      widget.voiceMode
-                          ? Icons.mic_none_rounded
-                          : Icons.keyboard_alt_outlined,
-                      size: 18,
-                      color: colorScheme.outline,
-                    ),
+                    if (widget.listening)
+                      _pulsingMic(colorScheme)
+                    else
+                      Icon(
+                        widget.voiceMode
+                            ? Icons.mic_none_rounded
+                            : Icons.keyboard_alt_outlined,
+                        size: 18,
+                        color: colorScheme.outline,
+                      ),
                     const SizedBox(width: 6),
                     Text(
-                      widget.voiceMode ? '按住 说话' : widget.collapsedHint,
-                      style: TextStyle(color: colorScheme.outline),
+                      widget.listening
+                          ? '正在聆听…'
+                          : (widget.voiceMode ? '按住 说话' : widget.collapsedHint),
+                      style: TextStyle(
+                        color: widget.listening
+                            ? colorScheme.primary
+                            : colorScheme.outline,
+                      ),
                     ),
                   ],
                 ),
@@ -157,24 +200,27 @@ class _SmartInputBarState extends State<SmartInputBar> {
             color: colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: TextField(
-            controller: widget.controller,
-            focusNode: widget.focusNode,
-            autofocus: widget.startActive,
-            minLines: 1,
-            maxLines: 5,
-            textInputAction: TextInputAction.newline,
-            decoration: InputDecoration(
-              hintText: widget.activeHint,
-              isDense: true,
-              border: const OutlineInputBorder(borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
-            ),
-            onSubmitted: (_) => _submit(),
-          ),
+          child: widget.voiceMode
+              ? _buildVoiceHold()
+              : TextField(
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
+                  autofocus: widget.startActive,
+                  minLines: 1,
+                  maxLines: 5,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: widget.activeHint,
+                    isDense: true,
+                    border:
+                        const OutlineInputBorder(borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                  ),
+                  onSubmitted: (_) => _submit(),
+                ),
         ),
         const SizedBox(height: 8),
         Row(
@@ -245,6 +291,63 @@ class _SmartInputBarState extends State<SmartInputBar> {
             Icon(Icons.arrow_drop_down_rounded,
                 size: 16, color: colorScheme.onSurfaceVariant),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVoiceHold() {
+    final colorScheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPressStart: widget.onLongPressStart == null
+          ? null
+          : (_) => widget.onLongPressStart!(),
+      onLongPressEnd: widget.onLongPressEnd == null
+          ? null
+          : (_) => widget.onLongPressEnd!(),
+      onLongPressCancel: widget.onLongPressCancel,
+      child: Container(
+        height: 52,
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.listening)
+              _pulsingMic(colorScheme)
+            else
+              Icon(Icons.mic_none_rounded, size: 18, color: colorScheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              widget.listening ? '正在聆听…' : '按住 说话',
+              style: TextStyle(
+                color: widget.listening
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _pulsingMic(ColorScheme colorScheme) {
+    return FadeTransition(
+      opacity: _pulseAnim,
+      child: ScaleTransition(
+        scale: _pulseAnim,
+        child: Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.mic_rounded,
+            size: 16,
+            color: colorScheme.primary,
+          ),
         ),
       ),
     );
