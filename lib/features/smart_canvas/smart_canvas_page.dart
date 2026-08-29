@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
@@ -9,6 +12,7 @@ import 'package:moodiary/components/mood_icon/mood_icon_view.dart';
 import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/search/global_search_service.dart';
 import 'package:moodiary/features/smart_canvas/services/card_action_router.dart';
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
 import 'package:moodiary/features/smart_canvas/widgets/chat_bubble.dart';
@@ -42,6 +46,9 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
   final FocusNode _aiFocus = FocusNode();
   bool _voiceMode = false;
   bool _listening = false;
+
+  /// 📎 附加知识文本列表（文件/笔记/CRM），注入 AI 对话上下文
+  final List<String> _attachments = [];
 
   @override
   void initState() {
@@ -146,6 +153,229 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     if (!_listening && !SpeechService.instance.isListening) return;
     await SpeechService.instance.stopListening();
     if (mounted) setState(() => _listening = false);
+  }
+
+  /// 📎 附加知识选择器：本地文件 / 已有笔记 / CRM 记录。
+  Future<void> _showAttachmentPicker() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.attach_file_rounded),
+              title: const Text('本地文件（TXT / Markdown）'),
+              onTap: () => Navigator.pop(context, 'file'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.article_outlined),
+              title: const Text('已有笔记'),
+              onTap: () => Navigator.pop(context, 'note'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.business_outlined),
+              title: const Text('CRM 客户 / 记录'),
+              onTap: () => Navigator.pop(context, 'crm'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    switch (choice) {
+      case 'file':
+        await _pickFileAttachment();
+      case 'note':
+        await _pickNoteAttachment();
+      case 'crm':
+        await _pickCrmAttachment();
+    }
+  }
+
+  void _addAttachment(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+    setState(() => _attachments.add(trimmed));
+  }
+
+  Future<void> _pickFileAttachment() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['txt', 'md'],
+      allowMultiple: true,
+    );
+    if (result == null) return;
+    for (final file in result.files) {
+      final path = file.path;
+      if (path == null) continue;
+      try {
+        final text = await File(path).readAsString();
+        final name = file.name;
+        _addAttachment('文件《$name》\n${text.length > 2000 ? text.substring(0, 2000) : text}');
+      } catch (e) {
+        toast.error(message: '读取文件失败：$e');
+      }
+    }
+  }
+
+  Future<void> _pickNoteAttachment() async {
+    final controller = TextEditingController();
+    var results = <GlobalSearchResult>[];
+    await showDialog<GlobalSearchResult>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('选择笔记作为参考资料'),
+          content: SizedBox(
+            width: 420,
+            height: 360,
+            child: Column(
+              children: [
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: '搜索笔记…',
+                    prefixIcon: Icon(Icons.search_rounded),
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (v) async {
+                    final r = await GlobalSearchService.search(v);
+                    if (dialogContext.mounted) {
+                      setDialogState(() {
+                        results = r
+                            .where((e) => e.type == 'diary')
+                            .take(20)
+                            .toList();
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: results.isEmpty
+                      ? const Center(child: Text('输入关键词搜索笔记'))
+                      : ListView.builder(
+                          itemCount: results.length,
+                          itemBuilder: (context, index) {
+                            final r = results[index];
+                            return ListTile(
+                              dense: true,
+                              title: Text(
+                                r.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                r.snippet,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () {
+                                Navigator.pop(dialogContext, r);
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('取消'),
+            ),
+          ],
+        ),
+      ),
+    ).then((selected) {
+      if (selected is GlobalSearchResult) {
+        _addAttachment('笔记《${selected.title}》\n${selected.snippet}');
+      }
+    });
+  }
+
+  Future<void> _pickCrmAttachment() async {
+    final controller = TextEditingController();
+    var results = <GlobalSearchResult>[];
+    await showDialog<GlobalSearchResult>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('选择 CRM 记录作为参考资料'),
+          content: SizedBox(
+            width: 420,
+            height: 360,
+            child: Column(
+              children: [
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: '搜索客户 / 合同 / 商机…',
+                    prefixIcon: Icon(Icons.search_rounded),
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (v) async {
+                    final r = await GlobalSearchService.search(v);
+                    if (dialogContext.mounted) {
+                      setDialogState(() {
+                        results = r
+                            .where((e) => e.type == 'crm')
+                            .take(20)
+                            .toList();
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: results.isEmpty
+                      ? const Center(child: Text('输入关键词搜索 CRM 记录'))
+                      : ListView.builder(
+                          itemCount: results.length,
+                          itemBuilder: (context, index) {
+                            final r = results[index];
+                            return ListTile(
+                              dense: true,
+                              title: Text(
+                                r.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                r.snippet,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () {
+                                Navigator.pop(dialogContext, r);
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('取消'),
+            ),
+          ],
+        ),
+      ),
+    ).then((selected) {
+      if (selected is GlobalSearchResult) {
+        _addAttachment('CRM《${selected.title}》\n${selected.snippet}');
+      }
+    });
   }
 
   /// 桌面端约束主列阅读宽度，移动端全宽。
@@ -463,6 +693,34 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
               ],
             ),
           ),
+          // 📎 已附加资料（可删除；作为 AI 对话上下文）
+          if (_attachments.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: _contentPadX(context),
+                vertical: 4,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (var i = 0; i < _attachments.length; i++)
+                      InputChip(
+                        label: Text(
+                          '资料 ${i + 1}',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        onDeleted: () => setState(
+                          () => _attachments.removeAt(i),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           Obx(() {
             // 桌面端与内容区同宽对齐（720 阅读宽度），移动端全宽
             return Padding(
@@ -484,9 +742,10 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                 listening: _listening,
                 onModelSelect: logic.pickChatModel,
                 onAt: logic.pickChatKnowledge,
+                onPlus: _showAttachmentPicker,
                 onSend: (text) {
                   _aiInput.clear();
-                  logic.sendChat(text);
+                  logic.sendChat(text, attachments: List.of(_attachments));
                 },
                 onStop: logic.cancelStreaming,
               ),

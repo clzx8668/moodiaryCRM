@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/prompts.dart';
+import 'package:moodiary/features/ai/tool_executor.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/smart_canvas/services/canvas_datasource.dart';
 import 'package:moodiary/features/smart_canvas/states/block_list_state.dart';
@@ -293,7 +294,12 @@ class SmartCanvasLogic extends GetxController {
   }
 
   /// 详情页 AI 交流：瀑布流式对话，**持久化为 source=ai 块**（role=user/assistant）。
-  Future<void> sendChat(String text) async {
+  ///
+  /// [attachments]：📎 附加知识文本列表（文件/笔记/CRM），注入 system 上下文。
+  Future<void> sendChat(
+    String text, {
+    List<String> attachments = const [],
+  }) async {
     final q = text.trim();
     if (q.isEmpty) return;
     if (chatStreaming.value) {
@@ -316,7 +322,7 @@ class SmartCanvasLogic extends GetxController {
       content: '',
     );
     blockList.blocks.addAll([user, assistant]);
-    await _streamChatBlock(assistant, userQuestion: q);
+    await _streamChatBlock(assistant, userQuestion: q, attachments: attachments);
   }
 
   /// 针对某条助手块重新生成。
@@ -358,6 +364,7 @@ class SmartCanvasLogic extends GetxController {
   Future<void> _streamChatBlock(
     Block assistant, {
     required String userQuestion,
+    List<String> attachments = const [],
   }) async {
     chatStreaming.value = true;
     _chatStreamingBlockId = assistant.id;
@@ -371,13 +378,50 @@ class SmartCanvasLogic extends GetxController {
         .where((b) => b.meta.isAi && b.meta.role.isNotEmpty)
         .toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    // System：附加知识注入
+    var system = '你是用户的智能记录助手。请结合上下文，用简洁、结构化的 Markdown 回答。';
+    if (attachments.isNotEmpty) {
+      final parts = [
+        for (var i = 0; i < attachments.length; i++) '[资料 ${i + 1}]\n${attachments[i]}',
+      ];
+      system += '\n\n用户附加了以下参考资料，请优先参考：\n${parts.join('\n\n')}';
+    }
+
+    // M4：工具协商（单轮，失败静默降级普通对话）
+    try {
+      final turns = [
+        for (final b in chatTurns)
+          if ((b.meta.role == 'user' || b.meta.role == 'assistant') &&
+              b.content.trim().isNotEmpty)
+            AiChatMessage(role: b.meta.role, content: b.content),
+      ];
+      final completion = await aiProvider.completeChat(
+        [
+          AiChatMessage(role: 'system', content: system),
+          ...turns,
+        ],
+        tools: ToolExecutor().toolDefs,
+      );
+      if (completion.toolCalls.isNotEmpty) {
+        final executor = ToolExecutor();
+        final toolParts = <String>[];
+        for (final call in completion.toolCalls) {
+          toolParts.add(
+            '工具「${call.name}」返回：\n${await executor.execute(call)}',
+          );
+        }
+        system += '\n\n【已调用工具，请基于工具结果回答并注明来源】\n'
+            '${toolParts.join('\n\n')}';
+      }
+    } catch (_) {
+      // 工具协商失败不影响普通对话
+    }
+
     final history = <AiChatMessage>[
-      const AiChatMessage(
-        role: 'system',
-        content: '你是用户的智能记录助手。请结合上下文，用简洁、结构化的 Markdown 回答。',
-      ),
+      AiChatMessage(role: 'system', content: system),
       for (final b in chatTurns)
-        if (b.meta.role == 'user' || b.meta.role == 'assistant')
+        if ((b.meta.role == 'user' || b.meta.role == 'assistant') &&
+            b.content.trim().isNotEmpty)
           AiChatMessage(role: b.meta.role, content: b.content),
     ];
     var acc = '';
