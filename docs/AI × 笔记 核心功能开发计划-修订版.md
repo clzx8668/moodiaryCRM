@@ -133,7 +133,11 @@
 第 4 轮：M8 Obsidian（tab 子页 + 右侧抽屉文件树 + 双链 + obsidian_search）✅
          （2026-08-30 已完成：启用开关 + Vault 路径配置 + 递归扫描 + 文件树抽屉 +
            Markdown/双链渲染 + obsidian_search 工具；向量索引留后续增强）
-第 5 轮：M6 CRM 写工具 + 确认卡片；M5 保持现状
+第 5 轮：M6 CRM 写工具 + 确认卡片；M5 保持现状 ✅
+         （2026-08-30 已完成：crm_create/update/delete 工具 + 确认卡片
+           （取消则回填 AI，未注册回调安全拒绝）+ SyncLogService 操作日志；
+           AI 助手页与详情页两处链路接入；测试 198 全绿 + 双端构建通过。
+           AI×笔记 P0-P3 五轮全部完成）
 ```
 
 ## 五、执行约定

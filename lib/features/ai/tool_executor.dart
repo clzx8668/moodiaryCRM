@@ -4,23 +4,36 @@ import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/search/search_service.dart';
 import 'package:moodiary/features/ai/search/search_skill.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
+import 'package:moodiary/features/crm/local/crm_write_service.dart';
 import 'package:moodiary/features/obsidian/obsidian_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_service.dart';
 import 'package:moodiary/features/search/global_search_service.dart';
+import 'package:moodiary/features/sync_log/sync_log.dart';
+
+/// CRM 写操作确认回调（由 UI 层注册弹确认卡片）。
+typedef CrmWriteConfirmCallback =
+    Future<bool> Function(CrmWriteProposal proposal);
 
 /// AI 工具执行器（M4）：Function Calling 的工具注册与执行。
 ///
-/// 本期工具：`note_search`（跨笔记搜索）、`crm_query`（CRM 读查询）、
-/// `web_search`（联网搜索，M7）。
+/// 工具：`note_search`（跨笔记搜索）、`crm_query`（CRM 读）、
+/// `crm_create/update/delete`（CRM 写，需确认卡片，M6）、
+/// `web_search`（联网搜索，M7）、`obsidian_search`（Obsidian 检索，M8）。
 class ToolExecutor {
   final Map<String, Future<String> Function(Map<String, dynamic> args)>
       _tools = {};
+
+  /// CRM 写操作确认回调；未注册时写工具拒绝执行（安全兜底）。
+  CrmWriteConfirmCallback? onCrmWriteConfirm;
 
   ToolExecutor() {
     register('note_search', _noteSearch);
     register('crm_query', _crmQuery);
     register('web_search', _webSearch);
     register('obsidian_search', _obsidianSearch);
+    register('crm_create', (args) => _crmWrite('create', args));
+    register('crm_update', (args) => _crmWrite('update', args));
+    register('crm_delete', (args) => _crmWrite('delete', args));
   }
 
   void register(
@@ -78,6 +91,61 @@ class ToolExecutor {
           'query': {'type': 'string', 'description': '搜索关键词'},
         },
         'required': ['query'],
+      },
+    ),
+    AiToolDef(
+      name: 'crm_create',
+      description: '创建 CRM 记录（客户/联系人/商机/合同等）；'
+          '调用后必须等待用户确认再执行',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'object': {
+            'type': 'string',
+            'description': '对象类型：account/contact/opportunity/contract/'
+                'product/quote/paymentPlan/payment/invoice/warranty/'
+                'afterSales/activity/reminder',
+          },
+          'fields': {
+            'type': 'object',
+            'description': '字段名→值，如 {"name":"示例公司","phone":"13800000000"}',
+          },
+        },
+        'required': ['object', 'fields'],
+      },
+    ),
+    AiToolDef(
+      name: 'crm_update',
+      description: '更新 CRM 记录字段；调用后必须等待用户确认再执行',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'object': {
+            'type': 'string',
+            'description': '对象类型（同 crm_create）',
+          },
+          'id': {'type': 'string', 'description': '记录 id'},
+          'fields': {
+            'type': 'object',
+            'description': '要更新的字段名→值',
+          },
+        },
+        'required': ['object', 'id', 'fields'],
+      },
+    ),
+    AiToolDef(
+      name: 'crm_delete',
+      description: '删除 CRM 记录（软删除）；调用后必须等待用户确认再执行',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'object': {
+            'type': 'string',
+            'description': '对象类型（同 crm_create）',
+          },
+          'id': {'type': 'string', 'description': '记录 id'},
+        },
+        'required': ['object', 'id'],
       },
     ),
   ];
@@ -170,4 +238,53 @@ class ToolExecutor {
         )
         .join('\n');
   }
+
+  Future<String> _crmWrite(
+    String action,
+    Map<String, dynamic> args,
+  ) async {
+    CrmWriteProposal proposal;
+    try {
+      proposal = await CrmWriteService.buildProposal(
+        action: action,
+        args: args,
+      );
+    } catch (e) {
+      return 'CRM ${_actionName(action)}操作参数不完整：${_strip(e)}';
+    }
+
+    final confirm = onCrmWriteConfirm;
+    if (confirm == null) {
+      return 'CRM ${_actionName(action)}${proposal.objectLabel}操作需要用户确认，'
+          '但当前界面未提供确认入口';
+    }
+    final approved = await confirm(proposal);
+    if (!approved) {
+      return '用户取消了「${proposal.actionLabel}${proposal.objectLabel}」操作，'
+          '未执行任何修改';
+    }
+
+    try {
+      return await CrmWriteService.execute(proposal);
+    } catch (e) {
+      await SyncLogService.instance.write(
+        level: SyncLogLevel.error,
+        operation: 'crm_write',
+        target: proposal.objectType,
+        detail: 'AI ${proposal.actionLabel}${proposal.objectLabel}失败',
+        error: _strip(e),
+      );
+      return 'CRM ${proposal.actionLabel}${proposal.objectLabel}操作失败：'
+          '${_strip(e)}';
+    }
+  }
+
+  static String _actionName(String action) => switch (action) {
+    'create' => '创建',
+    'update' => '更新',
+    _ => '删除',
+  };
+
+  static String _strip(Object e) =>
+      e.toString().replaceFirst('Exception: ', '');
 }

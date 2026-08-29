@@ -12,6 +12,7 @@ import 'package:moodiary/features/ai/tool_executor.dart';
 import 'package:moodiary/features/ai/models/ai_chat_session.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/block/block_renderer.dart';
+import 'package:moodiary/features/crm/widgets/crm_write_confirm_card.dart';
 import 'package:moodiary/features/rag/knowledge_base_page.dart';
 import 'package:moodiary/features/rag/models/knowledge_base.dart';
 import 'package:moodiary/features/rag/rag_service.dart';
@@ -426,15 +427,16 @@ class _AiHomePageState extends State<AiHomePage> {
       // M4：Function Calling 工具协商（单轮；失败静默降级普通对话）
       var effectiveSystem = system;
       try {
+        final executor = ToolExecutor()
+          ..onCrmWriteConfirm = showCrmWriteConfirmDialog;
         final completion = await provider.completeChat(
           [
             AiChatMessage(role: 'system', content: system),
             ..._history,
           ],
-          tools: ToolExecutor().toolDefs,
+          tools: executor.toolDefs,
         );
         if (completion.toolCalls.isNotEmpty) {
-          final executor = ToolExecutor();
           final toolParts = <String>[];
           for (final call in completion.toolCalls) {
             toolParts.add(

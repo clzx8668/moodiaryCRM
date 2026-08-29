@@ -5,6 +5,7 @@ import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/ai/tool_executor.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/crm/widgets/crm_write_confirm_card.dart';
 import 'package:moodiary/features/smart_canvas/services/canvas_datasource.dart';
 import 'package:moodiary/features/smart_canvas/states/block_list_state.dart';
 import 'package:moodiary/features/smart_canvas/states/canvas_state.dart';
@@ -389,6 +390,8 @@ class SmartCanvasLogic extends GetxController {
 
     // M4：工具协商（单轮，失败静默降级普通对话）
     try {
+      final executor = ToolExecutor()
+        ..onCrmWriteConfirm = showCrmWriteConfirmDialog;
       final turns = [
         for (final b in chatTurns)
           if ((b.meta.role == 'user' || b.meta.role == 'assistant') &&
@@ -400,10 +403,9 @@ class SmartCanvasLogic extends GetxController {
           AiChatMessage(role: 'system', content: system),
           ...turns,
         ],
-        tools: ToolExecutor().toolDefs,
+        tools: executor.toolDefs,
       );
       if (completion.toolCalls.isNotEmpty) {
-        final executor = ToolExecutor();
         final toolParts = <String>[];
         for (final call in completion.toolCalls) {
           toolParts.add(
