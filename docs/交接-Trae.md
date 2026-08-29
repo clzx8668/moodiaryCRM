@@ -1,6 +1,7 @@
 # moodiaryCRM 交接文档（Trae 续接用）
 
-> 生成时间：2026-08-29 · 分支 `feat/local-crm-v1` · 版本 `2.9.0+92` · 领先 origin 20 个提交 · 工作区干净
+> 生成时间：2026-08-30（AI×笔记 P0-P3 五轮收官后更新）· 分支 `feat/local-crm-v1` ·
+> 版本 `2.10.0+93` · 工作区干净 · 本地含批次 16-23 未推送提交
 >
 > 本文件是**新对话一站式衔接**：Trae 打开本仓库后先读本文件 + `AGENTS.md` + `docs/开发进度.md` 尾部，
 > 即可直接继续开发。本文件自包含当前进度、验证基线、已知边界与下一步候选。
@@ -86,6 +87,12 @@ cd rust; cargo test
 - 多服务商（DeepSeek 等）OpenAI 兼容；`AiCompositeProvider` 主备切换；
   模板 AI（流式→转正）、详情页 AI 对话（持久化 `source=ai` 块 + 瀑布流气泡）、
   AI 助手页（知识库 RAG + 联网开关 + 引用溯源）。
+- **AI×笔记（P0-P3 五轮已全部完成）**：AI 任务队列 + 自动标签/分类（`ai_tasks` +
+  `AiTaskQueueWorker` + `tagging_service`）；多引擎联网搜索（DDG 默认 / SearXNG /
+  Tavily / Bing / Custom）；`ToolExecutor` 工具集（`note_search` / `crm_query` /
+  `crm_create|update|delete`（写需确认卡片，`onCrmWriteConfirm` 回调）/
+  `web_search` / `obsidian_search`）；详情页 📎 附加知识选择器（文件/笔记/CRM）；
+  Obsidian 只读接入（首页 tab 子页 + 文件树抽屉 + 双链跳转）。
 - **语音识别**：`speech_to_text 7.4.0`（Android 系统语音 / Windows SAPI）；
   `lib/features/voice/speech_service.dart`；详情页/快速收集长按「按住 说话」识别填入输入框。
 
@@ -101,10 +108,18 @@ cd rust; cargo test
       CRM 对象管理页批量删除 |
 | 15 | 溢出修复：输入条功能栏可收缩（11px）、AI 助手上下文栏横向滚动（54px）、
       AI 助手空态可滚动（10px） |
+| 16 | ⌘K 关键词高亮/新建命令；语音按住说话；桌面右键菜单；CRM 字段校验 |
+| 17 | CRM 商机看板视图（Kanban，按阶段分列拖拽改阶段） |
+| 18 | 知识库可索引内容拓宽（RAG 覆盖日记/子笔记/CRM/更多格式） |
+| 19 | AI×笔记 P0：M2 任务队列 + M1 自动标签/分类（异步底座） |
+| 20 | AI×笔记 P1：M7 多引擎联网 + M4 工具执行器（note_search/crm_query/web_search） |
+| 21 | AI×笔记 P1：M3 详情页 📎 附加知识 + 工具协商 |
+| 22 | AI×笔记 P2：M8 Obsidian（tab 子页 + 文件树抽屉 + 双链 + obsidian_search） |
+| 23 | AI×笔记 P2：M6 CRM 写工具 + 确认卡片（最后一轮，**计划收官**） |
 
 **验证基线**：`flutter analyze` 0 error（仅存量 2 条 info：
-`prefer_if_null_operators` crm_entity_detail_view.dart:518、`CorePalette` theme_util.dart:337）；
-`flutter test` 189/189；`cargo test` 18/18；`flutter build windows --debug` ✅；
+`prefer_if_null_operators` crm_entity_detail_view.dart:554、`CorePalette` theme_util.dart:337）；
+`flutter test` 198/198；`cargo test` 18/18；`flutter build windows --debug` ✅；
 `flutter build apk --debug` ✅。
 
 ## 5. 已知边界 / 待办
@@ -115,16 +130,18 @@ cd rust; cargo test
   MuMu 模拟器上可能不可用。
 - 详情页卡片正文关闭文本选择（`selectable: false`）以保点击进编辑器，复制走卡片按钮。
 - Android 构建有 NDK 版本 warning（28.0 vs 插件期望 28.2），不影响构建。
-- 远程仓库落后 20 个提交（网络恢复后可 push）。
+- Obsidian 为只读接入（无文件监听 / 无向量化 / 无双向同步），大 Vault 首次扫描较慢。
+- CRM 写工具仅落本地库（不自动推 Twenty 远端），操作日志在「同步日志」页可见。
+- 远程仓库落后多个提交（网络恢复后可 push）。
 
 ### 下一步候选（按建议顺序）
-1. **⌘K 面板体验**：搜索结果高亮关键词、最近记录分组标签、支持「新建日记」等命令动作。
-2. **语音识别完善**：按住说话（onLongPressStart/End）停止识别、识别中状态提示、
-   语音模式在详情页/快速收集的视觉反馈。
-3. **移动端/桌面一致性**：详情页/编辑页桌面 hover 反馈、右键菜单一致性复查。
-4. **CRM 深化**：回款/发票/提成对象特有字段表单校验、合同金额联动、本地统计看板。
-5. **RAG 落地**：`LocalVectorIndex` 平滑替换 LanceDB、知识库导入格式增强。
-6. **版本收敛**：完成一轮后 bump `2.9.0+92 → 2.10.0+93` 并打 tag。
+1. **Obsidian 增强**：`watcher` 文件监听、Vault 向量化（接入 RagService/
+   BlockEmbeddings）、M3 📎 附加知识接入 Obsidian 资料源。
+2. **CRM 写工具联动远端**：确认卡片执行后异步推 Twenty（可选），或保持纯本地。
+3. **CRM 深化**：回款/发票/提成对象字段表单校验、合同金额联动、本地统计看板。
+4. **移动端/桌面一致性**：详情页/编辑页桌面 hover 反馈、右键菜单一致性复查。
+5. **RAG 落地**：`LocalVectorIndex` 平滑替换 LanceDB（M5 已按 Q2 决策保持现有）。
+6. **版本收敛**：下一轮收尾时 bump `2.10.0+93` 并打 tag。
 
 ## 6. 硬性规则（沿用 AGENTS.md）
 1. 新功能代码放 `lib/features/` 或 `rust/src/` 新模块，不散落进上游 `lib/pages/`；
