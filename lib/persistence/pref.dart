@@ -104,6 +104,11 @@ class PrefUtil {
     'aiAutoTag',
     'aiAutoClassify',
     'aiAutoSummary',
+    // 联网搜索
+    'aiSearchEnabled',
+    'aiSearchEngine',
+    'aiSearchUrl',
+    'aiSearchKey',
     // 局域网同步内容范围（notes/all）
     'lanSyncContentScope',
     // CRM 默认币种
@@ -296,6 +301,17 @@ class PrefUtil {
       'aiAutoSummary',
       _prefs.getBool('aiAutoSummary') ?? false,
     );
+    // 联网搜索（默认关；引擎默认 DuckDuckGo 零配置）
+    await _prefs.setBool(
+      'aiSearchEnabled',
+      _prefs.getBool('aiSearchEnabled') ?? false,
+    );
+    await _prefs.setString(
+      'aiSearchEngine',
+      _prefs.getString('aiSearchEngine') ?? 'duckduckgo',
+    );
+    await _prefs.setString('aiSearchUrl', _prefs.getString('aiSearchUrl') ?? '');
+    await _prefs.setString('aiSearchKey', _prefs.getString('aiSearchKey') ?? '');
     await _prefs.setString(
       'lanSyncContentScope',
       _prefs.getString('lanSyncContentScope') ?? 'all',

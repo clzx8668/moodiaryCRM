@@ -40,6 +40,14 @@ class FakeEmbedProvider implements AiProvider {
   Stream<AiChunk> streamChat(List<AiChatMessage> messages) {
     return const Stream.empty();
   }
+
+  @override
+  Future<AiChatCompletion> completeChat(
+    List<AiChatMessage> messages, {
+    List<AiToolDef>? tools,
+  }) async {
+    return const AiChatCompletion();
+  }
 }
 
 void main() {

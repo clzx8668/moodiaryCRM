@@ -41,6 +41,15 @@ class _FakeProvider implements AiProvider {
     return _chatStream();
   }
 
+  @override
+  Future<AiChatCompletion> completeChat(
+    List<AiChatMessage> messages, {
+    List<AiToolDef>? tools,
+  }) async {
+    if (failChat) throw StateError('$name 不可用');
+    return AiChatCompletion(content: '$name 回答');
+  }
+
   Stream<AiChunk> _chatStream() async* {
     if (firstDelay > Duration.zero) {
       await Future.delayed(firstDelay);

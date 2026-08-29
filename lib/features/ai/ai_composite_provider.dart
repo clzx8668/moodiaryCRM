@@ -127,6 +127,13 @@ class AiCompositeProvider implements AiProvider {
       _chat.streamChat(messages);
 
   @override
+  Future<AiChatCompletion> completeChat(
+    List<AiChatMessage> messages, {
+    List<AiToolDef>? tools,
+  }) =>
+      _chat.completeChat(messages, tools: tools);
+
+  @override
   Stream<AiChunk> streamTemplate({
     required String content,
     required String template,

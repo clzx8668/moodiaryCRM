@@ -34,6 +34,12 @@ abstract class AiProvider {
   /// 多轮对话（RAG 工作台，P3.4）
   Stream<AiChunk> streamChat(List<AiChatMessage> messages);
 
+  /// 非流式补全（Function Calling 工具协商）
+  Future<AiChatCompletion> completeChat(
+    List<AiChatMessage> messages, {
+    List<AiToolDef>? tools,
+  });
+
   /// 生成文本向量（P3.3）
   Future<List<double>> embed(String text);
 }
@@ -46,6 +52,52 @@ class AiChatMessage {
   const AiChatMessage({required this.role, required this.content});
 
   Map<String, dynamic> toJson() => {'role': role, 'content': content};
+}
+
+/// 工具定义（Function Calling）
+class AiToolDef {
+  final String name;
+  final String description;
+  final Map<String, dynamic> parameters; // JSON Schema
+
+  const AiToolDef({
+    required this.name,
+    required this.description,
+    this.parameters = const {},
+  });
+
+  Map<String, dynamic> toJson() => {
+    'type': 'function',
+    'function': {
+      'name': name,
+      'description': description,
+      'parameters': parameters,
+    },
+  };
+}
+
+/// 模型请求的工具调用
+class AiToolCall {
+  final String id;
+  final String name;
+  final String arguments; // JSON 字符串
+
+  const AiToolCall({
+    required this.id,
+    required this.name,
+    required this.arguments,
+  });
+}
+
+/// 非流式补全结果（Function Calling 工具协商）
+class AiChatCompletion {
+  final String content;
+  final List<AiToolCall> toolCalls;
+
+  const AiChatCompletion({
+    this.content = '',
+    this.toolCalls = const [],
+  });
 }
 
 /// 按安全存储配置创建真实 Provider
@@ -334,6 +386,65 @@ class OpenAiCompatibleProvider implements AiProvider {
       yield AiChunk.error(dioErrorDetail(e));
     } catch (e) {
       yield AiChunk.error('AI 对话失败：$e');
+    }
+  }
+
+  @override
+  Future<AiChatCompletion> completeChat(
+    List<AiChatMessage> messages, {
+    List<AiToolDef>? tools,
+  }) async {
+    if (!isConfigured) {
+      throw StateError('AI 未配置：请先在设置中填写 API Key');
+    }
+    try {
+      final resp = await dio.post<Map<String, dynamic>>(
+        config.chatCompletionsUrl,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer ${config.apiKey}',
+            'Content-Type': 'application/json',
+          },
+        ),
+        data: {
+          'model': config.model,
+          'messages': messages.map((m) => m.toJson()).toList(),
+          if (tools != null && tools.isNotEmpty)
+            'tools': tools.map((t) => t.toJson()).toList(),
+          'stream': false,
+        },
+      );
+      final data = resp.data;
+      final choices = data?['choices'] as List?;
+      if (choices == null || choices.isEmpty) {
+        return const AiChatCompletion();
+      }
+      final message = (choices.first as Map<String, dynamic>)['message'];
+      if (message is! Map<String, dynamic>) {
+        return const AiChatCompletion();
+      }
+      final content = message['content']?.toString() ?? '';
+      final toolCalls = <AiToolCall>[];
+      final rawCalls = message['tool_calls'] as List?;
+      if (rawCalls != null) {
+        for (final c in rawCalls.whereType<Map>()) {
+          final fn = c['function'];
+          if (fn is Map) {
+            toolCalls.add(
+              AiToolCall(
+                id: c['id']?.toString() ?? '',
+                name: fn['name']?.toString() ?? '',
+                arguments: fn['arguments']?.toString() ?? '',
+              ),
+            );
+          }
+        }
+      }
+      return AiChatCompletion(content: content, toolCalls: toolCalls);
+    } on DioException catch (e) {
+      throw StateError(dioErrorDetail(e));
+    } catch (e) {
+      throw StateError('AI 调用失败：$e');
     }
   }
 

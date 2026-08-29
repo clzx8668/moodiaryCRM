@@ -56,6 +56,25 @@ class MultiProvider implements AiProvider {
     return _withFailover((p) => p.streamChat(messages));
   }
 
+  @override
+  Future<AiChatCompletion> completeChat(
+    List<AiChatMessage> messages, {
+    List<AiToolDef>? tools,
+  }) async {
+    if (_entries.isEmpty) {
+      throw StateError('未配置可用模型，请到「模型管理」添加并启用');
+    }
+    String? lastError;
+    for (final entry in _entries) {
+      try {
+        return await entry.provider.completeChat(messages, tools: tools);
+      } catch (e) {
+        lastError = '$e';
+      }
+    }
+    throw StateError('所有模型均不可用：$lastError');
+  }
+
   /// 按顺序尝试；首个输出前失败才切换
   Stream<AiChunk> _withFailover(
     Stream<AiChunk> Function(AiProvider p) call,

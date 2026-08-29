@@ -529,6 +529,14 @@ class UnconfiguredAiProvider implements AiProvider {
   }
 
   @override
+  Future<AiChatCompletion> completeChat(
+    List<AiChatMessage> messages, {
+    List<AiToolDef>? tools,
+  }) async {
+    throw StateError('AI Provider 未初始化');
+  }
+
+  @override
   Future<List<double>> embed(String text) async {
     throw StateError('AI Provider 未初始化');
   }

@@ -6,6 +6,9 @@ import 'package:moodiary/features/ai/ai_provider_edit_page.dart';
 import 'package:moodiary/features/ai/ai_provider_store.dart';
 import 'package:moodiary/features/ai/models/ai_capability_config.dart';
 import 'package:moodiary/features/ai/models/ai_provider_config.dart';
+import 'package:moodiary/features/ai/search/search_service.dart';
+import 'package:moodiary/features/ai/search/search_skill.dart';
+import 'package:moodiary/persistence/pref.dart';
 
 /// AI 模型管理页：服务商（账号）+ 功能模型（对话/向量/多模态/语音）独立配置。
 class AiSettingsPage extends StatefulWidget {
@@ -21,6 +24,12 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   bool _loading = true;
   final Map<String, AiConnectionResult> _testResults = {};
   final Set<String> _testing = {};
+  bool _searchEnabled = SearchConfig.enabled;
+  String _searchEngine = SearchConfig.engine;
+  String _searchUrl = SearchConfig.url;
+  String _searchKey = SearchConfig.key;
+  bool _searchTesting = false;
+  String? _searchTestResult;
 
   @override
   void initState() {
@@ -94,6 +103,32 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     if (ok == true) {
       await AiProviderStore.remove(config.id);
       await _load();
+    }
+  }
+
+  Future<void> _saveSearch() async {
+    await PrefUtil.setValue<bool>(SearchConfig.kEnabled, _searchEnabled);
+    await PrefUtil.setValue<String>(SearchConfig.kEngine, _searchEngine);
+    await PrefUtil.setValue<String>(SearchConfig.kUrl, _searchUrl.trim());
+    await PrefUtil.setValue<String>(SearchConfig.kKey, _searchKey.trim());
+  }
+
+  Future<void> _testSearch() async {
+    setState(() => _searchTesting = true);
+    try {
+      final skill = SearchService.create(
+        _searchEngine,
+        url: _searchUrl,
+        key: _searchKey,
+      );
+      final ok = await skill.validateConfig();
+      setState(() {
+        _searchTestResult = ok ? '连接成功' : '连接失败，请检查配置';
+      });
+    } catch (e) {
+      setState(() => _searchTestResult = '连接失败：$e');
+    } finally {
+      if (mounted) setState(() => _searchTesting = false);
     }
   }
 
@@ -177,8 +212,152 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                   icon: Icons.mic_none_rounded,
                   showModelField: true,
                 ),
+                const SizedBox(height: 18),
+                _buildSearchSection(context),
               ],
             ),
+    );
+  }
+
+  Widget _buildSearchSection(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    const engines = [
+      ('duckduckgo', 'DuckDuckGo (Free) — 无需 Key'),
+      ('searxng', 'SearXNG (Self-hosted) — 填 URL'),
+      ('tavily', 'Tavily — 填 API Key'),
+      ('bing', 'Bing — 填 API Key'),
+      ('custom', 'Custom — 填 Endpoint + Key'),
+    ];
+    final skill = SearchService.create(
+      _searchEngine,
+      url: _searchUrl,
+      key: _searchKey,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionTitle(
+          icon: Icons.public_rounded,
+          title: '联网搜索',
+          subtitle: 'AI 助手联网问答；DuckDuckGo 零配置，其余引擎需填写配置',
+        ),
+        Card.outlined(
+          margin: const EdgeInsets.only(bottom: 10),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.public_rounded,
+                        size: 20, color: colorScheme.primary),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        '启用联网搜索',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Switch(
+                      value: _searchEnabled,
+                      onChanged: (v) async {
+                        setState(() => _searchEnabled = v);
+                        await _saveSearch();
+                      },
+                    ),
+                  ],
+                ),
+                if (_searchEnabled) ...[
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: _searchEngine,
+                    decoration: const InputDecoration(
+                      labelText: '搜索引擎',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: [
+                      for (final (id, label) in engines)
+                        DropdownMenuItem(value: id, child: Text(label)),
+                    ],
+                    onChanged: (v) async {
+                      if (v == null) return;
+                      setState(() {
+                        _searchEngine = v;
+                        _searchTestResult = null;
+                      });
+                      await _saveSearch();
+                    },
+                  ),
+                  if (skill.requiresConfig) ...[
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      initialValue: _searchUrl,
+                      decoration: const InputDecoration(
+                        labelText: 'URL / Endpoint',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      onChanged: (v) async {
+                        _searchUrl = v;
+                        await _saveSearch();
+                      },
+                    ),
+                  ],
+                  if (_searchEngine == 'custom' ||
+                      _searchEngine == 'tavily' ||
+                      _searchEngine == 'bing') ...[
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      initialValue: _searchKey,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'API Key',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      onChanged: (v) async {
+                        _searchKey = v;
+                        await _saveSearch();
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _searchTesting ? null : _testSearch,
+                        icon: Icon(
+                          _searchTesting
+                              ? Icons.hourglass_top_rounded
+                              : Icons.wifi_tethering_rounded,
+                          size: 16,
+                        ),
+                        label: Text(_searchTesting ? '测试中…' : '测试连接'),
+                      ),
+                      if (_searchTestResult != null) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _searchTestResult!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _searchTestResult == '连接成功'
+                                  ? Colors.green.shade600
+                                  : colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

@@ -40,6 +40,14 @@ class FakeStreamProvider implements AiProvider {
   }
 
   @override
+  Future<AiChatCompletion> completeChat(
+    List<AiChatMessage> messages, {
+    List<AiToolDef>? tools,
+  }) async {
+    return AiChatCompletion(content: text);
+  }
+
+  @override
   Future<List<double>> embed(String text) async => [1.0, 0.0];
 }
 

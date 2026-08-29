@@ -8,12 +8,15 @@ import 'package:moodiary/features/ai/ai_composite_provider.dart';
 import 'package:moodiary/features/ai/ai_note_saver.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
+import 'package:moodiary/features/ai/tool_executor.dart';
 import 'package:moodiary/features/ai/models/ai_chat_session.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/block/block_renderer.dart';
 import 'package:moodiary/features/rag/knowledge_base_page.dart';
 import 'package:moodiary/features/rag/models/knowledge_base.dart';
 import 'package:moodiary/features/rag/rag_service.dart';
+import 'package:moodiary/features/ai/search/search_service.dart';
+import 'package:moodiary/features/ai/search/search_skill.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/router/app_routes.dart';
@@ -367,7 +370,7 @@ class _AiHomePageState extends State<AiHomePage> {
     toast.success(message: '对话模型已切换');
   }
 
-  Future<void> _send([String? preset]) async {
+  Future<void> _send({String? preset, bool forceSearch = false}) async {
     final text = (preset ?? _input.text).trim();
     if (text.isEmpty || _streaming) return;
     setState(() {
@@ -384,6 +387,18 @@ class _AiHomePageState extends State<AiHomePage> {
     _scrollToBottom();
 
     try {
+      // 联网搜索：开关开启时自动搜索；手动 🔍 强制单次搜索
+      String? webResult;
+      final searchNow = forceSearch || (_online && SearchConfig.enabled);
+      if (searchNow) {
+        try {
+          final skill = SearchService.fromPrefs();
+          final results = await skill.search(text, maxResults: 5);
+          webResult = SearchSkill.formatResults(results);
+        } catch (e) {
+          webResult = '（联网搜索失败：${_shortError(e)}）';
+        }
+      }
       // RAG 上下文（选择知识库时）
       String? ragContext;
       if (_kb != null) {
@@ -402,14 +417,40 @@ class _AiHomePageState extends State<AiHomePage> {
         '你是用户的个人 AI 助手。回答使用 Markdown，简洁有条理。',
         if (ragContext != null)
           '请优先依据「参考内容」回答；若参考内容不足以回答请明确说明。\n\n$ragContext',
-        if (_online)
-          '（联网搜索已开启：请尽量提供最新信息；当前版本联网检索接入中，'
-              '若无法确认最新情况请如实说明。）',
+        if (webResult != null)
+          '请优先参考「联网搜索结果」回答，并标注信息来源：\n\n$webResult',
       ].join('\n\n');
 
       final provider = await AiProviderFactory.load();
+
+      // M4：Function Calling 工具协商（单轮；失败静默降级普通对话）
+      var effectiveSystem = system;
+      try {
+        final completion = await provider.completeChat(
+          [
+            AiChatMessage(role: 'system', content: system),
+            ..._history,
+          ],
+          tools: ToolExecutor().toolDefs,
+        );
+        if (completion.toolCalls.isNotEmpty) {
+          final executor = ToolExecutor();
+          final toolParts = <String>[];
+          for (final call in completion.toolCalls) {
+            toolParts.add(
+              '工具「${call.name}」返回：\n${await executor.execute(call)}',
+            );
+          }
+          effectiveSystem =
+              '$system\n\n【已调用工具，请基于工具结果回答并注明来源】\n'
+              '${toolParts.join('\n\n')}';
+        }
+      } catch (_) {
+        // 工具协商失败不影响普通对话
+      }
+
       final messages = [
-        AiChatMessage(role: 'system', content: system),
+        AiChatMessage(role: 'system', content: effectiveSystem),
         ..._history,
       ];
       await for (final chunk in provider.streamChat(messages)) {
@@ -501,7 +542,7 @@ class _AiHomePageState extends State<AiHomePage> {
     // 移除最后一条助手消息与其历史
     _messages.removeRange(messageIndex, _messages.length);
     _history.removeLast();
-    await _send(user.content);
+    await _send(preset: user.content);
   }
 
   void _clearConversation() {
@@ -709,7 +750,7 @@ class _AiHomePageState extends State<AiHomePage> {
                 for (final s in _suggestions)
                   ActionChip(
                     label: Text(s),
-                    onPressed: () => _send(s),
+                    onPressed: () => _send(preset: s),
                   ),
               ],
             ),
@@ -960,6 +1001,19 @@ class _AiHomePageState extends State<AiHomePage> {
                 ),
                 visualDensity: VisualDensity.compact,
                 onPressed: () => setState(() => _online = !_online),
+              ),
+              const SizedBox(width: 8),
+              // 手动 🔍：对当前输入强制联网搜索后发送
+              ActionChip(
+                avatar: const Icon(Icons.search_rounded, size: 16),
+                label: const Text(
+                  '搜索',
+                  style: TextStyle(fontSize: 12),
+                ),
+                visualDensity: VisualDensity.compact,
+                onPressed: _input.text.trim().isEmpty
+                    ? null
+                    : () => _send(forceSearch: true),
               ),
               const SizedBox(width: 8),
               TextButton.icon(
