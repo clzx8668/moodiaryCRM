@@ -150,6 +150,13 @@ class _ObsidianPageState extends State<ObsidianPage> {
                   ),
                   const SizedBox(height: 12),
                   const Text('从右侧文件目录树选择一篇笔记'),
+                  const SizedBox(height: 16),
+                  FilledButton.tonalIcon(
+                    onPressed: () =>
+                        _scaffoldKey.currentState?.openEndDrawer(),
+                    icon: const Icon(Icons.account_tree_outlined, size: 18),
+                    label: const Text('打开文件目录树'),
+                  ),
                 ],
               ),
             )

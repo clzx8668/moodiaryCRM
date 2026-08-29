@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/l10n/app_localizations.dart';
@@ -81,7 +80,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.account_tree_outlined));
+    // 空态「打开文件目录树」按钮弹出右侧抽屉
+    await tester.tap(find.text('打开文件目录树'));
     await tester.pumpAndSettle();
 
     // 目录节点（ExpansionTile 标题）
