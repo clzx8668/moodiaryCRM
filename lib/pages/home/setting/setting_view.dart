@@ -251,10 +251,39 @@ class SettingPage extends StatelessWidget {
                   leading: const Icon(Icons.auto_awesome_rounded),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   isFirst: true,
-                  isLast: true,
                   onTap: () {
                     Get.to(() => const AiSettingsPage());
                   },
+                ),
+                const Divider(height: 1),
+                GetBuilder<SettingLogic>(
+                  id: 'AiProcess',
+                  builder: (_) => Column(
+                    children: [
+                      AdaptiveSwitchListTile(
+                        value: state.aiAutoTag.value,
+                        onChanged: logic.changeAiAutoTag,
+                        title: const Text('AI 自动标签'),
+                        subtitle: const Text('保存后异步为笔记匹配/新建标签'),
+                        secondary: const Icon(Icons.label_outline_rounded),
+                      ),
+                      AdaptiveSwitchListTile(
+                        value: state.aiAutoClassify.value,
+                        onChanged: logic.changeAiAutoClassify,
+                        title: const Text('AI 自动分类'),
+                        subtitle: const Text('保存后异步匹配/新建分类'),
+                        secondary: const Icon(Icons.folder_outlined),
+                      ),
+                      AdaptiveSwitchListTile(
+                        value: state.aiAutoSummary.value,
+                        onChanged: logic.changeAiAutoSummary,
+                        title: const Text('AI 自动摘要'),
+                        subtitle: const Text('预留：生成一句话摘要'),
+                        secondary: const Icon(Icons.summarize_outlined),
+                        isLast: true,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

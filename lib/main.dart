@@ -18,6 +18,7 @@ import 'package:moodiary/components/frosted_glass_overlay/frosted_glass_overlay_
 import 'package:moodiary/components/window_buttons/window_buttons.dart';
 import 'package:moodiary/config/env.dart';
 import 'package:moodiary/features/command_palette/command_palette.dart';
+import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
 import 'package:moodiary/features/sync_events/sync_event_service.dart';
 import 'package:moodiary/features/sync_log/sync_log.dart';
 import 'package:moodiary/l10n/app_localizations.dart';
@@ -67,6 +68,8 @@ Future<void> _initSystem() async {
     logger.e('主题构建失败', error: e);
   }
   fvp.registerWith();
+  // M2：启动 AI 任务队列（自动标签/分类异步底座）
+  AiTaskQueueWorker.instance.start();
   // 注册退出清理任务（按注册逆序执行：rust → db → sync）
   ResourceCleanupManager.instance
     ..register('rust', () async {
@@ -80,6 +83,9 @@ Future<void> _initSystem() async {
     ..register('db', IsarUtil.closeDatabase)
     ..register('sync', () async {
       SyncEventService.instance.stop();
+    })
+    ..register('ai_tasks', () async {
+      AiTaskQueueWorker.instance.stop();
     });
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(

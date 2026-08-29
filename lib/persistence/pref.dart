@@ -100,6 +100,10 @@ class PrefUtil {
     'moduleCrm',
     'moduleKnowledgeBase',
     'moduleCalendar',
+    // AI 处理设置
+    'aiAutoTag',
+    'aiAutoClassify',
+    'aiAutoSummary',
     // 局域网同步内容范围（notes/all）
     'lanSyncContentScope',
     // CRM 默认币种
@@ -281,6 +285,16 @@ class PrefUtil {
     await _prefs.setBool(
       'moduleCalendar',
       _prefs.getBool('moduleCalendar') ?? true,
+    );
+    // AI 处理设置（自动标签/分类默认开，摘要默认关预留）
+    await _prefs.setBool('aiAutoTag', _prefs.getBool('aiAutoTag') ?? true);
+    await _prefs.setBool(
+      'aiAutoClassify',
+      _prefs.getBool('aiAutoClassify') ?? true,
+    );
+    await _prefs.setBool(
+      'aiAutoSummary',
+      _prefs.getBool('aiAutoSummary') ?? false,
     );
     await _prefs.setString(
       'lanSyncContentScope',

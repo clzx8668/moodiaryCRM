@@ -31,6 +31,15 @@ class SettingState {
   RxBool moduleCalendar =
       (PrefUtil.getValue<bool>('moduleCalendar') ?? true).obs;
 
+  // AI 处理设置（M1 自动标签/分类/摘要）
+  RxBool aiAutoTag = (PrefUtil.getValue<bool>('aiAutoTag') ?? true).obs;
+
+  RxBool aiAutoClassify =
+      (PrefUtil.getValue<bool>('aiAutoClassify') ?? true).obs;
+
+  RxBool aiAutoSummary =
+      (PrefUtil.getValue<bool>('aiAutoSummary') ?? false).obs;
+
   RxString userKey = ''.obs;
 
   Rx<Language> language =

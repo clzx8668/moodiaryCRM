@@ -15,6 +15,7 @@ import 'package:moodiary/common/values/keyboard_state.dart';
 import 'package:moodiary/components/base/text.dart';
 import 'package:moodiary/components/keyboard_listener/keyboard_listener.dart';
 import 'package:moodiary/features/block/delta_to_markdown.dart';
+import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
 import 'package:moodiary/features/smart_canvas/services/canvas_datasource.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/isar.dart';
@@ -489,6 +490,15 @@ class EditLogic extends GetxController {
     }
     _dirty = false;
     state.isSaving.value = false;
+    // M1：新建日记保存后提交 AI 自动标签/分类任务（异步）
+    if (state.isNew) {
+      unawaited(
+        AiTaskQueueWorker.instance.submitTask(
+          type: 'auto_tag',
+          refId: state.currentDiary.id,
+        ),
+      );
+    }
     state.isNew
         ? Get.back(result: state.currentDiary.categoryId ?? '')
         : Get.back(result: 'changed');

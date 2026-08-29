@@ -700,6 +700,36 @@ class AiChatMessages extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// AI 任务队列表（M2：自动标签/分类/摘要/向量化 异步底座）
+@DataClassName('AiTaskRow')
+@TableIndex(name: 'idx_ai_tasks_status', columns: {#status})
+class AiTasks extends Table {
+  TextColumn get id => text()();
+
+  /// auto_tag / auto_classify / auto_summary / embedding / index
+  TextColumn get type => text()();
+
+  /// 关联实体 ID（日记/CRM/Obsidian 文件）
+  TextColumn get refId => text()();
+
+  /// note / crm_account / obsidian_file
+  TextColumn get refType => text().withDefault(const Constant('note'))();
+
+  /// JSON 额外参数
+  TextColumn get payload => text().withDefault(const Constant(''))();
+
+  /// pending / processing / waiting_network / done / failed
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+  IntColumn get retryCount => integer().withDefault(const Constant(0))();
+  IntColumn get maxRetries => integer().withDefault(const Constant(3))();
+  TextColumn get errorMessage => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     Diaries,
@@ -737,13 +767,14 @@ class AiChatMessages extends Table {
     BlockEmbeddings,
     AiChatSessions,
     AiChatMessages,
+    AiTasks,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -839,6 +870,11 @@ class AppDatabase extends _$AppDatabase {
         await _addColumnIfMissing(m, db.crmInvoices, db.crmInvoices.currency);
         await _addColumnIfMissing(m, db.crmQuotes, db.crmQuotes.currency);
         await _addColumnIfMissing(m, db.crmProducts, db.crmProducts.currency);
+      }
+      // v16 → v17：AI 任务队列表
+      if (from < 17) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.aiTasks);
       }
     },
     beforeOpen: (details) async {

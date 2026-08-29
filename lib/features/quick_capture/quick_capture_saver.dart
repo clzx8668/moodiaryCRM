@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:cross_file/cross_file.dart';
 import 'dart:io';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/attachments/attachment_manager.dart';
+import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
 import 'package:moodiary/persistence/isar.dart';
@@ -105,6 +107,14 @@ class QuickCaptureSaver {
         blockId: block.id,
       );
     }
+
+    // M1：提交 AI 自动标签/分类任务（异步，不阻塞保存）
+    unawaited(
+      AiTaskQueueWorker.instance.submitTask(
+        type: 'auto_tag',
+        refId: diary.id,
+      ),
+    );
 
     return diary;
   }

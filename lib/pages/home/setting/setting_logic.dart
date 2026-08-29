@@ -133,6 +133,25 @@ class SettingLogic extends GetxController {
     update(['ModuleSwitch']);
   }
 
+  // AI 处理设置
+  Future<void> changeAiAutoTag(bool value) async {
+    await PrefUtil.setValue<bool>('aiAutoTag', value);
+    state.aiAutoTag.value = value;
+    update(['AiProcess']);
+  }
+
+  Future<void> changeAiAutoClassify(bool value) async {
+    await PrefUtil.setValue<bool>('aiAutoClassify', value);
+    state.aiAutoClassify.value = value;
+    update(['AiProcess']);
+  }
+
+  Future<void> changeAiAutoSummary(bool value) async {
+    await PrefUtil.setValue<bool>('aiAutoSummary', value);
+    state.aiAutoSummary.value = value;
+    update(['AiProcess']);
+  }
+
   //进入回收站
   void toRecyclePage() {
     Get.toNamed(AppRoutes.recyclePage);
