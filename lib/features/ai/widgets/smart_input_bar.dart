@@ -224,11 +224,23 @@ class _SmartInputBarState extends State<SmartInputBar>
         ),
         const SizedBox(height: 4),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // 模型按钮可收缩：模板名较长时避免功能栏右侧溢出
-            Flexible(child: _modelButton(context)),
-            _roundIcon(Icons.alternate_email_rounded, '知识库', widget.onAt),
-            const Spacer(),
+            // 左侧区：模型 + @，占满剩余空间（内容靠左），避免右侧三键被推开
+            Expanded(
+              child: Row(
+                children: [
+                  // 模型按钮可收缩：模板名较长时避免功能栏右侧溢出
+                  Flexible(child: _modelButton(context)),
+                  _roundIcon(
+                    Icons.alternate_email_rounded,
+                    '知识库',
+                    widget.onAt,
+                  ),
+                ],
+              ),
+            ),
+            // 右侧：语音 / 加号 / 发送 固定靠右
             _roundIcon(
               widget.voiceMode
                   ? Icons.keyboard_alt_outlined
