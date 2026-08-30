@@ -176,6 +176,14 @@ Future<void> _platFormOption() async {
       appWindow.alignment = Alignment.center;
       appWindow.show();
     });
+
+    // 兜底：bitsdojo HIDE_ON_STARTUP 下，若 doWhenWindowReady 的 ready 事件
+    // 时序异常导致窗口未显示，延时后再强制 show（show 幂等，重复调用无副作用）。
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      try {
+        appWindow.show();
+      } catch (_) {}
+    });
   }
 }
 
