@@ -21,9 +21,6 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
   //初始化tab控制器，长度加一由于有一个默认分类
   late TabController tabController;
 
-  /// 二级导航抽屉（NavDrawer）挂载的 Scaffold key，用于程序化开合。
-  final GlobalKey<ScaffoldState> navDrawerKey = GlobalKey<ScaffoldState>();
-
   late HomeLogic homeLogic = Bind.find<HomeLogic>();
 
   double lastScrollOffset = .0;
@@ -122,16 +119,14 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
     }
   }
 
-  /// 开合左侧二级导航抽屉。
-  void toggleNavDrawer() {
-    final scaffoldState = navDrawerKey.currentState;
-    if (scaffoldState == null) return;
-    if (scaffoldState.isDrawerOpen) {
-      scaffoldState.closeDrawer();
-    } else {
-      scaffoldState.openDrawer();
-    }
-  }
+  /// 开合左侧二级导航侧栏。
+  void toggleNav() => state.navExpanded.toggle();
+
+  /// 展开左侧二级导航侧栏。
+  void expandNav() => state.navExpanded.value = true;
+
+  /// 收起左侧二级导航侧栏。
+  void collapseNav() => state.navExpanded.value = false;
 
   /// inner controller 监听函数
   /// 用于分页

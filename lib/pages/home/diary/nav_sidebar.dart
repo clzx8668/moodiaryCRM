@@ -11,22 +11,25 @@ import 'package:moodiary/pages/home/diary/diary_logic.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
-/// 首页二级导航抽屉（左侧，固定 300px）：
-/// - 日记分类：树式导航 + 内嵌增/改/删管理，tab 分类页随动；
-/// - Obsidian（启用后显示）：Vault 文件目录树，点击切换笔记；
-/// - 预留后续区块（CRM / 知识库等）扩展位。
+/// 首页二级导航侧栏（内嵌于主框架、与 tab 行并排，非遮盖抽屉）：
+/// - 展开态 300px：日记分类树（含内嵌增/改/删）+ Obsidian 文件树；
+/// - 收起态 44px：仅保留一个展开图标（与 tab 行边上的原菜单钮形态一致）；
+/// - 宽度动画过渡，主内容（tab 行 + TabBarView）始终占满剩余空间。
 ///
-/// 交互：PC 端选择后保持打开（手动收起）；移动端选择后自动收起。
-class NavDrawer extends StatefulWidget {
+/// 交互：PC 端选择后保持展开（连续浏览）；移动端选择后自动收起。
+class NavSidebar extends StatefulWidget {
   final DiaryLogic? logic;
 
-  const NavDrawer({super.key, this.logic});
+  const NavSidebar({super.key, this.logic});
 
   @override
-  State<NavDrawer> createState() => _NavDrawerState();
+  State<NavSidebar> createState() => _NavSidebarState();
 }
 
-class _NavDrawerState extends State<NavDrawer> {
+class _NavSidebarState extends State<NavSidebar> {
+  static const double expandedWidth = 300;
+  static const double collapsedWidth = 44;
+
   late final DiaryLogic _logic = widget.logic ?? Get.find<DiaryLogic>();
   final ObsidianService _obsidianService = ObsidianService.instance;
 
@@ -35,13 +38,10 @@ class _NavDrawerState extends State<NavDrawer> {
   ObsidianTreeNode? _obsidianTree;
   bool _loadingObsidian = false;
 
-  /// 按目标平台判断（而非宿主平台）：Windows/Linux/macOS 保持打开，
-  /// Android/iOS 选择后自动收起。
-  bool get _isDesktop {
+  /// 按目标平台判断（而非宿主平台）：移动端选择后自动收起。
+  bool get _isMobile {
     final platform = Theme.of(context).platform;
-    return platform == TargetPlatform.windows ||
-        platform == TargetPlatform.linux ||
-        platform == TargetPlatform.macOS;
+    return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
   }
 
   @override
@@ -87,7 +87,7 @@ class _NavDrawerState extends State<NavDrawer> {
 
   void _selectCategory(String? categoryId) {
     _logic.jumpToCategory(categoryId: categoryId);
-    _maybeAutoClose();
+    if (_isMobile) _logic.collapseNav();
   }
 
   Future<void> _addCategory() async {
@@ -145,12 +145,7 @@ class _NavDrawerState extends State<NavDrawer> {
   void _selectObsidianFile(ObsidianFile file) {
     ObsidianController.instance.select(file);
     _logic.jumpToObsidian();
-    _maybeAutoClose();
-  }
-
-  /// 移动端选择后自动收起抽屉；PC 端保持打开便于连续浏览。
-  void _maybeAutoClose() {
-    if (!_isDesktop) Navigator.of(context).pop();
+    if (_isMobile) _logic.collapseNav();
   }
 
   // ==================== UI ====================
@@ -158,50 +153,87 @@ class _NavDrawerState extends State<NavDrawer> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Drawer(
-      width: 300,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Obx(() {
+      final expanded = _logic.state.navExpanded.value;
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+        width: expanded ? expandedWidth : collapsedWidth,
+        color: theme.colorScheme.surfaceContainerLow,
+        clipBehavior: Clip.hardEdge,
+        // 内容恒定按展开宽度 300 布局（Positioned 覆盖约束），
+        // 外部裁剪：收起动画的中间宽度不会触发溢出
+        child: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.menu_open_rounded,
-                    size: 20,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 8),
-                  Text('导航', style: theme.textTheme.titleMedium),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: '关闭',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                children: [
-                  _buildCategorySection(),
-                  Obx(() {
-                    if (!ObsidianConfig.isReady) {
-                      return const SizedBox.shrink();
-                    }
-                    return _buildObsidianSection();
-                  }),
-                ],
-              ),
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: expandedWidth,
+              child: expanded ? _buildExpanded(theme) : _buildCollapsed(theme),
             ),
           ],
         ),
-      ),
+      );
+    });
+  }
+
+  Widget _buildCollapsed(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        Padding(
+          padding: const EdgeInsets.only(left: 2),
+          child: IconButton(
+            tooltip: '展开导航',
+            onPressed: _logic.expandNav,
+            icon: Icon(
+              Icons.menu_open_rounded,
+              size: 22,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExpanded(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 6, 8, 4),
+          child: Row(
+            children: [
+              Text('导航', style: theme.textTheme.titleMedium),
+              const Spacer(),
+              IconButton(
+                tooltip: '收起导航',
+                onPressed: _logic.collapseNav,
+                icon: const Icon(Icons.chevron_left_rounded),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              _buildCategorySection(),
+              Obx(() {
+                if (!ObsidianConfig.isReady) {
+                  return const SizedBox.shrink();
+                }
+                return _buildObsidianSection();
+              }),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

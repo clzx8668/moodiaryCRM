@@ -1,18 +1,19 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show debugDefaultTargetPlatformOverride;
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/category.dart';
+import 'package:moodiary/components/frosted_glass_overlay/frosted_glass_overlay_logic.dart';
 import 'package:moodiary/features/obsidian/obsidian_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_controller.dart';
 import 'package:moodiary/features/obsidian/obsidian_service.dart';
-import 'package:moodiary/components/frosted_glass_overlay/frosted_glass_overlay_logic.dart';
 import 'package:moodiary/l10n/app_localizations.dart';
-import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/pages/home/diary/diary_logic.dart';
-import 'package:moodiary/pages/home/diary/nav_drawer.dart';
+import 'package:moodiary/pages/home/diary/nav_sidebar.dart';
+import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
@@ -84,45 +85,58 @@ void main() {
     localizationsDelegates: const [...AppLocalizations.localizationsDelegates],
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
-      key: logic.navDrawerKey,
-      drawer: NavDrawer(logic: logic),
-      body: const SizedBox.expand(),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 48, child: Center(child: Text('标题行'))),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                NavSidebar(logic: logic),
+                const Expanded(child: SizedBox.expand()),
+              ],
+            ),
+          ),
+        ],
+      ),
     ),
   );
 
-  Future<void> openDrawer(WidgetTester tester) async {
-    logic.navDrawerKey.currentState!.openDrawer();
-    await tester.pumpAndSettle();
-  }
-
-  testWidgets('抽屉展示分类树，点击分类随动跳 tab 并自动收起（移动端）', (tester) async {
+  Future<void> preloadVault(WidgetTester tester) async {
     await tester.runAsync(
       () => ObsidianService.instance.scan(vaultPath: tmp.path, force: true),
     );
-    await tester.pumpWidget(wrap());
-    await openDrawer(tester);
+  }
 
+  testWidgets('移动端：默认收起，点图标展开，选分类后随动并自动收起', (tester) async {
+    await preloadVault(tester);
+    await tester.pumpWidget(wrap());
+    await tester.pumpAndSettle();
+
+    // 默认收起：只显示展开图标
+    expect(logic.state.navExpanded.value, isFalse);
+    expect(find.text('日记分类'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.menu_open_rounded));
+    await tester.pumpAndSettle();
+    expect(logic.state.navExpanded.value, isTrue);
     expect(find.text('日记分类'), findsOneWidget);
     expect(find.text('工作'), findsOneWidget);
-    expect(find.text('生活'), findsOneWidget);
 
     await tester.tap(find.text('工作'));
     await tester.pumpAndSettle();
-
-    // tab 随动
     expect(logic.tabController.index, 1);
-    // 移动端自动收起（抽屉头部「导航」消失）
-    expect(find.text('导航'), findsNothing);
+    expect(logic.state.navExpanded.value, isFalse); // 移动端自动收起
   });
 
-  testWidgets('抽屉 Obsidian 子树选中文件 → 切 tab + 共享选中态', (tester) async {
-    await tester.runAsync(
-      () => ObsidianService.instance.scan(vaultPath: tmp.path, force: true),
-    );
+  testWidgets('移动端：Obsidian 树选中文件 → 切 tab + 共享选中态 + 自动收起', (tester) async {
+    await preloadVault(tester);
     await tester.pumpWidget(wrap());
-    await openDrawer(tester);
+    await tester.pumpAndSettle();
 
-    expect(find.text('Obsidian'), findsOneWidget);
+    logic.state.navExpanded.value = true;
+    await tester.pumpAndSettle();
     await tester.tap(find.text('日记'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('2026-08-30.md'));
@@ -133,22 +147,22 @@ void main() {
       '2026-08-30',
     );
     expect(logic.tabController.index, logic.state.categoryList.length + 1);
-    expect(find.text('导航'), findsNothing); // 移动端自动收起
+    expect(logic.state.navExpanded.value, isFalse); // 移动端自动收起
   });
 
-  testWidgets('PC 端选择分类后抽屉保持打开，可连续浏览', (tester) async {
+  testWidgets('PC 端：选择分类后侧栏保持展开，可连续浏览', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
-    await tester.runAsync(
-      () => ObsidianService.instance.scan(vaultPath: tmp.path, force: true),
-    );
+    await preloadVault(tester);
     await tester.pumpWidget(wrap());
-    await openDrawer(tester);
-
-    await tester.tap(find.text('工作'));
     await tester.pumpAndSettle();
 
-    expect(logic.tabController.index, 1);
-    expect(find.text('导航'), findsOneWidget); // PC 端保持打开
+    logic.state.navExpanded.value = true;
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('生活'));
+    await tester.pumpAndSettle();
+
+    expect(logic.tabController.index, 2);
+    expect(logic.state.navExpanded.value, isTrue); // PC 端保持展开
     debugDefaultTargetPlatformOverride = null; // 框架校验前必须复位
   });
 }

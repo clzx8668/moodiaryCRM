@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:moodiary/common/models/isar/category.dart';
 import 'package:moodiary/common/values/diary_sort.dart';
 import 'package:moodiary/common/values/view_mode.dart';
@@ -27,8 +28,9 @@ class DiaryState {
       nestedScrollKey.currentState!.outerController;
 
   //视图模式状态
-  late Rx<ViewModeType> viewModeType =
-      ViewModeType.getType(PrefUtil.getValue<int>('homeViewMode')!).obs;
+  late Rx<ViewModeType> viewModeType = ViewModeType.getType(
+    PrefUtil.getValue<int>('homeViewMode')!,
+  ).obs;
 
   // 记录排序方式（影响列表/网格/块三视图）
   late Rx<DiarySort> sort = DiarySort.fromIndex(
@@ -43,6 +45,13 @@ class DiaryState {
 
   //当前tab bar位置
   late int currentTabBarIndex;
+
+  /// 二级导航侧栏展开状态（PC 默认展开，移动端默认收起）。
+  final RxBool navExpanded = RxBool(
+    defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux ||
+        defaultTargetPlatform == TargetPlatform.macOS,
+  );
 
   // 一言
   RxString hitokoto = '...'.obs;

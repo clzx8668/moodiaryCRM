@@ -17,7 +17,7 @@ import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/utils/webdav_util.dart';
 
 import 'diary_logic.dart';
-import 'nav_drawer.dart';
+import 'nav_sidebar.dart';
 
 /// 首页筛选弹层：按标签多选（列表/网格/块三视图共用）
 class _DiaryFilterSheet extends StatefulWidget {
@@ -171,11 +171,6 @@ class DiaryPage extends StatelessWidget {
       }
       return Row(
         children: [
-          IconButton(
-            tooltip: '导航',
-            onPressed: logic.toggleNavDrawer,
-            icon: const Icon(Icons.menu_open_rounded),
-          ),
           Expanded(
             child: TabBar(
               controller: logic.tabController,
@@ -297,111 +292,141 @@ class DiaryPage extends StatelessWidget {
         ),
       );
     });
-    return GetBuilder<DiaryLogic>(
-      builder: (_) {
-        return Scaffold(
-          key: logic.navDrawerKey,
-          drawer: const NavDrawer(),
-          body: NestedScrollView(
-            key: state.nestedScrollKey,
-            headerSliverBuilder: (context, _) {
-              return [
-                SliverOverlapAbsorber(
-                  handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
-                    context,
-                  ),
-                  sliver: SliverAppBar(
-                    title: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [title, hitokoto],
-                    ),
-                    pinned: true,
-                    actions: [
-                      Obx(() {
-                        return WebDavUtil().syncingDiaries.isNotEmpty
-                            ? _buildSyncingButton(
-                                context: context,
-                                onTap: () {
-                                  showFloatingModalBottomSheet(
-                                    context: context,
-                                    builder: (context) {
-                                      return const SyncDashBoardComponent();
-                                    },
-                                  );
-                                },
-                              )
-                            : IconButton(
-                                onPressed: () {
-                                  showFloatingModalBottomSheet(
-                                    context: context,
-                                    builder: (context) {
-                                      return const SyncDashBoardComponent();
-                                    },
-                                  );
-                                },
-                                tooltip: context.l10n.dataSync,
-                                icon: const Icon(Icons.cloud_sync_rounded),
-                              );
-                      }),
-                      IconButton(
-                        onPressed: () {
-                          showFloatingModalBottomSheet(
-                            context: context,
-                            builder: (context) {
-                              return const SearchSheetComponent();
-                            },
-                          );
-                        },
-                        icon: const Icon(Icons.search_rounded),
-                        tooltip: context.l10n.diaryPageSearchButton,
-                      ),
-                      PopupMenuButton(
-                        offset: const Offset(0, 46),
-                        tooltip: context.l10n.diaryPageViewModeButton,
-                        icon: const Icon(Icons.more_vert_rounded),
-                        itemBuilder: (context) {
-                          return <PopupMenuEntry<String>>[
-                            CheckedPopupMenuItem(
-                              checked:
-                                  state.viewModeType.value == ViewModeType.list,
-                              onTap: () async {
-                                await logic.changeViewMode(ViewModeType.list);
-                              },
-                              child: Text(context.l10n.diaryViewModeList),
-                            ),
-                            const PopupMenuDivider(),
-                            CheckedPopupMenuItem(
-                              checked:
-                                  state.viewModeType.value == ViewModeType.grid,
-                              onTap: () async {
-                                await logic.changeViewMode(ViewModeType.grid);
-                              },
-                              child: Text(context.l10n.diaryViewModeGrid),
-                            ),
-                            const PopupMenuDivider(),
-                            CheckedPopupMenuItem(
-                              checked:
-                                  state.viewModeType.value ==
-                                  ViewModeType.block,
-                              onTap: () async {
-                                await logic.changeViewMode(ViewModeType.block);
-                              },
-                              child: const Text('块视图'),
-                            ),
-                          ];
-                        },
-                      ),
-                    ],
-                    bottom: PreferredSize(
-                      preferredSize: const Size.fromHeight(46.0),
-                      child: buildTabBar(),
-                    ),
+
+    // 通栏固定标题行（标题 + 一言 + 动作），位于二级导航侧栏上方
+    Widget buildTitleBar() {
+      return Material(
+        color: Theme.of(context).colorScheme.surface,
+        child: SafeArea(
+          bottom: false,
+          child: SizedBox(
+            height: 56,
+            child: Row(
+              children: [
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [title, hitokoto],
                   ),
                 ),
-              ];
-            },
-            body: buildTabBarView(),
+                Obx(() {
+                  return WebDavUtil().syncingDiaries.isNotEmpty
+                      ? _buildSyncingButton(
+                          context: context,
+                          onTap: () {
+                            showFloatingModalBottomSheet(
+                              context: context,
+                              builder: (context) {
+                                return const SyncDashBoardComponent();
+                              },
+                            );
+                          },
+                        )
+                      : IconButton(
+                          onPressed: () {
+                            showFloatingModalBottomSheet(
+                              context: context,
+                              builder: (context) {
+                                return const SyncDashBoardComponent();
+                              },
+                            );
+                          },
+                          tooltip: context.l10n.dataSync,
+                          icon: const Icon(Icons.cloud_sync_rounded),
+                        );
+                }),
+                IconButton(
+                  onPressed: () {
+                    showFloatingModalBottomSheet(
+                      context: context,
+                      builder: (context) {
+                        return const SearchSheetComponent();
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.search_rounded),
+                  tooltip: context.l10n.diaryPageSearchButton,
+                ),
+                PopupMenuButton(
+                  offset: const Offset(0, 46),
+                  tooltip: context.l10n.diaryPageViewModeButton,
+                  icon: const Icon(Icons.more_vert_rounded),
+                  itemBuilder: (context) {
+                    return <PopupMenuEntry<String>>[
+                      CheckedPopupMenuItem(
+                        checked: state.viewModeType.value == ViewModeType.list,
+                        onTap: () async {
+                          await logic.changeViewMode(ViewModeType.list);
+                        },
+                        child: Text(context.l10n.diaryViewModeList),
+                      ),
+                      const PopupMenuDivider(),
+                      CheckedPopupMenuItem(
+                        checked: state.viewModeType.value == ViewModeType.grid,
+                        onTap: () async {
+                          await logic.changeViewMode(ViewModeType.grid);
+                        },
+                        child: Text(context.l10n.diaryViewModeGrid),
+                      ),
+                      const PopupMenuDivider(),
+                      CheckedPopupMenuItem(
+                        checked: state.viewModeType.value == ViewModeType.block,
+                        onTap: () async {
+                          await logic.changeViewMode(ViewModeType.block);
+                        },
+                        child: const Text('块视图'),
+                      ),
+                    ];
+                  },
+                ),
+                const SizedBox(width: 4),
+              ],
+            ),
           ),
+        ),
+      );
+    }
+
+    return GetBuilder<DiaryLogic>(
+      builder: (_) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            buildTitleBar(),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  NavSidebar(logic: logic),
+                  Expanded(
+                    child: NestedScrollView(
+                      key: state.nestedScrollKey,
+                      headerSliverBuilder: (context, _) {
+                        return [
+                          SliverOverlapAbsorber(
+                            handle:
+                                NestedScrollView.sliverOverlapAbsorberHandleFor(
+                                  context,
+                                ),
+                            sliver: SliverAppBar(
+                              pinned: true,
+                              bottom: PreferredSize(
+                                preferredSize: const Size.fromHeight(46.0),
+                                child: buildTabBar(),
+                              ),
+                            ),
+                          ),
+                        ];
+                      },
+                      body: buildTabBarView(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );
