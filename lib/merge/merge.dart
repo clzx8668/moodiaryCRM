@@ -31,7 +31,8 @@ class MergeUtil {
     if (appVersionCode.compareTo('2.6.3') < 0) {
       await FileUtil.cleanFile(FileUtil.getRealPath('database', ''));
       await MediaUtil.regenerateMissingThumbnails();
-      await compute(IsarUtil.fixV2_6_3, FileUtil.getRealPath('database', ''));
+      // fixV2_6_3 访问主隔离的 Drift _database，不能放 compute 隔离核（会 null 崩）。
+      await IsarUtil.fixV2_6_3(FileUtil.getRealPath('database', ''));
     }
 
     /// v2.7.3
@@ -39,7 +40,8 @@ class MergeUtil {
     if (appVersionCode.compareTo('2.7.3') < 0) {
       await PrefUtil.setValue('customFont', '');
       final allFont = await FontUtil.getAllFonts();
-      await compute(IsarUtil.mergeToV2_7_3, {
+      // 同上：mergeToV2_7_3 需主隔离 Drift 连接。
+      await IsarUtil.mergeToV2_7_3({
         'database': FileUtil.getRealPath('database', ''),
         'fonts': allFont,
       });

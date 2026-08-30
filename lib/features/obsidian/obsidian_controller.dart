@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/obsidian/obsidian_service.dart';
 
@@ -10,5 +11,12 @@ class ObsidianController extends GetxController {
 
   final Rx<ObsidianFile?> selectedFile = Rx<ObsidianFile?>(null);
 
-  void select(ObsidianFile file) => selectedFile.value = file;
+  void select(ObsidianFile file) {
+    if (kDebugMode) {
+      debugPrintSynchronously(
+        '[ObsidianController.select] 选中笔记: ${file.relativePath} (绝对路径=${file.absolutePath})',
+      );
+    }
+    selectedFile.value = file;
+  }
 }

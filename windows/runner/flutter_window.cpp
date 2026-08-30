@@ -29,6 +29,11 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
+  // 兜底：CreateWindow 阶段还没把窗口内容/尺寸刷进引擎时，先显示一个空壳窗口，
+  // 避免首帧断言/插件初始化阻塞时用户看到"无窗口"。SetNextFrameCallback
+  // 保留作冗余（等首帧后再 Show 一次也幂等）。
+  Show();
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });

@@ -417,7 +417,24 @@ class DiaryPage extends StatelessWidget {
                   Expanded(
                     child: NestedScrollView(
                       key: state.nestedScrollKey,
-                      headerSliverBuilder: (context, _) => const <Widget>[],
+                      // 列表视图（diary_tab_view）通过
+                      // NestedScrollView.sliverOverlapAbsorberHandleFor + SliverOverlapInjector
+                      // 依赖头部存在 SliverOverlapAbsorber；tab 行已在外部控制行，
+                      // 故这里提供一个高度 0 的空壳 absorber 满足配对，不占可见空间。
+                      headerSliverBuilder: (context, _) => [
+                        SliverOverlapAbsorber(
+                          handle:
+                              NestedScrollView.sliverOverlapAbsorberHandleFor(
+                                context,
+                              ),
+                          // 用真正的 0 高度 SliverToBoxAdapter，避免 SliverAppBar
+                          // 因 primary 吸收状态栏高度或未登记 extent，导致列表
+                          // topOffset 回退到超大的 barHeight（移动端 ≈130px 空白）。
+                          sliver: const SliverToBoxAdapter(
+                            child: SizedBox.shrink(),
+                          ),
+                        ),
+                      ],
                       body: buildTabBarView(),
                     ),
                   ),

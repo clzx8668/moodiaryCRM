@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/components/base/button.dart';
@@ -29,7 +30,13 @@ class _ObsidianPageState extends State<ObsidianPage> {
   Future<void> _load({bool force = false}) async {
     setState(() => _loading = true);
     // 首次加载复用 5 秒幂等缓存；「刷新」按钮才强制重扫
-    await _service.scan(force: force);
+    final count = await _service.scan(force: force);
+    if (kDebugMode) {
+      debugPrintSynchronously(
+        '[ObsidianPage._load] force=$force 扫描完成：共 $count 篇；'
+        '当前选中=${ObsidianController.instance.selectedFile.value?.relativePath ?? '(无)'}',
+      );
+    }
     if (!mounted) return;
     setState(() => _loading = false);
   }

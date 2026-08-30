@@ -7,6 +7,7 @@ void main() {
     relativePath: rel,
     name: rel.split(RegExp(r'[\\/]')).last,
     content: '',
+    absolutePath: '/vault/$rel',
   );
 
   test('空文件列表返回空根节点', () {

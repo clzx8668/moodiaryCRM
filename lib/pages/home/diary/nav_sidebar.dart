@@ -12,7 +12,7 @@ import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 首页二级导航侧栏（内嵌于主框架、与 tab 行并排，非遮盖抽屉）：
-/// - 展开态 300px：日记分类树（含内嵌增/改/删）+ Obsidian 文件树；
+/// - 展开态 180px：日记分类树（含内嵌增/改/删）+ Obsidian 文件树；
 /// - 收起态 44px：仅保留一个展开图标（与 tab 行边上的原菜单钮形态一致）；
 /// - 宽度动画过渡，主内容（tab 行 + TabBarView）始终占满剩余空间。
 ///
@@ -27,7 +27,7 @@ class NavSidebar extends StatefulWidget {
 }
 
 class _NavSidebarState extends State<NavSidebar> {
-  static const double expandedWidth = 300;
+  static const double expandedWidth = 180;
 
   late final DiaryLogic _logic = widget.logic ?? Get.find<DiaryLogic>();
   final ObsidianService _obsidianService = ObsidianService.instance;
@@ -211,7 +211,7 @@ class _NavSidebarState extends State<NavSidebar> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+          padding: const EdgeInsets.fromLTRB(10, 8, 2, 4),
           child: Row(
             children: [
               Icon(
@@ -219,14 +219,22 @@ class _NavSidebarState extends State<NavSidebar> {
                 size: 16,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 8),
-              Text('日记分类', style: theme.textTheme.labelLarge),
-              const Spacer(),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '日记分类',
+                  style: theme.textTheme.labelLarge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               IconButton(
                 tooltip: context.l10n.categoryManageAdd,
                 onPressed: _addCategory,
                 icon: const Icon(Icons.add_rounded, size: 20),
                 visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
               ),
             ],
           ),
@@ -262,7 +270,7 @@ class _NavSidebarState extends State<NavSidebar> {
       children: [
         const Divider(height: 16),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+          padding: const EdgeInsets.fromLTRB(10, 4, 2, 4),
           child: Row(
             children: [
               Icon(
@@ -270,14 +278,22 @@ class _NavSidebarState extends State<NavSidebar> {
                 size: 16,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 8),
-              Text('Obsidian', style: theme.textTheme.labelLarge),
-              const Spacer(),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Obsidian',
+                  style: theme.textTheme.labelLarge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               IconButton(
                 tooltip: '刷新文件树',
                 onPressed: () => _loadObsidian(force: true),
                 icon: const Icon(Icons.refresh_rounded, size: 20),
                 visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
               ),
             ],
           ),
@@ -324,7 +340,7 @@ class _NavSidebarState extends State<NavSidebar> {
             ),
           ),
           selected: selected,
-          contentPadding: EdgeInsets.only(left: 16.0 + depth * 16, right: 8),
+          contentPadding: EdgeInsets.only(left: 10.0 + depth * 12, right: 2),
           onTap: () => _selectObsidianFile(file),
         );
       });
@@ -376,7 +392,7 @@ class _CategoryTile extends StatelessWidget {
         ),
       ),
       selected: selected,
-      contentPadding: const EdgeInsets.only(left: 16, right: 4),
+      contentPadding: const EdgeInsets.only(left: 10, right: 2),
       trailing: onEdit == null || onDelete == null
           ? null
           : Row(
@@ -389,8 +405,8 @@ class _CategoryTile extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
-                    minWidth: 30,
-                    minHeight: 30,
+                    minWidth: 28,
+                    minHeight: 28,
                   ),
                 ),
                 IconButton(
@@ -404,8 +420,8 @@ class _CategoryTile extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
-                    minWidth: 30,
-                    minHeight: 30,
+                    minWidth: 28,
+                    minHeight: 28,
                   ),
                 ),
               ],

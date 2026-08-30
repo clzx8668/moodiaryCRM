@@ -205,7 +205,9 @@ class _DiaryTabViewComponentState extends State<DiaryTabViewComponent> {
       padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
       child: ClipRRect(
         clipper: TopRRectClipper(
-          topOffset: sliverHandle.layoutExtent ?? barHeight,
+          // tab 行已在外部控制行，NestedScrollView 头部为 0 高度 absorber，
+          // 正文不再需要为头部预留 offset；回退也用 0，避免移动端大空白。
+          topOffset: sliverHandle.layoutExtent ?? 0,
         ),
         child: CustomScrollView(
           cacheExtent: size.height * 2,
@@ -217,16 +219,15 @@ class _DiaryTabViewComponentState extends State<DiaryTabViewComponent> {
               return SliverAnimatedSwitcher(
                 duration: const Duration(milliseconds: 150),
                 reverseDuration: const Duration(milliseconds: 100),
-                child:
-                    state.isFetching.value
-                        ? _buildPlaceholder(placeholderHeight)
-                        : state.diaryList.isEmpty
-                        ? _buildEmpty(context, placeholderHeight)
-                        : switch (logic.diaryLogic.state.viewModeType.value) {
-                          ViewModeType.list => buildList(),
-                          ViewModeType.grid => buildGrid(),
-                          ViewModeType.block => buildBlock(logic),
-                        },
+                child: state.isFetching.value
+                    ? _buildPlaceholder(placeholderHeight)
+                    : state.diaryList.isEmpty
+                    ? _buildEmpty(context, placeholderHeight)
+                    : switch (logic.diaryLogic.state.viewModeType.value) {
+                        ViewModeType.list => buildList(),
+                        ViewModeType.grid => buildGrid(),
+                        ViewModeType.block => buildBlock(logic),
+                      },
               );
             }),
           ],
@@ -234,7 +235,6 @@ class _DiaryTabViewComponentState extends State<DiaryTabViewComponent> {
       ),
     );
   }
-
 }
 
 /// 多选操作条吸顶代理：固定在列表上方、不随滚动，行高紧凑（仅比文字略高）。
@@ -269,10 +269,7 @@ class _SelectionBarHeaderDelegate extends SliverPersistentHeaderDelegate {
         padding: const EdgeInsets.only(left: 4, right: 4),
         child: Row(
           children: [
-            Text(
-              '已选 $count 条',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            Text('已选 $count 条', style: Theme.of(context).textTheme.bodySmall),
             const Spacer(),
             TextButton(
               onPressed: onDelete,
@@ -419,8 +416,7 @@ class _BlockViewState extends State<_BlockView> {
                 onLongPress: () => widget.onEnterSelect(diary.id),
               );
             },
-            separatorBuilder: (context, index) =>
-                const SizedBox(height: 8.0),
+            separatorBuilder: (context, index) => const SizedBox(height: 8.0),
             itemCount: diaries.length,
           ),
         ),

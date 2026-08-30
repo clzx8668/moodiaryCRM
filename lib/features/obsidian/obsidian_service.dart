@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:moodiary/features/obsidian/obsidian_config.dart';
 import 'package:path/path.dart' as p;
 
@@ -10,14 +11,19 @@ class ObsidianFile {
   final String name;
   final String content;
 
+  /// 磁盘绝对路径（调试/日志用）
+  final String absolutePath;
+
   const ObsidianFile({
     required this.relativePath,
     required this.name,
     required this.content,
+    required this.absolutePath,
   });
 
   /// 双链匹配名（不含扩展名）
-  String get linkName => name.endsWith('.md') ? name.substring(0, name.length - 3) : name;
+  String get linkName =>
+      name.endsWith('.md') ? name.substring(0, name.length - 3) : name;
 }
 
 /// Obsidian 对接服务（只读）：递归扫描 Vault 的 .md 文件 + 内存缓存 +
@@ -40,6 +46,12 @@ class ObsidianService {
   /// 扫描 Vault（幂等：5 秒内重复调用返回缓存；手动刷新可传 force）。
   Future<int> scan({String? vaultPath, bool force = false}) async {
     final path = (vaultPath ?? ObsidianConfig.vaultPath.value).trim();
+    if (kDebugMode) {
+      debugPrintSynchronously(
+        '[ObsidianService.scan] path=${path.isEmpty ? '(空)' : path} '
+        'enabled=${ObsidianConfig.enabled.value} force=$force cached=${_files.length}',
+      );
+    }
     if (path.isEmpty) {
       _files = [];
       _vaultPath = '';
@@ -48,19 +60,38 @@ class ObsidianService {
     if (!force &&
         _vaultPath == path &&
         DateTime.now().difference(_lastScan).inSeconds < 5) {
+      if (kDebugMode) {
+        debugPrintSynchronously(
+          '[ObsidianService.scan] ✅ 命中 5s 缓存，共 ${_files.length} 篇笔记',
+        );
+      }
       return _files.length;
     }
     // 先登记 vault 路径再遍历，_walk 里 p.relative 才能得到正确相对路径
     _vaultPath = path;
     final root = Directory(path);
-    if (!await root.exists()) return 0;
+    if (!await root.exists()) {
+      if (kDebugMode) {
+        debugPrintSynchronously('[ObsidianService.scan] ❌ Vault 目录不存在');
+      }
+      return 0;
+    }
     final collected = <ObsidianFile>[];
-    await _walk(root, collected);
-    collected.sort(
-      (a, b) => a.relativePath.compareTo(b.relativePath),
-    );
+    try {
+      await _walk(root, collected).timeout(const Duration(seconds: 30));
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrintSynchronously('[ObsidianService.scan] ⚠️ _walk 超时/异常: $e');
+      }
+    }
+    collected.sort((a, b) => a.relativePath.compareTo(b.relativePath));
     _files = collected;
     _lastScan = DateTime.now();
+    if (kDebugMode) {
+      debugPrintSynchronously(
+        '[ObsidianService.scan] ✅ 扫描完成：共 ${_files.length} 篇笔记',
+      );
+    }
     return _files.length;
   }
 
@@ -77,16 +108,25 @@ class ObsidianService {
               ObsidianFile(
                 relativePath: rel,
                 name: p.basename(entity.path),
-                content: await entity.readAsString(),
+                content: await entity.readAsString().timeout(
+                  const Duration(seconds: 5),
+                ),
+                absolutePath: entity.path,
               ),
             );
-          } catch (_) {
-            // 单文件读取失败跳过
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrintSynchronously(
+                '[ObsidianService._walk] 跳过文件 $rel: 读取失败 $e',
+              );
+            }
           }
         }
       }
-    } catch (_) {
-      // 目录不可读跳过
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrintSynchronously('[ObsidianService._walk] 目录跳过 ${dir.path}: $e');
+      }
     }
   }
 
@@ -95,9 +135,7 @@ class ObsidianService {
     final k = keyword.trim();
     if (k.isEmpty) return const [];
     return _files
-        .where(
-          (f) => f.name.contains(k) || f.content.contains(k),
-        )
+        .where((f) => f.name.contains(k) || f.content.contains(k))
         .toList();
   }
 
