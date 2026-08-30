@@ -119,7 +119,7 @@ class _SmartInputBarState extends State<SmartInputBar>
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(8),
       ),
       padding: const EdgeInsets.fromLTRB(6, 2, 4, 2),
       child: Row(
