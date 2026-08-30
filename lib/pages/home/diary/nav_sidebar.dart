@@ -419,7 +419,7 @@ class _CategoryTile extends StatelessWidget {
       // 180px 下把「重命名/删除」收进长按菜单，行尾只留标题，更清爽
       onLongPressStart: onEdit == null || onDelete == null
           ? null
-          : (details) => _showMenu(context, details.globalPosition),
+          : (_) => _showActions(context),
       child: ListTile(
         dense: true,
         leading: Icon(
@@ -443,39 +443,38 @@ class _CategoryTile extends StatelessWidget {
     );
   }
 
-  void _showMenu(BuildContext context, Offset globalPos) {
-    showMenu<void>(
+  void _showActions(BuildContext context) {
+    showModalBottomSheet<void>(
       context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromLTWH(globalPos.dx, globalPos.dy, 0, 0),
-        Offset.zero & MediaQuery.sizeOf(context),
-      ),
-      items: [
-        PopupMenuItem(
-          onTap: onEdit,
-          child: const Row(
-            children: [
-              Icon(Icons.edit_rounded, size: 18),
-              SizedBox(width: 10),
-              Text('重命名'),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          onTap: onDelete,
-          child: Row(
-            children: [
-              Icon(
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_rounded),
+              title: const Text('重命名'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                onEdit?.call();
+              },
+            ),
+            ListTile(
+              leading: Icon(
                 Icons.delete_forever_rounded,
-                size: 18,
                 color: Theme.of(context).colorScheme.error,
               ),
-              const SizedBox(width: 10),
-              const Text('删除'),
-            ],
-          ),
+              title: Text(
+                '删除',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                onDelete?.call();
+              },
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
