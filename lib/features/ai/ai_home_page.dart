@@ -1034,15 +1034,21 @@ class _AiHomePageState extends State<AiHomePage> {
   }
 
   Widget _buildInputBar(BuildContext context) {
-    return SmartInputBar(
-      controller: _input,
-      startActive: false,
-      streaming: _streaming,
-      collapsedHint: '按住输入语音',
-      activeHint: '输入问题，Enter 发送，Shift+Enter 换行…',
-      modelLabel: 'AI',
-      onSend: (_) => _send(),
-      onStop: _stopStreaming,
+    return Align(
+      alignment: Alignment.center,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: SmartInputBar(
+          controller: _input,
+          startActive: false,
+          streaming: _streaming,
+          collapsedHint: '按住输入语音',
+          activeHint: '输入问题，Enter 发送，Shift+Enter 换行…',
+          modelLabel: 'AI',
+          onSend: (_) => _send(),
+          onStop: _stopStreaming,
+        ),
+      ),
     );
   }
 }

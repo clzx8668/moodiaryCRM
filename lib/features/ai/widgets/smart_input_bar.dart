@@ -198,7 +198,7 @@ class _SmartInputBarState extends State<SmartInputBar>
         Container(
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: widget.voiceMode
               ? _buildVoiceHold()
@@ -222,7 +222,7 @@ class _SmartInputBarState extends State<SmartInputBar>
                   onSubmitted: (_) => _submit(),
                 ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Row(
           children: [
             // 模型按钮可收缩：模板名较长时避免功能栏右侧溢出

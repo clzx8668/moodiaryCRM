@@ -381,7 +381,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
   /// 桌面端约束主列阅读宽度，移动端全宽。
   double _contentPadX(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    const maxWidth = 720.0;
+    const maxWidth = 760.0;
     if (w <= 1024) return 16.0;
     final side = (w - maxWidth) / 2;
     return side < 16.0 ? 16.0 : side;
