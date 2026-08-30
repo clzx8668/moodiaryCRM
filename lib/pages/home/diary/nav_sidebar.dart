@@ -27,10 +27,11 @@ class NavSidebar extends StatefulWidget {
 }
 
 class _NavSidebarState extends State<NavSidebar> {
-  static const double expandedWidth = 180;
-
   late final DiaryLogic _logic = widget.logic ?? Get.find<DiaryLogic>();
   final ObsidianService _obsidianService = ObsidianService.instance;
+
+  /// 拖拽调整宽度期间禁用动画（即时生效）；drag end 持久化。
+  bool _dragging = false;
 
   List<Category> _categories = [];
   bool _loadingCategories = true;
@@ -154,13 +155,13 @@ class _NavSidebarState extends State<NavSidebar> {
     final theme = Theme.of(context);
     return Obx(() {
       final expanded = _logic.state.navExpanded.value;
+      final sidebarWidth = _logic.state.sidebarWidth.value;
       return AnimatedContainer(
-        duration: const Duration(milliseconds: 240),
+        duration: _dragging ? Duration.zero : const Duration(milliseconds: 240),
         curve: Curves.easeInOut,
-        width: expanded ? expandedWidth : 0,
+        width: expanded ? sidebarWidth : 0,
         color: theme.colorScheme.surfaceContainerLow,
         clipBehavior: Clip.hardEdge,
-        // 展开时才构建内容（收起为宽度 0，完全隐藏；避免中间宽度溢出）
         child: expanded
             ? Stack(
                 children: [
@@ -168,8 +169,46 @@ class _NavSidebarState extends State<NavSidebar> {
                     left: 0,
                     top: 0,
                     bottom: 0,
-                    width: expandedWidth,
+                    width: sidebarWidth,
                     child: _buildContent(theme),
+                  ),
+                  // 右侧拖拽把手：改变宽度并持久化
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 12,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.resizeColumn,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onHorizontalDragStart: (_) {
+                          _dragging = true;
+                        },
+                        onHorizontalDragUpdate: (d) {
+                          _logic.setSidebarWidth(sidebarWidth + d.delta.dx);
+                        },
+                        onHorizontalDragEnd: (_) {
+                          _dragging = false;
+                          _logic.persistSidebarWidth();
+                        },
+                        onHorizontalDragCancel: () {
+                          _dragging = false;
+                          _logic.persistSidebarWidth();
+                        },
+                        child: Center(
+                          child: Container(
+                            width: 3,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               )
@@ -375,58 +414,68 @@ class _CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      leading: Icon(
-        selected ? Icons.folder_rounded : Icons.folder_outlined,
-        size: 18,
-        color: selected ? Theme.of(context).colorScheme.primary : null,
-      ),
-      title: Text(
-        name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: selected ? FontWeight.w600 : null,
-        ),
-      ),
-      selected: selected,
-      contentPadding: const EdgeInsets.only(left: 10, right: 2),
-      trailing: onEdit == null || onDelete == null
+    final colorScheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      // 180px 下把「重命名/删除」收进长按菜单，行尾只留标题，更清爽
+      onLongPressStart: onEdit == null || onDelete == null
           ? null
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: '重命名',
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_rounded, size: 17),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 28,
-                    minHeight: 28,
-                  ),
-                ),
-                IconButton(
-                  tooltip: '删除',
-                  onPressed: onDelete,
-                  icon: Icon(
-                    Icons.delete_forever_rounded,
-                    size: 17,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 28,
-                    minHeight: 28,
-                  ),
-                ),
-              ],
-            ),
-      onTap: onTap,
+          : (details) => _showMenu(context, details.globalPosition),
+      child: ListTile(
+        dense: true,
+        leading: Icon(
+          selected ? Icons.folder_rounded : Icons.folder_outlined,
+          size: 18,
+          color: selected ? colorScheme.primary : null,
+        ),
+        title: Text(
+          name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.w600 : null,
+          ),
+        ),
+        selected: selected,
+        contentPadding: const EdgeInsets.only(left: 10, right: 2),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  void _showMenu(BuildContext context, Offset globalPos) {
+    showMenu<void>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(globalPos.dx, globalPos.dy, 0, 0),
+        Offset.zero & MediaQuery.sizeOf(context),
+      ),
+      items: [
+        PopupMenuItem(
+          onTap: onEdit,
+          child: const Row(
+            children: [
+              Icon(Icons.edit_rounded, size: 18),
+              SizedBox(width: 10),
+              Text('重命名'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          onTap: onDelete,
+          child: Row(
+            children: [
+              Icon(
+                Icons.delete_forever_rounded,
+                size: 18,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(width: 10),
+              const Text('删除'),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

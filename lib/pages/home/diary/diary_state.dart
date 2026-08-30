@@ -53,6 +53,11 @@ class DiaryState {
         defaultTargetPlatform == TargetPlatform.macOS,
   );
 
+  /// 二级导航侧栏展开宽度（可拖动调整并持久化，默认 180）。
+  final RxDouble sidebarWidth = RxDouble(
+    PrefUtil.getValue<double>('navSidebarWidth') ?? 180.0,
+  );
+
   // 一言
   RxString hitokoto = '...'.obs;
 

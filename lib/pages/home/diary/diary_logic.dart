@@ -128,6 +128,15 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
   /// 收起左侧二级导航侧栏。
   void collapseNav() => state.navExpanded.value = false;
 
+  /// 拖动调整侧栏宽度（限制在合理区间）。
+  void setSidebarWidth(double width) {
+    state.sidebarWidth.value = width.clamp(140.0, 360.0);
+  }
+
+  /// 拖拽结束后持久化侧栏宽度。
+  Future<void> persistSidebarWidth() =>
+      PrefUtil.setValue<double>('navSidebarWidth', state.sidebarWidth.value);
+
   /// inner controller 监听函数
   /// 用于分页
   void _innerControllerListener() async {

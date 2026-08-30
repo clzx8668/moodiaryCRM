@@ -123,6 +123,18 @@ void main() {
     );
   }
 
+  test('侧栏宽度默认 180px、拖动限幅并持久化到 prefs', () async {
+    expect(logic.state.sidebarWidth.value, 180.0);
+    logic.setSidebarWidth(220);
+    expect(logic.state.sidebarWidth.value, 220.0);
+    logic.setSidebarWidth(500);
+    expect(logic.state.sidebarWidth.value, 360.0); // clamp 上限
+    logic.setSidebarWidth(10);
+    expect(logic.state.sidebarWidth.value, 140.0); // clamp 下限
+    await logic.persistSidebarWidth();
+    expect(PrefUtil.getValue<double>('navSidebarWidth'), 140.0);
+  });
+
   testWidgets('移动端：默认收起，点图标展开，选分类后随动并自动收起', (tester) async {
     await preloadVault(tester);
     await tester.pumpWidget(wrap());

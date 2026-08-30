@@ -72,6 +72,8 @@ class PrefUtil {
     'homeViewMode',
     //首页记录排序
     'homeSortOrder',
+    // 二级导航侧栏宽度（可拖动调整并持久化）
+    'navSidebarWidth',
     //自动获取天气
     'autoWeather',
     //webdav配置
@@ -150,9 +152,7 @@ class PrefUtil {
     // 底层缓存不过滤，统一由 [isAllowedKey] 把关：
     // SharedPreferencesWithCache 的 allowList 仅支持精确键，无法表达动态前缀。
     _prefs = await SharedPreferencesWithCache.create(
-      cacheOptions: const SharedPreferencesWithCacheOptions(
-        allowList: null,
-      ),
+      cacheOptions: const SharedPreferencesWithCacheOptions(allowList: null),
     );
     // 首次启动
     final firstStart = _prefs.getBool('firstStart') ?? true;
@@ -245,6 +245,10 @@ class PrefUtil {
       _prefs.getInt('homeViewMode') ?? ViewModeType.list.number,
     );
     await _prefs.setInt('homeSortOrder', _prefs.getInt('homeSortOrder') ?? 0);
+    await _prefs.setDouble(
+      'navSidebarWidth',
+      _prefs.getDouble('navSidebarWidth') ?? 180.0,
+    );
     await _prefs.setBool('autoWeather', _prefs.getBool('autoWeather') ?? false);
     await _prefs.setStringList(
       'webDavOption',
@@ -313,8 +317,14 @@ class PrefUtil {
       'aiSearchEngine',
       _prefs.getString('aiSearchEngine') ?? 'duckduckgo',
     );
-    await _prefs.setString('aiSearchUrl', _prefs.getString('aiSearchUrl') ?? '');
-    await _prefs.setString('aiSearchKey', _prefs.getString('aiSearchKey') ?? '');
+    await _prefs.setString(
+      'aiSearchUrl',
+      _prefs.getString('aiSearchUrl') ?? '',
+    );
+    await _prefs.setString(
+      'aiSearchKey',
+      _prefs.getString('aiSearchKey') ?? '',
+    );
     // Obsidian（默认关闭；配置 Vault 路径并开启后首页显示子页）
     await _prefs.setBool(
       'obsidianEnabled',
