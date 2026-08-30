@@ -131,9 +131,13 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
   /// inner controller 监听函数
   /// 用于分页
   void _innerControllerListener() async {
-    final double offset = state.innerController.offset;
-    final double maxScrollExtent =
-        state.innerController.position.maxScrollExtent;
+    // 内控制器可能同时挂多个 KeepAlive 列表的位置（每 tab 一个），
+    // 不能直接读 `.offset`/`.position`（debug 下“单位置”断言），
+    // 改为读取最近挂载（当前活动）位置。
+    final inner = state.nestedScrollKey.currentState?.innerController;
+    if (inner == null || inner.positions.isEmpty) return;
+    final double offset = inner.positions.last.pixels;
+    final double maxScrollExtent = inner.positions.last.maxScrollExtent;
     _checkShowTop();
     if (offset - lastScrollOffset > 100) {
       lastScrollOffset = offset;
@@ -169,9 +173,10 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
   void _checkShowTop() {
     // 页面未挂载（如测试/早期初始化）时安全降级
     final inner = state.nestedScrollKey.currentState?.innerController;
-    if (inner != null && inner.hasClients) {
-      if (homeLogic.isToTopShow.value != inner.offset > 100) {
-        homeLogic.isToTopShow.value = inner.offset > 100;
+    if (inner != null && inner.positions.isNotEmpty) {
+      final offset = inner.positions.last.pixels;
+      if (homeLogic.isToTopShow.value != offset > 100) {
+        homeLogic.isToTopShow.value = offset > 100;
       }
     } else {
       homeLogic.isToTopShow.value = false;
