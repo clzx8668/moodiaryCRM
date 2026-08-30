@@ -21,6 +21,9 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
   //初始化tab控制器，长度加一由于有一个默认分类
   late TabController tabController;
 
+  /// 二级导航抽屉（NavDrawer）挂载的 Scaffold key，用于程序化开合。
+  final GlobalKey<ScaffoldState> navDrawerKey = GlobalKey<ScaffoldState>();
+
   late HomeLogic homeLogic = Bind.find<HomeLogic>();
 
   double lastScrollOffset = .0;
@@ -28,10 +31,7 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
   @override
   void onInit() {
     autoSync();
-    tabController = TabController(
-      length: _tabLength(),
-      vsync: this,
-    );
+    tabController = TabController(length: _tabLength(), vsync: this);
     super.onInit();
   }
 
@@ -42,10 +42,7 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
   /// Obsidian 开关/路径变化后重建 tab 控制器（Obsidian 固定为最后一个 tab）。
   void refreshTabs() {
     final old = tabController;
-    tabController = TabController(
-      length: _tabLength(),
-      vsync: this,
-    );
+    tabController = TabController(length: _tabLength(), vsync: this);
     tabController.addListener(_tabBarListener);
     old.dispose();
     update();
@@ -117,6 +114,25 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
     }
   }
 
+  /// 切换到 Obsidian tab（固定为最后一个 tab）。
+  void jumpToObsidian() {
+    final index = state.categoryList.length + 1;
+    if (index < tabController.length && tabController.index != index) {
+      tabController.animateTo(index);
+    }
+  }
+
+  /// 开合左侧二级导航抽屉。
+  void toggleNavDrawer() {
+    final scaffoldState = navDrawerKey.currentState;
+    if (scaffoldState == null) return;
+    if (scaffoldState.isDrawerOpen) {
+      scaffoldState.closeDrawer();
+    } else {
+      scaffoldState.openDrawer();
+    }
+  }
+
   /// inner controller 监听函数
   /// 用于分页
   void _innerControllerListener() async {
@@ -156,9 +172,11 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
   /// 2. tab切换时
   /// 3. view mode刷新时（实际上肯定在顶部，干脆直接改state）
   void _checkShowTop() {
-    if (state.innerController.hasClients) {
-      if (homeLogic.isToTopShow.value != state.innerController.offset > 100) {
-        homeLogic.isToTopShow.value = state.innerController.offset > 100;
+    // 页面未挂载（如测试/早期初始化）时安全降级
+    final inner = state.nestedScrollKey.currentState?.innerController;
+    if (inner != null && inner.hasClients) {
+      if (homeLogic.isToTopShow.value != inner.offset > 100) {
+        homeLogic.isToTopShow.value = inner.offset > 100;
       }
     } else {
       homeLogic.isToTopShow.value = false;
@@ -179,10 +197,9 @@ class DiaryLogic extends GetxController with GetTickerProviderStateMixin {
       return;
     }
     // 获取当前分类ID，若为默认分类，设为 'default'
-    final String categoryId =
-        state.currentTabBarIndex == 0
-            ? 'default'
-            : state.categoryList[state.currentTabBarIndex - 1].id;
+    final String categoryId = state.currentTabBarIndex == 0
+        ? 'default'
+        : state.categoryList[state.currentTabBarIndex - 1].id;
     // 遍历 keyMap，更新每个分类的状态
     state.keyMap.forEach((k, v) {
       v.currentState?.onPageChange(k == categoryId);

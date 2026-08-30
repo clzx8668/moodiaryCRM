@@ -8,7 +8,6 @@ import 'package:moodiary/components/base/sheet.dart';
 import 'package:moodiary/components/base/text.dart';
 import 'package:moodiary/features/obsidian/obsidian_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_page.dart';
-import 'package:moodiary/components/category_choice_sheet/category_choice_sheet_view.dart';
 import 'package:moodiary/components/diary_tab_view/diary_tab_view_view.dart';
 import 'package:moodiary/components/keepalive/keepalive.dart';
 import 'package:moodiary/components/scroll/fix_scroll.dart';
@@ -18,6 +17,7 @@ import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/utils/webdav_util.dart';
 
 import 'diary_logic.dart';
+import 'nav_drawer.dart';
 
 /// 首页筛选弹层：按标签多选（列表/网格/块三视图共用）
 class _DiaryFilterSheet extends StatefulWidget {
@@ -65,10 +65,7 @@ class _DiaryFilterSheetState extends State<_DiaryFilterSheet> {
             else if (_allTags!.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(
-                  '暂无标签可筛选',
-                  style: context.textTheme.bodySmall,
-                ),
+                child: Text('暂无标签可筛选', style: context.textTheme.bodySmall),
               )
             else
               Flexible(
@@ -175,14 +172,8 @@ class DiaryPage extends StatelessWidget {
       return Row(
         children: [
           IconButton(
-            onPressed: () {
-              showFloatingModalBottomSheet(
-                context: context,
-                builder: (context) {
-                  return const CategoryChoiceSheetComponent();
-                },
-              );
-            },
+            tooltip: '导航',
+            onPressed: logic.toggleNavDrawer,
             icon: const Icon(Icons.menu_open_rounded),
           ),
           Expanded(
@@ -308,104 +299,109 @@ class DiaryPage extends StatelessWidget {
     });
     return GetBuilder<DiaryLogic>(
       builder: (_) {
-        return NestedScrollView(
-          key: state.nestedScrollKey,
-          headerSliverBuilder: (context, _) {
-            return [
-              SliverOverlapAbsorber(
-                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
-                  context,
-                ),
-                sliver: SliverAppBar(
-                  title: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [title, hitokoto],
+        return Scaffold(
+          key: logic.navDrawerKey,
+          drawer: const NavDrawer(),
+          body: NestedScrollView(
+            key: state.nestedScrollKey,
+            headerSliverBuilder: (context, _) {
+              return [
+                SliverOverlapAbsorber(
+                  handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
+                    context,
                   ),
-                  pinned: true,
-                  actions: [
-                    Obx(() {
-                      return WebDavUtil().syncingDiaries.isNotEmpty
-                          ? _buildSyncingButton(
+                  sliver: SliverAppBar(
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [title, hitokoto],
+                    ),
+                    pinned: true,
+                    actions: [
+                      Obx(() {
+                        return WebDavUtil().syncingDiaries.isNotEmpty
+                            ? _buildSyncingButton(
+                                context: context,
+                                onTap: () {
+                                  showFloatingModalBottomSheet(
+                                    context: context,
+                                    builder: (context) {
+                                      return const SyncDashBoardComponent();
+                                    },
+                                  );
+                                },
+                              )
+                            : IconButton(
+                                onPressed: () {
+                                  showFloatingModalBottomSheet(
+                                    context: context,
+                                    builder: (context) {
+                                      return const SyncDashBoardComponent();
+                                    },
+                                  );
+                                },
+                                tooltip: context.l10n.dataSync,
+                                icon: const Icon(Icons.cloud_sync_rounded),
+                              );
+                      }),
+                      IconButton(
+                        onPressed: () {
+                          showFloatingModalBottomSheet(
                             context: context,
-                            onTap: () {
-                              showFloatingModalBottomSheet(
-                                context: context,
-                                builder: (context) {
-                                  return const SyncDashBoardComponent();
-                                },
-                              );
+                            builder: (context) {
+                              return const SearchSheetComponent();
                             },
-                          )
-                          : IconButton(
-                            onPressed: () {
-                              showFloatingModalBottomSheet(
-                                context: context,
-                                builder: (context) {
-                                  return const SyncDashBoardComponent();
-                                },
-                              );
-                            },
-                            tooltip: context.l10n.dataSync,
-                            icon: const Icon(Icons.cloud_sync_rounded),
                           );
-                    }),
-                    IconButton(
-                      onPressed: () {
-                        showFloatingModalBottomSheet(
-                          context: context,
-                          builder: (context) {
-                            return const SearchSheetComponent();
-                          },
-                        );
-                      },
-                      icon: const Icon(Icons.search_rounded),
-                      tooltip: context.l10n.diaryPageSearchButton,
+                        },
+                        icon: const Icon(Icons.search_rounded),
+                        tooltip: context.l10n.diaryPageSearchButton,
+                      ),
+                      PopupMenuButton(
+                        offset: const Offset(0, 46),
+                        tooltip: context.l10n.diaryPageViewModeButton,
+                        icon: const Icon(Icons.more_vert_rounded),
+                        itemBuilder: (context) {
+                          return <PopupMenuEntry<String>>[
+                            CheckedPopupMenuItem(
+                              checked:
+                                  state.viewModeType.value == ViewModeType.list,
+                              onTap: () async {
+                                await logic.changeViewMode(ViewModeType.list);
+                              },
+                              child: Text(context.l10n.diaryViewModeList),
+                            ),
+                            const PopupMenuDivider(),
+                            CheckedPopupMenuItem(
+                              checked:
+                                  state.viewModeType.value == ViewModeType.grid,
+                              onTap: () async {
+                                await logic.changeViewMode(ViewModeType.grid);
+                              },
+                              child: Text(context.l10n.diaryViewModeGrid),
+                            ),
+                            const PopupMenuDivider(),
+                            CheckedPopupMenuItem(
+                              checked:
+                                  state.viewModeType.value ==
+                                  ViewModeType.block,
+                              onTap: () async {
+                                await logic.changeViewMode(ViewModeType.block);
+                              },
+                              child: const Text('块视图'),
+                            ),
+                          ];
+                        },
+                      ),
+                    ],
+                    bottom: PreferredSize(
+                      preferredSize: const Size.fromHeight(46.0),
+                      child: buildTabBar(),
                     ),
-                    PopupMenuButton(
-                      offset: const Offset(0, 46),
-                      tooltip: context.l10n.diaryPageViewModeButton,
-                      icon: const Icon(Icons.more_vert_rounded),
-                      itemBuilder: (context) {
-                        return <PopupMenuEntry<String>>[
-                          CheckedPopupMenuItem(
-                            checked:
-                                state.viewModeType.value == ViewModeType.list,
-                            onTap: () async {
-                              await logic.changeViewMode(ViewModeType.list);
-                            },
-                            child: Text(context.l10n.diaryViewModeList),
-                          ),
-                          const PopupMenuDivider(),
-                          CheckedPopupMenuItem(
-                            checked:
-                                state.viewModeType.value == ViewModeType.grid,
-                            onTap: () async {
-                              await logic.changeViewMode(ViewModeType.grid);
-                            },
-                            child: Text(context.l10n.diaryViewModeGrid),
-                          ),
-                          const PopupMenuDivider(),
-                          CheckedPopupMenuItem(
-                            checked:
-                                state.viewModeType.value == ViewModeType.block,
-                            onTap: () async {
-                              await logic.changeViewMode(ViewModeType.block);
-                            },
-                            child: const Text('块视图'),
-                          ),
-                        ];
-                      },
-                    ),
-                  ],
-                  bottom: PreferredSize(
-                    preferredSize: const Size.fromHeight(46.0),
-                    child: buildTabBar(),
                   ),
                 ),
-              ),
-            ];
-          },
-          body: buildTabBarView(),
+              ];
+            },
+            body: buildTabBarView(),
+          ),
         );
       },
     );
