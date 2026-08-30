@@ -123,10 +123,20 @@ class _SmartInputBarState extends State<SmartInputBar>
       ),
       padding: const EdgeInsets.fromLTRB(6, 2, 4, 2),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 模型按钮可收缩：模板名较长时避免功能栏右侧溢出
-          Flexible(child: _modelButton(context)),
-          _roundIcon(Icons.alternate_email_rounded, '知识库', widget.onAt),
+          // 左侧区：模型 + @，保持缩排（非松约束，避免尾部空档把右侧按钮顶离右缘）
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _modelButton(context),
+              _roundIcon(
+                Icons.alternate_email_rounded,
+                '知识库',
+                widget.onAt,
+              ),
+            ],
+          ),
           Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
@@ -175,6 +185,7 @@ class _SmartInputBarState extends State<SmartInputBar>
               ),
             ),
           ),
+          // 右侧：语音 / 加号 固定靠右
           _roundIcon(
             widget.voiceMode
                 ? Icons.keyboard_alt_outlined
