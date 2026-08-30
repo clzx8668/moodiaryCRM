@@ -395,6 +395,20 @@ class DiaryPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             buildTitleBar(),
+            Row(
+              children: [
+                SizedBox(
+                  width: 44,
+                  height: 48,
+                  child: IconButton(
+                    tooltip: '导航',
+                    onPressed: logic.toggleNav,
+                    icon: const Icon(Icons.menu_open_rounded),
+                  ),
+                ),
+                Expanded(child: buildTabBar()),
+              ],
+            ),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -403,23 +417,7 @@ class DiaryPage extends StatelessWidget {
                   Expanded(
                     child: NestedScrollView(
                       key: state.nestedScrollKey,
-                      headerSliverBuilder: (context, _) {
-                        return [
-                          SliverOverlapAbsorber(
-                            handle:
-                                NestedScrollView.sliverOverlapAbsorberHandleFor(
-                                  context,
-                                ),
-                            sliver: SliverAppBar(
-                              pinned: true,
-                              bottom: PreferredSize(
-                                preferredSize: const Size.fromHeight(46.0),
-                                child: buildTabBar(),
-                              ),
-                            ),
-                          ),
-                        ];
-                      },
+                      headerSliverBuilder: (context, _) => const <Widget>[],
                       body: buildTabBarView(),
                     ),
                   ),

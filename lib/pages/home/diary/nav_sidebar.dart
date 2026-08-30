@@ -28,7 +28,6 @@ class NavSidebar extends StatefulWidget {
 
 class _NavSidebarState extends State<NavSidebar> {
   static const double expandedWidth = 300;
-  static const double collapsedWidth = 44;
 
   late final DiaryLogic _logic = widget.logic ?? Get.find<DiaryLogic>();
   final ObsidianService _obsidianService = ObsidianService.instance;
@@ -156,67 +155,36 @@ class _NavSidebarState extends State<NavSidebar> {
     return Obx(() {
       final expanded = _logic.state.navExpanded.value;
       return AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
+        duration: const Duration(milliseconds: 240),
         curve: Curves.easeInOut,
-        width: expanded ? expandedWidth : collapsedWidth,
+        width: expanded ? expandedWidth : 0,
         color: theme.colorScheme.surfaceContainerLow,
         clipBehavior: Clip.hardEdge,
-        // 内容恒定按展开宽度 300 布局（Positioned 覆盖约束），
-        // 外部裁剪：收起动画的中间宽度不会触发溢出
-        child: Stack(
-          children: [
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: expandedWidth,
-              child: expanded ? _buildExpanded(theme) : _buildCollapsed(theme),
-            ),
-          ],
-        ),
+        // 展开时才构建内容（收起为宽度 0，完全隐藏；避免中间宽度溢出）
+        child: expanded
+            ? Stack(
+                children: [
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: expandedWidth,
+                    child: _buildContent(theme),
+                  ),
+                ],
+              )
+            : const SizedBox.shrink(),
       );
     });
   }
 
-  Widget _buildCollapsed(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 4),
-        Padding(
-          padding: const EdgeInsets.only(left: 2),
-          child: IconButton(
-            tooltip: '展开导航',
-            onPressed: _logic.expandNav,
-            icon: Icon(
-              Icons.menu_open_rounded,
-              size: 22,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildExpanded(ThemeData theme) {
+  Widget _buildContent(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 8, 4),
-          child: Row(
-            children: [
-              Text('导航', style: theme.textTheme.titleMedium),
-              const Spacer(),
-              IconButton(
-                tooltip: '收起导航',
-                onPressed: _logic.collapseNav,
-                icon: const Icon(Icons.chevron_left_rounded),
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
-          ),
+          child: Text('导航', style: theme.textTheme.titleMedium),
         ),
         const Divider(height: 1),
         Expanded(

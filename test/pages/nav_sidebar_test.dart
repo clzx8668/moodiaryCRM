@@ -89,6 +89,20 @@ void main() {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 48, child: Center(child: Text('标题行'))),
+          Row(
+            children: [
+              SizedBox(
+                width: 44,
+                height: 48,
+                child: IconButton(
+                  tooltip: '导航',
+                  onPressed: logic.toggleNav,
+                  icon: const Icon(Icons.menu_open_rounded),
+                ),
+              ),
+              const Expanded(child: SizedBox(height: 48)),
+            ],
+          ),
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
