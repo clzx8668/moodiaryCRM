@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:moodiary/api/api.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
+import 'package:moodiary/common/values/colors.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/common/values/keyboard_state.dart';
 import 'package:moodiary/components/base/text.dart';
@@ -743,6 +744,10 @@ class EditLogic extends GetxController {
         return;
       }
       state.currentDiary.tags.add(tag);
+      // 标签创建时按序取色，供详情页背景自动取色使用
+      final palette = AppColor.themeColorList;
+      state.currentDiary.tagColors[tag] =
+          palette[state.currentDiary.tags.length % palette.length].toARGB32();
       _dirty = true;
       update(['Tag']);
     } else {
@@ -752,9 +757,19 @@ class EditLogic extends GetxController {
 
   //移除一个标签
   void removeTag(index) {
-    state.currentDiary.tags.removeAt(index);
+    final removed = state.currentDiary.tags.removeAt(index);
+    if (removed.isNotEmpty) {
+      state.currentDiary.tagColors.remove(removed);
+    }
     _dirty = true;
     update(['Tag']);
+  }
+
+  /// 设置自定义背景色（编辑器工具栏）；传 null 表示清除，回退到第一个标签颜色。
+  void setBgColor(int? color) {
+    state.currentDiary.bgColor = color;
+    _dirty = true;
+    update(['BgColor']);
   }
 
   void selectCategory(String? id) {

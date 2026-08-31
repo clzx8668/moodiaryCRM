@@ -29,6 +29,19 @@ class MapConverter extends TypeConverter<Map<String, dynamic>, String> {
   String toSql(Map<String, dynamic> value) => jsonEncode(value);
 }
 
+/// `Map<String, int>` ↔ JSON 文本（标签名 → 颜色）
+class IntMapConverter extends TypeConverter<Map<String, int>, String> {
+  const IntMapConverter();
+
+  @override
+  Map<String, int> fromSql(String fromDb) =>
+      (jsonDecode(fromDb) as Map)
+          .map((key, value) => MapEntry(key as String, (value as num).toInt()));
+
+  @override
+  String toSql(Map<String, int> value) => jsonEncode(value);
+}
+
 /// `List<dynamic>` ↔ JSON 文本
 class JsonListConverter extends TypeConverter<List<dynamic>, String> {
   const JsonListConverter();
@@ -64,6 +77,9 @@ class Diaries extends Table {
       text().map(const StringListConverter()).withDefault(const Constant('[]'))();
   TextColumn get tags =>
       text().map(const StringListConverter()).withDefault(const Constant('[]'))();
+  /// 标签颜色（标签名 → ARGB 颜色值），用于详情页背景自动取色
+  TextColumn get tagColors =>
+      text().map(const IntMapConverter()).withDefault(const Constant('{}'))();
   TextColumn get position =>
       text().map(const StringListConverter()).withDefault(const Constant('[]'))();
   TextColumn get keywords =>
@@ -73,6 +89,8 @@ class Diaries extends Table {
   TextColumn get type =>
       text().withDefault(const Constant('markdown'))();
   IntColumn get imageColor => integer().nullable()();
+  /// 自定义背景色（编辑器工具栏手动设置；为空时回退到第一个标签颜色）
+  IntColumn get bgColor => integer().nullable()();
   RealColumn get aspect => real().nullable()();
 
   @override
@@ -774,7 +792,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -875,6 +893,12 @@ class AppDatabase extends _$AppDatabase {
       if (from < 17) {
         final db = m.database as AppDatabase;
         await m.createTable(db.aiTasks);
+      }
+      // v17 → v18：Diaries 增加标签颜色与自定义背景色列
+      if (from < 18) {
+        final db = m.database as AppDatabase;
+        await m.addColumn(db.diaries, db.diaries.tagColors);
+        await m.addColumn(db.diaries, db.diaries.bgColor);
       }
     },
     beforeOpen: (details) async {

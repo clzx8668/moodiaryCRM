@@ -54,6 +54,12 @@ class Diary {
   //标签列表
   List<String> tags = [];
 
+  //标签颜色（标签名 → 颜色值），用于详情页背景自动取色
+  Map<String, int> tagColors = {};
+
+  //自定义背景色（编辑器工具栏手动设置；为空时回退到第一个标签颜色）
+  int? bgColor;
+
   // 位置信息
   List<String> position = [];
 
@@ -92,6 +98,8 @@ class Diary {
           const ListEquality().equals(audioName, other.audioName) &&
           const ListEquality().equals(videoName, other.videoName) &&
           const ListEquality().equals(tags, other.tags) &&
+          const DeepCollectionEquality().equals(tagColors, other.tagColors) &&
+          bgColor == other.bgColor &&
           const ListEquality().equals(position, other.position) &&
           const ListEquality().equals(keywords, other.keywords) &&
           const ListEquality().equals(tokenizer, other.tokenizer) &&
@@ -115,6 +123,8 @@ class Diary {
         const ListEquality().hash(audioName) ^
         const ListEquality().hash(videoName) ^
         const ListEquality().hash(tags) ^
+        const DeepCollectionEquality().hash(tagColors) ^
+        bgColor.hashCode ^
         const ListEquality().hash(position) ^
         const ListEquality().hash(keywords) ^
         const ListEquality().hash(tokenizer) ^
@@ -144,6 +154,8 @@ class Diary {
       ..audioName = List<String>.from(audioName)
       ..videoName = List<String>.from(videoName)
       ..tags = List<String>.from(tags)
+      ..tagColors = Map<String, int>.from(tagColors)
+      ..bgColor = bgColor
       ..position = List<String>.from(position)
       ..keywords = List<String>.from(keywords)
       ..tokenizer = List<String>.from(tokenizer)
@@ -169,6 +181,8 @@ class Diary {
       'audioName': audioName,
       'videoName': videoName,
       'tags': tags,
+      'tagColors': tagColors,
+      'bgColor': bgColor,
       'position': position,
       'keywords': keywords,
       'tokenizer': tokenizer,
@@ -194,6 +208,12 @@ class Diary {
       ..audioName = List<String>.from(json['audioName'] as List)
       ..videoName = List<String>.from(json['videoName'] as List)
       ..tags = List<String>.from(json['tags'] as List)
+      ..tagColors =
+          (json['tagColors'] as Map?)?.map(
+            (key, value) => MapEntry(key as String, (value as num).toInt()),
+          ) ??
+          {}
+      ..bgColor = json['bgColor'] as int?
       ..position = List<String>.from(json['position'] as List)
       ..keywords = List<String>.from(json['keywords'] as List)
       ..tokenizer = List<String>.from(json['tokenizer'] as List)

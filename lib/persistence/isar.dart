@@ -115,11 +115,13 @@ class IsarUtil {
       audioName: Value(d.audioName),
       videoName: Value(d.videoName),
       tags: Value(d.tags),
+      tagColors: Value(d.tagColors),
       position: Value(d.position),
       keywords: Value(d.keywords),
       tokenizer: Value(d.tokenizer),
       type: Value(d.type),
       imageColor: Value(d.imageColor),
+      bgColor: Value(d.bgColor),
       aspect: Value(d.aspect),
     );
   }
@@ -140,11 +142,13 @@ class IsarUtil {
       ..audioName = row.audioName
       ..videoName = row.videoName
       ..tags = row.tags
+      ..tagColors = row.tagColors
       ..position = row.position
       ..keywords = row.keywords
       ..tokenizer = row.tokenizer
       ..type = row.type
       ..imageColor = row.imageColor
+      ..bgColor = row.bgColor
       ..aspect = row.aspect;
   }
 

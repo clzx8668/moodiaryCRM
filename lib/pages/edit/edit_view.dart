@@ -50,6 +50,68 @@ class EditPage extends StatelessWidget {
     );
   }
 
+  /// 背景色选择弹层：自定义背景色；清除后回退到第一个标签颜色。
+  void _showBgColorPicker(BuildContext context, EditLogic logic) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final scheme = Theme.of(sheetContext).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '背景色（不设置则用第一个标签的颜色）',
+                  style: Theme.of(sheetContext).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 14,
+                  children: [
+                    for (final color in AppColor.themeColorList)
+                      InkWell(
+                        onTap: () {
+                          logic.setBgColor(color.toARGB32());
+                          Navigator.pop(sheetContext);
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: scheme.outlineVariant,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () {
+                    logic.setBgColor(null);
+                    Navigator.pop(sheetContext);
+                  },
+                  icon: const Icon(Icons.format_color_reset_rounded),
+                  label: const Text('清除（使用第一个标签颜色）'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final logic = Bind.find<EditLogic>();
@@ -744,6 +806,29 @@ class EditPage extends StatelessWidget {
                 },
               );
             },
+          ),
+          IconButton.filledTonal(
+            tooltip: '背景色',
+            style: const ButtonStyle(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: GetBuilder<EditLogic>(
+              id: 'BgColor',
+              builder: (_) {
+              final bg = state.currentDiary.bgColor ??
+                  (state.currentDiary.tags.isNotEmpty
+                      ? state.currentDiary.tagColors[
+                          state.currentDiary.tags.first]
+                      : null);
+              return Icon(
+                bg != null
+                    ? Icons.format_color_fill_rounded
+                    : Icons.format_color_reset_rounded,
+                color: bg != null ? Color(bg) : null,
+              );
+              },
+            ),
+            onPressed: () => _showBgColorPicker(context, logic),
           ),
           IconButton.filledTonal(
             onPressed: logic.renderMarkdown,

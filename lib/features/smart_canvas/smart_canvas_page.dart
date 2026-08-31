@@ -19,6 +19,7 @@ import 'package:moodiary/features/smart_canvas/widgets/chat_bubble.dart';
 import 'package:moodiary/features/smart_canvas/widgets/smart_card.dart';
 import 'package:moodiary/features/voice/speech_service.dart';
 import 'package:moodiary/pages/edit/edit_arguments.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/src/rust/api/ffi_api.dart' as rust_ffi;
 import 'package:moodiary/utils/notice_util.dart';
@@ -627,9 +628,23 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
+    return Obx(() {
+      // 集合变化信号：背景/AppBar 着色随集合重载跟随重绘
+      logic.canvasState.diaryRevision.value;
+      final scheme = Theme.of(context).colorScheme;
+      final dynamicOn = PrefUtil.getValue<bool>('dynamicColor') == true;
+      final accent = _resolveBgColor(logic.canvasState.diary);
+      final accentColor =
+          (dynamicOn && accent != null) ? Color(accent) : null;
+      return Scaffold(
+        backgroundColor: accentColor == null
+            ? null
+            : Color.alphaBlend(
+                accentColor.withValues(alpha: 0.10),
+                scheme.surface,
+              ),
+        body: Column(
+          children: [
           Expanded(
             child: CustomScrollView(
               slivers: [
@@ -642,6 +657,13 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                   ),
                   leading: const PageBackButton(),
                   pinned: true,
+                  backgroundColor: accentColor == null
+                      ? null
+                      : Color.alphaBlend(
+                          accentColor.withValues(alpha: 0.16),
+                          scheme.surface,
+                        ),
+                  surfaceTintColor: accentColor,
                   actions: [
                     Obx(() {
                       final sync = logic.sync;
@@ -755,9 +777,19 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
               ),
             );
           }),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
+  }
+
+  /// 背景着色源：自定义背景色 > 第一个标签的颜色 > 无。
+  int? _resolveBgColor(Diary diary) {
+    if (diary.bgColor != null) return diary.bgColor;
+    if (diary.tags.isNotEmpty) {
+      return diary.tagColors[diary.tags.first];
+    }
+    return null;
   }
 
   void _openConsolidateEditor() {

@@ -176,6 +176,16 @@ class $DiariesTable extends Diaries with TableInfo<$DiariesTable, DiaryRow> {
         defaultValue: const Constant('[]'),
       ).withConverter<List<String>>($DiariesTable.$convertertags);
   @override
+  late final GeneratedColumnWithTypeConverter<Map<String, int>, String>
+  tagColors = GeneratedColumn<String>(
+    'tag_colors',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  ).withConverter<Map<String, int>>($DiariesTable.$convertertagColors);
+  @override
   late final GeneratedColumnWithTypeConverter<List<String>, String> position =
       GeneratedColumn<String>(
         'position',
@@ -226,6 +236,17 @@ class $DiariesTable extends Diaries with TableInfo<$DiariesTable, DiaryRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _bgColorMeta = const VerificationMeta(
+    'bgColor',
+  );
+  @override
+  late final GeneratedColumn<int> bgColor = GeneratedColumn<int>(
+    'bg_color',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _aspectMeta = const VerificationMeta('aspect');
   @override
   late final GeneratedColumn<double> aspect = GeneratedColumn<double>(
@@ -253,11 +274,13 @@ class $DiariesTable extends Diaries with TableInfo<$DiariesTable, DiaryRow> {
     audioName,
     videoName,
     tags,
+    tagColors,
     position,
     keywords,
     tokenizer,
     type,
     imageColor,
+    bgColor,
     aspect,
   ];
   @override
@@ -356,6 +379,12 @@ class $DiariesTable extends Diaries with TableInfo<$DiariesTable, DiaryRow> {
         imageColor.isAcceptableOrUnknown(data['image_color']!, _imageColorMeta),
       );
     }
+    if (data.containsKey('bg_color')) {
+      context.handle(
+        _bgColorMeta,
+        bgColor.isAcceptableOrUnknown(data['bg_color']!, _bgColorMeta),
+      );
+    }
     if (data.containsKey('aspect')) {
       context.handle(
         _aspectMeta,
@@ -445,6 +474,12 @@ class $DiariesTable extends Diaries with TableInfo<$DiariesTable, DiaryRow> {
           data['${effectivePrefix}tags'],
         )!,
       ),
+      tagColors: $DiariesTable.$convertertagColors.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}tag_colors'],
+        )!,
+      ),
       position: $DiariesTable.$converterposition.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -471,6 +506,10 @@ class $DiariesTable extends Diaries with TableInfo<$DiariesTable, DiaryRow> {
         DriftSqlType.int,
         data['${effectivePrefix}image_color'],
       ),
+      bgColor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bg_color'],
+      ),
       aspect: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}aspect'],
@@ -493,6 +532,8 @@ class $DiariesTable extends Diaries with TableInfo<$DiariesTable, DiaryRow> {
       const StringListConverter();
   static TypeConverter<List<String>, String> $convertertags =
       const StringListConverter();
+  static TypeConverter<Map<String, int>, String> $convertertagColors =
+      const IntMapConverter();
   static TypeConverter<List<String>, String> $converterposition =
       const StringListConverter();
   static TypeConverter<List<String>, String> $converterkeywords =
@@ -518,11 +559,17 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
   final List<String> audioName;
   final List<String> videoName;
   final List<String> tags;
+
+  /// 标签颜色（标签名 → ARGB 颜色值），用于详情页背景自动取色
+  final Map<String, int> tagColors;
   final List<String> position;
   final List<String> keywords;
   final List<String> tokenizer;
   final String type;
   final int? imageColor;
+
+  /// 自定义背景色（编辑器工具栏手动设置；为空时回退到第一个标签颜色）
+  final int? bgColor;
   final double? aspect;
   const DiaryRow({
     required this.id,
@@ -541,11 +588,13 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
     required this.audioName,
     required this.videoName,
     required this.tags,
+    required this.tagColors,
     required this.position,
     required this.keywords,
     required this.tokenizer,
     required this.type,
     this.imageColor,
+    this.bgColor,
     this.aspect,
   });
   @override
@@ -588,6 +637,11 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
       map['tags'] = Variable<String>($DiariesTable.$convertertags.toSql(tags));
     }
     {
+      map['tag_colors'] = Variable<String>(
+        $DiariesTable.$convertertagColors.toSql(tagColors),
+      );
+    }
+    {
       map['position'] = Variable<String>(
         $DiariesTable.$converterposition.toSql(position),
       );
@@ -605,6 +659,9 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
     map['type'] = Variable<String>(type);
     if (!nullToAbsent || imageColor != null) {
       map['image_color'] = Variable<int>(imageColor);
+    }
+    if (!nullToAbsent || bgColor != null) {
+      map['bg_color'] = Variable<int>(bgColor);
     }
     if (!nullToAbsent || aspect != null) {
       map['aspect'] = Variable<double>(aspect);
@@ -632,6 +689,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
       audioName: Value(audioName),
       videoName: Value(videoName),
       tags: Value(tags),
+      tagColors: Value(tagColors),
       position: Value(position),
       keywords: Value(keywords),
       tokenizer: Value(tokenizer),
@@ -639,6 +697,9 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
       imageColor: imageColor == null && nullToAbsent
           ? const Value.absent()
           : Value(imageColor),
+      bgColor: bgColor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bgColor),
       aspect: aspect == null && nullToAbsent
           ? const Value.absent()
           : Value(aspect),
@@ -667,11 +728,13 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
       audioName: serializer.fromJson<List<String>>(json['audioName']),
       videoName: serializer.fromJson<List<String>>(json['videoName']),
       tags: serializer.fromJson<List<String>>(json['tags']),
+      tagColors: serializer.fromJson<Map<String, int>>(json['tagColors']),
       position: serializer.fromJson<List<String>>(json['position']),
       keywords: serializer.fromJson<List<String>>(json['keywords']),
       tokenizer: serializer.fromJson<List<String>>(json['tokenizer']),
       type: serializer.fromJson<String>(json['type']),
       imageColor: serializer.fromJson<int?>(json['imageColor']),
+      bgColor: serializer.fromJson<int?>(json['bgColor']),
       aspect: serializer.fromJson<double?>(json['aspect']),
     );
   }
@@ -695,11 +758,13 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
       'audioName': serializer.toJson<List<String>>(audioName),
       'videoName': serializer.toJson<List<String>>(videoName),
       'tags': serializer.toJson<List<String>>(tags),
+      'tagColors': serializer.toJson<Map<String, int>>(tagColors),
       'position': serializer.toJson<List<String>>(position),
       'keywords': serializer.toJson<List<String>>(keywords),
       'tokenizer': serializer.toJson<List<String>>(tokenizer),
       'type': serializer.toJson<String>(type),
       'imageColor': serializer.toJson<int?>(imageColor),
+      'bgColor': serializer.toJson<int?>(bgColor),
       'aspect': serializer.toJson<double?>(aspect),
     };
   }
@@ -721,11 +786,13 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
     List<String>? audioName,
     List<String>? videoName,
     List<String>? tags,
+    Map<String, int>? tagColors,
     List<String>? position,
     List<String>? keywords,
     List<String>? tokenizer,
     String? type,
     Value<int?> imageColor = const Value.absent(),
+    Value<int?> bgColor = const Value.absent(),
     Value<double?> aspect = const Value.absent(),
   }) => DiaryRow(
     id: id ?? this.id,
@@ -744,11 +811,13 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
     audioName: audioName ?? this.audioName,
     videoName: videoName ?? this.videoName,
     tags: tags ?? this.tags,
+    tagColors: tagColors ?? this.tagColors,
     position: position ?? this.position,
     keywords: keywords ?? this.keywords,
     tokenizer: tokenizer ?? this.tokenizer,
     type: type ?? this.type,
     imageColor: imageColor.present ? imageColor.value : this.imageColor,
+    bgColor: bgColor.present ? bgColor.value : this.bgColor,
     aspect: aspect.present ? aspect.value : this.aspect,
   );
   DiaryRow copyWithCompanion(DiariesCompanion data) {
@@ -775,6 +844,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
       audioName: data.audioName.present ? data.audioName.value : this.audioName,
       videoName: data.videoName.present ? data.videoName.value : this.videoName,
       tags: data.tags.present ? data.tags.value : this.tags,
+      tagColors: data.tagColors.present ? data.tagColors.value : this.tagColors,
       position: data.position.present ? data.position.value : this.position,
       keywords: data.keywords.present ? data.keywords.value : this.keywords,
       tokenizer: data.tokenizer.present ? data.tokenizer.value : this.tokenizer,
@@ -782,6 +852,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
       imageColor: data.imageColor.present
           ? data.imageColor.value
           : this.imageColor,
+      bgColor: data.bgColor.present ? data.bgColor.value : this.bgColor,
       aspect: data.aspect.present ? data.aspect.value : this.aspect,
     );
   }
@@ -805,11 +876,13 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
           ..write('audioName: $audioName, ')
           ..write('videoName: $videoName, ')
           ..write('tags: $tags, ')
+          ..write('tagColors: $tagColors, ')
           ..write('position: $position, ')
           ..write('keywords: $keywords, ')
           ..write('tokenizer: $tokenizer, ')
           ..write('type: $type, ')
           ..write('imageColor: $imageColor, ')
+          ..write('bgColor: $bgColor, ')
           ..write('aspect: $aspect')
           ..write(')'))
         .toString();
@@ -833,11 +906,13 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
     audioName,
     videoName,
     tags,
+    tagColors,
     position,
     keywords,
     tokenizer,
     type,
     imageColor,
+    bgColor,
     aspect,
   ]);
   @override
@@ -860,11 +935,13 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
           other.audioName == this.audioName &&
           other.videoName == this.videoName &&
           other.tags == this.tags &&
+          other.tagColors == this.tagColors &&
           other.position == this.position &&
           other.keywords == this.keywords &&
           other.tokenizer == this.tokenizer &&
           other.type == this.type &&
           other.imageColor == this.imageColor &&
+          other.bgColor == this.bgColor &&
           other.aspect == this.aspect);
 }
 
@@ -885,11 +962,13 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
   final Value<List<String>> audioName;
   final Value<List<String>> videoName;
   final Value<List<String>> tags;
+  final Value<Map<String, int>> tagColors;
   final Value<List<String>> position;
   final Value<List<String>> keywords;
   final Value<List<String>> tokenizer;
   final Value<String> type;
   final Value<int?> imageColor;
+  final Value<int?> bgColor;
   final Value<double?> aspect;
   final Value<int> rowid;
   const DiariesCompanion({
@@ -909,11 +988,13 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
     this.audioName = const Value.absent(),
     this.videoName = const Value.absent(),
     this.tags = const Value.absent(),
+    this.tagColors = const Value.absent(),
     this.position = const Value.absent(),
     this.keywords = const Value.absent(),
     this.tokenizer = const Value.absent(),
     this.type = const Value.absent(),
     this.imageColor = const Value.absent(),
+    this.bgColor = const Value.absent(),
     this.aspect = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -934,11 +1015,13 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
     this.audioName = const Value.absent(),
     this.videoName = const Value.absent(),
     this.tags = const Value.absent(),
+    this.tagColors = const Value.absent(),
     this.position = const Value.absent(),
     this.keywords = const Value.absent(),
     this.tokenizer = const Value.absent(),
     this.type = const Value.absent(),
     this.imageColor = const Value.absent(),
+    this.bgColor = const Value.absent(),
     this.aspect = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -961,11 +1044,13 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
     Expression<String>? audioName,
     Expression<String>? videoName,
     Expression<String>? tags,
+    Expression<String>? tagColors,
     Expression<String>? position,
     Expression<String>? keywords,
     Expression<String>? tokenizer,
     Expression<String>? type,
     Expression<int>? imageColor,
+    Expression<int>? bgColor,
     Expression<double>? aspect,
     Expression<int>? rowid,
   }) {
@@ -986,11 +1071,13 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
       if (audioName != null) 'audio_name': audioName,
       if (videoName != null) 'video_name': videoName,
       if (tags != null) 'tags': tags,
+      if (tagColors != null) 'tag_colors': tagColors,
       if (position != null) 'position': position,
       if (keywords != null) 'keywords': keywords,
       if (tokenizer != null) 'tokenizer': tokenizer,
       if (type != null) 'type': type,
       if (imageColor != null) 'image_color': imageColor,
+      if (bgColor != null) 'bg_color': bgColor,
       if (aspect != null) 'aspect': aspect,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1013,11 +1100,13 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
     Value<List<String>>? audioName,
     Value<List<String>>? videoName,
     Value<List<String>>? tags,
+    Value<Map<String, int>>? tagColors,
     Value<List<String>>? position,
     Value<List<String>>? keywords,
     Value<List<String>>? tokenizer,
     Value<String>? type,
     Value<int?>? imageColor,
+    Value<int?>? bgColor,
     Value<double?>? aspect,
     Value<int>? rowid,
   }) {
@@ -1038,11 +1127,13 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
       audioName: audioName ?? this.audioName,
       videoName: videoName ?? this.videoName,
       tags: tags ?? this.tags,
+      tagColors: tagColors ?? this.tagColors,
       position: position ?? this.position,
       keywords: keywords ?? this.keywords,
       tokenizer: tokenizer ?? this.tokenizer,
       type: type ?? this.type,
       imageColor: imageColor ?? this.imageColor,
+      bgColor: bgColor ?? this.bgColor,
       aspect: aspect ?? this.aspect,
       rowid: rowid ?? this.rowid,
     );
@@ -1109,6 +1200,11 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
         $DiariesTable.$convertertags.toSql(tags.value),
       );
     }
+    if (tagColors.present) {
+      map['tag_colors'] = Variable<String>(
+        $DiariesTable.$convertertagColors.toSql(tagColors.value),
+      );
+    }
     if (position.present) {
       map['position'] = Variable<String>(
         $DiariesTable.$converterposition.toSql(position.value),
@@ -1129,6 +1225,9 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
     }
     if (imageColor.present) {
       map['image_color'] = Variable<int>(imageColor.value);
+    }
+    if (bgColor.present) {
+      map['bg_color'] = Variable<int>(bgColor.value);
     }
     if (aspect.present) {
       map['aspect'] = Variable<double>(aspect.value);
@@ -1158,11 +1257,13 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
           ..write('audioName: $audioName, ')
           ..write('videoName: $videoName, ')
           ..write('tags: $tags, ')
+          ..write('tagColors: $tagColors, ')
           ..write('position: $position, ')
           ..write('keywords: $keywords, ')
           ..write('tokenizer: $tokenizer, ')
           ..write('type: $type, ')
           ..write('imageColor: $imageColor, ')
+          ..write('bgColor: $bgColor, ')
           ..write('aspect: $aspect, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -20727,11 +20828,13 @@ typedef $$DiariesTableCreateCompanionBuilder =
       Value<List<String>> audioName,
       Value<List<String>> videoName,
       Value<List<String>> tags,
+      Value<Map<String, int>> tagColors,
       Value<List<String>> position,
       Value<List<String>> keywords,
       Value<List<String>> tokenizer,
       Value<String> type,
       Value<int?> imageColor,
+      Value<int?> bgColor,
       Value<double?> aspect,
       Value<int> rowid,
     });
@@ -20753,11 +20856,13 @@ typedef $$DiariesTableUpdateCompanionBuilder =
       Value<List<String>> audioName,
       Value<List<String>> videoName,
       Value<List<String>> tags,
+      Value<Map<String, int>> tagColors,
       Value<List<String>> position,
       Value<List<String>> keywords,
       Value<List<String>> tokenizer,
       Value<String> type,
       Value<int?> imageColor,
+      Value<int?> bgColor,
       Value<double?> aspect,
       Value<int> rowid,
     });
@@ -20856,6 +20961,12 @@ class $$DiariesTableFilterComposer
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
+  ColumnWithTypeConverterFilters<Map<String, int>, Map<String, int>, String>
+  get tagColors => $composableBuilder(
+    column: $table.tagColors,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
   ColumnWithTypeConverterFilters<List<String>, List<String>, String>
   get position => $composableBuilder(
     column: $table.position,
@@ -20881,6 +20992,11 @@ class $$DiariesTableFilterComposer
 
   ColumnFilters<int> get imageColor => $composableBuilder(
     column: $table.imageColor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bgColor => $composableBuilder(
+    column: $table.bgColor,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -20979,6 +21095,11 @@ class $$DiariesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get tagColors => $composableBuilder(
+    column: $table.tagColors,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get position => $composableBuilder(
     column: $table.position,
     builder: (column) => ColumnOrderings(column),
@@ -21001,6 +21122,11 @@ class $$DiariesTableOrderingComposer
 
   ColumnOrderings<int> get imageColor => $composableBuilder(
     column: $table.imageColor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bgColor => $composableBuilder(
+    column: $table.bgColor,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -21073,6 +21199,9 @@ class $$DiariesTableAnnotationComposer
   GeneratedColumnWithTypeConverter<List<String>, String> get tags =>
       $composableBuilder(column: $table.tags, builder: (column) => column);
 
+  GeneratedColumnWithTypeConverter<Map<String, int>, String> get tagColors =>
+      $composableBuilder(column: $table.tagColors, builder: (column) => column);
+
   GeneratedColumnWithTypeConverter<List<String>, String> get position =>
       $composableBuilder(column: $table.position, builder: (column) => column);
 
@@ -21089,6 +21218,9 @@ class $$DiariesTableAnnotationComposer
     column: $table.imageColor,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get bgColor =>
+      $composableBuilder(column: $table.bgColor, builder: (column) => column);
 
   GeneratedColumn<double> get aspect =>
       $composableBuilder(column: $table.aspect, builder: (column) => column);
@@ -21138,11 +21270,13 @@ class $$DiariesTableTableManager
                 Value<List<String>> audioName = const Value.absent(),
                 Value<List<String>> videoName = const Value.absent(),
                 Value<List<String>> tags = const Value.absent(),
+                Value<Map<String, int>> tagColors = const Value.absent(),
                 Value<List<String>> position = const Value.absent(),
                 Value<List<String>> keywords = const Value.absent(),
                 Value<List<String>> tokenizer = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<int?> imageColor = const Value.absent(),
+                Value<int?> bgColor = const Value.absent(),
                 Value<double?> aspect = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DiariesCompanion(
@@ -21162,11 +21296,13 @@ class $$DiariesTableTableManager
                 audioName: audioName,
                 videoName: videoName,
                 tags: tags,
+                tagColors: tagColors,
                 position: position,
                 keywords: keywords,
                 tokenizer: tokenizer,
                 type: type,
                 imageColor: imageColor,
+                bgColor: bgColor,
                 aspect: aspect,
                 rowid: rowid,
               ),
@@ -21188,11 +21324,13 @@ class $$DiariesTableTableManager
                 Value<List<String>> audioName = const Value.absent(),
                 Value<List<String>> videoName = const Value.absent(),
                 Value<List<String>> tags = const Value.absent(),
+                Value<Map<String, int>> tagColors = const Value.absent(),
                 Value<List<String>> position = const Value.absent(),
                 Value<List<String>> keywords = const Value.absent(),
                 Value<List<String>> tokenizer = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<int?> imageColor = const Value.absent(),
+                Value<int?> bgColor = const Value.absent(),
                 Value<double?> aspect = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DiariesCompanion.insert(
@@ -21212,11 +21350,13 @@ class $$DiariesTableTableManager
                 audioName: audioName,
                 videoName: videoName,
                 tags: tags,
+                tagColors: tagColors,
                 position: position,
                 keywords: keywords,
                 tokenizer: tokenizer,
                 type: type,
                 imageColor: imageColor,
+                bgColor: bgColor,
                 aspect: aspect,
                 rowid: rowid,
               ),
