@@ -431,6 +431,10 @@ class _CategoryTile extends StatelessWidget {
       onLongPressStart: onEdit == null || onDelete == null
           ? null
           : (_) => _showActions(context),
+      // PC 端右键与移动端长按一致
+      onSecondaryTap: onEdit == null || onDelete == null
+          ? null
+          : () => _showActions(context),
       child: ListTile(
         dense: true,
         leading: Row(
