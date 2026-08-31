@@ -519,7 +519,7 @@ class EditLogic extends GetxController {
       return;
     }
     await CanvasDatasource().updateBlockContent(block, content);
-    await _syncTitleChange();
+    await _syncDiaryMetaChanges();
   }
 
   /// 追加子笔记保存：在所属日记下新增 source=appended 的 text 块。
@@ -530,7 +530,7 @@ class EditLogic extends GetxController {
       return;
     }
     await CanvasDatasource().appendNote(diary: diary, text: content);
-    await _syncTitleChange();
+    await _syncDiaryMetaChanges();
   }
 
   /// 笔记整合保存：融合全文写回主日记，随后删除子笔记（保留 AI 对话块）。
@@ -548,12 +548,17 @@ class EditLogic extends GetxController {
     await IsarUtil.softDeleteNoteBlocksByDiary(state.currentDiary.id);
   }
 
-  /// 子笔记模式下标题改动同步到日记（不覆盖聚合投影）。
-  Future<void> _syncTitleChange() async {
-    if (state.originalDiary?.title == state.currentDiary.title) return;
+  /// 子笔记模式下集合元数据改动同步到日记（不覆盖聚合投影）。
+  /// 标题与心情遵循同一原则：从哪张 Block 卡进入，AppBar 标题 / 心情
+  /// 编辑的都写入所属 Diary（集合），与正文（写回 Block）互不干扰。
+  Future<void> _syncDiaryMetaChanges() async {
+    final titleChanged = state.originalDiary?.title != state.currentDiary.title;
+    final moodChanged = state.originalDiary?.mood != state.currentDiary.mood;
+    if (!titleChanged && !moodChanged) return;
     final fresh = await IsarUtil.getDiaryById(state.currentDiary.id);
     if (fresh == null) return;
-    fresh.title = state.currentDiary.title;
+    if (titleChanged) fresh.title = state.currentDiary.title;
+    if (moodChanged) fresh.mood = state.currentDiary.mood;
     fresh.lastModified = DateTime.now();
     await IsarUtil.updateADiary(oldDiary: fresh, newDiary: fresh);
   }
