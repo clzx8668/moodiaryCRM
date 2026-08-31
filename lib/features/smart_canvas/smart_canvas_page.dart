@@ -685,7 +685,11 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                    child: _buildMetaChips(context),
+                    child: Obx(() {
+                      // 集合变化信号：标题/心情等元数据重载后让元信息区跟随重绘
+                      logic.canvasState.diaryRevision.value;
+                      return _buildMetaChips(context);
+                    }),
                   ),
                 ),
                 ..._contentSlivers(context),

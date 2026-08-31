@@ -17,6 +17,10 @@ class CanvasState {
   /// 可观察标题（AppBar Obx 依赖；整篇编辑返回后刷新）
   RxString diaryTitle = ''.obs;
 
+  /// 集合变化信号：重新加载日记（含标题/心情等元数据）后自增，
+  /// 供详情页元信息区（心情图标/日期/标签）跟随重绘。
+  RxInt diaryRevision = 0.obs;
+
   CanvasState() {
     try {
       final args = Get.arguments;

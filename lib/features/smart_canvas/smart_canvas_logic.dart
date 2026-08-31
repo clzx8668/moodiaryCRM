@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/ai/tool_executor.dart';
+import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/crm/widgets/crm_write_confirm_card.dart';
 import 'package:moodiary/features/smart_canvas/services/canvas_datasource.dart';
@@ -93,8 +94,7 @@ class SmartCanvasLogic extends GetxController {
     try {
       final fresh = await datasource.loadDiary(canvasState.diary.id);
       if (fresh != null) {
-        canvasState.diary = fresh;
-        canvasState.diaryTitle.value = fresh.title;
+        _applyDiary(fresh);
       }
       await datasource.ensureInitialBlock(canvasState.diary);
       await reloadBlocks();
@@ -126,8 +126,7 @@ class SmartCanvasLogic extends GetxController {
   Future<void> refreshDiary() async {
     final fresh = await datasource.loadDiary(canvasState.diary.id);
     if (fresh == null) return;
-    canvasState.diary = fresh;
-    canvasState.diaryTitle.value = fresh.title;
+    _applyDiary(fresh);
   }
 
   /// 追加笔记（无模板 = 纯追加；带模板 = 追加后触发 AI 处理）
@@ -510,9 +509,15 @@ class SmartCanvasLogic extends GetxController {
     }
     final fresh = await datasource.loadDiary(canvasState.diary.id);
     if (fresh != null) {
-      canvasState.diary = fresh;
-      canvasState.diaryTitle.value = fresh.title;
+      _applyDiary(fresh);
     }
+  }
+
+  /// 应用最新集合：替换当前日记并通知元信息区重绘（标题 + 心情等）。
+  void _applyDiary(Diary fresh) {
+    canvasState.diary = fresh;
+    canvasState.diaryTitle.value = fresh.title;
+    canvasState.diaryRevision.value++;
   }
 
   /// AI 卡片"保留为对话卡"（不再转正，streamComplete 标记完成）
