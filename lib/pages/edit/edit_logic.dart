@@ -550,16 +550,33 @@ class EditLogic extends GetxController {
   }
 
   /// 子笔记模式下集合元数据改动同步到日记（不覆盖聚合投影）。
-  /// 标题与心情遵循同一原则：从哪张 Block 卡进入，AppBar 标题 / 心情
-  /// 编辑的都写入所属 Diary（集合），与正文（写回 Block）互不干扰。
+  /// 标题/心情/分类/标签遵循同一原则：从哪张 Block 卡进入，AppBar 标题 /
+  /// 心情 / 分类 / 标签编辑的都写入所属 Diary（集合），与正文（写回 Block）互不干扰。
   Future<void> _syncDiaryMetaChanges() async {
     final titleChanged = state.originalDiary?.title != state.currentDiary.title;
     final moodChanged = state.originalDiary?.mood != state.currentDiary.mood;
-    if (!titleChanged && !moodChanged) return;
+    final categoryChanged =
+        state.originalDiary?.categoryId != state.currentDiary.categoryId;
+    final tagsChanged =
+        !listEquals(state.originalDiary?.tags, state.currentDiary.tags);
+    final tagColorsChanged =
+        !mapEquals(state.originalDiary?.tagColors, state.currentDiary.tagColors);
+    if (!titleChanged &&
+        !moodChanged &&
+        !categoryChanged &&
+        !tagsChanged &&
+        !tagColorsChanged) {
+      return;
+    }
     final fresh = await IsarUtil.getDiaryById(state.currentDiary.id);
     if (fresh == null) return;
     if (titleChanged) fresh.title = state.currentDiary.title;
     if (moodChanged) fresh.mood = state.currentDiary.mood;
+    if (categoryChanged) fresh.categoryId = state.currentDiary.categoryId;
+    if (tagsChanged) fresh.tags = List.of(state.currentDiary.tags);
+    if (tagColorsChanged) {
+      fresh.tagColors = Map.of(state.currentDiary.tagColors);
+    }
     fresh.lastModified = DateTime.now();
     await IsarUtil.updateADiary(oldDiary: fresh, newDiary: fresh);
   }
