@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter/foundation.dart' hide Category;
 import 'package:moodiary/common/models/isar/category.dart';
 import 'package:moodiary/common/values/diary_sort.dart';
 import 'package:moodiary/common/values/view_mode.dart';
@@ -46,12 +45,8 @@ class DiaryState {
   //当前tab bar位置
   late int currentTabBarIndex;
 
-  /// 二级导航侧栏展开状态（PC 默认展开，移动端默认收起）。
-  final RxBool navExpanded = RxBool(
-    defaultTargetPlatform == TargetPlatform.windows ||
-        defaultTargetPlatform == TargetPlatform.linux ||
-        defaultTargetPlatform == TargetPlatform.macOS,
-  );
+  /// 二级导航侧栏展开状态（默认收起，PC/移动端一致；选择分类后 PC 保持展开）。
+  final RxBool navExpanded = RxBool(false);
 
   /// 二级导航侧栏展开宽度（可拖动调整并持久化，默认 180）。
   final RxDouble sidebarWidth = RxDouble(
