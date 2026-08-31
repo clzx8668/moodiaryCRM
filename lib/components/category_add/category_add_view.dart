@@ -1,6 +1,6 @@
-import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/components/named_color_dialog.dart';
 import 'package:moodiary/l10n/l10n.dart';
 
 import 'category_add_logic.dart';
@@ -32,17 +32,13 @@ class CategoryAddComponent extends StatelessWidget {
                         icon: const Icon(Icons.add),
                         label: Text(context.l10n.categoryManageAdd),
                         onPressed: () async {
-                          final res = await showTextInputDialog(
+                          final res = await showNamedColorDialog(
                             context: context,
                             title: context.l10n.categoryManageAdd,
-                            textFields: [
-                              DialogTextField(
-                                hintText: context.l10n.categoryManageName,
-                              ),
-                            ],
+                            nameHint: context.l10n.categoryManageName,
                           );
                           if (res != null) {
-                            logic.addCategory(text: res.first);
+                            logic.addCategory(text: res.$1, color: res.$2);
                           }
                         },
                       ),

@@ -157,6 +157,7 @@ class IsarUtil {
       id: c.id,
       categoryName: c.categoryName,
       parentId: Value(c.parentId),
+      color: Value(c.color),
     );
   }
 
@@ -164,7 +165,8 @@ class IsarUtil {
     return Category()
       ..id = row.id
       ..categoryName = row.categoryName
-      ..parentId = row.parentId;
+      ..parentId = row.parentId
+      ..color = row.color;
   }
 
   static FontsCompanion _fontCompanion(Font f) {

@@ -1,7 +1,7 @@
-import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/category.dart';
+import 'package:moodiary/components/named_color_dialog.dart';
 import 'package:moodiary/features/obsidian/obsidian_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_controller.dart';
 import 'package:moodiary/features/obsidian/obsidian_service.dart';
@@ -91,39 +91,41 @@ class _NavSidebarState extends State<NavSidebar> {
   }
 
   Future<void> _addCategory() async {
-    final res = await showTextInputDialog(
+    final res = await showNamedColorDialog(
       context: context,
       title: context.l10n.categoryManageAdd,
-      textFields: [DialogTextField(hintText: context.l10n.categoryManageName)],
+      nameHint: context.l10n.categoryManageName,
     );
-    if (res == null || res.first.trim().isEmpty) {
+    if (res == null || res.$1.trim().isEmpty) {
       toast.info(message: '分类名称不能为空');
       return;
     }
-    await IsarUtil.insertACategory(Category()..categoryName = res.first.trim());
+    await IsarUtil.insertACategory(
+      Category()
+        ..categoryName = res.$1.trim()
+        ..color = res.$2,
+    );
     await _logic.updateCategory();
     await _loadCategories();
   }
 
   Future<void> _editCategory(Category category) async {
-    final res = await showTextInputDialog(
+    final res = await showNamedColorDialog(
       context: context,
       title: context.l10n.categoryManageEdit,
-      textFields: [
-        DialogTextField(
-          hintText: context.l10n.categoryManageName,
-          initialText: category.categoryName,
-        ),
-      ],
+      nameHint: context.l10n.categoryManageName,
+      initialName: category.categoryName,
+      initialColor: category.color,
     );
-    if (res == null || res.first.trim().isEmpty) {
+    if (res == null || res.$1.trim().isEmpty) {
       toast.info(message: '分类名称不能为空');
       return;
     }
     await IsarUtil.updateACategory(
       Category()
         ..id = category.id
-        ..categoryName = res.first.trim(),
+        ..categoryName = res.$1.trim()
+        ..color = res.$2,
     );
     await _logic.updateCategory();
     await _loadCategories();
@@ -293,6 +295,7 @@ class _NavSidebarState extends State<NavSidebar> {
             _CategoryTile(
               name: _categories[i].categoryName,
               selected: _logic.tabController.index == i + 1,
+              color: _categories[i].color,
               onTap: () => _selectCategory(_categories[i].id),
               onEdit: () => _editCategory(_categories[i]),
               onDelete: () => _deleteCategory(_categories[i]),
@@ -400,6 +403,7 @@ class _NavSidebarState extends State<NavSidebar> {
 class _CategoryTile extends StatelessWidget {
   final String name;
   final bool selected;
+  final int? color;
   final VoidCallback onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -407,6 +411,7 @@ class _CategoryTile extends StatelessWidget {
   const _CategoryTile({
     required this.name,
     required this.selected,
+    this.color,
     required this.onTap,
     this.onEdit,
     this.onDelete,
@@ -422,10 +427,26 @@ class _CategoryTile extends StatelessWidget {
           : (_) => _showActions(context),
       child: ListTile(
         dense: true,
-        leading: Icon(
-          selected ? Icons.folder_rounded : Icons.folder_outlined,
-          size: 18,
-          color: selected ? colorScheme.primary : null,
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (color != null) ...[
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: Color(color!),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+            Icon(
+              selected ? Icons.folder_rounded : Icons.folder_outlined,
+              size: 18,
+              color: selected ? colorScheme.primary : null,
+            ),
+          ],
         ),
         title: Text(
           name,

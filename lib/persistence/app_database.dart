@@ -103,6 +103,8 @@ class Categories extends Table {
   TextColumn get id => text()();
   TextColumn get categoryName => text()();
   TextColumn get parentId => text().nullable()();
+  /// 分类颜色（ARGB 颜色值），创建时可选/默认指派
+  IntColumn get color => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -792,7 +794,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -899,6 +901,11 @@ class AppDatabase extends _$AppDatabase {
         final db = m.database as AppDatabase;
         await m.addColumn(db.diaries, db.diaries.tagColors);
         await m.addColumn(db.diaries, db.diaries.bgColor);
+      }
+      // v18 → v19：Categories 增加 color 列（分类颜色）
+      if (from < 19) {
+        final db = m.database as AppDatabase;
+        await m.addColumn(db.categories, db.categories.color);
       }
     },
     beforeOpen: (details) async {

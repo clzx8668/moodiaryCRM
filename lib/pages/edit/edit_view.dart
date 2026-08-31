@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:auto_size_text_field/auto_size_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/themes/a11y-dark.dart';
@@ -10,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:moodiary/common/values/border.dart';
 import 'package:moodiary/common/values/colors.dart';
+import 'package:moodiary/components/named_color_dialog.dart';
 import 'package:moodiary/components/base/button.dart';
 import 'package:moodiary/components/base/sheet.dart';
 import 'package:moodiary/components/base/tile/setting_tile.dart';
@@ -633,16 +633,17 @@ class EditPage extends StatelessWidget {
                 trailing: IconButton.filledTonal(
                   icon: const Icon(Icons.tag),
                   onPressed: () async {
-                    final res = await showTextInputDialog(
-                      style: AdaptiveStyle.material,
+                    final res = await showNamedColorDialog(
                       context: context,
                       title: context.l10n.editAddTag,
-                      textFields: [
-                        DialogTextField(hintText: context.l10n.editTag),
-                      ],
+                      nameHint: context.l10n.editTag,
                     );
-                    if (res != null && res.isNotEmpty && context.mounted) {
-                      logic.addTag(tag: res.first, context: context);
+                    if (res != null && res.$1.isNotEmpty && context.mounted) {
+                      logic.addTag(
+                        tag: res.$1,
+                        color: res.$2,
+                        context: context,
+                      );
                     }
                   },
                 ),

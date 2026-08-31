@@ -23,10 +23,12 @@ class CategoryAddLogic extends GetxController {
     state.categoryList.value = IsarUtil.getAllCategory();
   }
 
-  Future<void> addCategory({required String text}) async {
+  Future<void> addCategory({required String text, int? color}) async {
     if (text.isNotEmpty) {
       final res = await IsarUtil.insertACategory(
-        Category()..categoryName = text,
+        Category()
+          ..categoryName = text
+          ..color = color,
       );
       if (res == false) {
         toast.info(message: '已经存在同名分类，已自动重命名');

@@ -736,7 +736,11 @@ class EditLogic extends GetxController {
   }
 
   //添加一个标签
-  void addTag({required String tag, required BuildContext context}) {
+  void addTag({
+    required String tag,
+    required BuildContext context,
+    int? color,
+  }) {
     tag = tag.trim();
     if (tag.isNotEmpty) {
       if (state.currentDiary.tags.contains(tag)) {
@@ -744,9 +748,10 @@ class EditLogic extends GetxController {
         return;
       }
       state.currentDiary.tags.add(tag);
-      // 标签创建时按序取色，供详情页背景自动取色使用
+      // 标签创建时取色：优先用户选择，未选则按序自动取色
       final palette = AppColor.themeColorList;
       state.currentDiary.tagColors[tag] =
+          color ??
           palette[state.currentDiary.tags.length % palette.length].toARGB32();
       _dirty = true;
       update(['Tag']);
