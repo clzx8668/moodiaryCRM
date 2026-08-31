@@ -1,7 +1,7 @@
 # moodiaryCRM 交接文档（Trae 续接用）
 
-> 生成时间：2026-08-30（AI×笔记 P0-P3 五轮收官后更新）· 分支 `feat/local-crm-v1` ·
-> 版本 `2.10.0+93` · 工作区干净 · 本地含批次 16-23 未推送提交
+> 生成时间：2026-08-31（批次 25-29 收敛后更新）· 分支 `feat/local-crm-v1` ·
+> 版本 `2.11.0+94`（tag `v2.11.0`，远端已同步）· 工作区干净
 >
 > 本文件是**新对话一站式衔接**：Trae 打开本仓库后先读本文件 + `AGENTS.md` + `docs/开发进度.md` 尾部，
 > 即可直接继续开发。本文件自包含当前进度、验证基线、已知边界与下一步候选。
@@ -87,12 +87,14 @@ cd rust; cargo test
 - 多服务商（DeepSeek 等）OpenAI 兼容；`AiCompositeProvider` 主备切换；
   模板 AI（流式→转正）、详情页 AI 对话（持久化 `source=ai` 块 + 瀑布流气泡）、
   AI 助手页（知识库 RAG + 联网开关 + 引用溯源）。
-- **AI×笔记（P0-P3 五轮已全部完成）**：AI 任务队列 + 自动标签/分类（`ai_tasks` +
-  `AiTaskQueueWorker` + `tagging_service`）；多引擎联网搜索（DDG 默认 / SearXNG /
-  Tavily / Bing / Custom）；`ToolExecutor` 工具集（`note_search` / `crm_query` /
+- **AI×笔记（P0-P3 五轮已全部完成 + 批次27-29 增强）**：AI 任务队列 + 自动标签/分类/
+  自动摘要（`ai_tasks` + `AiTaskQueueWorker` + `tagging_service`，摘要写入
+  `Diary.summary`）；多引擎联网搜索（DDG 默认 / SearXNG / Tavily / Bing / Custom）；
+  `ToolExecutor` 工具集（`note_search` / `crm_query` /
   `crm_create|update|delete`（写需确认卡片，`onCrmWriteConfirm` 回调）/
-  `web_search` / `obsidian_search`）；详情页 📎 附加知识选择器（文件/笔记/CRM）；
-  Obsidian 只读接入（首页 tab 子页 + 文件树抽屉 + 双链跳转）。
+  `web_search` / `obsidian_search`）；详情页 📎 附加知识选择器（文件/笔记/CRM/Obsidian）；
+  Obsidian 只读接入（首页 tab 子页 + 文件树抽屉 + 双链跳转 + 30s 轮询监听 +
+  手动「向量化到知识库」）。
 - **语音识别**：`speech_to_text 7.4.0`（Android 系统语音 / Windows SAPI）；
   `lib/features/voice/speech_service.dart`；详情页/快速收集长按「按住 说话」识别填入输入框。
 
@@ -116,32 +118,41 @@ cd rust; cargo test
 | 21 | AI×笔记 P1：M3 详情页 📎 附加知识 + 工具协商 |
 | 22 | AI×笔记 P2：M8 Obsidian（tab 子页 + 文件树抽屉 + 双链 + obsidian_search） |
 | 23 | AI×笔记 P2：M6 CRM 写工具 + 确认卡片（最后一轮，**计划收官**） |
+| 24 | Windows 显示/滚动态收敛（debug 首帧断言兜底 + 间隙 0 + 目录树 180px）+ 宽度拖动持久化 |
+| 25 | 输入框打磨（去胶囊小圆角/右对齐/宽度统一 760）+ 心情回写集合并即时刷新 + 目录树默认折叠 |
+| 26 | 日记页动态配色（标签颜色/自定义背景色/柔和背景+AppBar 微着色）+ 分类/标签创建弹窗色块 |
+| 27 | 工程收敛（bump `2.11.0+94` / tag / push）+ 自动摘要真实实现（`Diary.summary`） |
+| 28 | Obsidian 三件套：30s 轮询监听 + Vault 向量化到知识库 + 📎 附加知识接入 Obsidian |
+| 29 | 子笔记编辑时分类/标签回写集合 + 多端一致性复查（PC 右键分类重命名/删除） |
 
 **验证基线**：`flutter analyze` 0 error（仅存量 2 条 info：
 `prefer_if_null_operators` crm_entity_detail_view.dart:554、`CorePalette` theme_util.dart:337）；
-`flutter test` 198/198；`cargo test` 18/18；`flutter build windows --debug` ✅；
+`flutter test` 207/207；`cargo test` 18/18；`flutter build windows --debug` ✅；
 `flutter build apk --debug` ✅。
 
 ## 5. 已知边界 / 待办
 
 ### 已知边界
-- 子笔记编辑模式保存不落「日记信息」详情字段（分类/标签/心情仍以整篇/新建生效）。
+- 标题/心情/分类/标签已按「集合标题」原则在子笔记/追加/整合编辑时回写集合；
+  「日记信息」里的日期/天气暂不随子笔记编辑回写。
 - 语音识别依赖设备系统语音服务（Android 需 Google 语音、Windows 需系统语音识别）；
   MuMu 模拟器上可能不可用。
 - 详情页卡片正文关闭文本选择（`selectable: false`）以保点击进编辑器，复制走卡片按钮。
 - Android 构建有 NDK 版本 warning（28.0 vs 插件期望 28.2），不影响构建。
-- Obsidian 为只读接入（无文件监听 / 无向量化 / 无双向同步），大 Vault 首次扫描较慢。
+- Obsidian 只读接入：已有 30s 轮询监听 + 「向量化到知识库」（手动触发）；
+  无双向同步；大 Vault 首次扫描较慢。
 - CRM 写工具仅落本地库（不自动推 Twenty 远端），操作日志在「同步日志」页可见。
-- 远程仓库落后多个提交（网络恢复后可 push）。
+- Windows 控制台偶现 `accessibility_bridge.cc` 报错为 Flutter 引擎级无害日志
+  （3.44+ 已修，可忽略或升级 SDK）；debug 多 tab 偶发滚动断言为旧架构特性，release 不崩。
 
 ### 下一步候选（按建议顺序）
-1. **Obsidian 增强**：`watcher` 文件监听、Vault 向量化（接入 RagService/
-   BlockEmbeddings）、M3 📎 附加知识接入 Obsidian 资料源。
-2. **CRM 写工具联动远端**：确认卡片执行后异步推 Twenty（可选），或保持纯本地。
-3. **CRM 深化**：回款/发票/提成对象字段表单校验、合同金额联动、本地统计看板。
-4. **移动端/桌面一致性**：详情页/编辑页桌面 hover 反馈、右键菜单一致性复查。
-5. **RAG 落地**：`LocalVectorIndex` 平滑替换 LanceDB（M5 已按 Q2 决策保持现有）。
-6. **版本收敛**：下一轮收尾时 bump `2.10.0+93` 并打 tag。
+1. **多端一致性持续细化**（本轮已修分类右键）：剩余桌面 hover/右键/手势细节。
+2. **Obsidian 增强（可选）**：向量化改自动（文件变化即增量索引）、双链反向索引。
+3. **CRM 深化（纯本地，Twenty 暂停）**：回款/发票/提成字段表单校验、合同金额联动、
+   本地统计看板。
+4. **RAG/M5 升级**：`LocalVectorIndex` 平滑替换 LanceDB（P3 预留，需新增依赖，单独排期）。
+5. **新话题细节开发**：由用户指定方向（首页/详情页/编辑页/快速收集等）。
+6. **版本收敛**：下一轮收尾时 bump + tag + push。
 
 ## 6. 硬性规则（沿用 AGENTS.md）
 1. 新功能代码放 `lib/features/` 或 `rust/src/` 新模块，不散落进上游 `lib/pages/`；
