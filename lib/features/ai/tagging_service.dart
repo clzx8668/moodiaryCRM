@@ -5,21 +5,24 @@ import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
 
-/// AI 自动标签 / 自动分类服务（M1，保存后异步、非流式）。
+/// AI 自动标签 / 自动分类 / 自动摘要服务（M1，保存后异步、非流式）。
 ///
 /// 由 [AiTaskQueueWorker] 驱动；开关见设置页「AI 处理设置」：
 /// - `aiAutoTag`（默认开）：从已有标签匹配 1-3 个，可新建 1 个；
 /// - `aiAutoClassify`（默认开）：匹配/新建分类；
-/// - `aiAutoSummary`（默认关，预留：Diary 暂无摘要字段，本期不回写）。
+/// - `aiAutoSummary`（默认关）：生成一句中文摘要写入 `Diary.summary`。
 class TaggingService {
   static bool get _autoTag => PrefUtil.getValue<bool>('aiAutoTag') ?? true;
 
   static bool get _autoClassify =>
       PrefUtil.getValue<bool>('aiAutoClassify') ?? true;
 
-  /// 对一篇日记执行自动标签 + 自动分类（按开关）。异常向上抛给队列重试。
+  static bool get _autoSummary =>
+      PrefUtil.getValue<bool>('aiAutoSummary') ?? false;
+
+  /// 对一篇日记执行自动标签 + 自动分类 + 自动摘要（按开关）。异常向上抛给队列重试。
   static Future<void> processAutoTag({required String diaryId}) async {
-    if (!_autoTag && !_autoClassify) return;
+    if (!_autoTag && !_autoClassify && !_autoSummary) return;
     final diary = await IsarUtil.getDiaryById(diaryId);
     if (diary == null) return;
 
@@ -36,13 +39,28 @@ class TaggingService {
     }
     final categories = await IsarUtil.getAllCategoryAsync();
 
-    final wantsTags = _autoTag ? '1. 从已有标签中选 1-3 个\n2. 无合适标签时可新建 1 个，格式 [新:标签名]' : '';
-    final wantsCategory = _autoClassify
-        ? '3. 从已有分类中选 1 个（都不合适则返回空字符串表示不设置）'
-        : '';
+    var ruleNo = 1;
+    final rules = <String>[];
+    if (_autoTag) {
+      rules.add('$ruleNo. 从已有标签中选 1-3 个');
+      ruleNo++;
+      rules.add('$ruleNo. 无合适标签时可新建 1 个，格式 [新:标签名]');
+      ruleNo++;
+    }
+    if (_autoClassify) {
+      rules.add(
+        '$ruleNo. 从已有分类中选 1 个（都不合适则返回空字符串表示不设置）',
+      );
+      ruleNo++;
+    }
+    if (_autoSummary) {
+      rules.add('$ruleNo. 用一句中文概括笔记核心要点，不超过 30 字');
+      ruleNo++;
+    }
+    rules.add('$ruleNo. 只返回 JSON，不要多余文字');
     final prompt = '''
 角色：笔记分类助手
-任务：为笔记添加标签和分类
+任务：为笔记添加标签和分类${_autoSummary ? '并生成摘要' : ''}
 
 已有标签（共 ${tagSet.length} 个）：
 ${tagSet.join('、')}
@@ -51,15 +69,13 @@ ${tagSet.join('、')}
 ${categories.map((c) => c.categoryName).join('、')}
 
 规则：
-$wantsTags
-$wantsCategory
-4. 只返回 JSON，不要多余文字
+${rules.join('\n')}
 
 笔记内容：
 """${diary.contentText.isEmpty ? diary.content : diary.contentText}"""
 
 返回 JSON：
-{"tags":[],"new_tags":[],"category":""}
+{"tags":[],"new_tags":[],"category":"","summary":""}
 ''';
 
     var acc = '';
@@ -85,7 +101,7 @@ $wantsCategory
     var changed = false;
 
     // 标签
-    if (wantsTags.isNotEmpty) {
+    if (_autoTag) {
       final tags = <String>[...diary.tags];
       for (final raw in [..._strList(parsed['tags']), ..._strList(parsed['new_tags'])]) {
         final clean = raw
@@ -102,7 +118,7 @@ $wantsCategory
     }
 
     // 分类
-    if (wantsCategory.isNotEmpty) {
+    if (_autoClassify) {
       final categoryName = parsed['category']?.toString().trim() ?? '';
       if (categoryName.isNotEmpty) {
         final matched = categories
@@ -119,6 +135,15 @@ $wantsCategory
           diary.categoryId = cat.id;
           changed = true;
         }
+      }
+    }
+
+    // 摘要
+    if (_autoSummary) {
+      final summary = parsed['summary']?.toString().trim() ?? '';
+      if (summary.isNotEmpty && diary.summary != summary) {
+        diary.summary = summary;
+        changed = true;
       }
     }
 

@@ -61,6 +61,8 @@ class Diaries extends Table {
   TextColumn get title => text().withDefault(const Constant(''))();
   TextColumn get content => text().withDefault(const Constant(''))();
   TextColumn get contentText => text().withDefault(const Constant(''))();
+  /// AI 自动摘要（aiAutoSummary 开关默认关）
+  TextColumn get summary => text().withDefault(const Constant(''))();
   TextColumn get yM => text().withDefault(const Constant(''))();
   TextColumn get yMd => text().withDefault(const Constant(''))();
   DateTimeColumn get time => dateTime()();
@@ -794,7 +796,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -906,6 +908,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 19) {
         final db = m.database as AppDatabase;
         await m.addColumn(db.categories, db.categories.color);
+      }
+      // v19 → v20：Diaries 增加 summary 列（AI 自动摘要）
+      if (from < 20) {
+        final db = m.database as AppDatabase;
+        await m.addColumn(db.diaries, db.diaries.summary);
       }
     },
     beforeOpen: (details) async {

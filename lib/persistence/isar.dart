@@ -104,6 +104,7 @@ class IsarUtil {
       title: Value(d.title),
       content: Value(d.content),
       contentText: Value(d.contentText),
+      summary: Value(d.summary),
       yM: Value(d.yM),
       yMd: Value(d.yMd),
       time: d.time,
@@ -133,6 +134,7 @@ class IsarUtil {
       ..title = row.title
       ..content = row.content
       ..contentText = row.contentText
+      ..summary = row.summary
       ..time = row.time
       ..lastModified = row.lastModified
       ..show = row.show

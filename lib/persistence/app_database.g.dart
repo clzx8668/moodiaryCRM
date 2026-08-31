@@ -62,6 +62,18 @@ class $DiariesTable extends Diaries with TableInfo<$DiariesTable, DiaryRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _summaryMeta = const VerificationMeta(
+    'summary',
+  );
+  @override
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+    'summary',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _yMMeta = const VerificationMeta('yM');
   @override
   late final GeneratedColumn<String> yM = GeneratedColumn<String>(
@@ -263,6 +275,7 @@ class $DiariesTable extends Diaries with TableInfo<$DiariesTable, DiaryRow> {
     title,
     content,
     contentText,
+    summary,
     yM,
     yMd,
     time,
@@ -325,6 +338,12 @@ class $DiariesTable extends Diaries with TableInfo<$DiariesTable, DiaryRow> {
           data['content_text']!,
           _contentTextMeta,
         ),
+      );
+    }
+    if (data.containsKey('summary')) {
+      context.handle(
+        _summaryMeta,
+        summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta),
       );
     }
     if (data.containsKey('y_m')) {
@@ -419,6 +438,10 @@ class $DiariesTable extends Diaries with TableInfo<$DiariesTable, DiaryRow> {
       contentText: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}content_text'],
+      )!,
+      summary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}summary'],
       )!,
       yM: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -548,6 +571,9 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
   final String title;
   final String content;
   final String contentText;
+
+  /// AI 自动摘要（aiAutoSummary 开关默认关）
+  final String summary;
   final String yM;
   final String yMd;
   final DateTime time;
@@ -577,6 +603,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
     required this.title,
     required this.content,
     required this.contentText,
+    required this.summary,
     required this.yM,
     required this.yMd,
     required this.time,
@@ -607,6 +634,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
     map['title'] = Variable<String>(title);
     map['content'] = Variable<String>(content);
     map['content_text'] = Variable<String>(contentText);
+    map['summary'] = Variable<String>(summary);
     map['y_m'] = Variable<String>(yM);
     map['y_md'] = Variable<String>(yMd);
     map['time'] = Variable<DateTime>(time);
@@ -678,6 +706,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
       title: Value(title),
       content: Value(content),
       contentText: Value(contentText),
+      summary: Value(summary),
       yM: Value(yM),
       yMd: Value(yMd),
       time: Value(time),
@@ -717,6 +746,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
       title: serializer.fromJson<String>(json['title']),
       content: serializer.fromJson<String>(json['content']),
       contentText: serializer.fromJson<String>(json['contentText']),
+      summary: serializer.fromJson<String>(json['summary']),
       yM: serializer.fromJson<String>(json['yM']),
       yMd: serializer.fromJson<String>(json['yMd']),
       time: serializer.fromJson<DateTime>(json['time']),
@@ -747,6 +777,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
       'title': serializer.toJson<String>(title),
       'content': serializer.toJson<String>(content),
       'contentText': serializer.toJson<String>(contentText),
+      'summary': serializer.toJson<String>(summary),
       'yM': serializer.toJson<String>(yM),
       'yMd': serializer.toJson<String>(yMd),
       'time': serializer.toJson<DateTime>(time),
@@ -775,6 +806,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
     String? title,
     String? content,
     String? contentText,
+    String? summary,
     String? yM,
     String? yMd,
     DateTime? time,
@@ -800,6 +832,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
     title: title ?? this.title,
     content: content ?? this.content,
     contentText: contentText ?? this.contentText,
+    summary: summary ?? this.summary,
     yM: yM ?? this.yM,
     yMd: yMd ?? this.yMd,
     time: time ?? this.time,
@@ -831,6 +864,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
       contentText: data.contentText.present
           ? data.contentText.value
           : this.contentText,
+      summary: data.summary.present ? data.summary.value : this.summary,
       yM: data.yM.present ? data.yM.value : this.yM,
       yMd: data.yMd.present ? data.yMd.value : this.yMd,
       time: data.time.present ? data.time.value : this.time,
@@ -865,6 +899,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
           ..write('title: $title, ')
           ..write('content: $content, ')
           ..write('contentText: $contentText, ')
+          ..write('summary: $summary, ')
           ..write('yM: $yM, ')
           ..write('yMd: $yMd, ')
           ..write('time: $time, ')
@@ -895,6 +930,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
     title,
     content,
     contentText,
+    summary,
     yM,
     yMd,
     time,
@@ -924,6 +960,7 @@ class DiaryRow extends DataClass implements Insertable<DiaryRow> {
           other.title == this.title &&
           other.content == this.content &&
           other.contentText == this.contentText &&
+          other.summary == this.summary &&
           other.yM == this.yM &&
           other.yMd == this.yMd &&
           other.time == this.time &&
@@ -951,6 +988,7 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
   final Value<String> title;
   final Value<String> content;
   final Value<String> contentText;
+  final Value<String> summary;
   final Value<String> yM;
   final Value<String> yMd;
   final Value<DateTime> time;
@@ -977,6 +1015,7 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
     this.title = const Value.absent(),
     this.content = const Value.absent(),
     this.contentText = const Value.absent(),
+    this.summary = const Value.absent(),
     this.yM = const Value.absent(),
     this.yMd = const Value.absent(),
     this.time = const Value.absent(),
@@ -1004,6 +1043,7 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
     this.title = const Value.absent(),
     this.content = const Value.absent(),
     this.contentText = const Value.absent(),
+    this.summary = const Value.absent(),
     this.yM = const Value.absent(),
     this.yMd = const Value.absent(),
     required DateTime time,
@@ -1033,6 +1073,7 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
     Expression<String>? title,
     Expression<String>? content,
     Expression<String>? contentText,
+    Expression<String>? summary,
     Expression<String>? yM,
     Expression<String>? yMd,
     Expression<DateTime>? time,
@@ -1060,6 +1101,7 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
       if (title != null) 'title': title,
       if (content != null) 'content': content,
       if (contentText != null) 'content_text': contentText,
+      if (summary != null) 'summary': summary,
       if (yM != null) 'y_m': yM,
       if (yMd != null) 'y_md': yMd,
       if (time != null) 'time': time,
@@ -1089,6 +1131,7 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
     Value<String>? title,
     Value<String>? content,
     Value<String>? contentText,
+    Value<String>? summary,
     Value<String>? yM,
     Value<String>? yMd,
     Value<DateTime>? time,
@@ -1116,6 +1159,7 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
       title: title ?? this.title,
       content: content ?? this.content,
       contentText: contentText ?? this.contentText,
+      summary: summary ?? this.summary,
       yM: yM ?? this.yM,
       yMd: yMd ?? this.yMd,
       time: time ?? this.time,
@@ -1156,6 +1200,9 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
     }
     if (contentText.present) {
       map['content_text'] = Variable<String>(contentText.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
     }
     if (yM.present) {
       map['y_m'] = Variable<String>(yM.value);
@@ -1246,6 +1293,7 @@ class DiariesCompanion extends UpdateCompanion<DiaryRow> {
           ..write('title: $title, ')
           ..write('content: $content, ')
           ..write('contentText: $contentText, ')
+          ..write('summary: $summary, ')
           ..write('yM: $yM, ')
           ..write('yMd: $yMd, ')
           ..write('time: $time, ')
@@ -20864,6 +20912,7 @@ typedef $$DiariesTableCreateCompanionBuilder =
       Value<String> title,
       Value<String> content,
       Value<String> contentText,
+      Value<String> summary,
       Value<String> yM,
       Value<String> yMd,
       required DateTime time,
@@ -20892,6 +20941,7 @@ typedef $$DiariesTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String> content,
       Value<String> contentText,
+      Value<String> summary,
       Value<String> yM,
       Value<String> yMd,
       Value<DateTime> time,
@@ -20945,6 +20995,11 @@ class $$DiariesTableFilterComposer
 
   ColumnFilters<String> get contentText => $composableBuilder(
     column: $table.contentText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get summary => $composableBuilder(
+    column: $table.summary,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21087,6 +21142,11 @@ class $$DiariesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get summary => $composableBuilder(
+    column: $table.summary,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get yM => $composableBuilder(
     column: $table.yM,
     builder: (column) => ColumnOrderings(column),
@@ -21211,6 +21271,9 @@ class $$DiariesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get summary =>
+      $composableBuilder(column: $table.summary, builder: (column) => column);
+
   GeneratedColumn<String> get yM =>
       $composableBuilder(column: $table.yM, builder: (column) => column);
 
@@ -21306,6 +21369,7 @@ class $$DiariesTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String> content = const Value.absent(),
                 Value<String> contentText = const Value.absent(),
+                Value<String> summary = const Value.absent(),
                 Value<String> yM = const Value.absent(),
                 Value<String> yMd = const Value.absent(),
                 Value<DateTime> time = const Value.absent(),
@@ -21332,6 +21396,7 @@ class $$DiariesTableTableManager
                 title: title,
                 content: content,
                 contentText: contentText,
+                summary: summary,
                 yM: yM,
                 yMd: yMd,
                 time: time,
@@ -21360,6 +21425,7 @@ class $$DiariesTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String> content = const Value.absent(),
                 Value<String> contentText = const Value.absent(),
+                Value<String> summary = const Value.absent(),
                 Value<String> yM = const Value.absent(),
                 Value<String> yMd = const Value.absent(),
                 required DateTime time,
@@ -21386,6 +21452,7 @@ class $$DiariesTableTableManager
                 title: title,
                 content: content,
                 contentText: contentText,
+                summary: summary,
                 yM: yM,
                 yMd: yMd,
                 time: time,

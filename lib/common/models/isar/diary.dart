@@ -20,6 +20,9 @@ class Diary {
   //纯文本的内容，用于搜索以及字数统计
   String contentText = '';
 
+  //AI 自动摘要（aiAutoSummary 开关默认关；开启后异步生成回写）
+  String summary = '';
+
   //年月
   String get yM => '${time.year.toString()}/${time.month.toString()}';
 
@@ -89,6 +92,7 @@ class Diary {
           title == other.title &&
           content == other.content &&
           contentText == other.contentText &&
+          summary == other.summary &&
           time == other.time &&
           lastModified == other.lastModified &&
           show == other.show &&
@@ -114,6 +118,7 @@ class Diary {
         title.hashCode ^
         content.hashCode ^
         contentText.hashCode ^
+        summary.hashCode ^
         time.hashCode ^
         lastModified.hashCode ^
         show.hashCode ^
@@ -143,6 +148,7 @@ class Diary {
       ..title = title
       ..content = content
       ..contentText = contentText
+      ..summary = summary
       ..time = DateTime.fromMillisecondsSinceEpoch(time.millisecondsSinceEpoch)
       ..lastModified = DateTime.fromMillisecondsSinceEpoch(
         lastModified.millisecondsSinceEpoch,
@@ -172,6 +178,7 @@ class Diary {
       'title': title,
       'content': content,
       'contentText': contentText,
+      'summary': summary,
       'time': time.toIso8601String(),
       'lastModified': lastModified.toIso8601String(),
       'show': show,
@@ -199,6 +206,7 @@ class Diary {
       ..title = json['title'] as String
       ..content = json['content'] as String
       ..contentText = json['contentText'] as String
+      ..summary = json['summary'] as String? ?? ''
       ..time = DateTime.parse(json['time'] as String)
       ..lastModified = DateTime.parse(json['lastModified'] as String)
       ..show = json['show'] as bool

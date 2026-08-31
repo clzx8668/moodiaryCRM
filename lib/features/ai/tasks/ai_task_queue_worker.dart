@@ -84,10 +84,11 @@ class AiTaskQueueWorker {
       switch (task.type) {
         case AiTaskType.autoTag:
         case AiTaskType.autoClassify:
+        case AiTaskType.autoSummary:
           await TaggingService.processAutoTag(diaryId: task.refId);
           break;
         default:
-          // 预留类型（auto_summary/embedding/index）暂不执行，直接完成
+          // 预留类型（embedding/index）暂不执行，直接完成
           break;
       }
       await _repo.updateStatus(task, AiTaskStatus.done);

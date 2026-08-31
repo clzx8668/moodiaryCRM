@@ -710,7 +710,27 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                     child: Obx(() {
                       // 集合变化信号：标题/心情等元数据重载后让元信息区跟随重绘
                       logic.canvasState.diaryRevision.value;
-                      return _buildMetaChips(context);
+                      final summary =
+                          logic.canvasState.diary.summary.trim();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildMetaChips(context),
+                          if (summary.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              '摘要：$summary',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color:
+                                    Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
                     }),
                   ),
                 ),
