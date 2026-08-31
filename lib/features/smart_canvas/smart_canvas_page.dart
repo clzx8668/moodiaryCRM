@@ -12,6 +12,8 @@ import 'package:moodiary/components/mood_icon/mood_icon_view.dart';
 import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/obsidian/obsidian_config.dart';
+import 'package:moodiary/features/obsidian/obsidian_service.dart';
 import 'package:moodiary/features/search/global_search_service.dart';
 import 'package:moodiary/features/smart_canvas/services/card_action_router.dart';
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
@@ -180,6 +182,11 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
               title: const Text('CRM 客户 / 记录'),
               onTap: () => Navigator.pop(context, 'crm'),
             ),
+            ListTile(
+              leading: const Icon(Icons.link_rounded),
+              title: const Text('Obsidian 笔记'),
+              onTap: () => Navigator.pop(context, 'obsidian'),
+            ),
           ],
         ),
       ),
@@ -192,6 +199,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
         await _pickNoteAttachment();
       case 'crm':
         await _pickCrmAttachment();
+      case 'obsidian':
+        await _pickObsidianAttachment();
     }
   }
 
@@ -375,6 +384,97 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     ).then((selected) {
       if (selected is GlobalSearchResult) {
         _addAttachment('CRM《${selected.title}》\n${selected.snippet}');
+      }
+    });
+  }
+
+  /// 📎 附加知识：Obsidian Vault 笔记（关键词搜索单选）。
+  Future<void> _pickObsidianAttachment() async {
+    if (!ObsidianConfig.enabled.value) {
+      toast.info(message: 'Obsidian 未启用，请先在设置中开启');
+      return;
+    }
+    await ObsidianService.instance.scan();
+    if (!mounted) return;
+    final controller = TextEditingController();
+    var results = <ObsidianFile>[];
+    await showDialog<ObsidianFile>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('选择 Obsidian 笔记作为参考资料'),
+          content: SizedBox(
+            width: 420,
+            height: 360,
+            child: Column(
+              children: [
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: '搜索 Obsidian 笔记…',
+                    prefixIcon: Icon(Icons.search_rounded),
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (v) {
+                    setDialogState(() {
+                      results = ObsidianService.instance
+                          .search(v)
+                          .take(20)
+                          .toList();
+                    });
+                  },
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: results.isEmpty
+                      ? Center(
+                          child: Text(
+                            controller.text.trim().isEmpty
+                                ? '输入关键词搜索 Vault 笔记'
+                                : '无匹配结果',
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: results.length,
+                          itemBuilder: (context, index) {
+                            final f = results[index];
+                            return ListTile(
+                              dense: true,
+                              title: Text(
+                                f.relativePath,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                f.content,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () => Navigator.pop(dialogContext, f),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('取消'),
+            ),
+          ],
+        ),
+      ),
+    ).then((selected) {
+      if (selected != null) {
+        final text = selected.content.trim();
+        _addAttachment(
+          'Obsidian《${selected.name}》\n'
+          '${text.length > 2000 ? text.substring(0, 2000) : text}',
+        );
       }
     });
   }

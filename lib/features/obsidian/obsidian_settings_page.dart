@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/obsidian/obsidian_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_service.dart';
+import 'package:moodiary/features/rag/models/knowledge_base.dart';
+import 'package:moodiary/features/rag/rag_service.dart';
 import 'package:moodiary/pages/home/diary/diary_logic.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -18,6 +20,7 @@ class _ObsidianSettingsPageState extends State<ObsidianSettingsPage> {
   late TextEditingController _path;
   bool _enabled = ObsidianConfig.enabled.value;
   bool _scanning = false;
+  bool _indexing = false;
   int? _fileCount;
 
   @override
@@ -59,6 +62,59 @@ class _ObsidianSettingsPageState extends State<ObsidianSettingsPage> {
       _fileCount = count;
     });
     toast.success(message: '已扫描 $count 个 Markdown 文件');
+  }
+
+  /// 把已扫描的 Vault 文件向量化到某个知识库（RAG 可检索）。
+  Future<void> _indexToKb() async {
+    final rag = RagService();
+    final kbs = await rag.listKnowledgeBases();
+    if (kbs.isEmpty) {
+      toast.info(message: '还没有知识库，请先到「知识库管理」创建');
+      return;
+    }
+    if (!mounted) return;
+    final kb = await showModalBottomSheet<KnowledgeBase>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                '选择知识库',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            for (final k in kbs)
+              ListTile(
+                leading: const Icon(Icons.menu_book_rounded, size: 18),
+                title: Text(k.name),
+                subtitle: Text(
+                  k.description,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () => Navigator.pop(sheetContext, k),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (kb == null || !mounted) return;
+    setState(() => _indexing = true);
+    final count = await ObsidianService.instance.scan(
+      vaultPath: _path.text,
+      force: true,
+    );
+    final indexed = count == 0 ? 0 : await rag.indexObsidian(knowledgeBaseId: kb.id);
+    if (!mounted) return;
+    setState(() {
+      _indexing = false;
+      _fileCount = count;
+    });
+    toast.success(message: '已向量化 $indexed 个文件到「${kb.name}」');
   }
 
   @override
@@ -121,6 +177,17 @@ class _ObsidianSettingsPageState extends State<ObsidianSettingsPage> {
                 ),
               ],
             ],
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _indexing ? null : _indexToKb,
+            icon: Icon(
+              _indexing
+                  ? Icons.hourglass_top_rounded
+                  : Icons.auto_awesome_rounded,
+              size: 16,
+            ),
+            label: Text(_indexing ? '向量化中…' : '向量化到知识库'),
           ),
         ],
       ),

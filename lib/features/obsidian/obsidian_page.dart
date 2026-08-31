@@ -25,6 +25,17 @@ class _ObsidianPageState extends State<ObsidianPage> {
   void initState() {
     super.initState();
     _load();
+    _service.revision.addListener(_onRevision);
+  }
+
+  @override
+  void dispose() {
+    _service.revision.removeListener(_onRevision);
+    super.dispose();
+  }
+
+  void _onRevision() {
+    if (mounted) _load();
   }
 
   Future<void> _load({bool force = false}) async {

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/block/markdown_projection.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/obsidian/obsidian_service.dart';
 import 'package:moodiary/features/rag/models/block_embedding.dart';
 import 'package:moodiary/features/rag/models/knowledge_base.dart';
 import 'package:moodiary/persistence/isar.dart';
@@ -135,6 +136,43 @@ class RagService {
     required String blockId,
   }) =>
       IsarUtil.deleteBlockEmbedding(blockId, knowledgeBaseId);
+
+  /// Obsidian Vault 向量化：把已扫描的 .md 文件索引进指定知识库
+  /// （blockId 前缀 `obsidian:`，diaryId 固定 `obsidian`）；同时清理已删除文件的陈旧向量。
+  Future<int> indexObsidian({required String knowledgeBaseId}) async {
+    final provider = await _ensureProvider();
+    final files = ObsidianService.instance.files;
+    final seen = <String>{};
+    var indexed = 0;
+    for (final f in files) {
+      final text = f.content.trim();
+      if (text.isEmpty) continue;
+      final blockId = 'obsidian:${f.relativePath}';
+      seen.add(blockId);
+      try {
+        final vector = await provider.embed(text);
+        await IsarUtil.upsertBlockEmbedding(
+          BlockEmbedding()
+            ..blockId = blockId
+            ..diaryId = 'obsidian'
+            ..knowledgeBaseId = knowledgeBaseId
+            ..text = text
+            ..embedding = Float32List.fromList(vector),
+        );
+        indexed++;
+      } catch (_) {
+        // 单文件失败不中断整体索引
+      }
+    }
+    final entries =
+        await IsarUtil.getEmbeddingsByKnowledgeBase(knowledgeBaseId);
+    for (final e in entries) {
+      if (e.blockId.startsWith('obsidian:') && !seen.contains(e.blockId)) {
+        await IsarUtil.deleteBlockEmbedding(e.blockId, knowledgeBaseId);
+      }
+    }
+    return indexed;
+  }
 
   static bool _indexable(Block block) {
     switch (block.blockType) {

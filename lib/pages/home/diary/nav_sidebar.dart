@@ -50,12 +50,18 @@ class _NavSidebarState extends State<NavSidebar> {
     _loadCategories();
     _loadObsidian();
     _logic.tabController.addListener(_onTabChanged);
+    _obsidianService.revision.addListener(_onObsidianRevision);
   }
 
   @override
   void dispose() {
     _logic.tabController.removeListener(_onTabChanged);
+    _obsidianService.revision.removeListener(_onObsidianRevision);
     super.dispose();
+  }
+
+  void _onObsidianRevision() {
+    if (mounted) _loadObsidian();
   }
 
   void _onTabChanged() {

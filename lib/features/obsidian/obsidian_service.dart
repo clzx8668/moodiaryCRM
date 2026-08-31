@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -33,15 +34,47 @@ class ObsidianService {
 
   static final ObsidianService instance = ObsidianService._();
 
+  /// 文件集变化信号：自动监听（轮询）发现增删/内容变化后自增，供树/页跟随刷新。
+  final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
   List<ObsidianFile> _files = [];
   String _vaultPath = '';
   DateTime _lastScan = DateTime.fromMillisecondsSinceEpoch(0);
+  Timer? _watcher;
 
   bool get isLoaded => _files.isNotEmpty;
 
   String get vaultPath => _vaultPath;
 
   List<ObsidianFile> get files => List.unmodifiable(_files);
+
+  /// 启动自动监听（30 秒轮询重扫，文件集变化时 bump [revision]）。
+  void startWatcher() {
+    _watcher ??= Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => unawaited(_watchTick()),
+    );
+  }
+
+  void stopWatcher() {
+    _watcher?.cancel();
+    _watcher = null;
+  }
+
+  Future<void> _watchTick() async {
+    if (!ObsidianConfig.enabled.value ||
+        ObsidianConfig.vaultPath.value.trim().isEmpty) {
+      return;
+    }
+    final before = _signature();
+    await scan(force: true);
+    if (_signature() != before) {
+      revision.value++;
+    }
+  }
+
+  String _signature() =>
+      _files.map((f) => '${f.relativePath}:${f.content.length}').join('|');
 
   /// 扫描 Vault（幂等：5 秒内重复调用返回缓存；手动刷新可传 force）。
   Future<int> scan({String? vaultPath, bool force = false}) async {
@@ -87,6 +120,9 @@ class ObsidianService {
     collected.sort((a, b) => a.relativePath.compareTo(b.relativePath));
     _files = collected;
     _lastScan = DateTime.now();
+    if (_files.isNotEmpty) {
+      startWatcher();
+    }
     if (kDebugMode) {
       debugPrintSynchronously(
         '[ObsidianService.scan] ✅ 扫描完成：共 ${_files.length} 篇笔记',
