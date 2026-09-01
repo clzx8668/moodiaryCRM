@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/attachments/attachment_manager.dart';
+import 'package:moodiary/features/ai/colloquial/colloquial_detector.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
@@ -116,7 +117,51 @@ class QuickCaptureSaver {
       ),
     );
 
+    // P0 去口语化：仅当"口语特征明显"才入队（本地检测 0 token，不阻塞保存）
+    final report = ColloquialDetector.analyze(text);
+    if (report.shouldClean) {
+      unawaited(
+        AiTaskQueueWorker.instance.submitTask(
+          type: 'de_colloquial',
+          refId: diary.id,
+        ),
+      );
+    }
+
+    // P1 extract_plan：仅当命中待办/日程/CRM 信号词时触发（避免每条都跑大抽取）
+    if (_looksExtractable(text)) {
+      unawaited(
+        AiTaskQueueWorker.instance.submitTask(
+          type: 'extract_plan',
+          refId: diary.id,
+        ),
+      );
+    }
+
     return diary;
+  }
+
+  static bool _looksExtractable(String text) {
+    const signals = [
+      '待办',
+      '提醒',
+      '记得',
+      '明天',
+      '后天',
+      '下周',
+      '开会',
+      '联系',
+      '客户',
+      '合同',
+      '报价',
+      '跟进',
+      '拜访',
+      '预约',
+      '回款',
+      '发票',
+      '方案',
+    ];
+    return signals.any(text.contains);
   }
 
   static String _deriveTitle(String text) {

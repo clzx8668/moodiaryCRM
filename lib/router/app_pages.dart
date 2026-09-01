@@ -45,6 +45,9 @@ import 'package:moodiary/pages/start/start_logic.dart';
 import 'package:moodiary/pages/start/start_view.dart';
 import 'package:moodiary/pages/user/user_logic.dart';
 import 'package:moodiary/pages/user/user_view.dart';
+import 'package:moodiary/features/schedule/models/schedule.dart';
+import 'package:moodiary/features/schedule/views/schedule_detail_page.dart';
+import 'package:moodiary/features/voice/voice_record_page.dart';
 import 'package:page_transition/page_transition.dart';
 
 import '../pages/sponsor/sponsor_logic.dart';
@@ -173,6 +176,20 @@ class AppPages {
     MoodiaryGetPage(
       name: AppRoutes.healthPage,
       page: () => const HealthToolsPage(),
+    ),
+    MoodiaryGetPage(
+      name: AppRoutes.scheduleDetailPage,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>? ?? const {};
+        return ScheduleDetailPage(
+          editable: args['editable'] as Schedule?,
+          initialStart: args['initialStart'] as DateTime?,
+        );
+      },
+    ),
+    MoodiaryGetPage(
+      name: AppRoutes.voiceRecordPage,
+      page: () => const VoiceRecordPage(),
     ),
     MoodiaryGetPage(
       name: AppRoutes.sponsorPage,

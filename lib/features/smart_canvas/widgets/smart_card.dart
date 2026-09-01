@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/ai/prompts.dart';
+import 'package:moodiary/features/ai/colloquial/de_colloquial_meta.dart';
 import 'package:moodiary/features/block/block_visuals.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/voice/voice_media_player.dart';
+import 'package:moodiary/features/voice/voice_record_meta.dart';
 import 'package:moodiary/features/smart_canvas/widgets/chart_card.dart';
 import 'package:moodiary/features/smart_canvas/widgets/code_card.dart';
 import 'package:moodiary/features/smart_canvas/widgets/entity_card.dart';
@@ -37,6 +41,8 @@ class SmartCard extends StatelessWidget {
   final VoidCallback? onKeepAsChat;
   final VoidCallback? onResume;
   final VoidCallback? onDelete;
+  final Future<void> Function()? onCleanColloquial;
+  final Future<void> Function()? onRestoreColloquial;
 
   const SmartCard({
     super.key,
@@ -56,6 +62,8 @@ class SmartCard extends StatelessWidget {
     this.onKeepAsChat,
     this.onResume,
     this.onDelete,
+    this.onCleanColloquial,
+    this.onRestoreColloquial,
   });
 
   String get _relativeTime {
@@ -258,14 +266,28 @@ class SmartCard extends StatelessWidget {
     }
 
     // 笔记区底部：左 #标签，右 复制 + ⋮ 菜单
+    final hasClean = DeColoquialMeta.has(block);
     return Row(
       children: [
         Expanded(
-          child: Text(
-            _tagText,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
+          child: Row(
+            children: [
+              if (hasClean) ...[
+                _cleanChip(context, colorScheme),
+                const SizedBox(width: 6),
+              ],
+              Expanded(
+                child: Text(
+                  _tagText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         _FootIcon(
@@ -291,9 +313,99 @@ class SmartCard extends StatelessWidget {
     );
   }
 
+  /// 「已去口语化」小标识：点击查看原文/清洗稿并可还原。
+  Widget _cleanChip(BuildContext context, ColorScheme colorScheme) {
+    return InkWell(
+      onTap: () => _showCleanResult(context),
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.auto_fix_high_rounded, size: 11),
+            const SizedBox(width: 3),
+            Text(
+              '去口语化',
+              style: TextStyle(
+                fontSize: 10,
+                color: colorScheme.onSecondaryContainer,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCleanResult(BuildContext context) async {
+    final meta = DeColoquialMeta.read(block);
+    if (meta == null) return;
+    await Get.dialog<void>(
+      AlertDialog(
+        title: const Text('去口语化结果'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _cleanBlock(context, '原文', meta.original),
+              const Divider(height: 20),
+              _cleanBlock(context, '已清洗', meta.cleaned),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await onRestoreColloquial?.call();
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('恢复原文'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cleanBlock(BuildContext context, String label, String text) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        SelectableText(text),
+      ],
+    );
+  }
+
   Widget _buildBody(BuildContext context) {
     switch (block.blockType) {
       case BlockType.text:
+        final dcm = DeColoquialMeta.read(block);
+        if (dcm != null) {
+          return _ColloquialTextView(
+            block: block,
+            dcm: dcm,
+            expanded: expanded,
+            onToggleExpand: onToggleExpand ?? () {},
+          );
+        }
         return TextCard(
           content: block.content,
           expanded: expanded,
@@ -327,6 +439,8 @@ class SmartCard extends StatelessWidget {
       const PopupMenuItem(value: 'ai', child: Text('AI 处理')),
       if (block.blockType != BlockType.todo)
         const PopupMenuItem(value: 'todo', child: Text('转待办')),
+      if (block.blockType == BlockType.text && !DeColoquialMeta.has(block))
+        const PopupMenuItem(value: 'colloquial', child: Text('去口语化')),
       const PopupMenuItem(value: 'delete', child: Text('删除')),
     ];
   }
@@ -341,6 +455,9 @@ class SmartCard extends StatelessWidget {
         break;
       case 'todo':
         onConvertTodo?.call();
+        break;
+      case 'colloquial':
+        onCleanColloquial?.call();
         break;
       case 'delete':
         onDelete?.call();
@@ -392,6 +509,110 @@ class _FootIcon extends StatelessWidget {
         padding: EdgeInsets.zero,
       ),
       color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
+    );
+  }
+}
+
+/// 已去口语化的文本卡片：默认展示清洗稿，可一键切换原文；含录音时提供播放。
+class _ColloquialTextView extends StatefulWidget {
+  final Block block;
+  final DeColoquialMeta dcm;
+  final bool expanded;
+  final VoidCallback onToggleExpand;
+
+  const _ColloquialTextView({
+    required this.block,
+    required this.dcm,
+    required this.expanded,
+    required this.onToggleExpand,
+  });
+
+  @override
+  State<_ColloquialTextView> createState() => _ColloquialTextViewState();
+}
+
+class _ColloquialTextViewState extends State<_ColloquialTextView> {
+  bool _showCleaned = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final audio = VoiceRecordMeta.read(widget.block);
+    final content = _showCleaned
+        ? widget.dcm.cleaned
+        : widget.dcm.original;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _buildToggle(theme, '已清洗', _showCleaned, () {
+              setState(() => _showCleaned = true);
+            }),
+            const SizedBox(width: 6),
+            _buildToggle(theme, '原文', !_showCleaned, () {
+              setState(() => _showCleaned = false);
+            }),
+            const Spacer(),
+            if (audio != null && audio.absolutePath != null)
+              IconButton(
+                tooltip: '播放录音',
+                icon: const Icon(Icons.play_circle_outline_rounded, size: 20),
+                onPressed: () => _openPlayer(context, audio.absolutePath!),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        TextCard(
+          content: content,
+          expanded: widget.expanded,
+          onToggleExpand: widget.onToggleExpand,
+          selectable: false,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildToggle(
+    ThemeData theme,
+    String label,
+    bool active,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: active
+              ? theme.colorScheme.secondaryContainer
+              : Colors.transparent,
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: active
+                ? theme.colorScheme.onSecondaryContainer
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openPlayer(BuildContext context, String path) async {
+    await Get.dialog<void>(
+      Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: VoiceMediaPlayer(path: path, label: '录音回放'),
+        ),
+      ),
     );
   }
 }

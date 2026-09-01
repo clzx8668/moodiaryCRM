@@ -11,7 +11,12 @@ import 'package:moodiary/components/base/button.dart';
 import 'package:moodiary/components/mood_icon/mood_icon_view.dart';
 import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
+import 'package:moodiary/features/ai/extract/ai_extract_meta.dart';
+import 'package:moodiary/features/ai/extract/extract_plan_config.dart';
+import 'package:moodiary/features/ai/extract/extract_plan_types.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/crm/local/crm_write_service.dart';
+import 'package:moodiary/features/crm/resolve/crm_entity_resolver.dart';
 import 'package:moodiary/features/obsidian/obsidian_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_service.dart';
 import 'package:moodiary/features/search/global_search_service.dart';
@@ -723,6 +728,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
           : null,
       onResume: () => logic.resumeAiBlock(block),
       onDelete: () => _confirmDelete(block),
+      onCleanColloquial: () => logic.cleanBlockColloquial(block),
+      onRestoreColloquial: () => logic.restoreBlockColloquial(block),
     );
   }
 
@@ -788,6 +795,18 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           value: 'consolidate',
                           child: Text('笔记整合'),
                         ),
+                        const PopupMenuItem(
+                          value: 'voice',
+                          child: Text('语音记录'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'extract',
+                          child: Text('AI 抽取'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'plan',
+                          child: Text('抽取计划'),
+                        ),
                         if (kDebugMode)
                           const PopupMenuItem(
                             value: 'demo_sync',
@@ -797,6 +816,12 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                       onSelected: (v) {
                         if (v == 'consolidate') {
                           _openConsolidateEditor();
+                        } else if (v == 'voice') {
+                          Get.toNamed(AppRoutes.voiceRecordPage);
+                        } else if (v == 'extract') {
+                          _showAiExtract(context);
+                        } else if (v == 'plan') {
+                          _showPlanSettings(context);
                         } else if (v == 'demo_sync') {
                           _runDemoSyncEvents();
                         }
@@ -938,4 +963,248 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     });
   }
 
+  Future<void> _showAiExtract(BuildContext context) async {
+    final meta = await logic.runExtractPlan();
+    if (!context.mounted) return;
+    if (meta == null) return;
+    if (meta.status == 'failed') {
+      toast.info(
+        message: meta.message.isEmpty ? 'AI 抽取未成功，可稍后重试' : meta.message,
+      );
+    } else {
+      toast.success(
+        message: '已抽取：待办/日程 ${meta.scheduleIds.length}，CRM 建议 ${meta.crmProposals.length}',
+      );
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _AiExtractSheet(meta: meta),
+    );
+  }
+
+  Future<void> _showPlanSettings(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => const _ExtractPlanSheet(),
+    );
+  }
+
+}
+
+/// 抽取计划开关：决定「AI 抽取」只抽哪些内容。
+class _ExtractPlanSheet extends StatefulWidget {
+  const _ExtractPlanSheet();
+
+  @override
+  State<_ExtractPlanSheet> createState() => _ExtractPlanSheetState();
+}
+
+class _ExtractPlanSheetState extends State<_ExtractPlanSheet> {
+  late final ExtractPlanConfig _config = ExtractPlanConfig.load();
+
+  Future<void> _save() async {
+    await ExtractPlanConfig.save(_config);
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('抽取计划', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            SwitchListTile(
+              title: const Text('抽取待办'),
+              value: _config.todo,
+              onChanged: (v) => setState(() => _config.todo = v),
+              dense: true,
+            ),
+            SwitchListTile(
+              title: const Text('抽取日程'),
+              value: _config.schedule,
+              onChanged: (v) => setState(() => _config.schedule = v),
+              dense: true,
+            ),
+            SwitchListTile(
+              title: const Text('抽取 CRM'),
+              value: _config.crm,
+              onChanged: (v) => setState(() => _config.crm = v),
+              dense: true,
+            ),
+            SwitchListTile(
+              title: const Text('生成摘要'),
+              value: _config.summary,
+              onChanged: (v) => setState(() => _config.summary = v),
+              dense: true,
+            ),
+            const SizedBox(height: 8),
+            FilledButton(onPressed: _save, child: const Text('保存')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// AI 抽取结果审核面板：展示已生成的待办/日程 + 待确认的 CRM 提案（确认后才写库）。
+class _AiExtractSheet extends StatelessWidget {
+  final AiExtractMeta meta;
+  const _AiExtractSheet({required this.meta});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('AI 抽取结果', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          if (meta.status == 'failed')
+            Card.filled(
+              color: theme.colorScheme.errorContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  meta.message.isEmpty ? '抽取未成功' : meta.message,
+                  style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                ),
+              ),
+            ),
+          if (meta.summary.isNotEmpty)
+            Card.filled(
+              color: theme.colorScheme.surfaceContainerLow,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text('摘要：${meta.summary}'),
+              ),
+            ),
+          ListTile(
+            leading: const Icon(Icons.task_alt_rounded),
+            title: Text('已生成 ${meta.scheduleIds.length} 个待办/日程'),
+            subtitle: const Text('已保存至日历，可稍后查看/编辑'),
+            dense: true,
+          ),
+          if (meta.crmProposals.isNotEmpty) ...[
+            const Divider(),
+            Text('CRM 建议（确认后写入）',
+                style: theme.textTheme.labelLarge),
+            const SizedBox(height: 4),
+            for (final crm in meta.crmProposals)
+              _CrmProposalTile(proposal: crm),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CrmProposalTile extends StatefulWidget {
+  final ExtractCrm proposal;
+  const _CrmProposalTile({required this.proposal});
+
+  @override
+  State<_CrmProposalTile> createState() => _CrmProposalTileState();
+}
+
+class _CrmProposalTileState extends State<_CrmProposalTile> {
+  String _status = '解析中…';
+  CrmResolveMatch? _match;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolve();
+  }
+
+  Future<void> _resolve() async {
+    final c = widget.proposal;
+    if (c.type != 'account' &&
+        c.type != 'contact' &&
+        c.type != 'opportunity' &&
+        c.type != 'contract') {
+      if (mounted) setState(() => _status = '将新建（支持类型）');
+      return;
+    }
+    final result = await CrmEntityResolver().resolve(
+      objectType: c.type,
+      name: c.name,
+      phone: c.fields['phone']?.toString(),
+      email: c.fields['email']?.toString(),
+    );
+    if (!mounted) return;
+    if (result.best != null) {
+      _match = result.best;
+      setState(() => _status = '匹配到「${result.best!.name}」（更新）');
+    } else {
+      setState(() => _status = '未匹配到（将新建）');
+    }
+  }
+
+  Future<void> _confirm() async {
+    final c = widget.proposal;
+    try {
+      final proposal = await CrmWriteService.buildProposal(
+        action: 'create',
+        args: {
+          'object': c.type,
+          'fields': {'name': c.name, ...c.fields},
+        },
+      );
+      final ok = await Get.dialog<bool>(
+        AlertDialog(
+          title: Text('创建 ${proposal.objectLabel}？'),
+          content: Text(
+            _match == null
+                ? '将新建「${proposal.targetName}」'
+                : '已存在「${_match!.name}」，切换为更新该记录',
+          ),
+          actions: [
+            TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
+            FilledButton(onPressed: () => Get.back(result: true), child: const Text('确认')),
+          ],
+        ),
+      );
+      if (ok == true) {
+        await CrmWriteService.execute(proposal);
+        if (mounted) {
+          toast.success(message: '已写入 CRM：${proposal.objectLabel}');
+        }
+      }
+    } catch (e) {
+      if (mounted) toast.error(message: '写入失败：$e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final c = widget.proposal;
+    return Card.outlined(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ListTile(
+        leading: Icon(Icons.business_rounded, color: theme.colorScheme.primary),
+        title: Text(c.name.isNotEmpty ? c.name : '未命名'),
+        subtitle: Text(_status),
+        dense: true,
+        trailing: IconButton(
+          tooltip: '确认写入',
+          icon: const Icon(Icons.add_circle_outline_rounded),
+          onPressed: _confirm,
+        ),
+      ),
+    );
+  }
 }

@@ -29,11 +29,16 @@ mixin BasicCardLogic {
       ).state.diaryList.removeWhere((e) => e.id == diary.id);
       Bind.find<DiaryTabViewLogic>(tag: 'default').update();
     } else {
-      final newDiary = await IsarUtil.getDiaryByID(diary.isarId);
-      if (diary == newDiary) {
+      final newDiary = await IsarUtil.getDiaryById(diary.id);
+      if (newDiary == null) {
+        // 日记已不存在（可能被删除/重置），仅从列表移除，避免空指针崩溃
+        _removeDiaryFromLists(diary);
         return;
       }
-      final newCategoryId = newDiary!.categoryId;
+      if (_sameDiary(diary, newDiary)) {
+        return;
+      }
+      final newCategoryId = newDiary.categoryId;
       final oldCategoryId = diary.categoryId;
       //如果修改了但是没有修改分类，就替换掉原来的
       if (oldCategoryId == newCategoryId) {
@@ -64,6 +69,32 @@ mixin BasicCardLogic {
         //先改旧分类
         await Bind.find<DiaryLogic>().updateDiary(oldCategoryId, jump: false);
       }
+    }
+  }
+
+  bool _sameDiary(Diary a, Diary b) =>
+      a.id == b.id &&
+      a.title == b.title &&
+      a.categoryId == b.categoryId &&
+      a.contentText == b.contentText;
+
+  void _removeDiaryFromLists(Diary diary) {
+    try {
+      if (diary.categoryId != null &&
+          Bind.isRegistered<DiaryTabViewLogic>(tag: diary.categoryId)) {
+        Bind.find<DiaryTabViewLogic>(
+          tag: diary.categoryId,
+        ).state.diaryList.removeWhere((e) => e.id == diary.id);
+        Bind.find<DiaryTabViewLogic>(tag: diary.categoryId).update();
+      }
+      if (Bind.isRegistered<DiaryTabViewLogic>(tag: 'default')) {
+        Bind.find<DiaryTabViewLogic>(
+          tag: 'default',
+        ).state.diaryList.removeWhere((e) => e.id == diary.id);
+        Bind.find<DiaryTabViewLogic>(tag: 'default').update();
+      }
+    } catch (_) {
+      // 列表可能未注册，忽略
     }
   }
 

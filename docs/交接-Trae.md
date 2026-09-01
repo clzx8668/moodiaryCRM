@@ -1,7 +1,7 @@
 # moodiaryCRM 交接文档（Trae 续接用）
 
 > 生成时间：2026-08-31（批次 25-29 收敛后更新）· 分支 `feat/local-crm-v1` ·
-> 版本 `2.11.0+94`（tag `v2.11.0`，远端已同步）· 工作区干净
+> 版本 `2.17.0+101`（tag 待下一轮收尾创建）· 工作区含批次 30–34 改动
 >
 > 本文件是**新对话一站式衔接**：Trae 打开本仓库后先读本文件 + `AGENTS.md` + `docs/开发进度.md` 尾部，
 > 即可直接继续开发。本文件自包含当前进度、验证基线、已知边界与下一步候选。
@@ -124,11 +124,19 @@ cd rust; cargo test
 | 27 | 工程收敛（bump `2.11.0+94` / tag / push）+ 自动摘要真实实现（`Diary.summary`） |
 | 28 | Obsidian 三件套：30s 轮询监听 + Vault 向量化到知识库 + 📎 附加知识接入 Obsidian |
 | 29 | 子笔记编辑时分类/标签回写集合 + 多端一致性复查（PC 右键分类重命名/删除） |
+| 30 | **日历模块批次 B**：`Schedule` 独立待办/日程实体（Drift schema v21，幂等迁移）+ 月历格叠加待办/日程标记 + 移动端上下滑动月↔周视图 + 快捷建日程面板（今天/明天/自定义 + 时间 + 提醒）+ 待办/日程详情页（兼新建+编辑，参考指尖时光）+ 待办/时间轴兼容新日程 |
+| 30-1 | **日历细化**：PC/移动分屏（PC 左列表右日历，重做仅限移动端）+ 周起始默认周一可设置（持久化 `calendarWeekStart`）+ 顶部月/年快捷切换 + 回到今日 + 年/月选择器 + 月↔周切换按钮 + 现代样式 |
+| 31 | **AI 完善 P0 去口语化**：本地规则口语化检测（0 token）+ 轻量模型去口语化（`light` 能力位，`AiProviderFactory.loadLight`）+ 信息保全校验（纯函数）+ 改写存 `Block.metaJson.deColoquial` 原文保留 + 队列任务 `de_colloquial` + 快速收集自动触发 + 详情页卡片「去口语化/恢复原文」 |
+| 31-1 | **去口语化增强 + 语音记录**：卡片正文默认展示清洗稿、一键切换原文；语音/录音转写保留录音 + 原始转写（`Block.metaJson.audio`，复用 text 块无需 schema）+ 内联播放重听 + 重新转写 + 独立页 `VoiceRecordPage`（路由 `/voiceRecord`，详情页「更多」入口） |
+| 32 | **AI 完善 P1**：`extract_plan` 结构化抽取（待办/日程落 Schedule、CRM 生成提案写 `metaJson.aiExtract`、队列 + 详情页审核确认）+ `CrmEntityResolver` 三层解析（唯一键/包含/编辑距离，返回 entityId）+ `TodoToggleService` 状态中枢 + `aiExtract`/`aiExtract` 持久链接 |
+| 33 | **抽取双向联动 + 计划配置化 + 完全清空**：`ExtractCleanupService`（删块/删日记级联清日程）+ `ExtractPlanConfig`（待办/日程/CRM/摘要开关，Pref）+ 详情页「抽取计划」入口 + `DatabaseResetService.clearAllData`（事务删全部表，数据健康度页「危险区」清空所有数据，双重确认不影响云端） |
+| 33-1 | **卡片空指针修复 + 抽取可观测**：`BasicCardLogic.toDiary` 用字符串 id 查询 + 空值守卫；`AiExtractMeta` 新增 `status/message`，无截止待办默认落今天；详情页按状态提示、失败显示原因；测试证明抽取的 Schedule 出现在日历待办 |
+| 34 | **浮动收件箱**：`Schedule.floating`（schema v22）；今日＝聚合所有未完成（含浮动、标过期/加急/浮动徽标）、其它日仅当日且排除浮动；快捷建/详情页浮动开关；`extract_plan` 无截止自动浮动 |
 
 **验证基线**：`flutter analyze` 0 error（仅存量 2 条 info：
 `prefer_if_null_operators` crm_entity_detail_view.dart:554、`CorePalette` theme_util.dart:337）；
-`flutter test` 207/207；`cargo test` 18/18；`flutter build windows --debug` ✅；
-`flutter build apk --debug` ✅。
+`flutter test` 220/220；`cargo test` 18/18；`flutter build windows --debug` / `flutter build apk --debug`
+按收尾流程执行（批次 30 改动为纯 Flutter + Drift，analyze/test 已全绿）。
 
 ## 5. 已知边界 / 待办
 
@@ -142,6 +150,20 @@ cd rust; cargo test
 - Obsidian 只读接入：已有 30s 轮询监听 + 「向量化到知识库」（手动触发）；
   无双向同步；大 Vault 首次扫描较慢。
 - CRM 写工具仅落本地库（不自动推 Twenty 远端），操作日志在「同步日志」页可见。
+- 日历新日程：重复规则仅 none/daily/weekly/monthly/yearly（未含「按周几多选」等高级模式）；
+  详情页的「专注 / 协作成员 / 图片附件」为参考图可选字段，暂未落地；时间轴仍为整月合并视图；
+  周起始日默认周一（设置弹层可切周日），PC 端为左列表右日历分屏、移动端上下堆叠。
+- 去口语化 P0：仅对「短 + 口语明显」内容触发；改写默认存 metaJson 并保留原文（卡片可查看/恢复），
+  尚未做"卡片正文直接显示清洗稿 + 切换原文"的常驻视图。
+- 去口语化增强（31-1）：卡片正文现默认展示清洗稿并可切换原文；语音转写为「选音频 + 听写」两段式，
+  依赖系统语音识别；「从音频文件直接转写（云转写 Whisper）」尚未接入。
+- P1（32）：CRM 写入默认需确认（详情页「AI 抽取」）；`extract_plan` 仅对命中信号词的快速收集自动触发，
+  其余入口手动；「自动落库开关」与「计划配置化」未做。
+- 批次 33：数据库重置仅清本地数据行（云端 Twenty 不动）；级联清理覆盖"块删除 + 日记级日程清理"，
+  删除日记不自动远端删除 CRM。
+- 批次 33-1：抽取结果有 `status/message` 可追溯；无截止时间待办按"今天"落库（非浮动收件箱），
+  若跨天查看需切到对应日期。
+- 批次 34：浮动待办只在"今日"收件箱聚合；其它日期视图排除浮动，只显示当日。
 - Windows 控制台偶现 `accessibility_bridge.cc` 报错为 Flutter 引擎级无害日志
   （3.44+ 已修，可忽略或升级 SDK）；debug 多 tab 偶发滚动断言为旧架构特性，release 不崩。
 
@@ -151,8 +173,14 @@ cd rust; cargo test
 3. **CRM 深化（纯本地，Twenty 暂停）**：回款/发票/提成字段表单校验、合同金额联动、
    本地统计看板。
 4. **RAG/M5 升级**：`LocalVectorIndex` 平滑替换 LanceDB（P3 预留，需新增依赖，单独排期）。
-5. **新话题细节开发**：由用户指定方向（首页/详情页/编辑页/快速收集等）。
-6. **版本收敛**：下一轮收尾时 bump + tag + push。
+5. **AI 完善 P1（推荐）**：`extract_plan` 队列任务（待办/CRM/日程结构化抽取）+ CRM 三层解析
+  （唯一键 + 包含 + 编辑距离，返回 entityId 而非名字，低置信给候选）+ `TodoToggleService` 状态中枢 +
+  详情页「AI 抽取」审核。**P0 去口语化（批次 31）+ P1（批次 32）已落地**。
+6. **新话题细节开发**：由用户指定方向（首页/详情页/编辑页/快速收集等）。
+7. **日历深化**：a) 周视图按周几 + 按日分组折叠；b) 日程↔日记互转；c) 子任务/图片完整落地；
+  知识点：`Schedule`（`lib/features/schedule/`）是独立待办/日程实体，与 Block todo / Twenty task /
+  CRM 事件在日历页聚合，详情页走 `AppRoutes.scheduleDetailPage`。
+8. **版本收敛**：下一轮收尾时 bump + tag + push（本批次已 bump 到 `2.17.0+101`）。
 
 ## 6. 硬性规则（沿用 AGENTS.md）
 1. 新功能代码放 `lib/features/` 或 `rust/src/` 新模块，不散落进上游 `lib/pages/`；

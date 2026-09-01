@@ -77,6 +77,14 @@ class AiCapabilityStore {
         providerId: firstWith((c) => c.voiceModel) ?? '',
         modelName: _firstModel(enabled, (c) => c.voiceModel),
       ),
+      // 轻量模型（去口语化/标签/摘要等后台小任务）；默认复用首个服务商的对话模型，
+      // 用户可在设置里改为更便宜/更快的模型。
+      light: AiCapabilityConfig(
+        id: 'light',
+        enabled: enabled.isNotEmpty,
+        providerId: enabled.isNotEmpty ? enabled.first.id : '',
+        modelName: enabled.isNotEmpty ? enabled.first.chatModel : '',
+      ),
     );
   }
 

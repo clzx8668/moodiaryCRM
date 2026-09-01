@@ -75,4 +75,10 @@ abstract class AppRoutes {
 
   //数据健康度
   static const healthPage = '/health';
+
+  //日程/待办详情页（兼新建+编辑）
+  static const scheduleDetailPage = '/scheduleDetail';
+
+  //语音记录页（保留录音 + 原始转写，支持播放/重转写）
+  static const voiceRecordPage = '/voiceRecord';
 }

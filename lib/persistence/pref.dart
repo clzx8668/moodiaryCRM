@@ -126,6 +126,10 @@ class PrefUtil {
     'crmColumnWidthLocked',
     // 报价模板（JSON）
     'crmQuoteTemplates',
+    // 日历周起始日（1=周一 … 7=周日）
+    'calendarWeekStart',
+    // AI 抽取计划配置（JSON：todo/schedule/crm/summary 开关）
+    'extractPlanConfig',
   };
 
   /// 允许持久化的动态键前缀（如 `crmTableColumns_` 前缀的列表级设置）。

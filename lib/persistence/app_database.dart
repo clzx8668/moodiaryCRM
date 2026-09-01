@@ -752,6 +752,70 @@ class AiTasks extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 待办/日程表（批次 B：日历模块独立日程实体，参考指尖时光/滴答清单）
+@DataClassName('ScheduleRow')
+@TableIndex(name: 'idx_schedules_start', columns: {#startTime})
+@TableIndex(name: 'idx_schedules_done', columns: {#done})
+class Schedules extends Table {
+  TextColumn get id => text()();
+
+  /// 标题（待办/日程名称）
+  TextColumn get title => text()();
+
+  /// 备忘/备注（输入备忘）
+  TextColumn get notes => text().withDefault(const Constant(''))();
+
+  /// 开始时间（待办日程起始时间）
+  DateTimeColumn get startTime => dateTime()();
+
+  /// 结束时间（可空；无则视为单点）
+  DateTimeColumn get endTime => dateTime().nullable()();
+
+  /// 全天事件
+  BoolColumn get allDay => boolean().withDefault(const Constant(false))();
+
+  /// 浮动待办（无固定日期）：只在"今日"收件箱聚合展示，不随具体日期出现
+  BoolColumn get floating => boolean().withDefault(const Constant(false))();
+
+  /// 重复规则：none / daily / weekly / monthly / yearly
+  TextColumn get repeatType => text().withDefault(const Constant('none'))();
+
+  /// 提前提醒分钟数（可空；null=不提醒）
+  IntColumn get remindOffsetMin => integer().nullable()();
+
+  /// 优先级（0 无 / 1 低 / 2 中 / 3 高）
+  IntColumn get priority => integer().withDefault(const Constant(0))();
+
+  /// 标签（单标签文本，参考指尖时光；可空）
+  TextColumn get tag => text().nullable()();
+
+  /// 背景色（ARGB 颜色值；可空）
+  IntColumn get bgColor => integer().nullable()();
+
+  /// 完成状态
+  BoolColumn get done => boolean().withDefault(const Constant(false))();
+
+  /// 子任务（JSON 数组：{"text": "...", "done": false}）
+  TextColumn get subtasks =>
+      text().map(const JsonListConverter()).withDefault(const Constant('[]'))();
+
+  /// 图片文件名（JSON 数组）
+  TextColumn get imageNames =>
+      text().map(const StringListConverter()).withDefault(const Constant('[]'))();
+
+  /// 关联日记/块（可选；若从日记产生的待办）
+  TextColumn get linkedDiaryId => text().nullable()();
+  TextColumn get linkedBlockId => text().nullable()();
+
+  /// 软删除
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     Diaries,
@@ -790,13 +854,14 @@ class AiTasks extends Table {
     AiChatSessions,
     AiChatMessages,
     AiTasks,
+    Schedules,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -913,6 +978,16 @@ class AppDatabase extends _$AppDatabase {
       if (from < 20) {
         final db = m.database as AppDatabase;
         await m.addColumn(db.diaries, db.diaries.summary);
+      }
+      // v20 → v21：新增待办/日程表（批次 B）
+      if (from < 21) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.schedules);
+      }
+      // v21 → v22：Schedules 增加 floating（浮动待办）列
+      if (from < 22) {
+        final db = m.database as AppDatabase;
+        await _addColumnIfMissing(m, db.schedules, db.schedules.floating);
       }
     },
     beforeOpen: (details) async {

@@ -2,7 +2,7 @@
 ///
 /// 本地来源（[TodoSource.localBlock]）与 CRM 来源（[TodoSource.crmTask]）
 /// 统一投影为同一结构，日历页待办视图与后续时间轴可复用。
-enum TodoSource { localBlock, crmTask, crmEvent }
+enum TodoSource { localBlock, crmTask, crmEvent, schedule }
 
 class TodoItem {
   /// 稳定业务键：本地为 `blockId:lineIndex`，CRM 为 twentyId（空则本地缓存 id）
@@ -34,6 +34,15 @@ class TodoItem {
   /// Twenty 任务对象 ID（本地来源为空）
   final String twentyId;
 
+  /// 本地 Schedule ID（schedule 来源；其他来源为空）
+  final String scheduleId;
+
+  /// 浮动待办（无固定日期，只在"今日"收件箱聚合）
+  final bool isFloating;
+
+  /// 优先级（0 无 / 1 低 / 2 中 / 3 高）
+  final int priority;
+
   /// 来源标题（日记标题 / Twenty 对象名），用于详情跳转与展示
   final String title;
 
@@ -48,12 +57,31 @@ class TodoItem {
     this.blockId = '',
     this.lineIndex = -1,
     this.twentyId = '',
+    this.scheduleId = '',
+    this.isFloating = false,
+    this.priority = 0,
     this.title = '',
   });
 
   bool get isLocal => source == TodoSource.localBlock;
 
   bool get isCrm => source == TodoSource.crmTask;
+
+  bool get isSchedule => source == TodoSource.schedule;
+
+  /// 是否过期：有到期日、未完成、且到期日早于今天（浮动待办不判过期）。
+  bool get isOverdue {
+    if (done) return false;
+    final due = dueDate;
+    if (due == null) return false;
+    final today = DateTime.now();
+    final d = DateTime(due.year, due.month, due.day);
+    final t = DateTime(today.year, today.month, today.day);
+    return d.isBefore(t);
+  }
+
+  /// 是否加急：优先级高。
+  bool get isUrgent => priority >= 3;
 
   /// 展示用日期：有到期日取到期日，否则取兜底时间
   DateTime get effectiveDate => dueDate ?? time;

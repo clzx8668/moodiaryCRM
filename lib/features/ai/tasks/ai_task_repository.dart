@@ -19,6 +19,8 @@ class AiTaskType {
   static const autoSummary = 'auto_summary';
   static const embedding = 'embedding';
   static const index = 'index';
+  static const deColloquial = 'de_colloquial';
+  static const extractPlan = 'extract_plan';
 }
 
 /// AI 任务仓储（Drift `AiTasks` 表读写，M2 队列的数据层）。

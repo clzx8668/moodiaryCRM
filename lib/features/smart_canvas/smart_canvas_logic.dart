@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:get/get.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
+import 'package:moodiary/features/ai/colloquial/de_colloquial_service.dart';
+import 'package:moodiary/features/ai/extract/ai_extract_meta.dart';
+import 'package:moodiary/features/ai/extract/extract_cleanup_service.dart';
+import 'package:moodiary/features/ai/extract/extract_plan_service.dart';
 import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/ai/tool_executor.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
@@ -496,6 +500,8 @@ class SmartCanvasLogic extends GetxController {
   /// 软删除卡片并刷新聚合投影
   Future<void> deleteBlock(Block block) async {
     await datasource.softDeleteBlock(block.id);
+    // 双向联动：级联清理该块抽取生成的日程
+    await ExtractCleanupService().onBlockDeleted(block);
     blockList.remove(block.id);
     expandedIds.remove(block.id);
     await datasource.refreshDiaryProjection(canvasState.diary);
@@ -510,6 +516,52 @@ class SmartCanvasLogic extends GetxController {
     final fresh = await datasource.loadDiary(canvasState.diary.id);
     if (fresh != null) {
       _applyDiary(fresh);
+    }
+  }
+
+  /// 手动「去口语化」：改写并写入 metaJson（原文保留），随后局部刷新。
+  Future<void> cleanBlockColloquial(Block block) async {
+    try {
+      final ok = await DeColoquialService.cleanBlock(block);
+      if (!ok) {
+        toast.info(message: '内容无需处理，或 AI 未配置 / 校验未通过');
+        return;
+      }
+      toast.success(message: '已生成去口语化版本（原文保留）');
+      await reloadBlock(block.id);
+    } catch (e) {
+      toast.error(message: '去口语化失败：$e');
+    }
+  }
+
+  /// 一键还原原文（清除清洗稿）。
+  Future<void> restoreBlockColloquial(Block block) async {
+    try {
+      await DeColoquialService.restoreBlock(block);
+      toast.info(message: '已恢复原文');
+      await reloadBlock(block.id);
+    } catch (e) {
+      toast.error(message: '还原失败：$e');
+    }
+  }
+
+  /// 对日记主文本块执行 extract_plan，返回写入的 [AiExtractMeta]（无则 null）。
+  Future<AiExtractMeta?> runExtractPlan() async {
+    try {
+      final result = await ExtractPlanService.processDiary(canvasState.diary.id);
+      await reloadBlocks();
+      final blocks = await datasource.loadBlocks(canvasState.diary.id);
+      for (final b in blocks) {
+        final meta = AiExtractMeta.read(b);
+        if (meta != null) return meta;
+      }
+      if (result == null) {
+        toast.info(message: 'AI 未配置或未抽取到内容');
+      }
+      return null;
+    } catch (e) {
+      toast.error(message: 'AI 抽取失败：$e');
+      return null;
     }
   }
 

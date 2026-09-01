@@ -5,6 +5,7 @@
 /// - embedding：向量模型（专用，知识库 RAG 检索）；
 /// - vision：多模态模型（专用，图片理解）；
 /// - voice：语音识别模型（专用）。
+/// - light：轻量模型（专用，后台/小任务，如去口语化、标签、摘要、实体抽取）。
 class AiCapabilityConfig {
   /// 能力标识：chat / embedding / vision / voice
   final String id;
@@ -50,17 +51,20 @@ class AiCapabilitySet {
   final AiCapabilityConfig embedding;
   final AiCapabilityConfig vision;
   final AiCapabilityConfig voice;
+  final AiCapabilityConfig light;
 
   AiCapabilitySet({
     AiCapabilityConfig? chat,
     AiCapabilityConfig? embedding,
     AiCapabilityConfig? vision,
     AiCapabilityConfig? voice,
+    AiCapabilityConfig? light,
   }) : chat = chat ?? AiCapabilityConfig(id: 'chat', enabled: false),
        embedding =
            embedding ?? AiCapabilityConfig(id: 'embedding'),
        vision = vision ?? AiCapabilityConfig(id: 'vision'),
-       voice = voice ?? AiCapabilityConfig(id: 'voice');
+       voice = voice ?? AiCapabilityConfig(id: 'voice'),
+       light = light ?? AiCapabilityConfig(id: 'light');
 
   Map<String, dynamic> toJson() {
     return {
@@ -68,6 +72,7 @@ class AiCapabilitySet {
       'embedding': embedding.toJson(),
       'vision': vision.toJson(),
       'voice': voice.toJson(),
+      'light': light.toJson(),
     };
   }
 
@@ -85,6 +90,7 @@ class AiCapabilitySet {
       embedding: read('embedding'),
       vision: read('vision'),
       voice: read('voice'),
+      light: read('light'),
     );
   }
 }

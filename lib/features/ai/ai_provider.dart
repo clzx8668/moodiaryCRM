@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 
 import 'ai_config.dart';
 import 'ai_composite_provider.dart';
+import 'ai_capability_store.dart';
+import 'ai_provider_store.dart';
 import 'prompts.dart';
 
 /// AI 处理结果分块
@@ -108,6 +110,36 @@ class AiProviderFactory {
 
   static Future<AiProvider> load() async {
     return _cached ??= await AiCompositeProvider.fromStore();
+  }
+
+  /// 轻量模型 Provider（后台/小任务专用）：优先 light 能力指定的服务商+模型，
+  /// 未指定时回退 chat 主服务商。保证能跑起来（用同一个 key），用户可换更省模型。
+  static Future<AiProvider> loadLight() async {
+    final providers = await AiProviderStore.loadAll();
+    final caps = await AiCapabilityStore.load();
+    final enabled = AiProviderStore.enabledConfigured(providers);
+    if (enabled.isEmpty) return AiCompositeProvider.fromStore();
+
+    final light = caps.light;
+    var pid = light.providerId;
+    if (pid.isEmpty) pid = caps.chat.providerId;
+
+    for (final c in enabled) {
+      if (c.id == pid && c.isConfigured) {
+        return OpenAiCompatibleProvider(
+          config: c.toAiConfig(modelOverride: light.modelName),
+        );
+      }
+    }
+    // 回退：首个启用且已配置的服务商
+    for (final c in enabled) {
+      if (c.isConfigured) {
+        return OpenAiCompatibleProvider(
+          config: c.toAiConfig(modelOverride: light.modelName),
+        );
+      }
+    }
+    return AiCompositeProvider.fromStore();
   }
 
   /// 配置变更后失效缓存（下次 load 重新构建，复用连接优化性能）

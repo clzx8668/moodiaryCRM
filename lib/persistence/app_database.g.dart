@@ -20800,6 +20800,1144 @@ class AiTasksCompanion extends UpdateCompanion<AiTaskRow> {
   }
 }
 
+class $SchedulesTable extends Schedules
+    with TableInfo<$SchedulesTable, ScheduleRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SchedulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _startTimeMeta = const VerificationMeta(
+    'startTime',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startTime = GeneratedColumn<DateTime>(
+    'start_time',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endTimeMeta = const VerificationMeta(
+    'endTime',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endTime = GeneratedColumn<DateTime>(
+    'end_time',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _allDayMeta = const VerificationMeta('allDay');
+  @override
+  late final GeneratedColumn<bool> allDay = GeneratedColumn<bool>(
+    'all_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("all_day" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _floatingMeta = const VerificationMeta(
+    'floating',
+  );
+  @override
+  late final GeneratedColumn<bool> floating = GeneratedColumn<bool>(
+    'floating',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("floating" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _repeatTypeMeta = const VerificationMeta(
+    'repeatType',
+  );
+  @override
+  late final GeneratedColumn<String> repeatType = GeneratedColumn<String>(
+    'repeat_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('none'),
+  );
+  static const VerificationMeta _remindOffsetMinMeta = const VerificationMeta(
+    'remindOffsetMin',
+  );
+  @override
+  late final GeneratedColumn<int> remindOffsetMin = GeneratedColumn<int>(
+    'remind_offset_min',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
+    'priority',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _tagMeta = const VerificationMeta('tag');
+  @override
+  late final GeneratedColumn<String> tag = GeneratedColumn<String>(
+    'tag',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bgColorMeta = const VerificationMeta(
+    'bgColor',
+  );
+  @override
+  late final GeneratedColumn<int> bgColor = GeneratedColumn<int>(
+    'bg_color',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _doneMeta = const VerificationMeta('done');
+  @override
+  late final GeneratedColumn<bool> done = GeneratedColumn<bool>(
+    'done',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("done" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<List<dynamic>, String> subtasks =
+      GeneratedColumn<String>(
+        'subtasks',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      ).withConverter<List<dynamic>>($SchedulesTable.$convertersubtasks);
+  @override
+  late final GeneratedColumnWithTypeConverter<List<String>, String> imageNames =
+      GeneratedColumn<String>(
+        'image_names',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      ).withConverter<List<String>>($SchedulesTable.$converterimageNames);
+  static const VerificationMeta _linkedDiaryIdMeta = const VerificationMeta(
+    'linkedDiaryId',
+  );
+  @override
+  late final GeneratedColumn<String> linkedDiaryId = GeneratedColumn<String>(
+    'linked_diary_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _linkedBlockIdMeta = const VerificationMeta(
+    'linkedBlockId',
+  );
+  @override
+  late final GeneratedColumn<String> linkedBlockId = GeneratedColumn<String>(
+    'linked_block_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    notes,
+    startTime,
+    endTime,
+    allDay,
+    floating,
+    repeatType,
+    remindOffsetMin,
+    priority,
+    tag,
+    bgColor,
+    done,
+    subtasks,
+    imageNames,
+    linkedDiaryId,
+    linkedBlockId,
+    deleted,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'schedules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ScheduleRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('start_time')) {
+      context.handle(
+        _startTimeMeta,
+        startTime.isAcceptableOrUnknown(data['start_time']!, _startTimeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startTimeMeta);
+    }
+    if (data.containsKey('end_time')) {
+      context.handle(
+        _endTimeMeta,
+        endTime.isAcceptableOrUnknown(data['end_time']!, _endTimeMeta),
+      );
+    }
+    if (data.containsKey('all_day')) {
+      context.handle(
+        _allDayMeta,
+        allDay.isAcceptableOrUnknown(data['all_day']!, _allDayMeta),
+      );
+    }
+    if (data.containsKey('floating')) {
+      context.handle(
+        _floatingMeta,
+        floating.isAcceptableOrUnknown(data['floating']!, _floatingMeta),
+      );
+    }
+    if (data.containsKey('repeat_type')) {
+      context.handle(
+        _repeatTypeMeta,
+        repeatType.isAcceptableOrUnknown(data['repeat_type']!, _repeatTypeMeta),
+      );
+    }
+    if (data.containsKey('remind_offset_min')) {
+      context.handle(
+        _remindOffsetMinMeta,
+        remindOffsetMin.isAcceptableOrUnknown(
+          data['remind_offset_min']!,
+          _remindOffsetMinMeta,
+        ),
+      );
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    }
+    if (data.containsKey('tag')) {
+      context.handle(
+        _tagMeta,
+        tag.isAcceptableOrUnknown(data['tag']!, _tagMeta),
+      );
+    }
+    if (data.containsKey('bg_color')) {
+      context.handle(
+        _bgColorMeta,
+        bgColor.isAcceptableOrUnknown(data['bg_color']!, _bgColorMeta),
+      );
+    }
+    if (data.containsKey('done')) {
+      context.handle(
+        _doneMeta,
+        done.isAcceptableOrUnknown(data['done']!, _doneMeta),
+      );
+    }
+    if (data.containsKey('linked_diary_id')) {
+      context.handle(
+        _linkedDiaryIdMeta,
+        linkedDiaryId.isAcceptableOrUnknown(
+          data['linked_diary_id']!,
+          _linkedDiaryIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('linked_block_id')) {
+      context.handle(
+        _linkedBlockIdMeta,
+        linkedBlockId.isAcceptableOrUnknown(
+          data['linked_block_id']!,
+          _linkedBlockIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ScheduleRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ScheduleRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      startTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_time'],
+      )!,
+      endTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_time'],
+      ),
+      allDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}all_day'],
+      )!,
+      floating: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}floating'],
+      )!,
+      repeatType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}repeat_type'],
+      )!,
+      remindOffsetMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}remind_offset_min'],
+      ),
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}priority'],
+      )!,
+      tag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tag'],
+      ),
+      bgColor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bg_color'],
+      ),
+      done: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}done'],
+      )!,
+      subtasks: $SchedulesTable.$convertersubtasks.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}subtasks'],
+        )!,
+      ),
+      imageNames: $SchedulesTable.$converterimageNames.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}image_names'],
+        )!,
+      ),
+      linkedDiaryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}linked_diary_id'],
+      ),
+      linkedBlockId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}linked_block_id'],
+      ),
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SchedulesTable createAlias(String alias) {
+    return $SchedulesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<List<dynamic>, String> $convertersubtasks =
+      const JsonListConverter();
+  static TypeConverter<List<String>, String> $converterimageNames =
+      const StringListConverter();
+}
+
+class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
+  final String id;
+
+  /// 标题（待办/日程名称）
+  final String title;
+
+  /// 备忘/备注（输入备忘）
+  final String notes;
+
+  /// 开始时间（待办日程起始时间）
+  final DateTime startTime;
+
+  /// 结束时间（可空；无则视为单点）
+  final DateTime? endTime;
+
+  /// 全天事件
+  final bool allDay;
+
+  /// 浮动待办（无固定日期）：只在"今日"收件箱聚合展示，不随具体日期出现
+  final bool floating;
+
+  /// 重复规则：none / daily / weekly / monthly / yearly
+  final String repeatType;
+
+  /// 提前提醒分钟数（可空；null=不提醒）
+  final int? remindOffsetMin;
+
+  /// 优先级（0 无 / 1 低 / 2 中 / 3 高）
+  final int priority;
+
+  /// 标签（单标签文本，参考指尖时光；可空）
+  final String? tag;
+
+  /// 背景色（ARGB 颜色值；可空）
+  final int? bgColor;
+
+  /// 完成状态
+  final bool done;
+
+  /// 子任务（JSON 数组：{"text": "...", "done": false}）
+  final List<dynamic> subtasks;
+
+  /// 图片文件名（JSON 数组）
+  final List<String> imageNames;
+
+  /// 关联日记/块（可选；若从日记产生的待办）
+  final String? linkedDiaryId;
+  final String? linkedBlockId;
+
+  /// 软删除
+  final bool deleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ScheduleRow({
+    required this.id,
+    required this.title,
+    required this.notes,
+    required this.startTime,
+    this.endTime,
+    required this.allDay,
+    required this.floating,
+    required this.repeatType,
+    this.remindOffsetMin,
+    required this.priority,
+    this.tag,
+    this.bgColor,
+    required this.done,
+    required this.subtasks,
+    required this.imageNames,
+    this.linkedDiaryId,
+    this.linkedBlockId,
+    required this.deleted,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['notes'] = Variable<String>(notes);
+    map['start_time'] = Variable<DateTime>(startTime);
+    if (!nullToAbsent || endTime != null) {
+      map['end_time'] = Variable<DateTime>(endTime);
+    }
+    map['all_day'] = Variable<bool>(allDay);
+    map['floating'] = Variable<bool>(floating);
+    map['repeat_type'] = Variable<String>(repeatType);
+    if (!nullToAbsent || remindOffsetMin != null) {
+      map['remind_offset_min'] = Variable<int>(remindOffsetMin);
+    }
+    map['priority'] = Variable<int>(priority);
+    if (!nullToAbsent || tag != null) {
+      map['tag'] = Variable<String>(tag);
+    }
+    if (!nullToAbsent || bgColor != null) {
+      map['bg_color'] = Variable<int>(bgColor);
+    }
+    map['done'] = Variable<bool>(done);
+    {
+      map['subtasks'] = Variable<String>(
+        $SchedulesTable.$convertersubtasks.toSql(subtasks),
+      );
+    }
+    {
+      map['image_names'] = Variable<String>(
+        $SchedulesTable.$converterimageNames.toSql(imageNames),
+      );
+    }
+    if (!nullToAbsent || linkedDiaryId != null) {
+      map['linked_diary_id'] = Variable<String>(linkedDiaryId);
+    }
+    if (!nullToAbsent || linkedBlockId != null) {
+      map['linked_block_id'] = Variable<String>(linkedBlockId);
+    }
+    map['deleted'] = Variable<bool>(deleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  SchedulesCompanion toCompanion(bool nullToAbsent) {
+    return SchedulesCompanion(
+      id: Value(id),
+      title: Value(title),
+      notes: Value(notes),
+      startTime: Value(startTime),
+      endTime: endTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endTime),
+      allDay: Value(allDay),
+      floating: Value(floating),
+      repeatType: Value(repeatType),
+      remindOffsetMin: remindOffsetMin == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remindOffsetMin),
+      priority: Value(priority),
+      tag: tag == null && nullToAbsent ? const Value.absent() : Value(tag),
+      bgColor: bgColor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bgColor),
+      done: Value(done),
+      subtasks: Value(subtasks),
+      imageNames: Value(imageNames),
+      linkedDiaryId: linkedDiaryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(linkedDiaryId),
+      linkedBlockId: linkedBlockId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(linkedBlockId),
+      deleted: Value(deleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ScheduleRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ScheduleRow(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      notes: serializer.fromJson<String>(json['notes']),
+      startTime: serializer.fromJson<DateTime>(json['startTime']),
+      endTime: serializer.fromJson<DateTime?>(json['endTime']),
+      allDay: serializer.fromJson<bool>(json['allDay']),
+      floating: serializer.fromJson<bool>(json['floating']),
+      repeatType: serializer.fromJson<String>(json['repeatType']),
+      remindOffsetMin: serializer.fromJson<int?>(json['remindOffsetMin']),
+      priority: serializer.fromJson<int>(json['priority']),
+      tag: serializer.fromJson<String?>(json['tag']),
+      bgColor: serializer.fromJson<int?>(json['bgColor']),
+      done: serializer.fromJson<bool>(json['done']),
+      subtasks: serializer.fromJson<List<dynamic>>(json['subtasks']),
+      imageNames: serializer.fromJson<List<String>>(json['imageNames']),
+      linkedDiaryId: serializer.fromJson<String?>(json['linkedDiaryId']),
+      linkedBlockId: serializer.fromJson<String?>(json['linkedBlockId']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'notes': serializer.toJson<String>(notes),
+      'startTime': serializer.toJson<DateTime>(startTime),
+      'endTime': serializer.toJson<DateTime?>(endTime),
+      'allDay': serializer.toJson<bool>(allDay),
+      'floating': serializer.toJson<bool>(floating),
+      'repeatType': serializer.toJson<String>(repeatType),
+      'remindOffsetMin': serializer.toJson<int?>(remindOffsetMin),
+      'priority': serializer.toJson<int>(priority),
+      'tag': serializer.toJson<String?>(tag),
+      'bgColor': serializer.toJson<int?>(bgColor),
+      'done': serializer.toJson<bool>(done),
+      'subtasks': serializer.toJson<List<dynamic>>(subtasks),
+      'imageNames': serializer.toJson<List<String>>(imageNames),
+      'linkedDiaryId': serializer.toJson<String?>(linkedDiaryId),
+      'linkedBlockId': serializer.toJson<String?>(linkedBlockId),
+      'deleted': serializer.toJson<bool>(deleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ScheduleRow copyWith({
+    String? id,
+    String? title,
+    String? notes,
+    DateTime? startTime,
+    Value<DateTime?> endTime = const Value.absent(),
+    bool? allDay,
+    bool? floating,
+    String? repeatType,
+    Value<int?> remindOffsetMin = const Value.absent(),
+    int? priority,
+    Value<String?> tag = const Value.absent(),
+    Value<int?> bgColor = const Value.absent(),
+    bool? done,
+    List<dynamic>? subtasks,
+    List<String>? imageNames,
+    Value<String?> linkedDiaryId = const Value.absent(),
+    Value<String?> linkedBlockId = const Value.absent(),
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ScheduleRow(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    notes: notes ?? this.notes,
+    startTime: startTime ?? this.startTime,
+    endTime: endTime.present ? endTime.value : this.endTime,
+    allDay: allDay ?? this.allDay,
+    floating: floating ?? this.floating,
+    repeatType: repeatType ?? this.repeatType,
+    remindOffsetMin: remindOffsetMin.present
+        ? remindOffsetMin.value
+        : this.remindOffsetMin,
+    priority: priority ?? this.priority,
+    tag: tag.present ? tag.value : this.tag,
+    bgColor: bgColor.present ? bgColor.value : this.bgColor,
+    done: done ?? this.done,
+    subtasks: subtasks ?? this.subtasks,
+    imageNames: imageNames ?? this.imageNames,
+    linkedDiaryId: linkedDiaryId.present
+        ? linkedDiaryId.value
+        : this.linkedDiaryId,
+    linkedBlockId: linkedBlockId.present
+        ? linkedBlockId.value
+        : this.linkedBlockId,
+    deleted: deleted ?? this.deleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ScheduleRow copyWithCompanion(SchedulesCompanion data) {
+    return ScheduleRow(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      startTime: data.startTime.present ? data.startTime.value : this.startTime,
+      endTime: data.endTime.present ? data.endTime.value : this.endTime,
+      allDay: data.allDay.present ? data.allDay.value : this.allDay,
+      floating: data.floating.present ? data.floating.value : this.floating,
+      repeatType: data.repeatType.present
+          ? data.repeatType.value
+          : this.repeatType,
+      remindOffsetMin: data.remindOffsetMin.present
+          ? data.remindOffsetMin.value
+          : this.remindOffsetMin,
+      priority: data.priority.present ? data.priority.value : this.priority,
+      tag: data.tag.present ? data.tag.value : this.tag,
+      bgColor: data.bgColor.present ? data.bgColor.value : this.bgColor,
+      done: data.done.present ? data.done.value : this.done,
+      subtasks: data.subtasks.present ? data.subtasks.value : this.subtasks,
+      imageNames: data.imageNames.present
+          ? data.imageNames.value
+          : this.imageNames,
+      linkedDiaryId: data.linkedDiaryId.present
+          ? data.linkedDiaryId.value
+          : this.linkedDiaryId,
+      linkedBlockId: data.linkedBlockId.present
+          ? data.linkedBlockId.value
+          : this.linkedBlockId,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ScheduleRow(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('notes: $notes, ')
+          ..write('startTime: $startTime, ')
+          ..write('endTime: $endTime, ')
+          ..write('allDay: $allDay, ')
+          ..write('floating: $floating, ')
+          ..write('repeatType: $repeatType, ')
+          ..write('remindOffsetMin: $remindOffsetMin, ')
+          ..write('priority: $priority, ')
+          ..write('tag: $tag, ')
+          ..write('bgColor: $bgColor, ')
+          ..write('done: $done, ')
+          ..write('subtasks: $subtasks, ')
+          ..write('imageNames: $imageNames, ')
+          ..write('linkedDiaryId: $linkedDiaryId, ')
+          ..write('linkedBlockId: $linkedBlockId, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    title,
+    notes,
+    startTime,
+    endTime,
+    allDay,
+    floating,
+    repeatType,
+    remindOffsetMin,
+    priority,
+    tag,
+    bgColor,
+    done,
+    subtasks,
+    imageNames,
+    linkedDiaryId,
+    linkedBlockId,
+    deleted,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ScheduleRow &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.notes == this.notes &&
+          other.startTime == this.startTime &&
+          other.endTime == this.endTime &&
+          other.allDay == this.allDay &&
+          other.floating == this.floating &&
+          other.repeatType == this.repeatType &&
+          other.remindOffsetMin == this.remindOffsetMin &&
+          other.priority == this.priority &&
+          other.tag == this.tag &&
+          other.bgColor == this.bgColor &&
+          other.done == this.done &&
+          other.subtasks == this.subtasks &&
+          other.imageNames == this.imageNames &&
+          other.linkedDiaryId == this.linkedDiaryId &&
+          other.linkedBlockId == this.linkedBlockId &&
+          other.deleted == this.deleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String> notes;
+  final Value<DateTime> startTime;
+  final Value<DateTime?> endTime;
+  final Value<bool> allDay;
+  final Value<bool> floating;
+  final Value<String> repeatType;
+  final Value<int?> remindOffsetMin;
+  final Value<int> priority;
+  final Value<String?> tag;
+  final Value<int?> bgColor;
+  final Value<bool> done;
+  final Value<List<dynamic>> subtasks;
+  final Value<List<String>> imageNames;
+  final Value<String?> linkedDiaryId;
+  final Value<String?> linkedBlockId;
+  final Value<bool> deleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const SchedulesCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.startTime = const Value.absent(),
+    this.endTime = const Value.absent(),
+    this.allDay = const Value.absent(),
+    this.floating = const Value.absent(),
+    this.repeatType = const Value.absent(),
+    this.remindOffsetMin = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.tag = const Value.absent(),
+    this.bgColor = const Value.absent(),
+    this.done = const Value.absent(),
+    this.subtasks = const Value.absent(),
+    this.imageNames = const Value.absent(),
+    this.linkedDiaryId = const Value.absent(),
+    this.linkedBlockId = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SchedulesCompanion.insert({
+    required String id,
+    required String title,
+    this.notes = const Value.absent(),
+    required DateTime startTime,
+    this.endTime = const Value.absent(),
+    this.allDay = const Value.absent(),
+    this.floating = const Value.absent(),
+    this.repeatType = const Value.absent(),
+    this.remindOffsetMin = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.tag = const Value.absent(),
+    this.bgColor = const Value.absent(),
+    this.done = const Value.absent(),
+    this.subtasks = const Value.absent(),
+    this.imageNames = const Value.absent(),
+    this.linkedDiaryId = const Value.absent(),
+    this.linkedBlockId = const Value.absent(),
+    this.deleted = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       startTime = Value(startTime),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ScheduleRow> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? notes,
+    Expression<DateTime>? startTime,
+    Expression<DateTime>? endTime,
+    Expression<bool>? allDay,
+    Expression<bool>? floating,
+    Expression<String>? repeatType,
+    Expression<int>? remindOffsetMin,
+    Expression<int>? priority,
+    Expression<String>? tag,
+    Expression<int>? bgColor,
+    Expression<bool>? done,
+    Expression<String>? subtasks,
+    Expression<String>? imageNames,
+    Expression<String>? linkedDiaryId,
+    Expression<String>? linkedBlockId,
+    Expression<bool>? deleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (notes != null) 'notes': notes,
+      if (startTime != null) 'start_time': startTime,
+      if (endTime != null) 'end_time': endTime,
+      if (allDay != null) 'all_day': allDay,
+      if (floating != null) 'floating': floating,
+      if (repeatType != null) 'repeat_type': repeatType,
+      if (remindOffsetMin != null) 'remind_offset_min': remindOffsetMin,
+      if (priority != null) 'priority': priority,
+      if (tag != null) 'tag': tag,
+      if (bgColor != null) 'bg_color': bgColor,
+      if (done != null) 'done': done,
+      if (subtasks != null) 'subtasks': subtasks,
+      if (imageNames != null) 'image_names': imageNames,
+      if (linkedDiaryId != null) 'linked_diary_id': linkedDiaryId,
+      if (linkedBlockId != null) 'linked_block_id': linkedBlockId,
+      if (deleted != null) 'deleted': deleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SchedulesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<String>? notes,
+    Value<DateTime>? startTime,
+    Value<DateTime?>? endTime,
+    Value<bool>? allDay,
+    Value<bool>? floating,
+    Value<String>? repeatType,
+    Value<int?>? remindOffsetMin,
+    Value<int>? priority,
+    Value<String?>? tag,
+    Value<int?>? bgColor,
+    Value<bool>? done,
+    Value<List<dynamic>>? subtasks,
+    Value<List<String>>? imageNames,
+    Value<String?>? linkedDiaryId,
+    Value<String?>? linkedBlockId,
+    Value<bool>? deleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return SchedulesCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      notes: notes ?? this.notes,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      allDay: allDay ?? this.allDay,
+      floating: floating ?? this.floating,
+      repeatType: repeatType ?? this.repeatType,
+      remindOffsetMin: remindOffsetMin ?? this.remindOffsetMin,
+      priority: priority ?? this.priority,
+      tag: tag ?? this.tag,
+      bgColor: bgColor ?? this.bgColor,
+      done: done ?? this.done,
+      subtasks: subtasks ?? this.subtasks,
+      imageNames: imageNames ?? this.imageNames,
+      linkedDiaryId: linkedDiaryId ?? this.linkedDiaryId,
+      linkedBlockId: linkedBlockId ?? this.linkedBlockId,
+      deleted: deleted ?? this.deleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (startTime.present) {
+      map['start_time'] = Variable<DateTime>(startTime.value);
+    }
+    if (endTime.present) {
+      map['end_time'] = Variable<DateTime>(endTime.value);
+    }
+    if (allDay.present) {
+      map['all_day'] = Variable<bool>(allDay.value);
+    }
+    if (floating.present) {
+      map['floating'] = Variable<bool>(floating.value);
+    }
+    if (repeatType.present) {
+      map['repeat_type'] = Variable<String>(repeatType.value);
+    }
+    if (remindOffsetMin.present) {
+      map['remind_offset_min'] = Variable<int>(remindOffsetMin.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<int>(priority.value);
+    }
+    if (tag.present) {
+      map['tag'] = Variable<String>(tag.value);
+    }
+    if (bgColor.present) {
+      map['bg_color'] = Variable<int>(bgColor.value);
+    }
+    if (done.present) {
+      map['done'] = Variable<bool>(done.value);
+    }
+    if (subtasks.present) {
+      map['subtasks'] = Variable<String>(
+        $SchedulesTable.$convertersubtasks.toSql(subtasks.value),
+      );
+    }
+    if (imageNames.present) {
+      map['image_names'] = Variable<String>(
+        $SchedulesTable.$converterimageNames.toSql(imageNames.value),
+      );
+    }
+    if (linkedDiaryId.present) {
+      map['linked_diary_id'] = Variable<String>(linkedDiaryId.value);
+    }
+    if (linkedBlockId.present) {
+      map['linked_block_id'] = Variable<String>(linkedBlockId.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SchedulesCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('notes: $notes, ')
+          ..write('startTime: $startTime, ')
+          ..write('endTime: $endTime, ')
+          ..write('allDay: $allDay, ')
+          ..write('floating: $floating, ')
+          ..write('repeatType: $repeatType, ')
+          ..write('remindOffsetMin: $remindOffsetMin, ')
+          ..write('priority: $priority, ')
+          ..write('tag: $tag, ')
+          ..write('bgColor: $bgColor, ')
+          ..write('done: $done, ')
+          ..write('subtasks: $subtasks, ')
+          ..write('imageNames: $imageNames, ')
+          ..write('linkedDiaryId: $linkedDiaryId, ')
+          ..write('linkedBlockId: $linkedBlockId, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -20856,9 +21994,18 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AiChatSessionsTable aiChatSessions = $AiChatSessionsTable(this);
   late final $AiChatMessagesTable aiChatMessages = $AiChatMessagesTable(this);
   late final $AiTasksTable aiTasks = $AiTasksTable(this);
+  late final $SchedulesTable schedules = $SchedulesTable(this);
   late final Index idxAiTasksStatus = Index(
     'idx_ai_tasks_status',
     'CREATE INDEX idx_ai_tasks_status ON ai_tasks (status)',
+  );
+  late final Index idxSchedulesStart = Index(
+    'idx_schedules_start',
+    'CREATE INDEX idx_schedules_start ON schedules (start_time)',
+  );
+  late final Index idxSchedulesDone = Index(
+    'idx_schedules_done',
+    'CREATE INDEX idx_schedules_done ON schedules (done)',
   );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -20901,7 +22048,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     aiChatSessions,
     aiChatMessages,
     aiTasks,
+    schedules,
     idxAiTasksStatus,
+    idxSchedulesStart,
+    idxSchedulesDone,
   ];
 }
 
@@ -31352,6 +32502,504 @@ typedef $$AiTasksTableProcessedTableManager =
       AiTaskRow,
       PrefetchHooks Function()
     >;
+typedef $$SchedulesTableCreateCompanionBuilder =
+    SchedulesCompanion Function({
+      required String id,
+      required String title,
+      Value<String> notes,
+      required DateTime startTime,
+      Value<DateTime?> endTime,
+      Value<bool> allDay,
+      Value<bool> floating,
+      Value<String> repeatType,
+      Value<int?> remindOffsetMin,
+      Value<int> priority,
+      Value<String?> tag,
+      Value<int?> bgColor,
+      Value<bool> done,
+      Value<List<dynamic>> subtasks,
+      Value<List<String>> imageNames,
+      Value<String?> linkedDiaryId,
+      Value<String?> linkedBlockId,
+      Value<bool> deleted,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$SchedulesTableUpdateCompanionBuilder =
+    SchedulesCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<String> notes,
+      Value<DateTime> startTime,
+      Value<DateTime?> endTime,
+      Value<bool> allDay,
+      Value<bool> floating,
+      Value<String> repeatType,
+      Value<int?> remindOffsetMin,
+      Value<int> priority,
+      Value<String?> tag,
+      Value<int?> bgColor,
+      Value<bool> done,
+      Value<List<dynamic>> subtasks,
+      Value<List<String>> imageNames,
+      Value<String?> linkedDiaryId,
+      Value<String?> linkedBlockId,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$SchedulesTableFilterComposer
+    extends Composer<_$AppDatabase, $SchedulesTable> {
+  $$SchedulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startTime => $composableBuilder(
+    column: $table.startTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endTime => $composableBuilder(
+    column: $table.endTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get allDay => $composableBuilder(
+    column: $table.allDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get floating => $composableBuilder(
+    column: $table.floating,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get repeatType => $composableBuilder(
+    column: $table.repeatType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get remindOffsetMin => $composableBuilder(
+    column: $table.remindOffsetMin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tag => $composableBuilder(
+    column: $table.tag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bgColor => $composableBuilder(
+    column: $table.bgColor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get done => $composableBuilder(
+    column: $table.done,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<List<dynamic>, List<dynamic>, String>
+  get subtasks => $composableBuilder(
+    column: $table.subtasks,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<List<String>, List<String>, String>
+  get imageNames => $composableBuilder(
+    column: $table.imageNames,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get linkedDiaryId => $composableBuilder(
+    column: $table.linkedDiaryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get linkedBlockId => $composableBuilder(
+    column: $table.linkedBlockId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SchedulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SchedulesTable> {
+  $$SchedulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startTime => $composableBuilder(
+    column: $table.startTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endTime => $composableBuilder(
+    column: $table.endTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get allDay => $composableBuilder(
+    column: $table.allDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get floating => $composableBuilder(
+    column: $table.floating,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get repeatType => $composableBuilder(
+    column: $table.repeatType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get remindOffsetMin => $composableBuilder(
+    column: $table.remindOffsetMin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tag => $composableBuilder(
+    column: $table.tag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bgColor => $composableBuilder(
+    column: $table.bgColor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get done => $composableBuilder(
+    column: $table.done,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get subtasks => $composableBuilder(
+    column: $table.subtasks,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get imageNames => $composableBuilder(
+    column: $table.imageNames,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get linkedDiaryId => $composableBuilder(
+    column: $table.linkedDiaryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get linkedBlockId => $composableBuilder(
+    column: $table.linkedBlockId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SchedulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SchedulesTable> {
+  $$SchedulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startTime =>
+      $composableBuilder(column: $table.startTime, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endTime =>
+      $composableBuilder(column: $table.endTime, builder: (column) => column);
+
+  GeneratedColumn<bool> get allDay =>
+      $composableBuilder(column: $table.allDay, builder: (column) => column);
+
+  GeneratedColumn<bool> get floating =>
+      $composableBuilder(column: $table.floating, builder: (column) => column);
+
+  GeneratedColumn<String> get repeatType => $composableBuilder(
+    column: $table.repeatType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get remindOffsetMin => $composableBuilder(
+    column: $table.remindOffsetMin,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
+  GeneratedColumn<String> get tag =>
+      $composableBuilder(column: $table.tag, builder: (column) => column);
+
+  GeneratedColumn<int> get bgColor =>
+      $composableBuilder(column: $table.bgColor, builder: (column) => column);
+
+  GeneratedColumn<bool> get done =>
+      $composableBuilder(column: $table.done, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<dynamic>, String> get subtasks =>
+      $composableBuilder(column: $table.subtasks, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<String>, String> get imageNames =>
+      $composableBuilder(
+        column: $table.imageNames,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get linkedDiaryId => $composableBuilder(
+    column: $table.linkedDiaryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get linkedBlockId => $composableBuilder(
+    column: $table.linkedBlockId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$SchedulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SchedulesTable,
+          ScheduleRow,
+          $$SchedulesTableFilterComposer,
+          $$SchedulesTableOrderingComposer,
+          $$SchedulesTableAnnotationComposer,
+          $$SchedulesTableCreateCompanionBuilder,
+          $$SchedulesTableUpdateCompanionBuilder,
+          (
+            ScheduleRow,
+            BaseReferences<_$AppDatabase, $SchedulesTable, ScheduleRow>,
+          ),
+          ScheduleRow,
+          PrefetchHooks Function()
+        > {
+  $$SchedulesTableTableManager(_$AppDatabase db, $SchedulesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SchedulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SchedulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SchedulesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<DateTime> startTime = const Value.absent(),
+                Value<DateTime?> endTime = const Value.absent(),
+                Value<bool> allDay = const Value.absent(),
+                Value<bool> floating = const Value.absent(),
+                Value<String> repeatType = const Value.absent(),
+                Value<int?> remindOffsetMin = const Value.absent(),
+                Value<int> priority = const Value.absent(),
+                Value<String?> tag = const Value.absent(),
+                Value<int?> bgColor = const Value.absent(),
+                Value<bool> done = const Value.absent(),
+                Value<List<dynamic>> subtasks = const Value.absent(),
+                Value<List<String>> imageNames = const Value.absent(),
+                Value<String?> linkedDiaryId = const Value.absent(),
+                Value<String?> linkedBlockId = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SchedulesCompanion(
+                id: id,
+                title: title,
+                notes: notes,
+                startTime: startTime,
+                endTime: endTime,
+                allDay: allDay,
+                floating: floating,
+                repeatType: repeatType,
+                remindOffsetMin: remindOffsetMin,
+                priority: priority,
+                tag: tag,
+                bgColor: bgColor,
+                done: done,
+                subtasks: subtasks,
+                imageNames: imageNames,
+                linkedDiaryId: linkedDiaryId,
+                linkedBlockId: linkedBlockId,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String title,
+                Value<String> notes = const Value.absent(),
+                required DateTime startTime,
+                Value<DateTime?> endTime = const Value.absent(),
+                Value<bool> allDay = const Value.absent(),
+                Value<bool> floating = const Value.absent(),
+                Value<String> repeatType = const Value.absent(),
+                Value<int?> remindOffsetMin = const Value.absent(),
+                Value<int> priority = const Value.absent(),
+                Value<String?> tag = const Value.absent(),
+                Value<int?> bgColor = const Value.absent(),
+                Value<bool> done = const Value.absent(),
+                Value<List<dynamic>> subtasks = const Value.absent(),
+                Value<List<String>> imageNames = const Value.absent(),
+                Value<String?> linkedDiaryId = const Value.absent(),
+                Value<String?> linkedBlockId = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => SchedulesCompanion.insert(
+                id: id,
+                title: title,
+                notes: notes,
+                startTime: startTime,
+                endTime: endTime,
+                allDay: allDay,
+                floating: floating,
+                repeatType: repeatType,
+                remindOffsetMin: remindOffsetMin,
+                priority: priority,
+                tag: tag,
+                bgColor: bgColor,
+                done: done,
+                subtasks: subtasks,
+                imageNames: imageNames,
+                linkedDiaryId: linkedDiaryId,
+                linkedBlockId: linkedBlockId,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SchedulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SchedulesTable,
+      ScheduleRow,
+      $$SchedulesTableFilterComposer,
+      $$SchedulesTableOrderingComposer,
+      $$SchedulesTableAnnotationComposer,
+      $$SchedulesTableCreateCompanionBuilder,
+      $$SchedulesTableUpdateCompanionBuilder,
+      (
+        ScheduleRow,
+        BaseReferences<_$AppDatabase, $SchedulesTable, ScheduleRow>,
+      ),
+      ScheduleRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -31428,4 +33076,6 @@ class $AppDatabaseManager {
       $$AiChatMessagesTableTableManager(_db, _db.aiChatMessages);
   $$AiTasksTableTableManager get aiTasks =>
       $$AiTasksTableTableManager(_db, _db.aiTasks);
+  $$SchedulesTableTableManager get schedules =>
+      $$SchedulesTableTableManager(_db, _db.schedules);
 }

@@ -3,6 +3,8 @@ import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/crm/local/crm_local_repository.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
+import 'package:moodiary/features/schedule/models/schedule.dart';
+import 'package:moodiary/features/schedule/schedule_repository.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:uuid/uuid.dart';
 
@@ -17,6 +19,7 @@ class TodoAggregator {
   static List<TodoItem> merge({
     required List<Block> todoBlocks,
     required List<CrmEntityCache> tasks,
+    List<Schedule> schedules = const [],
     DateTime? date,
     bool includeDone = true,
   }) {
@@ -27,6 +30,9 @@ class TodoAggregator {
     for (final task in tasks) {
       final item = TodoParser.fromCrmTask(task);
       if (item != null) items.add(item);
+    }
+    for (final schedule in schedules) {
+      items.add(TodoParser.fromSchedule(schedule));
     }
     if (!includeDone) items.removeWhere((item) => item.done);
     if (date != null) {
@@ -46,23 +52,51 @@ class TodoAggregator {
     DateTime? date,
     bool includeDone = true,
   }) async {
+    final isToday = date != null && _sameDay(date, DateTime.now());
     final blocks = await IsarUtil.getBlocksByType(BlockType.todo);
     final tasks = await IsarUtil.getCrmEntitiesByType('task');
+    final scheduleRepo = ScheduleRepository();
+
+    List<Schedule> schedules;
+    if (isToday) {
+      // 今日收件箱：全部未完成（浮动无论日期 + 所有日期未完成）
+      schedules = await scheduleRepo.listActive();
+    } else {
+      schedules = date == null
+          ? await scheduleRepo.listActive()
+          : await scheduleRepo.byDay(date);
+      // 非今日：浮动待办只在"今日"收件箱出现
+      if (date != null) schedules.removeWhere((s) => s.floating);
+    }
+
     final items = merge(
       todoBlocks: blocks,
       tasks: tasks,
-      date: date,
-      includeDone: includeDone,
+      schedules: schedules,
+      date: isToday ? null : date,
+      includeDone: isToday ? false : includeDone,
     );
-    // CRM 日程：提醒/跟进计划/回款计划/到期提醒 并入日历
-    items.addAll(await _loadCrmEvents(date: date, includeDone: includeDone));
+    if (isToday) {
+      items.addAll(await _loadCrmEvents(date: null, includeDone: false));
+    } else {
+      items.addAll(await _loadCrmEvents(date: date, includeDone: includeDone));
+    }
+    _sortForView(items, isToday: isToday);
+    return items;
+  }
+
+  static void _sortForView(List<TodoItem> items, {required bool isToday}) {
     items.sort((a, b) {
-      if (a.done != b.done) return a.done ? 1 : -1;
+      if (isToday) {
+        if (a.isOverdue != b.isOverdue) return a.isOverdue ? -1 : 1;
+        if (a.isUrgent != b.isUrgent) return a.isUrgent ? -1 : 1;
+      } else {
+        if (a.done != b.done) return a.done ? 1 : -1;
+      }
       final byDate = a.effectiveDate.compareTo(b.effectiveDate);
       if (byDate != 0) return byDate;
       return a.text.compareTo(b.text);
     });
-    return items;
   }
 
   static Future<List<TodoItem>> _loadCrmEvents({

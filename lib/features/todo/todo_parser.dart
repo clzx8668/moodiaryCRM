@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
+import 'package:moodiary/features/schedule/models/schedule.dart';
 
 import 'todo_item.dart';
 
@@ -75,6 +76,24 @@ class TodoParser {
       time: task.updatedAt,
       twentyId: task.twentyId,
       title: 'Twenty 任务',
+    );
+  }
+
+  /// Schedule 实体 → 待办条目（批次 B）。
+  static TodoItem fromSchedule(Schedule schedule) {
+    return TodoItem(
+      id: 'schedule:${schedule.id}',
+      source: TodoSource.schedule,
+      text: schedule.title,
+      done: schedule.done,
+      dueDate: schedule.floating ? null : schedule.startTime,
+      time: schedule.updatedAt,
+      scheduleId: schedule.id,
+      isFloating: schedule.floating,
+      priority: schedule.priority.value,
+      title: schedule.repeatType == RepeatType.none
+          ? '日程'
+          : '日程 · ${schedule.repeatType.label}',
     );
   }
 

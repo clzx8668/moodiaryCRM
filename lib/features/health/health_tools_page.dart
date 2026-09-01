@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:moodiary/features/attachments/attachment_manager.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
+import 'package:moodiary/features/health/database_reset_service.dart';
 import 'package:moodiary/features/health/health_service.dart';
 import 'package:moodiary/features/rag/rag_service.dart';
 import 'package:moodiary/persistence/secure_storage.dart';
@@ -115,6 +116,40 @@ class _HealthToolsPageState extends State<HealthToolsPage> {
     }
   }
 
+  Future<void> _clearAllData() async {
+    if (_busy) return;
+    final badge = await showDialog<bool>(
+      context: context,
+      builder: (dctx) => AlertDialog(
+        title: const Text('清空所有数据？'),
+        content: const Text('将删除本地全部数据（日记/Block/CRM 及 Twenty 关联/知识库/日程/待办），'
+            '且不可恢复，但不会影响云端 Twenty 数据。确定继续？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dctx, false), child: const Text('取消')),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(dctx, true),
+            child: const Text('确定清空'),
+          ),
+        ],
+      ),
+    );
+    if (badge != true) return;
+
+    setState(() => _busy = true);
+    try {
+      await DatabaseResetService.clearAllData();
+      toast.success(message: '已清空所有数据');
+      await _loadStats();
+    } catch (e) {
+      toast.error(message: '清空失败：$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Widget _section(String title, List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,6 +256,16 @@ class _HealthToolsPageState extends State<HealthToolsPage> {
               subtitle: const Text('对比 Twenty 远端与本地缓存（缺失/过期）'),
               enabled: !_busy,
               onTap: _runReconcile,
+            ),
+          ]),
+          _section('危险区', [
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.delete_forever_rounded, size: 20),
+              title: const Text('清空所有数据'),
+              subtitle: const Text('删除全部日记/Block/CRM/Twenty 关联/知识库/日程/待办，用于干净调试'),
+              enabled: !_busy,
+              onTap: _clearAllData,
             ),
           ]),
           if (_busy) ...[

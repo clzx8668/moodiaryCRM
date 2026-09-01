@@ -16,7 +16,7 @@ class MigrationService {
   static const String migrationHistoryKey = 'migration_history';
 
   /// 当前代码期望的数据库版本
-  static const int currentDbVersion = 20;
+  static const int currentDbVersion = 22;
 
   static Future<String?> _getMeta(AppDatabase db, String key) async {
     final row = await (db.select(db.appMetadata)
@@ -335,6 +335,32 @@ class MigrationService {
         'time': DateTime.now().toIso8601String(),
         'durationMs': stopwatch.elapsedMilliseconds,
         'note': 'Diaries 增加 summary（AI 自动摘要）列',
+      });
+    }
+
+    if (current < 21) {
+      // v20 → v21：新增待办/日程表（批次 B，Drift schema 迁移建表）
+      final stopwatch = Stopwatch()..start();
+      current = 21;
+      await _appendMigrationHistory(db, {
+        'from': 20,
+        'to': 21,
+        'time': DateTime.now().toIso8601String(),
+        'durationMs': stopwatch.elapsedMilliseconds,
+        'note': 'Schedules（待办/日程独立实体，日历模块批次 B）',
+      });
+    }
+
+    if (current < 22) {
+      // v21 → v22：Schedules 增加 floating（浮动待办）列（Drift onUpgrade 已加列）
+      final stopwatch = Stopwatch()..start();
+      current = 22;
+      await _appendMigrationHistory(db, {
+        'from': 21,
+        'to': 22,
+        'time': DateTime.now().toIso8601String(),
+        'durationMs': stopwatch.elapsedMilliseconds,
+        'note': 'Schedules 增加 floating（浮动待办）列',
       });
     }
 
