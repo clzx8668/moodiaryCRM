@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:moodiary/common/values/border.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
+import 'package:moodiary/features/link_capture/link_capture_saver.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_logic.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
 import 'package:moodiary/utils/notice_util.dart';
@@ -288,6 +289,15 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                         logic.pickDocument(other: true);
                       },
                     ),
+                    _AppendTile(
+                      icon: Icons.link_rounded,
+                      label: '链接',
+                      color: colorScheme.primaryContainer,
+                      onTap: () {
+                        Get.back();
+                        _showLinkCapture(context);
+                      },
+                    ),
                   ],
                 ),
               ],
@@ -296,6 +306,49 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
         );
       },
     );
+  }
+
+  /// 粘贴链接 → 采集 → 落库（G1 链接速记）。
+  Future<void> _showLinkCapture(BuildContext context) async {
+    final controller = TextEditingController();
+    final url = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('粘贴链接'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              hintText: 'https://… 文章 / 公众号 / B站 / 抖音',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, controller.text),
+              child: const Text('采集'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (url == null || url.trim().isEmpty) return;
+
+    toast.info(message: '正在采集链接…');
+    try {
+      final diary = await LinkCaptureSaver.saveFromUrl(url.trim());
+      if (mounted) {
+        toast.success(message: '已保存链接笔记（AI 整理中）${diary.id}');
+      }
+    } catch (e) {
+      if (mounted) toast.error(message: '链接采集失败：$e');
+    }
   }
 }
 

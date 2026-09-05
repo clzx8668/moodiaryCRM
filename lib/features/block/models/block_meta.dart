@@ -49,6 +49,12 @@ class BlockMeta {
   /// AI 对话角色：''（非对话）/ 'user' / 'assistant'（用于瀑布流展示与持久化）
   String role;
 
+  /// 捕获方式：''（默认）/ text / voice / photo / link / document / meeting
+  String captureType;
+
+  /// 原始链接（链接速记 / 来源溯源）
+  String sourceUrl;
+
   BlockMeta({
     this.source = sourceInitial,
     this.syncStatus = syncSynced,
@@ -61,6 +67,8 @@ class BlockMeta {
     this.dueDate = '',
     this.crmSyncStatus = '',
     this.role = '',
+    this.captureType = '',
+    this.sourceUrl = '',
   });
 
   bool get isAi => source == sourceAi;
@@ -86,6 +94,8 @@ class BlockMeta {
       dueDate: dueDate,
       crmSyncStatus: crmSyncStatus,
       role: role,
+      captureType: captureType,
+      sourceUrl: sourceUrl,
     );
   }
 
@@ -102,6 +112,8 @@ class BlockMeta {
       'dueDate': dueDate,
       'crmSyncStatus': crmSyncStatus,
       'role': role,
+      'captureType': captureType,
+      'sourceUrl': sourceUrl,
     };
   }
 
@@ -118,6 +130,8 @@ class BlockMeta {
       dueDate: json['dueDate'] as String? ?? '',
       crmSyncStatus: json['crmSyncStatus'] as String? ?? '',
       role: json['role'] as String? ?? '',
+      captureType: json['captureType'] as String? ?? '',
+      sourceUrl: json['sourceUrl'] as String? ?? '',
     );
   }
 
@@ -149,7 +163,9 @@ class BlockMeta {
           sourceContent == other.sourceContent &&
           dueDate == other.dueDate &&
           crmSyncStatus == other.crmSyncStatus &&
-          role == other.role;
+          role == other.role &&
+          captureType == other.captureType &&
+          sourceUrl == other.sourceUrl;
 
   @override
   int get hashCode =>
@@ -165,5 +181,7 @@ class BlockMeta {
         dueDate,
         crmSyncStatus,
         role,
+        captureType,
+        sourceUrl,
       );
 }
