@@ -12,7 +12,9 @@ import 'package:moodiary/components/mood_icon/mood_icon_view.dart';
 import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/ai/skills/ai_skill.dart';
 import 'package:moodiary/features/ai/skills/works_service.dart';
+import 'package:moodiary/features/ai/autolink/auto_link_service.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
+import 'package:moodiary/features/collection/kb_collection_service.dart';
 import 'package:moodiary/features/ai/extract/ai_extract_meta.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_config.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_types.dart';
@@ -28,7 +30,10 @@ import 'package:moodiary/features/schedule/schedule_repository.dart';
 import 'package:moodiary/features/schedule/views/schedule_detail_page.dart';
 import 'package:moodiary/features/obsidian/obsidian_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_service.dart';
+import 'package:moodiary/pages/diary_details/diary_details_logic.dart';
 import 'package:moodiary/features/search/global_search_service.dart';
+import 'package:moodiary/features/rag/models/knowledge_base.dart';
+import 'package:moodiary/features/rag/rag_service.dart';
 import 'package:moodiary/features/smart_canvas/services/card_action_router.dart';
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
 import 'package:moodiary/features/smart_canvas/widgets/chat_bubble.dart';
@@ -696,6 +701,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
           }
         }
 
+        slivers.add(SliverToBoxAdapter(child: _RelatedNotesSection(diary: diary)));
         return SliverMainAxisGroup(slivers: slivers);
       }),
     ];
@@ -825,6 +831,10 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           value: 'works',
                           child: Text('生成作品'),
                         ),
+                        const PopupMenuItem(
+                          value: 'kb',
+                          child: Text('加入知识库'),
+                        ),
                         if (kDebugMode)
                           const PopupMenuItem(
                             value: 'demo_sync',
@@ -844,6 +854,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           _showSkillSheet(context);
                         } else if (v == 'works') {
                           _showWorksSheet(context);
+                        } else if (v == 'kb') {
+                          _showKbSheet(context);
                         } else if (v == 'demo_sync') {
                           _runDemoSyncEvents();
                         }
@@ -1089,6 +1101,33 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     );
   }
 
+  /// 加入主题知识库：列出既有知识库，多选成员关系落在主文本块 meta 上。
+  Future<void> _showKbSheet(BuildContext context) async {
+    final blocks = await logic.datasource.loadBlocks(logic.canvasState.diary.id);
+    final primary = blocks
+        .where((b) => !b.isDeleted && b.blockType == BlockType.text)
+        .toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    if (primary.isEmpty) {
+      toast.info(message: '没有可归类的文本卡片');
+      return;
+    }
+    if (!mounted) return;
+    final kbs = await RagService().listKnowledgeBases();
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _KbMembershipSheet(
+        block: primary.first,
+        kbs: kbs,
+      ),
+    );
+    // 关闭后刷新投影（meta 变化影响徽标）
+    await logic.refreshDiary();
+  }
+
 }
 
 /// 抽取计划开关：决定「AI 抽取」只抽哪些内容。
@@ -1145,6 +1184,207 @@ class _ExtractPlanSheetState extends State<_ExtractPlanSheet> {
             ),
             const SizedBox(height: 8),
             FilledButton(onPressed: _save, child: const Text('保存')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 智能详情页底部的「相关笔记」建议区（建议制，自动加载，点击跳转）。
+class _RelatedNotesSection extends StatefulWidget {
+  final Diary diary;
+
+  const _RelatedNotesSection({required this.diary});
+
+  @override
+  State<_RelatedNotesSection> createState() => _RelatedNotesSectionState();
+}
+
+class _RelatedNotesSectionState extends State<_RelatedNotesSection> {
+  List<RelatedNote>? _suggestions;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final all = await IsarUtil.getAllDiaries();
+    final target = NoteSummary(
+      id: widget.diary.id,
+      title: widget.diary.title,
+      tags: widget.diary.tags,
+    );
+    final others = all
+        .where((d) => d.id != widget.diary.id)
+        .map(
+          (d) => NoteSummary(id: d.id, title: d.title, tags: d.tags),
+        )
+        .toList();
+    final result = AutoLinkService.suggest(target: target, all: others, topK: 4);
+    if (mounted) setState(() => _suggestions = result);
+  }
+
+  Future<void> _open(RelatedNote r) async {
+    final d = await IsarUtil.getDiaryById(r.diaryId);
+    if (d == null) return;
+    Bind.lazyPut(() => DiaryDetailsLogic(), tag: d.id);
+    Get.toNamed(AppRoutes.diaryPage, arguments: [d.clone(), false]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final suggestions = _suggestions;
+    if (suggestions == null || suggestions.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text('相关笔记', style: theme.textTheme.titleSmall),
+          ),
+          for (final r in suggestions)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.link_rounded,
+                color: theme.colorScheme.primary,
+                size: 20,
+              ),
+              title: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              subtitle: Text(
+                r.sharedTags > 0
+                    ? '共享 ${r.sharedTags} 个标签'
+                    : '标题相关',
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+              onTap: () => _open(r),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 主题知识库成员选择（多选；成员关系存于主文本块 meta.knowledgeBaseIds）。
+class _KbMembershipSheet extends StatefulWidget {
+  final Block block;
+  final List<KnowledgeBase> kbs;
+
+  const _KbMembershipSheet({required this.block, required this.kbs});
+
+  @override
+  State<_KbMembershipSheet> createState() => _KbMembershipSheetState();
+}
+
+class _KbMembershipSheetState extends State<_KbMembershipSheet> {
+  late final Set<String> _selected =
+      KbCollectionService.parse(widget.block.meta.knowledgeBaseIds).toSet();
+
+  Future<void> _save(String raw) async {
+    widget.block.meta.knowledgeBaseIds = raw;
+    await IsarUtil.updateBlock(widget.block);
+  }
+
+  Future<void> _toggle(String kbId, bool value) async {
+    setState(() {
+      if (value) {
+        _selected.add(kbId);
+      } else {
+        _selected.remove(kbId);
+      }
+    });
+    await _save(KbCollectionService.encode(_selected.toList()));
+    if (mounted) toast.success(message: '已更新知识库成员');
+  }
+
+  /// AI 推荐归类：按知识库名称与笔记内容/标签的词重叠，自动加入最匹配的一个。
+  Future<void> _aiRecommend() async {
+    if (widget.kbs.isEmpty) {
+      toast.info(message: '请先在设置创建知识库');
+      return;
+    }
+    final text = '${widget.block.content} ${widget.block.meta.title}'.toLowerCase();
+    final tokens = _tokens(text);
+    KnowledgeBase? best;
+    var bestScore = 0;
+    for (final kb in widget.kbs) {
+      final kbTokens = _tokens('${kb.name} ${kb.description}'.toLowerCase());
+      final overlap = tokens.where(kbTokens.contains).toSet().length;
+      if (overlap > bestScore) {
+        bestScore = overlap;
+        best = kb;
+      }
+    }
+    if (best == null || bestScore == 0) {
+      toast.info(message: '未找到明显相关的知识库');
+      return;
+    }
+    _selected.add(best.id);
+    await _save(KbCollectionService.encode(_selected.toList()));
+    if (mounted) {
+      setState(() {});
+      toast.success(message: '已推荐归入「${best.name}」');
+    }
+  }
+
+  static List<String> _tokens(String s) =>
+      s.split(RegExp(r'[\s,，。、；;：:/#]+'))
+          .map((e) => e.trim())
+          .where((e) => e.length >= 2)
+          .toList();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('加入知识库', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (widget.kbs.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  '还没有知识库，请先在「设置 → 知识库」创建',
+                  style: theme.textTheme.bodySmall,
+                ),
+              )
+            else
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final kb in widget.kbs)
+                      CheckboxListTile(
+                        dense: true,
+                        value: _selected.contains(kb.id),
+                        title: Text(kb.name),
+                        subtitle: kb.description.isEmpty
+                            ? null
+                            : Text(kb.description, maxLines: 1),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        onChanged: (v) => _toggle(kb.id, v ?? false),
+                      ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: widget.kbs.isEmpty ? null : _aiRecommend,
+              icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+              label: const Text('AI 推荐归类'),
+            ),
           ],
         ),
       ),

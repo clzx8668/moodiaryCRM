@@ -9,7 +9,7 @@ void main() {
         NoteSummary(id: 'b', title: '定价思考', tags: ['产品', '定价']),
         NoteSummary(id: 'c', title: '客户报价', tags: ['客户', '合同']),
       ];
-      final target = const NoteSummary(
+      const target = NoteSummary(
         id: 'a',
         title: '客户访谈',
         tags: ['客户', '销售'],
