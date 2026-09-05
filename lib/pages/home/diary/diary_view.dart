@@ -17,6 +17,7 @@ import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/utils/webdav_util.dart';
 
 import 'diary_logic.dart';
+import '../home_logic.dart';
 import 'nav_sidebar.dart';
 
 /// 首页筛选弹层：按标签多选（列表/网格/块三视图共用）
@@ -132,6 +133,43 @@ class DiaryPage extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         child: const MoodiarySyncing(),
+      ),
+    );
+  }
+
+  /// 移动端「聊一聊」入口：直达 AI 助手页（对标得到大脑首页）。
+  Widget _buildChatEntry(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: Material(
+        color: colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => Get.find<HomeLogic>().changeNavigator(4),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 16,
+                  color: colorScheme.onSecondaryContainer,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  '聊一聊',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: colorScheme.onSecondaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -311,6 +349,8 @@ class DiaryPage extends StatelessWidget {
                     children: [title, hitokoto],
                   ),
                 ),
+                if (MediaQuery.sizeOf(context).width < 600)
+                  _buildChatEntry(context),
                 Obx(() {
                   return WebDavUtil().syncingDiaries.isNotEmpty
                       ? _buildSyncingButton(
