@@ -24,7 +24,11 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final HomeLogic logic = Get.put(HomeLogic());
+    // 复用同一个 HomeLogic：避免因多次 build / Get.put 产生重复实例，
+    // 导致头部入口拿到的 pageController 与可见 PageView 不一致。
+    final HomeLogic logic = Get.isRegistered<HomeLogic>()
+        ? Get.find<HomeLogic>()
+        : Get.put(HomeLogic());
 
     return Scaffold(
       body: AdaptiveLayout(
@@ -193,7 +197,7 @@ class HomePage extends StatelessWidget {
                   title: const Text('CRM'),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () {
-                    Get.back();
+                    Navigator.of(sheetContext).pop();
                     logic.changeNavigator(3);
                   },
                 ),
@@ -206,7 +210,7 @@ class HomePage extends StatelessWidget {
                 subtitle: const Text('与全部笔记/知识库对话'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () {
-                  Get.back();
+                  Navigator.of(sheetContext).pop();
                   logic.changeNavigator(4);
                 },
               ),
@@ -219,7 +223,7 @@ class HomePage extends StatelessWidget {
                 subtitle: const Text('录音转写 / 去口语化'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () {
-                  Get.back();
+                  Navigator.of(sheetContext).pop();
                   Get.toNamed(AppRoutes.voiceRecordPage);
                 },
               ),
@@ -228,7 +232,7 @@ class HomePage extends StatelessWidget {
                 title: const Text('设置'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () {
-                  Get.back();
+                  Navigator.of(sheetContext).pop();
                   logic.changeNavigator(5);
                 },
               ),

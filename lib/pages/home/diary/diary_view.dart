@@ -142,32 +142,19 @@ class DiaryPage extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(right: 4),
-      child: Material(
-        color: colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => Get.find<HomeLogic>().changeNavigator(4),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.auto_awesome_rounded,
-                  size: 16,
-                  color: colorScheme.onSecondaryContainer,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  '聊一聊',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: colorScheme.onSecondaryContainer,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+      child: FilledButton.tonalIcon(
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          visualDensity: VisualDensity.compact,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        onPressed: () => Get.find<HomeLogic>().changeNavigator(4),
+        icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+        label: Text(
+          '聊一聊',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: colorScheme.onSecondaryContainer,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
