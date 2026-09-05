@@ -5,6 +5,7 @@ import 'package:moodiary/features/obsidian/obsidian_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_service.dart';
 import 'package:moodiary/features/rag/models/knowledge_base.dart';
 import 'package:moodiary/features/rag/rag_service.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/pages/home/diary/diary_logic.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -110,6 +111,8 @@ class _ObsidianSettingsPageState extends State<ObsidianSettingsPage> {
     );
     final indexed = count == 0 ? 0 : await rag.indexObsidian(knowledgeBaseId: kb.id);
     if (!mounted) return;
+    // 记录目标知识库：监听发现 Vault 文件变化时自动增量索引
+    await PrefUtil.setValue('obsidianIndexKbId', kb.id);
     setState(() {
       _indexing = false;
       _fileCount = count;

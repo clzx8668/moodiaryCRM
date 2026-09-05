@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:moodiary/features/obsidian/obsidian_config.dart';
+import 'package:moodiary/features/rag/rag_service.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:path/path.dart' as p;
 
 /// Obsidian Vault 文件（只读模型）
@@ -41,6 +43,7 @@ class ObsidianService {
   String _vaultPath = '';
   DateTime _lastScan = DateTime.fromMillisecondsSinceEpoch(0);
   Timer? _watcher;
+  bool _indexing = false;
 
   bool get isLoaded => _files.isNotEmpty;
 
@@ -70,6 +73,22 @@ class ObsidianService {
     await scan(force: true);
     if (_signature() != before) {
       revision.value++;
+      await _autoIndexChanged();
+    }
+  }
+
+  /// Vault 文件集合变化后，若此前用户「向量化到知识库」过，自动增量重索引。
+  Future<void> _autoIndexChanged() async {
+    final kbId = PrefUtil.getValue<String>('obsidianIndexKbId');
+    if (kbId == null || kbId.isEmpty) return;
+    if (_indexing) return;
+    _indexing = true;
+    try {
+      await RagService().indexObsidian(knowledgeBaseId: kbId);
+    } catch (_) {
+      // 自动索引失败不阻塞监听
+    } finally {
+      _indexing = false;
     }
   }
 

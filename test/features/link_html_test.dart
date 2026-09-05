@@ -44,7 +44,7 @@ void main() {
     });
 
     test('extractImages 去重并跳过 data URI', () {
-      final html =
+      const html =
           '<img src="https://a/x.png"><img data-src="https://b/y.png">'
           '<img src="data:image/png;base64,abc"><img data-src="https://a/x.png">';
       final imgs = LinkHtml.extractImages(html);
