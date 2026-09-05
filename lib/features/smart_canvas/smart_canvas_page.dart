@@ -1036,6 +1036,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (sheetContext) {
         return SafeArea(
           child: Column(
@@ -1071,6 +1072,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (sheetContext) {
         return SafeArea(
           child: Column(
