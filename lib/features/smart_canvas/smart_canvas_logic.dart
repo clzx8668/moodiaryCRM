@@ -7,6 +7,9 @@ import 'package:moodiary/features/ai/extract/ai_extract_meta.dart';
 import 'package:moodiary/features/ai/extract/extract_cleanup_service.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_service.dart';
 import 'package:moodiary/features/ai/prompts.dart';
+import 'package:moodiary/features/ai/skills/ai_skill.dart';
+import 'package:moodiary/features/ai/skills/ai_skill_service.dart';
+import 'package:moodiary/features/ai/skills/works_service.dart';
 import 'package:moodiary/features/ai/tool_executor.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/block/models/block.dart';
@@ -299,6 +302,67 @@ class SmartCanvasLogic extends GetxController {
     );
     toast.success(message: '已生成待办卡片（原文保留）');
     await reloadBlocks();
+  }
+
+  /// 对主文本卡片运行「AI 技能」（点评/发芽/拷问/打磨成稿），结果落 AI 生成区新块。
+  Future<void> runSkill(AiSkillType type) async {
+    final blocks = await datasource.loadBlocks(canvasState.diary.id);
+    final sources = blocks
+        .where((b) => !b.isDeleted && b.blockType == BlockType.text)
+        .toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    if (sources.isEmpty) {
+      toast.info(message: '没有可处理的文本卡片');
+      return;
+    }
+    final source = sources.first;
+    final result = await AiSkillService.run(type, source.content);
+    if (result == null) {
+      toast.info(message: 'AI 未配置或执行失败，请检查设置');
+      return;
+    }
+    final block = await datasource.createDerivedBlock(
+      diary: canvasState.diary,
+      blockType: BlockType.text,
+      content: result.text,
+      aiTemplate: type.name.toLowerCase(),
+      sourceContent: source.content,
+    );
+    blockList.blocks.add(block);
+    toast.success(message: '已生成「${type.label}」卡片');
+  }
+
+  /// 把本日记全部文本卡片合成一篇作品草稿（公众号/小红书/汇报/邮件），
+  /// 结果落 AI 生成区 `aiTemplate='work'` 新块。
+  Future<void> runWorks(WorksFormat format) async {
+    final blocks = await datasource.loadBlocks(canvasState.diary.id);
+    final sources = blocks
+        .where((b) => !b.isDeleted && b.blockType == BlockType.text)
+        .map((b) => b.content)
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
+    if (sources.isEmpty) {
+      toast.info(message: '没有可用于创作的文本卡片');
+      return;
+    }
+    final text = await WorksService.generate(
+      sourceTexts: sources,
+      format: format,
+      topic: canvasState.diary.title,
+    );
+    if (text == null) {
+      toast.info(message: 'AI 未配置或生成失败，请检查设置');
+      return;
+    }
+    final block = await datasource.createDerivedBlock(
+      diary: canvasState.diary,
+      blockType: BlockType.text,
+      content: text,
+      aiTemplate: 'work',
+      sourceContent: sources.join('\n'),
+    );
+    blockList.blocks.add(block);
+    toast.success(message: '已生成「${format.label}」草稿');
   }
 
   /// 详情页 AI 交流：瀑布流式对话，**持久化为 source=ai 块**（role=user/assistant）。

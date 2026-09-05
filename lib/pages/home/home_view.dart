@@ -7,6 +7,8 @@ import 'package:moodiary/components/desktop_wrapper/background.dart';
 import 'package:moodiary/components/home_fab/home_fab_view.dart';
 import 'package:moodiary/components/home_nativatorbar/navigatorbar.dart';
 import 'package:moodiary/features/ai/ai_home_page.dart';
+import 'package:moodiary/features/ai/digest/digest_prompts.dart';
+import 'package:moodiary/features/ai/digest/digest_service.dart';
 import 'package:moodiary/features/crm/crm_home_page.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_view.dart';
 import 'package:moodiary/l10n/l10n.dart';
@@ -228,6 +230,32 @@ class HomePage extends StatelessWidget {
                 },
               ),
               ListTile(
+                leading: Icon(
+                  Icons.today_rounded,
+                  color: colorScheme.primary,
+                ),
+                title: const Text('每日回望'),
+                subtitle: const Text('生成今日回顾'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _runDigest(context, DigestPeriod.daily);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.date_range_rounded,
+                  color: colorScheme.primary,
+                ),
+                title: const Text('每周回望'),
+                subtitle: const Text('生成本周总结'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _runDigest(context, DigestPeriod.weekly);
+                },
+              ),
+              ListTile(
                 leading: Icon(Icons.settings_outlined, color: colorScheme.primary),
                 title: const Text('设置'),
                 trailing: const Icon(Icons.chevron_right_rounded),
@@ -242,5 +270,30 @@ class HomePage extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _runDigest(BuildContext context, DigestPeriod period) async {
+    try {
+      final diary = await DigestService.generateAndSave(period);
+      if (!context.mounted) return;
+      if (diary == null) {
+        // 需要全局便捷提示
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('AI 未配置或生成失败，请检查设置')),
+        );
+      } else {
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已生成「${diary.title}」')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('回望失败：$e')),
+        );
+      }
+    }
   }
 }

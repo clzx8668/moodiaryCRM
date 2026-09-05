@@ -10,6 +10,8 @@ import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/components/base/button.dart';
 import 'package:moodiary/components/mood_icon/mood_icon_view.dart';
 import 'package:moodiary/features/ai/prompts.dart';
+import 'package:moodiary/features/ai/skills/ai_skill.dart';
+import 'package:moodiary/features/ai/skills/works_service.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/ai/extract/ai_extract_meta.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_config.dart';
@@ -815,6 +817,14 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           value: 'plan',
                           child: Text('抽取计划'),
                         ),
+                        const PopupMenuItem(
+                          value: 'skills',
+                          child: Text('AI 技能'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'works',
+                          child: Text('生成作品'),
+                        ),
                         if (kDebugMode)
                           const PopupMenuItem(
                             value: 'demo_sync',
@@ -830,6 +840,10 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           _showAiExtract(context);
                         } else if (v == 'plan') {
                           _showPlanSettings(context);
+                        } else if (v == 'skills') {
+                          _showSkillSheet(context);
+                        } else if (v == 'works') {
+                          _showWorksSheet(context);
                         } else if (v == 'demo_sync') {
                           _runDemoSyncEvents();
                         }
@@ -1002,6 +1016,76 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
       showDragHandle: true,
       isScrollControlled: true,
       builder: (_) => const _ExtractPlanSheet(),
+    );
+  }
+
+  /// 弹出「AI 技能」选择，执行后结果落 AI 生成区新块。
+  void _showSkillSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  'AI 技能',
+                  style: Theme.of(sheetContext).textTheme.titleMedium,
+                ),
+              ),
+              for (final skill in AiSkillType.values)
+                ListTile(
+                  leading: Text(skill.icon),
+                  title: Text(skill.label),
+                  subtitle: Text(skill.hint),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    logic.runSkill(skill);
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 弹出「生成作品」格式选择，把本日记合成草稿。
+  void _showWorksSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  '生成作品',
+                  style: Theme.of(sheetContext).textTheme.titleMedium,
+                ),
+              ),
+              for (final format in WorksFormat.values)
+                ListTile(
+                  leading: const Icon(Icons.article_outlined),
+                  title: Text(format.label),
+                  subtitle: Text(format.hint),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    logic.runWorks(format);
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
   }
 

@@ -55,6 +55,9 @@ class BlockMeta {
   /// 原始链接（链接速记 / 来源溯源）
   String sourceUrl;
 
+  /// 所属主题知识库 id 列表（逗号分隔，meta 承载，避免建新表）
+  String knowledgeBaseIds;
+
   BlockMeta({
     this.source = sourceInitial,
     this.syncStatus = syncSynced,
@@ -69,6 +72,7 @@ class BlockMeta {
     this.role = '',
     this.captureType = '',
     this.sourceUrl = '',
+    this.knowledgeBaseIds = '',
   });
 
   bool get isAi => source == sourceAi;
@@ -96,6 +100,7 @@ class BlockMeta {
       role: role,
       captureType: captureType,
       sourceUrl: sourceUrl,
+      knowledgeBaseIds: knowledgeBaseIds,
     );
   }
 
@@ -114,6 +119,7 @@ class BlockMeta {
       'role': role,
       'captureType': captureType,
       'sourceUrl': sourceUrl,
+      'knowledgeBaseIds': knowledgeBaseIds,
     };
   }
 
@@ -132,6 +138,7 @@ class BlockMeta {
       role: json['role'] as String? ?? '',
       captureType: json['captureType'] as String? ?? '',
       sourceUrl: json['sourceUrl'] as String? ?? '',
+      knowledgeBaseIds: json['knowledgeBaseIds'] as String? ?? '',
     );
   }
 
@@ -165,7 +172,8 @@ class BlockMeta {
           crmSyncStatus == other.crmSyncStatus &&
           role == other.role &&
           captureType == other.captureType &&
-          sourceUrl == other.sourceUrl;
+          sourceUrl == other.sourceUrl &&
+          knowledgeBaseIds == other.knowledgeBaseIds;
 
   @override
   int get hashCode =>
@@ -183,5 +191,6 @@ class BlockMeta {
         role,
         captureType,
         sourceUrl,
+        knowledgeBaseIds,
       );
 }
