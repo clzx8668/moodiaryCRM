@@ -136,6 +136,39 @@ class CanvasDatasource {
     return block;
   }
 
+  /// 生成「AI 派生块」（source=ai，非流式）：转待办 / AI 提取结果等，
+  /// 不修改源笔记块，始终落在 AI 生成区。
+  Future<Block> createDerivedBlock({
+    required Diary diary,
+    required BlockType blockType,
+    required String content,
+    String aiTemplate = '',
+    String sourceContent = '',
+  }) async {
+    final blocks = await loadBlocks(diary.id);
+    final sortOrder = blocks.isEmpty
+        ? 0
+        : blocks.map((b) => b.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+    final now = DateTime.now();
+    final block = Block()
+      ..id = const Uuid().v7()
+      ..diaryId = diary.id
+      ..blockType = blockType
+      ..content = content.trim()
+      ..sortOrder = sortOrder
+      ..createdAt = now
+      ..updatedAt = now
+      ..meta = BlockMeta(
+        source: BlockMeta.sourceAi,
+        syncStatus: BlockMeta.syncPending,
+        aiTemplate: aiTemplate,
+        sourceContent: sourceContent,
+      );
+    await IsarUtil.insertBlock(block);
+    await refreshDiaryProjection(diary);
+    return block;
+  }
+
   /// 创建 AI 对话块（持久化，role=user/assistant），不刷新笔记投影（对话与笔记分区）。
   Future<Block> createChatBlock({
     required Diary diary,

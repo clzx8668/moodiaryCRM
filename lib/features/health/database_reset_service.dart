@@ -17,5 +17,7 @@ class DatabaseResetService {
       }
     });
     await d.customStatement('PRAGMA foreign_keys = ON');
+    // 重置内存缓存（分类/日记计数等），避免残留旧值
+    await IsarUtil.refreshCaches();
   }
 }

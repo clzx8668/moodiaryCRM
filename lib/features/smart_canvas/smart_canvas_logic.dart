@@ -289,12 +289,16 @@ class SmartCanvasLogic extends GetxController {
     final content = lines
         .map((l) => RegExp(r'^- \[[ xX]\]').hasMatch(l) ? l : '- [ ] $l')
         .join('\n');
-    final converted = await datasource.promoteAiBlock(
-      block: block,
-      targetType: BlockType.todo,
+    // AI 派生：在 AI 区新建待办块，源笔记块保留原文，可回退
+    await datasource.createDerivedBlock(
+      diary: canvasState.diary,
+      blockType: BlockType.todo,
       content: content,
+      aiTemplate: 'todo',
+      sourceContent: block.content,
     );
-    blockList.replace(converted);
+    toast.success(message: '已生成待办卡片（原文保留）');
+    await reloadBlocks();
   }
 
   /// 详情页 AI 交流：瀑布流式对话，**持久化为 source=ai 块**（role=user/assistant）。

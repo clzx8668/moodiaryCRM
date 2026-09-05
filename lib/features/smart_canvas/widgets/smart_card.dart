@@ -404,6 +404,7 @@ class SmartCard extends StatelessWidget {
             dcm: dcm,
             expanded: expanded,
             onToggleExpand: onToggleExpand ?? () {},
+            onRestore: onRestoreColloquial,
           );
         }
         return TextCard(
@@ -519,12 +520,14 @@ class _ColloquialTextView extends StatefulWidget {
   final DeColoquialMeta dcm;
   final bool expanded;
   final VoidCallback onToggleExpand;
+  final Future<void> Function()? onRestore;
 
   const _ColloquialTextView({
     required this.block,
     required this.dcm,
     required this.expanded,
     required this.onToggleExpand,
+    this.onRestore,
   });
 
   @override
@@ -555,6 +558,14 @@ class _ColloquialTextViewState extends State<_ColloquialTextView> {
               setState(() => _showCleaned = false);
             }),
             const Spacer(),
+            if (widget.onRestore != null)
+              IconButton(
+                tooltip: '还原原文（删除生成内容）',
+                icon: const Icon(Icons.undo_rounded, size: 18),
+                onPressed: () async {
+                  await widget.onRestore!();
+                },
+              ),
             if (audio != null && audio.absolutePath != null)
               IconButton(
                 tooltip: '播放录音',

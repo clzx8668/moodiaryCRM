@@ -132,6 +132,11 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
         ),
         title: Text(widget.editable == null ? '新建日程' : '编辑日程'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.check_rounded),
+            onPressed: _save,
+            tooltip: '保存',
+          ),
           if (widget.editable != null)
             IconButton(
               icon: const Icon(Icons.delete_outline_rounded),
@@ -477,19 +482,21 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
 
   Future<void> _addSubtask() async {
     final ctrl = TextEditingController();
-    final text = await Get.dialog<String>(
+    final text = await showDialog<String>(
+      context: context,
+      builder: (dialogCtx) =>
       AlertDialog(
         title: const Text('添加子任务'),
         content: TextField(
           controller: ctrl,
           autofocus: true,
           decoration: const InputDecoration(hintText: '子任务内容'),
-          onSubmitted: (v) => Get.back(result: v),
+          onSubmitted: (v) => Navigator.pop(dialogCtx, v),
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('取消')),
           FilledButton(
-            onPressed: () => Get.back(result: ctrl.text.trim()),
+            onPressed: () => Navigator.pop(dialogCtx, ctrl.text.trim()),
             child: const Text('添加'),
           ),
         ],
@@ -521,7 +528,9 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
   }
 
   Future<void> _pickColor(ThemeData theme) async {
-    final choice = await Get.dialog<int>(
+    final choice = await showDialog<int>(
+      context: context,
+      builder: (dialogCtx) =>
       Dialog(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -529,8 +538,8 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              _colorDot(null, theme),
-              for (final c in _palette) _colorDot(c, theme),
+              _colorDot(dialogCtx, null, theme),
+              for (final c in _palette) _colorDot(dialogCtx, c, theme),
             ],
           ),
         ),
@@ -539,11 +548,11 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
     if (choice != null) setState(() => _schedule.bgColor = choice == -1 ? null : choice);
   }
 
-  Widget _colorDot(int? color, ThemeData theme) {
+  Widget _colorDot(BuildContext context, int? color, ThemeData theme) {
     final c = color == null ? Colors.transparent : Color(color);
     return InkWell(
       customBorder: const CircleBorder(),
-      onTap: () => Get.back(result: color ?? -1),
+      onTap: () => Navigator.pop(context, color ?? -1),
       child: Container(
         width: 36,
         height: 36,
@@ -575,14 +584,17 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
   }
 
   Future<void> _pickRemind(ThemeData theme) async {
-    const options = <int?>[null, 0, 5, 15, 30, 60, 1440];
-    final value = await _pickDropdown<int?>(
+    const noRemind = -999;
+    const options = [noRemind, 0, 5, 15, 30, 60, 1440];
+    final value = await _pickDropdown<int>(
       title: '提醒',
       options: options,
-      label: (o) => o == null ? '不提醒' : _remindLabel(o),
-      selected: _schedule.remindOffsetMin,
+      label: (o) => o == noRemind ? '不提醒' : _remindLabel(o),
+      selected: _schedule.remindOffsetMin ?? noRemind,
     );
-    if (value != null) setState(() => _schedule.remindOffsetMin = value);
+    if (value != null) {
+      setState(() => _schedule.remindOffsetMin = value == noRemind ? null : value);
+    }
   }
 
   Future<T?> _pickDropdown<T>({
@@ -591,7 +603,9 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
     required String Function(T) label,
     T? selected,
   }) {
-    return Get.dialog<T>(
+    return showDialog<T>(
+      context: context,
+      builder: (dialogCtx) =>
       Dialog(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 320),
@@ -609,7 +623,7 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
                   trailing: option == selected
                       ? const Icon(Icons.check_rounded)
                       : null,
-                  onTap: () => Get.back(result: option),
+                  onTap: () => Navigator.pop(dialogCtx, option),
                 ),
             ],
           ),

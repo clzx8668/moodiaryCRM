@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:moodiary/features/attachments/attachment_manager.dart';
 import 'package:moodiary/features/crm/crm_sync_service.dart';
 import 'package:moodiary/features/crm/twenty_config.dart';
 import 'package:moodiary/features/health/database_reset_service.dart';
 import 'package:moodiary/features/health/health_service.dart';
+import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/features/rag/rag_service.dart';
 import 'package:moodiary/persistence/secure_storage.dart';
 import 'package:moodiary/utils/notice_util.dart';
@@ -143,6 +145,14 @@ class _HealthToolsPageState extends State<HealthToolsPage> {
       await DatabaseResetService.clearAllData();
       toast.success(message: '已清空所有数据');
       await _loadStats();
+      // 全局刷新：首页列表/日历等跟随空库重置，避免残留内存态
+      try {
+        if (Bind.isRegistered<HomeLogic>()) {
+          await Bind.find<HomeLogic>().refreshDiaryLists();
+        }
+      } catch (_) {
+        // 首页尚未挂载时忽略
+      }
     } catch (e) {
       toast.error(message: '清空失败：$e');
     } finally {

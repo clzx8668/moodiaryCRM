@@ -1,7 +1,7 @@
 # moodiaryCRM 交接文档（Trae 续接用）
 
 > 生成时间：2026-08-31（批次 25-29 收敛后更新）· 分支 `feat/local-crm-v1` ·
-> 版本 `2.17.0+101`（tag 待下一轮收尾创建）· 工作区含批次 30–34 改动
+> 版本 `2.18.1+104`（tag 待下一轮收尾创建）· 工作区含批次 30–37 改动
 >
 > 本文件是**新对话一站式衔接**：Trae 打开本仓库后先读本文件 + `AGENTS.md` + `docs/开发进度.md` 尾部，
 > 即可直接继续开发。本文件自包含当前进度、验证基线、已知边界与下一步候选。
@@ -132,6 +132,9 @@ cd rust; cargo test
 | 33 | **抽取双向联动 + 计划配置化 + 完全清空**：`ExtractCleanupService`（删块/删日记级联清日程）+ `ExtractPlanConfig`（待办/日程/CRM/摘要开关，Pref）+ 详情页「抽取计划」入口 + `DatabaseResetService.clearAllData`（事务删全部表，数据健康度页「危险区」清空所有数据，双重确认不影响云端） |
 | 33-1 | **卡片空指针修复 + 抽取可观测**：`BasicCardLogic.toDiary` 用字符串 id 查询 + 空值守卫；`AiExtractMeta` 新增 `status/message`，无截止待办默认落今天；详情页按状态提示、失败显示原因；测试证明抽取的 Schedule 出现在日历待办 |
 | 34 | **浮动收件箱**：`Schedule.floating`（schema v22）；今日＝聚合所有未完成（含浮动、标过期/加急/浮动徽标）、其它日仅当日且排除浮动；快捷建/详情页浮动开关；`extract_plan` 无截止自动浮动 |
+| 35 | **移动端瑕疵修复**：详情页弹窗改用 `showDialog`/`Navigator.pop`（修 `Get.back(int)` 类型崩溃）+ 提醒 null 哨兵；日历月↔周加 `AnimatedSize` 过渡；手势与三角方向一致（月⌄下滑成周、周⌃上滑回月） |
+| 36 | **AI 后处理架构收敛**：A) `convertToTodo` 改新建 `source=ai` 待办块（源笔记保留原文）；B) `extract_plan` 在 AI 区新建 `aiTemplate='extract'` 块 + 列表可点编辑待办 + CRM「预填新建」进 `CrmCreatePage`（`initialValues`）经人工审核入库 + `CrmContentLink` 双向关系；C) 去口语化二态互斥切换 + 撤销还原 |
+| 37 | **启动/清空修复**：Isar 初始化提前到 PrefUtil 前（修迁移在 DB 未就绪时空指针）；清空数据后 `refreshCaches` + `HomeLogic.refreshDiaryLists` 全局刷新。AI-400 实测为瞬态（未设置即恢复），暂不处理 |
 
 **验证基线**：`flutter analyze` 0 error（仅存量 2 条 info：
 `prefer_if_null_operators` crm_entity_detail_view.dart:554、`CorePalette` theme_util.dart:337）；
@@ -164,6 +167,11 @@ cd rust; cargo test
 - 批次 33-1：抽取结果有 `status/message` 可追溯；无截止时间待办按"今天"落库（非浮动收件箱），
   若跨天查看需切到对应日期。
 - 批次 34：浮动待办只在"今日"收件箱聚合；其它日期视图排除浮动，只显示当日。
+- 批次 35：详情页背景色/下拉/子任务弹窗均为 Flutter showDialog（类型安全）；日历月周切换带过渡动画，
+  箭头为「月⌃ / 周⌄」、手势为「上滑→周 / 下滑→月」（箭头与手势暗示一致）。
+- 批次 36：AI 派生内容一律进 AI 生成区（新块），源笔记不动；去口语化为唯一"原位+原文可切回"例外；
+  提取的待办/日程可点编辑，CRM 走「预填新建→审核入库→双向链接」。
+- 批次 37：启动改为"先库后配置"，清空数据会自动刷新首页与日历；AI-400 判定为瞬态，暂不处理。
 - Windows 控制台偶现 `accessibility_bridge.cc` 报错为 Flutter 引擎级无害日志
   （3.44+ 已修，可忽略或升级 SDK）；debug 多 tab 偶发滚动断言为旧架构特性，release 不崩。
 
@@ -180,7 +188,7 @@ cd rust; cargo test
 7. **日历深化**：a) 周视图按周几 + 按日分组折叠；b) 日程↔日记互转；c) 子任务/图片完整落地；
   知识点：`Schedule`（`lib/features/schedule/`）是独立待办/日程实体，与 Block todo / Twenty task /
   CRM 事件在日历页聚合，详情页走 `AppRoutes.scheduleDetailPage`。
-8. **版本收敛**：下一轮收尾时 bump + tag + push（本批次已 bump 到 `2.17.0+101`）。
+8. **版本收敛**：下一轮收尾时 bump + tag + push（本批次已 bump 到 `2.18.1+104`）。
 
 ## 6. 硬性规则（沿用 AGENTS.md）
 1. 新功能代码放 `lib/features/` 或 `rust/src/` 新模块，不散落进上游 `lib/pages/`；

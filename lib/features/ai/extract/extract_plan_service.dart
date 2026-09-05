@@ -46,6 +46,7 @@ class ExtractPlanService {
       }
 
       final createdSchedules = <String>[];
+      final createdTitles = <String>[];
       final scheduleRepo = ScheduleRepository();
       final today = DateTime.now();
       if (config.todo) {
@@ -62,6 +63,7 @@ class ExtractPlanService {
               ..linkedBlockId = block.id,
           );
           createdSchedules.add(s.id);
+          createdTitles.add(a.title);
         }
       }
       if (config.schedule) {
@@ -78,22 +80,88 @@ class ExtractPlanService {
               ..linkedBlockId = block.id,
           );
           createdSchedules.add(s.id);
+          createdTitles.add(e.title);
         }
       }
 
-      _writeMeta(
-        block,
-        'ok',
-        '',
-        summary: config.summary ? result.summary : '',
-        scheduleIds: createdSchedules,
-        crmProposals: config.crm ? result.crm : const [],
-      );
+      final crmProposals = config.crm ? result.crm : const <ExtractCrm>[];
+      if (createdSchedules.isNotEmpty || crmProposals.isNotEmpty) {
+        // 在 AI 生成区新建「AI 提取」块（source=ai，aiTemplate='extract'），源笔记块保持原样
+        final aiBlock = await _createExtractBlock(
+          diaryId: diaryId,
+          originalContent: block.content,
+          titles: createdTitles,
+          crm: crmProposals,
+          summary: config.summary ? result.summary : '',
+          scheduleIds: createdSchedules,
+          crmProposalsMeta: crmProposals,
+        );
+        if (aiBlock == null) {
+          _writeMeta(block, 'failed', '无法创建 AI 提取块');
+          return null;
+        }
+      }
       return result;
     } catch (e) {
       _writeMeta(block, 'failed', '抽取异常：$e');
       rethrow;
     }
+  }
+
+  static Future<Block?> _createExtractBlock({
+    required String diaryId,
+    required String originalContent,
+    required List<String> titles,
+    required List<ExtractCrm> crm,
+    required String summary,
+    required List<String> scheduleIds,
+    required List<ExtractCrm> crmProposalsMeta,
+  }) async {
+    final blocks = await IsarUtil.getBlocksByDiary(diaryId);
+    final sortOrder = blocks.isEmpty
+        ? 0
+        : blocks.map((b) => b.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+    final now = DateTime.now();
+    final content = StringBuffer('**AI 提取**\n\n');
+    if (titles.isNotEmpty) {
+      content.writeln('生成 ${titles.length} 个待办/日程：');
+      for (final t in titles) {
+        content.writeln('- 📌 $t');
+      }
+    }
+    if (crm.isNotEmpty) {
+      content.writeln('CRM 建议 ${crm.length} 条：');
+      for (final c in crm) {
+        content.writeln('- 🏢 ${c.name}');
+      }
+    }
+    if (summary.isNotEmpty) {
+      content.writeln('\n摘要：$summary');
+    }
+
+    final aiBlock = Block()
+      ..diaryId = diaryId
+      ..blockType = BlockType.text
+      ..content = content.toString().trim()
+      ..sortOrder = sortOrder
+      ..createdAt = now
+      ..updatedAt = now
+      ..meta = BlockMeta(
+        source: BlockMeta.sourceAi,
+        aiTemplate: 'extract',
+        sourceContent: originalContent,
+      );
+    AiExtractMeta.write(
+      aiBlock,
+      AiExtractMeta(
+        summary: summary,
+        scheduleIds: scheduleIds,
+        crmProposals: crmProposalsMeta,
+        status: 'ok',
+      ),
+    );
+    await IsarUtil.insertBlock(aiBlock);
+    return aiBlock;
   }
 
   static Future<void> _writeMeta(

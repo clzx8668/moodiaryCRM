@@ -220,17 +220,22 @@ class _CalendarPageState extends State<CalendarPage> {
       behavior: HitTestBehavior.opaque,
       onVerticalDragEnd: (details) {
         final v = details.primaryVelocity ?? 0;
+        // 原手势：上滑收起成周、下滑展开回月
         if (v < -400 && !showWeek) logic.toggleWeek(true);
         if (v > 400 && showWeek) logic.toggleWeek(false);
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Column(
-          children: [
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeInOutCubic,
+        alignment: Alignment.topCenter,
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Column(
+            children: [
             Row(
               children: [
                 for (final w in labels)
@@ -266,6 +271,7 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -356,12 +362,14 @@ class _CalendarPageState extends State<CalendarPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                state.showWeek.value
-                    ? Icons.keyboard_arrow_up_rounded
-                    : Icons.keyboard_arrow_down_rounded,
-                size: 18,
-                color: theme.colorScheme.onSurfaceVariant,
+              AnimatedRotation(
+                turns: state.showWeek.value ? 0.0 : 0.5,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(width: 4),
               Text(

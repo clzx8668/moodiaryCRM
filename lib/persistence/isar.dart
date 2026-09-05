@@ -87,6 +87,9 @@ class IsarUtil {
     _diaryCountCache = (await getAllDiaries()).length;
   }
 
+  /// 刷新内存缓存（数据被外部清空/刷新后调用）。
+  static Future<void> refreshCaches() => _refreshCaches();
+
   static Future<void> _refreshCategoryCache() async {
     _categoryCache = await getAllCategoryAsync();
   }

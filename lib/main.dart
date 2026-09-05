@@ -272,21 +272,21 @@ Future<void> _initSystem() async {
   MoodiaryFlutterBinding.ensureInitialized();
   // 启动初始化全部加超时兜底：任一平台通道/模块挂起都不能阻塞进入应用
   try {
-    debugPrintSynchronously('[initSystem] 1/7 PrefUtil.initPref…');
-    await PrefUtil.initPref().timeout(const Duration(seconds: 15));
-    debugPrintSynchronously('[initSystem] 1/7 ✅ PrefUtil 就绪');
-  } catch (e) {
-    debugPrintSynchronously('[initSystem] 1/7 ❌ PrefUtil 初始化失败: $e');
-    logger.e('Pref 初始化失败', error: e);
-  }
-  try {
-    debugPrintSynchronously('[initSystem] 2/7 IsarUtil.initIsar…');
+    debugPrintSynchronously('[initSystem] 1/7 IsarUtil.initIsar…');
     await IsarUtil.initIsar().timeout(const Duration(seconds: 20));
-    debugPrintSynchronously('[initSystem] 2/7 ✅ IsarUtil 就绪');
+    debugPrintSynchronously('[initSystem] 1/7 ✅ IsarUtil 就绪');
   } catch (e) {
-    debugPrintSynchronously('[initSystem] 2/7 ⚠️ IsarUtil 初始化异常，切内存库兜底: $e');
+    debugPrintSynchronously('[initSystem] 1/7 ⚠️ IsarUtil 初始化异常，切内存库兜底: $e');
     logger.e('数据库初始化异常，切换内存库兜底', error: e);
     await _fallbackDatabase(e);
+  }
+  try {
+    debugPrintSynchronously('[initSystem] 2/7 PrefUtil.initPref…');
+    await PrefUtil.initPref().timeout(const Duration(seconds: 15));
+    debugPrintSynchronously('[initSystem] 2/7 ✅ PrefUtil 就绪');
+  } catch (e) {
+    debugPrintSynchronously('[initSystem] 2/7 ❌ PrefUtil 初始化失败: $e');
+    logger.e('Pref 初始化失败', error: e);
   }
   try {
     debugPrintSynchronously('[initSystem] 3/7 HiveUtil.init…');

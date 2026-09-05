@@ -20,6 +20,9 @@ class CrmCreateFormPanel extends StatefulWidget {
   /// 关联上下文提示，例如「关联：客户 XXX」（关联新增时显示）
   final String? contextLabel;
 
+  /// 初始值预填（name/phone/email 等标量字段，key=字段名）。用于 AI 提取智能填充。
+  final Map<String, dynamic>? initialValues;
+
   const CrmCreateFormPanel({
     super.key,
     required this.objectType,
@@ -28,6 +31,7 @@ class CrmCreateFormPanel extends StatefulWidget {
     required this.onCreate,
     required this.onClose,
     this.contextLabel,
+    this.initialValues,
   });
 
   @override
@@ -77,10 +81,18 @@ class _CrmCreateFormPanelState extends State<CrmCreateFormPanel> {
     super.initState();
     for (final f in _fields) {
       _controllers[f.name] = TextEditingController();
+      final init = widget.initialValues?[f.name];
+      if (init != null) {
+        _controllers[f.name]!.text = _toText(init, f.type);
+      }
       if (f.type == 'currency') {
         _fieldCurrencies[f.name] = CrmPrefs.defaultCurrency();
       }
     }
+  }
+
+  String _toText(Object? value, String type) {
+    return value?.toString() ?? '';
   }
 
   @override
@@ -599,6 +611,7 @@ class CrmCreatePage extends StatelessWidget {
   final List<LocalObjectField> fields;
   final Future<void> Function(Map<String, dynamic> data) onCreate;
   final String? contextLabel;
+  final Map<String, dynamic>? initialValues;
 
   const CrmCreatePage({
     super.key,
@@ -607,6 +620,7 @@ class CrmCreatePage extends StatelessWidget {
     required this.fields,
     required this.onCreate,
     this.contextLabel,
+    this.initialValues,
   });
 
   @override
@@ -622,6 +636,7 @@ class CrmCreatePage extends StatelessWidget {
         title: title,
         fields: fields,
         contextLabel: contextLabel,
+        initialValues: initialValues,
         onCreate: onCreate,
         onClose: () => Navigator.of(context).pop(),
       ),

@@ -16,7 +16,14 @@ import 'package:moodiary/features/ai/extract/extract_plan_config.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_types.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/crm/local/crm_write_service.dart';
-import 'package:moodiary/features/crm/resolve/crm_entity_resolver.dart';
+import 'package:moodiary/features/crm/local/crm_field_defs.dart';
+import 'package:moodiary/features/crm/local/crm_entity_creator.dart';
+import 'package:moodiary/features/crm/local/crm_local_repository.dart';
+import 'package:moodiary/features/crm/models/crm_content_link.dart';
+import 'package:moodiary/features/crm/crm_create_form_panel.dart';
+import 'package:moodiary/features/schedule/models/schedule.dart';
+import 'package:moodiary/features/schedule/schedule_repository.dart';
+import 'package:moodiary/features/schedule/views/schedule_detail_page.dart';
 import 'package:moodiary/features/obsidian/obsidian_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_service.dart';
 import 'package:moodiary/features/search/global_search_service.dart';
@@ -27,6 +34,7 @@ import 'package:moodiary/features/smart_canvas/widgets/smart_card.dart';
 import 'package:moodiary/features/voice/speech_service.dart';
 import 'package:moodiary/pages/edit/edit_arguments.dart';
 import 'package:moodiary/persistence/pref.dart';
+import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/src/rust/api/ffi_api.dart' as rust_ffi;
 import 'package:moodiary/utils/notice_util.dart';
@@ -980,7 +988,11 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => _AiExtractSheet(meta: meta),
+      builder: (_) => _AiExtractSheet(
+        meta: meta,
+        diaryId: logic.canvasState.diary.id,
+        noteTitle: logic.canvasState.diary.title,
+      ),
     );
   }
 
@@ -1057,152 +1069,142 @@ class _ExtractPlanSheetState extends State<_ExtractPlanSheet> {
 }
 
 /// AI 抽取结果审核面板：展示已生成的待办/日程 + 待确认的 CRM 提案（确认后才写库）。
-class _AiExtractSheet extends StatelessWidget {
+class _AiExtractSheet extends StatefulWidget {
   final AiExtractMeta meta;
-  const _AiExtractSheet({required this.meta});
+  final String diaryId;
+  final String noteTitle;
+
+  const _AiExtractSheet({
+    required this.meta,
+    required this.diaryId,
+    required this.noteTitle,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('AI 抽取结果', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          if (meta.status == 'failed')
-            Card.filled(
-              color: theme.colorScheme.errorContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text(
-                  meta.message.isEmpty ? '抽取未成功' : meta.message,
-                  style: TextStyle(color: theme.colorScheme.onErrorContainer),
-                ),
-              ),
-            ),
-          if (meta.summary.isNotEmpty)
-            Card.filled(
-              color: theme.colorScheme.surfaceContainerLow,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text('摘要：${meta.summary}'),
-              ),
-            ),
-          ListTile(
-            leading: const Icon(Icons.task_alt_rounded),
-            title: Text('已生成 ${meta.scheduleIds.length} 个待办/日程'),
-            subtitle: const Text('已保存至日历，可稍后查看/编辑'),
-            dense: true,
-          ),
-          if (meta.crmProposals.isNotEmpty) ...[
-            const Divider(),
-            Text('CRM 建议（确认后写入）',
-                style: theme.textTheme.labelLarge),
-            const SizedBox(height: 4),
-            for (final crm in meta.crmProposals)
-              _CrmProposalTile(proposal: crm),
-          ],
-        ],
-      ),
-    );
-  }
+  State<_AiExtractSheet> createState() => _AiExtractSheetState();
 }
 
-class _CrmProposalTile extends StatefulWidget {
-  final ExtractCrm proposal;
-  const _CrmProposalTile({required this.proposal});
-
-  @override
-  State<_CrmProposalTile> createState() => _CrmProposalTileState();
-}
-
-class _CrmProposalTileState extends State<_CrmProposalTile> {
-  String _status = '解析中…';
-  CrmResolveMatch? _match;
+class _AiExtractSheetState extends State<_AiExtractSheet> {
+  final ScheduleRepository _scheduleRepo = ScheduleRepository();
+  final Map<String, Schedule> _schedules = {};
 
   @override
   void initState() {
     super.initState();
-    _resolve();
+    _loadSchedules();
   }
 
-  Future<void> _resolve() async {
-    final c = widget.proposal;
-    if (c.type != 'account' &&
-        c.type != 'contact' &&
-        c.type != 'opportunity' &&
-        c.type != 'contract') {
-      if (mounted) setState(() => _status = '将新建（支持类型）');
-      return;
+  Future<void> _loadSchedules() async {
+    for (final id in widget.meta.scheduleIds) {
+      final s = await _scheduleRepo.getById(id);
+      if (s != null) _schedules[id] = s;
     }
-    final result = await CrmEntityResolver().resolve(
-      objectType: c.type,
-      name: c.name,
-      phone: c.fields['phone']?.toString(),
-      email: c.fields['email']?.toString(),
-    );
-    if (!mounted) return;
-    if (result.best != null) {
-      _match = result.best;
-      setState(() => _status = '匹配到「${result.best!.name}」（更新）');
-    } else {
-      setState(() => _status = '未匹配到（将新建）');
-    }
+    if (mounted) setState(() {});
   }
 
-  Future<void> _confirm() async {
-    final c = widget.proposal;
-    try {
-      final proposal = await CrmWriteService.buildProposal(
-        action: 'create',
-        args: {
-          'object': c.type,
-          'fields': {'name': c.name, ...c.fields},
+  Future<void> _openSchedule(Schedule s) async {
+    await Get.to<bool>(() => ScheduleDetailPage(editable: s));
+  }
+
+  Future<void> _createCrm(ExtractCrm crm) async {
+    final fields = {
+      'name': crm.name,
+      ...crm.fields,
+    };
+    await Get.to<void>(
+      () => CrmCreatePage(
+        objectType: crm.type,
+        title: CrmWriteService.objectLabels[crm.type] ?? crm.type,
+        fields: kBaseObjectFields[crm.type] ?? const [],
+        contextLabel: 'AI 提取：${widget.noteTitle}',
+        initialValues: fields,
+        onCreate: (data) async {
+          final id = await createCrmEntity(
+            repo: CrmLocalRepository(),
+            objectType: crm.type,
+            data: data,
+          );
+          if (id != null) {
+            // 双向关系：日记 ↔ CRM 实体
+            await IsarUtil.upsertCrmContentLinks([
+              CrmContentLink()
+                ..localType = CrmContentLink.localTypeDiary
+                ..localId = widget.diaryId
+                ..targetType = crm.type
+                ..targetId = id
+                ..status = CrmContentLink.statusLinked,
+            ]);
+          }
         },
-      );
-      final ok = await Get.dialog<bool>(
-        AlertDialog(
-          title: Text('创建 ${proposal.objectLabel}？'),
-          content: Text(
-            _match == null
-                ? '将新建「${proposal.targetName}」'
-                : '已存在「${_match!.name}」，切换为更新该记录',
-          ),
-          actions: [
-            TextButton(onPressed: () => Get.back(result: false), child: const Text('取消')),
-            FilledButton(onPressed: () => Get.back(result: true), child: const Text('确认')),
-          ],
-        ),
-      );
-      if (ok == true) {
-        await CrmWriteService.execute(proposal);
-        if (mounted) {
-          toast.success(message: '已写入 CRM：${proposal.objectLabel}');
-        }
-      }
-    } catch (e) {
-      if (mounted) toast.error(message: '写入失败：$e');
-    }
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final c = widget.proposal;
-    return Card.outlined(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: ListTile(
-        leading: Icon(Icons.business_rounded, color: theme.colorScheme.primary),
-        title: Text(c.name.isNotEmpty ? c.name : '未命名'),
-        subtitle: Text(_status),
-        dense: true,
-        trailing: IconButton(
-          tooltip: '确认写入',
-          icon: const Icon(Icons.add_circle_outline_rounded),
-          onPressed: _confirm,
+    final meta = widget.meta;
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.7,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        child: ListView(
+          children: [
+            Text('AI 抽取结果', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (meta.status == 'failed')
+              Card.filled(
+                color: theme.colorScheme.errorContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    meta.message.isEmpty ? '抽取未成功' : meta.message,
+                    style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                  ),
+                ),
+              ),
+            if (meta.summary.isNotEmpty)
+              Card.filled(
+                color: theme.colorScheme.surfaceContainerLow,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text('摘要：${meta.summary}'),
+                ),
+              ),
+            if (_schedules.isNotEmpty) ...[
+              const Divider(),
+              Text('待办/日程（点击编辑）', style: theme.textTheme.labelLarge),
+              for (final s in _schedules.values)
+                ListTile(
+                  leading: const Icon(Icons.event_rounded),
+                  title: Text(s.title),
+                  subtitle: Text(s.floating ? '浮动' : '${s.day.month}月${s.day.day}日'),
+                  dense: true,
+                  onTap: () => _openSchedule(s),
+                ),
+            ],
+            if (meta.crmProposals.isNotEmpty) ...[
+              const Divider(),
+              Text('CRM 建议（预填新建，审核后入库）', style: theme.textTheme.labelLarge),
+              for (final crm in meta.crmProposals)
+                ListTile(
+                  leading: const Icon(Icons.business_rounded),
+                  title: Text(crm.name.isNotEmpty ? crm.name : '未命名'),
+                  subtitle: Text(CrmWriteService.objectLabels[crm.type] ?? crm.type),
+                  dense: true,
+                  trailing: IconButton(
+                    tooltip: '预填新建',
+                    icon: const Icon(Icons.add_circle_outline_rounded),
+                    onPressed: () => _createCrm(crm),
+                  ),
+                ),
+            ],
+            if (_schedules.isEmpty && meta.crmProposals.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('未抽取到待办/日程或 CRM 建议'),
+              ),
+          ],
         ),
       ),
     );
