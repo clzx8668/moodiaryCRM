@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class Modal extends StatelessWidget {
   final Animation<double> animation;
@@ -14,8 +15,9 @@ class Modal extends StatelessWidget {
         return Visibility(
           visible: animation.value > 0,
           child: ModalBarrier(
-            // 透明遮罩：仅用于“点按空白处收起展开态”，不改变背景外观
-            color: Colors.transparent,
+            color: context.theme.colorScheme.surfaceContainer.withValues(
+              alpha: 0.6 * animation.value,
+            ),
             barrierSemanticsDismissible: false,
             onDismiss: onTap,
           ),

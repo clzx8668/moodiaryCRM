@@ -202,11 +202,10 @@ class _DiaryTabViewComponentState extends State<DiaryTabViewComponent> {
     );
 
     return Padding(
-      // 移动端右下角有展开式 FAB：底部留白避免遮住最后一条卡片
-      padding: EdgeInsets.only(
+      padding: const EdgeInsets.only(
         left: 8,
         right: 8,
-        bottom: size.width < 600 ? 88 : 8,
+        bottom: 8,
       ),
       child: ClipRRect(
         clipper: TopRRectClipper(

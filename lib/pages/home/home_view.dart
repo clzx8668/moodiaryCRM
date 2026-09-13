@@ -178,8 +178,7 @@ class HomePage extends StatelessWidget {
         shouldShow: logic.shouldShow,
         isToTopShow: logic.isToTopShow,
         isExpanded: logic.isFabExpanded,
-        // 透明背景：不画底、不画阴影（仅图标；展开时才有浅色底）
-        showShadow: false,
+        showShadow: true,
         openFab: () => _openQuickCapture(context, logic),
         onLongPressOpen: logic.openFab,
         toTop: logic.toTop,
