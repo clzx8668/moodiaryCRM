@@ -6,9 +6,11 @@ import 'package:moodiary/features/ai/ai_provider_edit_page.dart';
 import 'package:moodiary/features/ai/ai_provider_store.dart';
 import 'package:moodiary/features/ai/models/ai_capability_config.dart';
 import 'package:moodiary/features/ai/models/ai_provider_config.dart';
+import 'package:moodiary/features/ai/profile/user_profile.dart';
 import 'package:moodiary/features/ai/search/search_service.dart';
 import 'package:moodiary/features/ai/search/search_skill.dart';
 import 'package:moodiary/persistence/pref.dart';
+import 'package:moodiary/utils/notice_util.dart';
 
 /// AI 模型管理页：服务商（账号）+ 功能模型（对话/向量/多模态/语音）独立配置。
 class AiSettingsPage extends StatefulWidget {
@@ -214,9 +216,114 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                 ),
                 const SizedBox(height: 18),
                 _buildSearchSection(context),
+                const SizedBox(height: 18),
+                const _SectionTitle(
+                  icon: Icons.person_outline_rounded,
+                  title: '个性化画像',
+                  subtitle: '专业词库 / 常用表达 / 风格偏好，注入 AI 技能与作品生成',
+                ),
+                _buildProfileTile(context),
               ],
             ),
     );
+  }
+
+  Widget _buildProfileTile(BuildContext context) {
+    final profile = UserProfileStore.load();
+    final summary = profile.isEmpty
+        ? '未设置'
+        : [
+            if (profile.vocabulary.isNotEmpty) '词库 ${profile.vocabulary.length}',
+            if (profile.phrases.isNotEmpty) '表达 ${profile.phrases.length}',
+            if (profile.preference.trim().isNotEmpty) '含风格偏好',
+          ].join(' · ');
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ListTile(
+        leading: const Icon(Icons.auto_awesome_rounded),
+        title: const Text('编辑画像'),
+        subtitle: Text(summary),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => _editProfile(context),
+      ),
+    );
+  }
+
+  Future<void> _editProfile(BuildContext context) async {
+    final profile = UserProfileStore.load();
+    final vocabCtrl = TextEditingController(text: profile.vocabulary.join('，'));
+    final phraseCtrl = TextEditingController(text: profile.phrases.join('，'));
+    final prefCtrl = TextEditingController(text: profile.preference);
+    List<String> split(String raw) => raw
+        .split(RegExp(r'[,，、;；\n]'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('个性化画像'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: vocabCtrl,
+                decoration: const InputDecoration(
+                  labelText: '专业词库（逗号分隔）',
+                  hintText: '如：膜池，MBR，回款周期',
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: phraseCtrl,
+                decoration: const InputDecoration(
+                  labelText: '常用表达（逗号分隔）',
+                  hintText: '如：落地方案，闭环',
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: prefCtrl,
+                decoration: const InputDecoration(
+                  labelText: '风格偏好',
+                  hintText: '如：简洁、少形容词、先结论后论据',
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (saved == true) {
+      await UserProfileStore.save(
+        UserProfile(
+          vocabulary: split(vocabCtrl.text),
+          phrases: split(phraseCtrl.text),
+          preference: prefCtrl.text.trim(),
+        ),
+      );
+      if (mounted) {
+        setState(() {});
+        toast.success(message: '已保存个性化画像');
+      }
+    }
+    vocabCtrl.dispose();
+    phraseCtrl.dispose();
+    prefCtrl.dispose();
   }
 
   Widget _buildSearchSection(BuildContext context) {

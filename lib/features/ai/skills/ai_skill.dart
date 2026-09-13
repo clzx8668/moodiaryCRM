@@ -19,7 +19,11 @@ class AiSkillPrompts {
   static const String system =
       '你是一个知识教练，用中文回答。你只输出 JSON，不要输出任何多余说明。';
 
-  static String build(AiSkillType type, String content) {
+  static String build(
+    AiSkillType type,
+    String content, {
+    String profileSection = '',
+  }) {
     final instruction = switch (type) {
       AiSkillType.comment => '''
 以旁观者视角点评以下记录：
@@ -45,11 +49,14 @@ class AiSkillPrompts {
 - 输出成品正文。
 返回 JSON：{"title":"打磨成稿","text":"..."}''',
     };
+    final profile = profileSection.trim().isEmpty
+        ? ''
+        : '\n$profileSection\n';
     return '''
 $system
 
 $instruction
-
+$profile
 记录内容：
 """$content"""
 ''';

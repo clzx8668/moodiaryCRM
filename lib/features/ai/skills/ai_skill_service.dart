@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:moodiary/features/ai/ai_provider.dart';
+import 'package:moodiary/features/ai/profile/user_profile.dart';
 import 'package:moodiary/features/ai/skills/ai_skill.dart';
 
 /// AI 技能结果（技能执行的可回看文本）。
@@ -25,7 +26,14 @@ class AiSkillService {
 
     final completion = await provider.completeChat([
       const AiChatMessage(role: 'system', content: AiSkillPrompts.system),
-      AiChatMessage(role: 'user', content: AiSkillPrompts.build(type, t)),
+      AiChatMessage(
+        role: 'user',
+        content: AiSkillPrompts.build(
+          type,
+          t,
+          profileSection: UserProfileStore.load().toPromptSection(),
+        ),
+      ),
     ]);
     final text = _extractText(completion.content, type);
     if (text.trim().isEmpty) return null;

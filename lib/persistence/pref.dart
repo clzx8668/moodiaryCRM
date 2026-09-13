@@ -106,6 +106,8 @@ class PrefUtil {
     'aiAutoTag',
     'aiAutoClassify',
     'aiAutoSummary',
+    // AI 个性化画像（专业词库/常用表达/风格偏好）
+    'aiUserProfile',
     // 联网搜索
     'aiSearchEnabled',
     'aiSearchEngine',

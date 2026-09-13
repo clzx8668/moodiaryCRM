@@ -1,4 +1,5 @@
 import 'package:moodiary/features/ai/ai_provider.dart';
+import 'package:moodiary/features/ai/profile/user_profile.dart';
 
 /// 作品输出格式（对标得到大脑「小步」：记录变成可发布内容）。
 enum WorksFormat {
@@ -24,6 +25,7 @@ class WorksPrompts {
     required List<String> sourceTexts,
     required WorksFormat format,
     String topic = '',
+    String profileSection = '',
   }) {
     final sources = sourceTexts
         .map((s) => s.trim())
@@ -33,9 +35,12 @@ class WorksPrompts {
         ? '（无素材，请根据主题合理发挥）'
         : sources.map((s) => '---\n$s').join('\n');
     final topicLine = topic.trim().isEmpty ? '' : '\n主题方向：$topic';
+    final profile = profileSection.trim().isEmpty
+        ? ''
+        : '\n$profileSection\n';
     return '''
 $system
-
+$profile
 请基于以下素材，输出一篇「${format.label}」：${format.hint}。
 要求：
 - 忠于素材事实，不编造；可适度补充过渡与衔接；
@@ -67,6 +72,7 @@ class WorksService {
           sourceTexts: sourceTexts,
           format: format,
           topic: topic,
+          profileSection: UserProfileStore.load().toPromptSection(),
         ),
       ),
     ]);
