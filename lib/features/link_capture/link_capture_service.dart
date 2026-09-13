@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'captured_content.dart';
 import 'link_html.dart';
 import 'link_platform.dart';
+import 'web_render_service.dart';
 
 /// 链接采集服务：识别平台 → 抓取 → 提取正文 → 生成保真 CapturedContent。
 ///
@@ -85,8 +86,19 @@ class LinkCaptureService {
       url,
       headers: {'User-Agent': _desktopUa},
     );
-    final title = LinkHtml.extractTitle(html);
-    final text = LinkHtml.extractReadableText(html);
+    var title = LinkHtml.extractTitle(html);
+    var text = LinkHtml.extractReadableText(html);
+    // SPA 兜底：HTTP 抓到的正文过短时，用无头 WebView 渲染后再取一次
+    if (WebRenderService.shouldFallback(text)) {
+      final rendered = await WebRenderService.render(url);
+      if (rendered != null &&
+          rendered.text.trim().length > text.trim().length) {
+        if (title.isEmpty && rendered.title.isNotEmpty) {
+          title = rendered.title;
+        }
+        text = rendered.text;
+      }
+    }
     return CapturedContent(
       url: url,
       title: title.isEmpty ? url : title,
