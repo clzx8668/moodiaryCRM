@@ -19,11 +19,13 @@ import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
 import 'package:moodiary/features/ai/digest/digest_prompts.dart';
+import 'package:moodiary/features/ai/digest/digest_scheduler.dart';
 import 'package:moodiary/features/ai/digest/digest_service.dart';
 import 'package:moodiary/features/crm/crm_settings_page.dart';
 import 'package:moodiary/features/nav/mobile_nav_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_settings_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -689,9 +691,9 @@ class SettingPage extends StatelessWidget {
                   subtitle: const Text('生成本周总结'),
                   leading: const Icon(Icons.date_range_rounded),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  isLast: true,
                   onTap: () => _runDigest(DigestPeriod.weekly),
                 ),
+                const _DigestAutoSwitchTile(isLast: true),
               ],
             ),
           ),
@@ -782,6 +784,46 @@ class SettingPage extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// 自动回望开关（每天 21:00 后自动生成每日回望；周一另生成每周回望）。
+class _DigestAutoSwitchTile extends StatefulWidget {
+  final bool isLast;
+
+  const _DigestAutoSwitchTile({this.isLast = false});
+
+  @override
+  State<_DigestAutoSwitchTile> createState() => _DigestAutoSwitchTileState();
+}
+
+class _DigestAutoSwitchTileState extends State<_DigestAutoSwitchTile> {
+  bool _value = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = PrefUtil.getValue<bool>(DigestScheduler.prefKey) ?? false;
+  }
+
+  Future<void> _toggle(bool value) async {
+    setState(() => _value = value);
+    await PrefUtil.setValue(DigestScheduler.prefKey, value);
+    toast.success(
+      message: value ? '已开启自动回望（每天 21:00 后）' : '已关闭自动回望',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AdaptiveSwitchListTile(
+      value: _value,
+      onChanged: _toggle,
+      title: const Text('自动生成回望'),
+      subtitle: const Text('每天 21:00 后生成每日回望；周一另生成每周回望'),
+      secondary: const Icon(Icons.auto_mode_rounded),
+      isLast: widget.isLast,
     );
   }
 }
