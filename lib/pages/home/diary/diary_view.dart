@@ -161,6 +161,49 @@ class DiaryPage extends StatelessWidget {
     );
   }
 
+  void _openSearch(BuildContext context) {
+    showFloatingModalBottomSheet(
+      context: context,
+      builder: (context) => const SearchSheetComponent(),
+    );
+  }
+
+  /// 移动端「搜索框」胶囊（对标得到大脑首页顶部搜索）。
+  Widget _buildSearchEntry(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => _openSearch(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.search_rounded,
+                size: 18,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '搜索',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final logic = Get.put(DiaryLogic());
@@ -338,7 +381,9 @@ class DiaryPage extends StatelessWidget {
                 ),
                 if (MediaQuery.sizeOf(context).width < 600)
                   _buildChatEntry(context),
-                Obx(() {
+                // 移动端隐藏同步图标（避免与聊一聊/搜索挤压标题）；桌面保留
+                if (MediaQuery.sizeOf(context).width >= 600)
+                  Obx(() {
                   return WebDavUtil().syncingDiaries.isNotEmpty
                       ? _buildSyncingButton(
                           context: context,
@@ -364,18 +409,15 @@ class DiaryPage extends StatelessWidget {
                           icon: const Icon(Icons.cloud_sync_rounded),
                         );
                 }),
-                IconButton(
-                  onPressed: () {
-                    showFloatingModalBottomSheet(
-                      context: context,
-                      builder: (context) {
-                        return const SearchSheetComponent();
-                      },
-                    );
-                  },
-                  icon: const Icon(Icons.search_rounded),
-                  tooltip: context.l10n.diaryPageSearchButton,
-                ),
+                // 移动端用 Get 风格「搜索框」胶囊；桌面保持图标
+                if (MediaQuery.sizeOf(context).width < 600)
+                  _buildSearchEntry(context)
+                else
+                  IconButton(
+                    onPressed: () => _openSearch(context),
+                    icon: const Icon(Icons.search_rounded),
+                    tooltip: context.l10n.diaryPageSearchButton,
+                  ),
                 PopupMenuButton(
                   offset: const Offset(0, 46),
                   tooltip: context.l10n.diaryPageViewModeButton,
