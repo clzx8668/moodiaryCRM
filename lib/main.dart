@@ -22,6 +22,7 @@ import 'package:moodiary/features/command_palette/command_palette.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
 import 'package:moodiary/features/sync_events/sync_event_service.dart';
 import 'package:moodiary/features/sync_log/sync_log.dart';
+import 'package:moodiary/features/share/share_receiver.dart';
 import 'package:moodiary/l10n/app_localizations.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/hive.dart';
@@ -519,6 +520,10 @@ void main() async {
   debugPrintSynchronously('[main] ▶️ 即将 runApp → Moodiary(initialRoute=$initialRoute)');
   runApp(Moodiary(locale: locale, initialRoute: initialRoute));
   debugPrintSynchronously('[main] ✅ runApp() 返回（应用已挂载）');
+  // 系统分享接收（ACTION_SEND 文本/链接）：首帧后初始化，避免早于 UI/数据库
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    ShareReceiver.init();
+  });
 }
 
 class Moodiary extends StatefulWidget {
