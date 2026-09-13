@@ -926,6 +926,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                 ),
               ),
             ),
+          _buildSuggestionBar(context),
           Obx(() {
             // 桌面端与内容区同宽对齐（720 阅读宽度），移动端全宽
             return Padding(
@@ -957,6 +958,56 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
             );
           }),
           ],
+        ),
+      );
+    });
+  }
+
+  /// 主动建议动作条（对标得到大脑的「主动」）：低打扰地给出下一步动作。
+  Widget _buildSuggestionBar(BuildContext context) {
+    final actions = <({String label, IconData icon, VoidCallback onTap})>[
+      (
+        label: '提取待办',
+        icon: Icons.checklist_rounded,
+        onTap: () => _showAiExtract(context),
+      ),
+      (
+        label: '点评',
+        icon: Icons.mode_comment_outlined,
+        onTap: () => logic.runSkill(AiSkillType.comment),
+      ),
+      (
+        label: '发芽',
+        icon: Icons.eco_outlined,
+        onTap: () => logic.runSkill(AiSkillType.sprout),
+      ),
+      (
+        label: '打磨成稿',
+        icon: Icons.auto_fix_high_rounded,
+        onTap: () => logic.runSkill(AiSkillType.polish),
+      ),
+    ];
+    return Obx(() {
+      if (logic.blockList.blocks.value.isEmpty) return const SizedBox.shrink();
+      return SizedBox(
+        height: 38,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: _contentPadX(context)),
+          itemCount: actions.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final action = actions[index];
+            return ActionChip(
+              avatar: Icon(action.icon, size: 16),
+              label: Text(
+                action.label,
+                style: const TextStyle(fontSize: 12),
+              ),
+              visualDensity: VisualDensity.compact,
+              onPressed: action.onTap,
+            );
+          },
         ),
       );
     });
