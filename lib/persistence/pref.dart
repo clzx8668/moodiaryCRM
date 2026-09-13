@@ -108,6 +108,8 @@ class PrefUtil {
     'aiAutoSummary',
     // AI 个性化画像（专业词库/常用表达/风格偏好）
     'aiUserProfile',
+    // 移动端底部导航按钮配置（JSON 数组）
+    'mobileNavItems',
     // 联网搜索
     'aiSearchEnabled',
     'aiSearchEngine',

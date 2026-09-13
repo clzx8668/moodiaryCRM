@@ -18,15 +18,48 @@ import 'package:moodiary/components/remove_password/remove_password_view.dart';
 import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
+import 'package:moodiary/features/ai/digest/digest_prompts.dart';
+import 'package:moodiary/features/ai/digest/digest_service.dart';
 import 'package:moodiary/features/crm/crm_settings_page.dart';
+import 'package:moodiary/features/nav/mobile_nav_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_settings_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
+import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 import 'setting_logic.dart';
 
 class SettingPage extends StatelessWidget {
   const SettingPage({super.key});
+
+  Future<void> _toggleNavItem(int pageIndex, bool on) async {
+    final next = List<int>.from(MobileNavConfig.items);
+    if (on) {
+      if (!next.contains(pageIndex)) next.add(pageIndex);
+    } else {
+      next.remove(pageIndex);
+    }
+    if (next.length < MobileNavConfig.minItems) {
+      toast.info(message: '至少保留 ${MobileNavConfig.minItems} 个底部按钮');
+      return;
+    }
+    await MobileNavConfig.save(next);
+    toast.success(message: '已更新底部导航');
+  }
+
+  Future<void> _runDigest(DigestPeriod period) async {
+    toast.info(message: '正在生成回望…');
+    try {
+      final diary = await DigestService.generateAndSave(period);
+      if (diary == null) {
+        toast.error(message: 'AI 未配置或生成失败，请检查设置');
+      } else {
+        toast.success(message: '已生成「${diary.title}」');
+      }
+    } catch (e) {
+      toast.error(message: '回望失败：$e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -589,6 +622,83 @@ class SettingPage extends StatelessWidget {
       );
     }
 
+    Widget buildMobileNav() {
+      return Column(
+        children: [
+          const AdaptiveTitleTile(title: '底部导航'),
+          Card.filled(
+            color: context.theme.colorScheme.surfaceContainerLow,
+            margin: EdgeInsets.zero,
+            child: Obx(() {
+              final current = MobileNavConfig.items;
+              return Column(
+                children: [
+                  for (final d in MobileNavConfig.all)
+                    CheckboxListTile(
+                      dense: true,
+                      value: current.contains(d.pageIndex),
+                      title: Text(d.label),
+                      secondary: Icon(d.icon),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      onChanged: (v) =>
+                          _toggleNavItem(d.pageIndex, v == true),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                    child: Text(
+                      '默认：日记 / 日历 / AI / 设置；至少保留 ${MobileNavConfig.minItems} 个',
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: context.theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+        ],
+      );
+    }
+
+    Widget buildTools() {
+      return Column(
+        children: [
+          const AdaptiveTitleTile(title: '工具'),
+          Card.filled(
+            color: context.theme.colorScheme.surfaceContainerLow,
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                AdaptiveListTile(
+                  title: const Text('语音记录'),
+                  subtitle: const Text('录音转写 / 去口语化'),
+                  leading: const Icon(Icons.mic_none_rounded),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  isFirst: true,
+                  onTap: () => Get.toNamed(AppRoutes.voiceRecordPage),
+                ),
+                AdaptiveListTile(
+                  title: const Text('每日回望'),
+                  subtitle: const Text('生成今日回顾'),
+                  leading: const Icon(Icons.today_rounded),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => _runDigest(DigestPeriod.daily),
+                ),
+                AdaptiveListTile(
+                  title: const Text('每周回望'),
+                  subtitle: const Text('生成本周总结'),
+                  leading: const Icon(Icons.date_range_rounded),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  isLast: true,
+                  onTap: () => _runDigest(DigestPeriod.weekly),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     Widget buildMore() {
       return Column(
         children: [
@@ -664,6 +774,8 @@ class SettingPage extends StatelessWidget {
               ),
               buildData(),
               buildDisplay(),
+              buildMobileNav(),
+              buildTools(),
               buildPrivacy(),
               buildMore(),
             ],

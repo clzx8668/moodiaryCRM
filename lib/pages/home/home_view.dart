@@ -8,8 +8,6 @@ import 'package:moodiary/components/desktop_wrapper/background.dart';
 import 'package:moodiary/components/home_fab/home_fab_view.dart';
 import 'package:moodiary/components/home_nativatorbar/navigatorbar.dart';
 import 'package:moodiary/features/ai/ai_home_page.dart';
-import 'package:moodiary/features/ai/digest/digest_prompts.dart';
-import 'package:moodiary/features/ai/digest/digest_service.dart';
 import 'package:moodiary/features/crm/crm_home_page.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_view.dart';
 import 'package:moodiary/l10n/l10n.dart';
@@ -17,8 +15,6 @@ import 'package:moodiary/pages/home/calendar/calendar_view.dart';
 import 'package:moodiary/pages/home/diary/diary_view.dart';
 import 'package:moodiary/pages/home/media/media_view.dart';
 import 'package:moodiary/pages/home/setting/setting_view.dart';
-import 'package:moodiary/persistence/pref.dart';
-import 'package:moodiary/router/app_routes.dart';
 
 import 'home_logic.dart';
 
@@ -176,7 +172,6 @@ class HomePage extends StatelessWidget {
         animation: logic.barAnimation,
         navigatorIndex: logic.navigatorIndex,
         onTap: logic.changeNavigator,
-        onMore: () => _showMoreSheet(context, logic),
       ),
       floatingActionButton: HomeFabComponent(
         animation: logic.fabAnimation,
@@ -205,131 +200,5 @@ class HomePage extends StatelessWidget {
     );
     // 面板关闭（保存或失焦）后统一刷新首页各视图
     await logic.refreshDiaryLists();
-  }
-
-  void _showMoreSheet(BuildContext context, HomeLogic logic) {
-    final colorScheme = Theme.of(context).colorScheme;
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(
-                  '更多',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(sheetContext).textTheme.titleMedium,
-                ),
-              ),
-              if (PrefUtil.getValue<bool>('moduleCrm') != false)
-                ListTile(
-                  leading: Icon(
-                    Icons.business_outlined,
-                    color: colorScheme.primary,
-                  ),
-                  title: const Text('CRM'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    logic.changeNavigator(3);
-                  },
-                ),
-              ListTile(
-                leading: Icon(
-                  Icons.auto_awesome_outlined,
-                  color: colorScheme.primary,
-                ),
-                title: const Text('AI 助手'),
-                subtitle: const Text('与全部笔记/知识库对话'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  logic.changeNavigator(4);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.mic_none_rounded,
-                  color: colorScheme.primary,
-                ),
-                title: const Text('语音记录'),
-                subtitle: const Text('录音转写 / 去口语化'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  Get.toNamed(AppRoutes.voiceRecordPage);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.today_rounded, color: colorScheme.primary),
-                title: const Text('每日回望'),
-                subtitle: const Text('生成今日回顾'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  _runDigest(context, DigestPeriod.daily);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.date_range_rounded,
-                  color: colorScheme.primary,
-                ),
-                title: const Text('每周回望'),
-                subtitle: const Text('生成本周总结'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  _runDigest(context, DigestPeriod.weekly);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.settings_outlined,
-                  color: colorScheme.primary,
-                ),
-                title: const Text('设置'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  logic.changeNavigator(5);
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _runDigest(BuildContext context, DigestPeriod period) async {
-    try {
-      final diary = await DigestService.generateAndSave(period);
-      if (!context.mounted) return;
-      if (diary == null) {
-        // 需要全局便捷提示
-        // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('AI 未配置或生成失败，请检查设置')));
-      } else {
-        // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('已生成「${diary.title}」')));
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('回望失败：$e')));
-      }
-    }
   }
 }
