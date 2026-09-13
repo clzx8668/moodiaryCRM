@@ -157,7 +157,7 @@ class _SmartInputBarState extends State<SmartInputBar>
                 height: 44,
                 alignment: Alignment.center,
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisSize: MainAxisSize.max,
                   children: [
                     if (widget.listening)
                       _pulsingMic(colorScheme)
@@ -170,14 +170,20 @@ class _SmartInputBarState extends State<SmartInputBar>
                         color: colorScheme.outline,
                       ),
                     const SizedBox(width: 6),
-                    Text(
-                      widget.listening
-                          ? '正在聆听…'
-                          : (widget.voiceMode ? '按住 说话' : widget.collapsedHint),
-                      style: TextStyle(
-                        color: widget.listening
-                            ? colorScheme.primary
-                            : colorScheme.outline,
+                    Flexible(
+                      child: Text(
+                        widget.listening
+                            ? '正在聆听…'
+                            : (widget.voiceMode
+                                  ? '按住 说话'
+                                  : widget.collapsedHint),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: widget.listening
+                              ? colorScheme.primary
+                              : colorScheme.outline,
+                        ),
                       ),
                     ),
                   ],
