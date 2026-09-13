@@ -200,7 +200,8 @@ class HomeFabComponent extends StatelessWidget {
                   borderRadius: AppBorderRadius.largeBorderRadius,
                 ),
                 color: Color.lerp(
-                  context.theme.colorScheme.primaryContainer,
+                  // 静止态透明背景（仅图标+阴影）；展开时给浅色底表示可关闭
+                  Colors.transparent,
                   context.theme.colorScheme.surfaceContainerHighest,
                   animation.value,
                 ),
@@ -223,7 +224,7 @@ class HomeFabComponent extends StatelessWidget {
                 child: Icon(
                   FontAwesomeIcons.plus,
                   color: Color.lerp(
-                    context.theme.colorScheme.onPrimaryContainer,
+                    context.theme.colorScheme.primary,
                     context.theme.colorScheme.onSurface,
                     animation.value,
                   ),

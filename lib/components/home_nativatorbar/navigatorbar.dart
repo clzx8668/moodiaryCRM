@@ -44,7 +44,6 @@ class HomeNavigatorBar extends StatelessWidget {
           alignment: Alignment.topCenter,
           child: Container(
             decoration: BoxDecoration(
-              color: context.theme.colorScheme.surfaceContainer,
               border: Border(
                 top: BorderSide(
                   color: context.theme.colorScheme.outline.withValues(
