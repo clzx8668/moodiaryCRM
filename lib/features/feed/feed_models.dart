@@ -22,6 +22,22 @@ class FeedSource {
 
   String get displayTitle => title.trim().isEmpty ? url : title.trim();
 
+  /// 源主机名（用于短标签/短标题）。
+  String get host {
+    try {
+      return Uri.parse(url).host;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// 展示名：标题优先，其次主机名，最后完整 URL。
+  String get displayName {
+    if (title.trim().isNotEmpty) return title.trim();
+    if (host.isNotEmpty) return host;
+    return url;
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'url': url,

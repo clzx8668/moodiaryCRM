@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:moodiary/features/link_capture/link_html.dart';
 import 'package:moodiary/features/link_capture/link_capture_service.dart';
 import 'package:moodiary/persistence/pref.dart';
 
@@ -114,6 +115,11 @@ class FeedService {
 
   static Future<FeedItem> _enrich(FeedItem item) async {
     if (!needsBody(item)) return item;
+    // feed 自带正文（Atom content）足够长时优先使用，避免抓到网页页脚噪音
+    final feedBody = LinkHtml.collapse(LinkHtml.stripTags(item.contentHtml));
+    if (feedBody.length >= bodyThreshold) {
+      return item.copyWith(body: feedBody);
+    }
     try {
       final captured = await LinkCaptureService.instance.capture(item.link);
       var body = captured.textContent.trim();

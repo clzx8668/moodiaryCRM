@@ -83,9 +83,14 @@ class FeedParser {
     );
   }
 
-  /// 条目去重键：优先 guid，其次 link。
+  /// 条目去重键：优先 link + 标题（归一化），避免同一文章因 guid 变化重复入库；
+  /// 无 link 时退回 guid。
   static String itemKey(FeedItem item) {
-    final raw = item.guid.trim().isNotEmpty ? item.guid.trim() : item.link.trim();
+    final link = item.link.trim();
+    final title = item.title.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    final raw = link.isNotEmpty
+        ? '$link|$title'
+        : (item.guid.trim().isNotEmpty ? item.guid.trim() : title);
     return stableHash(raw);
   }
 

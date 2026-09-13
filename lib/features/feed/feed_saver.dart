@@ -34,8 +34,8 @@ class FeedSaver {
       ..show = true
       ..mood = 0.5;
     diary.tags.add('订阅');
-    if (source.displayTitle.isNotEmpty) {
-      diary.tags.add(source.displayTitle);
+    if (source.displayName.isNotEmpty) {
+      diary.tags.add(source.displayName);
     }
     await IsarUtil.insertADiary(diary);
 
@@ -70,7 +70,7 @@ class FeedSaver {
       if (item.author.trim().isNotEmpty) item.author.trim(),
       if (item.publishedAt != null)
         item.publishedAt!.toLocal().toString().split(' ').first,
-      if (source.displayTitle.isNotEmpty) source.displayTitle,
+      if (source.displayName.isNotEmpty) source.displayName,
     ];
     if (meta.isNotEmpty) buf.writeln('> 来源：${meta.join(' · ')}');
     if (body.isNotEmpty) {

@@ -29,6 +29,18 @@ void main() {
         'https://a.com',
       );
     });
+
+    test('displayName 优先标题，其次主机名', () {
+      expect(
+        FeedSource(id: 'x', url: 'https://a.com/feed.xml', title: '示例源')
+            .displayName,
+        '示例源',
+      );
+      expect(
+        FeedSource(id: 'x', url: 'https://a.com/feed.xml').displayName,
+        'a.com',
+      );
+    });
   });
 
   group('FeedService 纯函数', () {

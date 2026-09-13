@@ -105,10 +105,16 @@ class _FeedSettingsPageState extends State<FeedSettingsPage> {
   }
 
   String _subtitle(FeedSource s) {
-    if (s.lastError.trim().isNotEmpty) return '失败：${s.lastError}';
-    if (s.lastFetchedAt == 0) return s.url;
-    final t = DateTime.fromMillisecondsSinceEpoch(s.lastFetchedAt);
-    return '${s.url}\n上次刷新：${t.toString().split('.').first}';
+    final lines = <String>[s.url];
+    if (s.lastError.trim().isNotEmpty) {
+      lines.add('失败：${s.lastError}');
+    } else if (s.lastFetchedAt == 0) {
+      lines.add('尚未刷新');
+    } else {
+      final t = DateTime.fromMillisecondsSinceEpoch(s.lastFetchedAt);
+      lines.add('上次刷新：${t.toString().split('.').first}');
+    }
+    return lines.join('\n');
   }
 
   @override
@@ -158,7 +164,11 @@ class _FeedSettingsPageState extends State<FeedSettingsPage> {
                         ? Theme.of(context).colorScheme.error
                         : Theme.of(context).colorScheme.primary,
                   ),
-                  title: Text(source.displayTitle),
+                  title: Text(
+                    source.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   subtitle: Text(
                     _subtitle(source),
                     maxLines: 2,

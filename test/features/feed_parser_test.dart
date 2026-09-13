@@ -71,12 +71,16 @@ void main() {
   });
 
   group('FeedParser 去重与增量', () {
-    test('itemKey 优先 guid 且稳定', () {
+    test('itemKey 基于 link+标题（同文不同 guid 也去重）', () {
       const i1 = FeedItem(title: 't', link: 'https://a', guid: 'g1');
       const i2 = FeedItem(title: 't', link: 'https://a', guid: 'g1');
       const i3 = FeedItem(title: 't', link: 'https://a', guid: 'g2');
       expect(FeedParser.itemKey(i1), FeedParser.itemKey(i2));
-      expect(FeedParser.itemKey(i1), isNot(FeedParser.itemKey(i3)));
+      expect(FeedParser.itemKey(i1), FeedParser.itemKey(i3));
+      const other = FeedItem(title: 't', link: 'https://b', guid: 'g1');
+      expect(FeedParser.itemKey(i1), isNot(FeedParser.itemKey(other)));
+      const noLink = FeedItem(title: 't', link: '', guid: 'g9');
+      expect(FeedParser.itemKey(noLink), isNotEmpty);
       expect(FeedParser.stableHash('abc'), FeedParser.stableHash('abc'));
     });
 
