@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:moodiary/common/values/border.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
@@ -309,6 +310,15 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                         _showVisionCapture(context);
                       },
                     ),
+                    _AppendTile(
+                      icon: Icons.photo_camera_outlined,
+                      label: '拍照速记',
+                      color: colorScheme.secondaryContainer,
+                      onTap: () {
+                        Get.back();
+                        _showCameraCapture(context);
+                      },
+                    ),
                   ],
                 ),
               ],
@@ -380,6 +390,25 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
       Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) toast.error(message: '图片速记失败：$e');
+    }
+  }
+
+  /// 拍照速记（相机直拍 → 视觉整理 → 生成笔记）。
+  Future<void> _showCameraCapture(BuildContext context) async {
+    try {
+      final shot = await ImagePicker().pickImage(source: ImageSource.camera);
+      if (shot == null) return;
+      toast.info(message: '正在识别图片…');
+      final diary = await VisionCaptureSaver.saveFromImagePath(shot.path);
+      if (!mounted) return;
+      if (diary == null) {
+        toast.error(message: '图片识别失败：请先在设置配置视觉模型');
+        return;
+      }
+      toast.success(message: '已生成图片笔记「${diary.title}」');
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) toast.error(message: '拍照速记失败：$e');
     }
   }
 }
