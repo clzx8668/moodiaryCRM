@@ -6,12 +6,15 @@ class RelatedNote {
   final String title;
   final int sharedTags;
   final int titleOverlap;
+  /// 语义相似度（0..1；0 表示来自标签/标题兜底）
+  final double similarity;
 
   const RelatedNote({
     required this.diaryId,
     required this.title,
     required this.sharedTags,
     required this.titleOverlap,
+    this.similarity = 0,
   });
 
   int get score => sharedTags * 10 + titleOverlap;

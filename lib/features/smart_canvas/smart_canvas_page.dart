@@ -13,6 +13,7 @@ import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/ai/skills/ai_skill.dart';
 import 'package:moodiary/features/ai/skills/works_service.dart';
 import 'package:moodiary/features/ai/autolink/auto_link_service.dart';
+import 'package:moodiary/features/ai/autolink/semantic_link_service.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/collection/kb_collection_service.dart';
 import 'package:moodiary/features/ai/extract/ai_extract_meta.dart';
@@ -1265,18 +1266,38 @@ class _RelatedNotesSectionState extends State<_RelatedNotesSection> {
 
   Future<void> _load() async {
     final all = await IsarUtil.getAllDiaries();
-    final target = NoteSummary(
-      id: widget.diary.id,
-      title: widget.diary.title,
-      tags: widget.diary.tags,
-    );
-    final others = all
+    // 优先语义相似（向量），失败/未配置时回退标签 + 标题重叠
+    final candidates = all
         .where((d) => d.id != widget.diary.id)
         .map(
-          (d) => NoteSummary(id: d.id, title: d.title, tags: d.tags),
+          (d) => (
+            id: d.id,
+            title: d.title,
+            text: SemanticLinkService.embedText(d.title, d.contentText),
+          ),
         )
         .toList();
-    final result = AutoLinkService.suggest(target: target, all: others, topK: 4);
+    var result = await SemanticLinkService.suggest(
+      diaryId: widget.diary.id,
+      targetText: SemanticLinkService.embedText(
+        widget.diary.title,
+        widget.diary.contentText,
+      ),
+      candidates: candidates,
+      topK: 4,
+    );
+    if (result.isEmpty) {
+      final target = NoteSummary(
+        id: widget.diary.id,
+        title: widget.diary.title,
+        tags: widget.diary.tags,
+      );
+      final others = all
+          .where((d) => d.id != widget.diary.id)
+          .map((d) => NoteSummary(id: d.id, title: d.title, tags: d.tags))
+          .toList();
+      result = AutoLinkService.suggest(target: target, all: others, topK: 4);
+    }
     if (mounted) setState(() => _suggestions = result);
   }
 
@@ -1312,9 +1333,9 @@ class _RelatedNotesSectionState extends State<_RelatedNotesSection> {
               ),
               title: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text(
-                r.sharedTags > 0
-                    ? '共享 ${r.sharedTags} 个标签'
-                    : '标题相关',
+                r.similarity > 0
+                    ? '相似度 ${(r.similarity * 100).round()}%'
+                    : (r.sharedTags > 0 ? '共享 ${r.sharedTags} 个标签' : '标题相关'),
               ),
               trailing: const Icon(Icons.chevron_right_rounded, size: 18),
               onTap: () => _open(r),
