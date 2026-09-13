@@ -114,6 +114,8 @@ class PrefUtil {
     'mobileNavItems',
     // RSS/订阅源列表（JSON）
     'feedSources',
+    // 订阅自动刷新开关
+    'feedAutoRefreshEnabled',
     // 联网搜索
     'aiSearchEnabled',
     'aiSearchEngine',

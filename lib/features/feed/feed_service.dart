@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/link_capture/link_html.dart';
 import 'package:moodiary/features/link_capture/link_capture_service.dart';
+import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/persistence/pref.dart';
 
 import 'feed_models.dart';
@@ -97,7 +99,10 @@ class FeedService {
       final xml = resp.data ?? '';
       final parsed = FeedParser.parse(xml, maxItems: maxItems * 3);
       final seen = source.lastItemKeys.toSet();
+      // 双保险：既有 key 过滤 + 已入库 feed 链接过滤（防键格式变化/历史数据重复）
+      final existingLinks = await existingFeedLinks();
       var fresh = FeedParser.newItems(items: parsed, seenKeys: seen)
+          .where((i) => !existingLinks.contains(i.link.trim()))
           .take(maxItems)
           .toList();
       if (enrichBody) {
@@ -110,6 +115,23 @@ class FeedService {
       return FeedFetchResult(source: source, items: fresh);
     } catch (e) {
       return FeedFetchResult(source: source, error: '$e');
+    }
+  }
+
+  /// 已入库订阅条目的链接集合（用于跨 key 格式的重复防护）。
+  static Future<Set<String>> existingFeedLinks() async {
+    try {
+      final blocks = await IsarUtil.getAllVisibleBlocks();
+      final links = <String>{};
+      for (final Block b in blocks) {
+        final meta = b.meta;
+        if (meta.captureType == 'feed' && meta.sourceUrl.trim().isNotEmpty) {
+          links.add(meta.sourceUrl.trim());
+        }
+      }
+      return links;
+    } catch (_) {
+      return <String>{};
     }
   }
 

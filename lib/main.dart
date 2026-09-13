@@ -24,6 +24,7 @@ import 'package:moodiary/features/sync_events/sync_event_service.dart';
 import 'package:moodiary/features/sync_log/sync_log.dart';
 import 'package:moodiary/features/share/share_receiver.dart';
 import 'package:moodiary/features/ai/digest/digest_scheduler.dart';
+import 'package:moodiary/features/feed/feed_scheduler.dart';
 import 'package:moodiary/l10n/app_localizations.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/hive.dart';
@@ -525,6 +526,7 @@ void main() async {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     ShareReceiver.init();
     DigestScheduler.checkAndRun();
+    FeedScheduler.checkAndRun();
   });
 }
 

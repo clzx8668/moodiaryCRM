@@ -23,6 +23,7 @@ import 'package:moodiary/features/ai/digest/digest_scheduler.dart';
 import 'package:moodiary/features/ai/digest/digest_service.dart';
 import 'package:moodiary/features/crm/crm_settings_page.dart';
 import 'package:moodiary/features/feed/feed_settings_page.dart';
+import 'package:moodiary/features/feed/feed_scheduler.dart';
 import 'package:moodiary/features/nav/mobile_nav_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_settings_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
@@ -701,6 +702,7 @@ class SettingPage extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => Get.to(() => const FeedSettingsPage()),
                 ),
+                const _FeedAutoSwitchTile(),
                 const _DigestAutoSwitchTile(isLast: true),
               ],
             ),
@@ -832,6 +834,43 @@ class _DigestAutoSwitchTileState extends State<_DigestAutoSwitchTile> {
       subtitle: const Text('每日 21:00 后自动生成；周一含周报'),
       secondary: const Icon(Icons.auto_mode_rounded),
       isLast: widget.isLast,
+    );
+  }
+}
+
+/// 订阅自动刷新开关（默认关；启动/回前台对到期源低频刷新，间隔 6 小时）。
+class _FeedAutoSwitchTile extends StatefulWidget {
+  const _FeedAutoSwitchTile();
+
+  @override
+  State<_FeedAutoSwitchTile> createState() => _FeedAutoSwitchTileState();
+}
+
+class _FeedAutoSwitchTileState extends State<_FeedAutoSwitchTile> {
+  bool _value = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = PrefUtil.getValue<bool>(FeedScheduler.prefKey) ?? false;
+  }
+
+  Future<void> _toggle(bool value) async {
+    setState(() => _value = value);
+    await PrefUtil.setValue(FeedScheduler.prefKey, value);
+    toast.success(
+      message: value ? '已开启订阅自动刷新（每 6 小时）' : '已关闭订阅自动刷新',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AdaptiveSwitchListTile(
+      value: _value,
+      onChanged: _toggle,
+      title: const Text('自动刷新订阅'),
+      subtitle: const Text('启动/回前台时刷新到期源（间隔 6 小时）'),
+      secondary: const Icon(Icons.sync_rounded),
     );
   }
 }
