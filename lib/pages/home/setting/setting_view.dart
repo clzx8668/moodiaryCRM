@@ -22,6 +22,7 @@ import 'package:moodiary/features/ai/digest/digest_prompts.dart';
 import 'package:moodiary/features/ai/digest/digest_scheduler.dart';
 import 'package:moodiary/features/ai/digest/digest_service.dart';
 import 'package:moodiary/features/crm/crm_settings_page.dart';
+import 'package:moodiary/features/feed/feed_settings_page.dart';
 import 'package:moodiary/features/nav/mobile_nav_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_settings_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
@@ -692,6 +693,13 @@ class SettingPage extends StatelessWidget {
                   leading: const Icon(Icons.date_range_rounded),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => _runDigest(DigestPeriod.weekly),
+                ),
+                AdaptiveListTile(
+                  title: const Text('内容源（RSS）'),
+                  subtitle: const Text('订阅公开 RSS/Atom，增量入库为笔记'),
+                  leading: const Icon(Icons.rss_feed_rounded),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Get.to(() => const FeedSettingsPage()),
                 ),
                 const _DigestAutoSwitchTile(isLast: true),
               ],
