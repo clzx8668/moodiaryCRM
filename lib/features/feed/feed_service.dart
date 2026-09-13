@@ -21,6 +21,15 @@ class FeedService {
   static const int maxKeysPerSource = 200;
   static const int bodyThreshold = 200;
 
+  /// 订阅条目默认归入的知识库 id（空 = 不归入）。
+  static String targetKnowledgeBaseId() {
+    try {
+      return (PrefUtil.getValue<String>('feedAutoKbId') ?? '').trim();
+    } catch (_) {
+      return '';
+    }
+  }
+
   static const String _ua =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';

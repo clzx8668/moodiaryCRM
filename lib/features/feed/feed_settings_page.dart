@@ -6,6 +6,8 @@ import 'package:moodiary/features/feed/feed_parser.dart';
 import 'package:moodiary/features/feed/feed_saver.dart';
 import 'package:moodiary/features/feed/feed_service.dart';
 import 'package:moodiary/pages/home/home_logic.dart';
+import 'package:moodiary/features/rag/rag_service.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/utils/notice_util.dart';
 import 'package:uuid/uuid.dart';
 
@@ -26,6 +28,7 @@ class _FeedSettingsPageState extends State<FeedSettingsPage> {
   void initState() {
     super.initState();
     _load();
+    _loadTargetKb();
   }
 
   void _load() {
@@ -194,14 +197,19 @@ class _FeedSettingsPageState extends State<FeedSettingsPage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _sources.isEmpty
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('还没有订阅源，点击右下 + 添加 RSS/Atom 地址'),
-              ),
-            )
-          : ListView.separated(
+          : Column(
+              children: [
+                _buildKbTile(context),
+                const Divider(height: 1),
+                Expanded(
+                  child: _sources.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Text('还没有订阅源，点击右下 + 添加 RSS/Atom 地址'),
+                          ),
+                        )
+                      : ListView.separated(
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 88),
               itemCount: _sources.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
@@ -250,8 +258,88 @@ class _FeedSettingsPageState extends State<FeedSettingsPage> {
                   ),
                 );
               },
+                        ),
+                ),
+              ],
             ),
     );
+  }
+
+  String _kbId = '';
+  String _kbName = '';
+
+  Future<void> _loadTargetKb() async {
+    _kbId = FeedService.targetKnowledgeBaseId();
+    if (_kbId.isEmpty) {
+      if (mounted) setState(() => _kbName = '');
+      return;
+    }
+    try {
+      final list = await RagService().listKnowledgeBases();
+      final hit = list.where((k) => k.id == _kbId);
+      if (mounted) {
+        setState(() => _kbName = hit.isEmpty ? '(已删除)' : hit.first.name);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _kbName = '');
+    }
+  }
+
+  Widget _buildKbTile(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.menu_book_rounded),
+      title: const Text('归入知识库'),
+      subtitle: Text(
+        _kbId.isEmpty ? '未设置（订阅条目仅入库为笔记）' : '新条目自动加入：$_kbName',
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: _pickKb,
+    );
+  }
+
+  Future<void> _pickKb() async {
+    final bases = await RagService().listKnowledgeBases();
+    if (!mounted) return;
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: Text('订阅条目归入知识库'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.block_rounded),
+              title: const Text('不归入'),
+              onTap: () => Navigator.pop(sheetContext, ''),
+            ),
+            for (final kb in bases)
+              ListTile(
+                leading: const Icon(Icons.menu_book_rounded),
+                title: Text(kb.name),
+                selected: kb.id == _kbId,
+                onTap: () => Navigator.pop(sheetContext, kb.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked == null) return;
+    await PrefUtil.setValue('feedAutoKbId', picked);
+    if (!mounted) return;
+    if (picked.isEmpty) {
+      setState(() {
+        _kbId = '';
+        _kbName = '';
+      });
+      toast.success(message: '已取消自动归入');
+    } else {
+      await _loadTargetKb();
+      toast.success(message: '已设置归入：$_kbName');
+    }
   }
 }
 

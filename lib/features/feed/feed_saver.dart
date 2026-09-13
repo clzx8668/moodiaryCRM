@@ -6,6 +6,7 @@ import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/feed/feed_models.dart';
 import 'package:moodiary/features/feed/feed_parser.dart';
+import 'package:moodiary/features/feed/feed_service.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:uuid/uuid.dart';
 
@@ -53,6 +54,7 @@ class FeedSaver {
         title: title,
         feedId: source.id,
         feedItemKey: FeedParser.itemKey(item),
+        knowledgeBaseIds: FeedService.targetKnowledgeBaseId(),
       );
     await IsarUtil.insertBlock(block);
 

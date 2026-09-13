@@ -116,6 +116,8 @@ class PrefUtil {
     'feedSources',
     // 订阅自动刷新开关
     'feedAutoRefreshEnabled',
+    // 订阅条目归入的知识库 id（空=不归入）
+    'feedAutoKbId',
     // 联网搜索
     'aiSearchEnabled',
     'aiSearchEngine',
