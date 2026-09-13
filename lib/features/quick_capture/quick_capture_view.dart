@@ -331,34 +331,10 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
 
   /// 粘贴链接 → 采集 → 落库（G1 链接速记）。
   Future<void> _showLinkCapture(BuildContext context) async {
-    final controller = TextEditingController();
     final url = await showDialog<String>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('粘贴链接'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            keyboardType: TextInputType.url,
-            decoration: const InputDecoration(
-              hintText: 'https://… 文章 / 公众号 / B站 / 抖音',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, controller.text),
-              child: const Text('采集'),
-            ),
-          ],
-        );
-      },
+      builder: (_) => const _LinkUrlDialog(),
     );
-    controller.dispose();
     if (url == null || url.trim().isEmpty) return;
 
     toast.info(message: '正在采集链接…');
@@ -410,6 +386,49 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
     } catch (e) {
       if (mounted) toast.error(message: '拍照速记失败：$e');
     }
+  }
+}
+
+/// 粘贴链接对话框（自管理控制器，避免退场动画期间 dispose 崩溃）。
+class _LinkUrlDialog extends StatefulWidget {
+  const _LinkUrlDialog();
+
+  @override
+  State<_LinkUrlDialog> createState() => _LinkUrlDialogState();
+}
+
+class _LinkUrlDialogState extends State<_LinkUrlDialog> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('粘贴链接'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.url,
+        decoration: const InputDecoration(
+          hintText: 'https://… 文章 / 公众号 / B站 / 抖音',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text),
+          child: const Text('采集'),
+        ),
+      ],
+    );
   }
 }
 

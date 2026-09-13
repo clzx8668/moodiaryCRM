@@ -321,9 +321,12 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
         toast.success(message: '已保存个性化画像');
       }
     }
-    vocabCtrl.dispose();
-    phraseCtrl.dispose();
-    prefCtrl.dispose();
+    // 对话框退场动画结束后再释放控制器：避免退场期间仍被 TextField 依赖而触发断言
+    Future<void>.delayed(const Duration(milliseconds: 500), () {
+      vocabCtrl.dispose();
+      phraseCtrl.dispose();
+      prefCtrl.dispose();
+    });
   }
 
   Widget _buildSearchSection(BuildContext context) {

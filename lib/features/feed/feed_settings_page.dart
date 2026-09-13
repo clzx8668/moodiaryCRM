@@ -35,32 +35,10 @@ class _FeedSettingsPageState extends State<FeedSettingsPage> {
   Future<void> _persist() => FeedService.saveSources(_sources);
 
   Future<void> _addSource() async {
-    final controller = TextEditingController();
     final url = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('添加订阅源'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.url,
-          decoration: const InputDecoration(
-            hintText: 'https://example.com/feed.xml（RSS / Atom）',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('添加'),
-          ),
-        ],
-      ),
+      builder: (_) => const _AddFeedDialog(),
     );
-    controller.dispose();
     if (url == null || url.trim().isEmpty) return;
     setState(() {
       _sources.add(
@@ -212,6 +190,49 @@ class _FeedSettingsPageState extends State<FeedSettingsPage> {
                 );
               },
             ),
+    );
+  }
+}
+
+/// 添加订阅源对话框（自管理控制器，避免对话框退场动画期间 dispose 崩溃）。
+class _AddFeedDialog extends StatefulWidget {
+  const _AddFeedDialog();
+
+  @override
+  State<_AddFeedDialog> createState() => _AddFeedDialogState();
+}
+
+class _AddFeedDialogState extends State<_AddFeedDialog> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('添加订阅源'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.url,
+        decoration: const InputDecoration(
+          hintText: 'https://example.com/feed.xml（RSS / Atom）',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text),
+          child: const Text('添加'),
+        ),
+      ],
     );
   }
 }
