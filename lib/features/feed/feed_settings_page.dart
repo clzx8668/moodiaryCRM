@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:moodiary/features/feed/feed_models.dart';
+import 'package:moodiary/features/feed/feed_maintenance.dart';
 import 'package:moodiary/features/feed/feed_parser.dart';
 import 'package:moodiary/features/feed/feed_saver.dart';
 import 'package:moodiary/features/feed/feed_service.dart';
+import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/utils/notice_util.dart';
 import 'package:uuid/uuid.dart';
 
@@ -117,6 +120,45 @@ class _FeedSettingsPageState extends State<FeedSettingsPage> {
     return lines.join('\n');
   }
 
+  /// 清理重复订阅条目 + 规范化来源标签（重复进回收站，可恢复）。
+  Future<void> _cleanupDuplicates() async {
+    final plan = await FeedMaintenance.preview();
+    if (!mounted) return;
+    if (plan.recycleDiaryIds.isEmpty && plan.tagUpdates.isEmpty) {
+      toast.info(message: '没有需要清理的订阅条目');
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('清理重复条目'),
+        content: Text(
+          '发现 ${plan.recycleDiaryIds.length} 条重复订阅条目（保留最新），'
+          '${plan.tagUpdates.length} 条来源标签可规范化为短名。\n'
+          '重复条目将移入回收站，可恢复。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('清理'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final recycled = await FeedMaintenance.apply(plan);
+    if (!mounted) return;
+    // 首页列表可能缓存了旧标签/旧条目，清理后主动刷新
+    if (Get.isRegistered<HomeLogic>()) {
+      await Get.find<HomeLogic>().refreshDiaryLists();
+    }
+    toast.success(message: '已清理 $recycled 条重复条目（可在回收站恢复）');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,6 +175,15 @@ class _FeedSettingsPageState extends State<FeedSettingsPage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.refresh_rounded),
+          ),
+          PopupMenuButton<String>(
+            tooltip: '更多',
+            onSelected: (v) {
+              if (v == 'cleanup') _cleanupDuplicates();
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'cleanup', child: Text('清理重复条目')),
+            ],
           ),
         ],
       ),
