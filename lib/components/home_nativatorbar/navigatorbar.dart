@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/l10n/l10n.dart';
 
-/// 移动端 Get 式底部导航：首页/日历 + 中央记录键 + 媒体/更多。
+/// 移动端底部导航：首页 / 日历 / 媒体 / 更多。
 ///
-/// 桌面端（≥600）不使用本组件，仍走左侧 NavigationRail。
+/// 快速收集恢复为右下角展开式 FAB（See HomeFabComponent），本栏不再承载记录键。
 class HomeNavigatorBar extends StatelessWidget {
-  static const double defaultNavigatorBarHeight = 64.0;
+  static const double defaultNavigatorBarHeight = 56.0;
 
   final Animation<double> animation;
 
@@ -15,25 +15,15 @@ class HomeNavigatorBar extends StatelessWidget {
   /// 直接跳转 PageView 页面（首页/日历/媒体）
   final Function(int) onTap;
 
-  /// 点击中央记录键（打开快速收集面板）
-  final VoidCallback? onCapture;
-
-  /// 点击“更多”（由 HomePage 打开底部面板：CRM/AI/设置等）
+  /// 点击“更多”（由 HomePage 打开底部面板：CRM/AI/回望/设置等）
   final VoidCallback? onMore;
-
-  /// 列表滚回顶部小按钮
-  final RxBool isToTopShow;
-  final VoidCallback? onToTop;
 
   const HomeNavigatorBar({
     super.key,
     required this.animation,
     required this.navigatorIndex,
     required this.onTap,
-    this.onCapture,
     this.onMore,
-    required this.isToTopShow,
-    this.onToTop,
   });
 
   @override
@@ -47,10 +37,7 @@ class HomeNavigatorBar extends StatelessWidget {
       child: AnimatedBuilder(
         animation: animation,
         builder: (context, child) {
-          return SizedBox(
-            height: height * animation.value,
-            child: child,
-          );
+          return SizedBox(height: height * animation.value, child: child);
         },
         child: OverflowBox(
           maxHeight: height,
@@ -67,37 +54,7 @@ class HomeNavigatorBar extends StatelessWidget {
                 ),
               ),
             ),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned.fill(child: _buildBar(context)),
-                // 回顶按钮：出现在底栏上方右侧，避免依赖旧的展开式 FAB。
-                Obx(() {
-                  if (!isToTopShow.value || onToTop == null) {
-                    return const SizedBox.shrink();
-                  }
-                  return Positioned(
-                    right: 12,
-                    bottom: height + 8,
-                    child: Material(
-                      color: context.theme.colorScheme.tertiaryContainer,
-                      shape: const CircleBorder(),
-                      elevation: 2,
-                      child: IconButton(
-                        tooltip: '回到顶部',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: onToTop,
-                        icon: Icon(
-                          Icons.arrow_upward_rounded,
-                          color:
-                              context.theme.colorScheme.onTertiaryContainer,
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
+            child: Obx(() => _buildBar(context)),
           ),
         ),
       ),
@@ -161,34 +118,6 @@ class HomeNavigatorBar extends StatelessWidget {
           selectedIcon: Icons.calendar_month_rounded,
           label: context.l10n.homeNavigatorCalendar,
           onPressed: () => onTap(1),
-        ),
-        Expanded(
-          child: Center(
-            child: Semantics(
-              button: true,
-              label: '快速记录',
-              child: Material(
-                color: colorScheme.primary,
-                shape: const CircleBorder(),
-                elevation: 3,
-                shadowColor: colorScheme.shadow.withValues(alpha: 0.25),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: onCapture,
-                  onLongPress: onCapture,
-                  child: SizedBox(
-                    width: 52,
-                    height: 52,
-                    child: Icon(
-                      Icons.mic_rounded,
-                      color: colorScheme.onPrimary,
-                      size: 26,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
         ),
         slot(
           index: 2,

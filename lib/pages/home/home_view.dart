@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_adaptive_scaffold/flutter_adaptive_scaffold.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/values/diary_type.dart';
+import 'package:moodiary/components/base/modal.dart';
 import 'package:moodiary/components/desktop_wrapper/background.dart';
 import 'package:moodiary/components/home_fab/home_fab_view.dart';
 import 'package:moodiary/components/home_nativatorbar/navigatorbar.dart';
@@ -33,136 +34,168 @@ class HomePage extends StatelessWidget {
         : Get.put(HomeLogic());
 
     return Scaffold(
-      body: AdaptiveLayout(
-        transitionDuration: const Duration(milliseconds: 200),
-        primaryNavigation: SlotLayout(
-          config: {
-            Breakpoints.mediumAndUp: SlotLayout.from(
-              key: const ValueKey('navigation medium'),
-              builder: (_) {
-                return GestureDetector(
-                  onPanStart: (details) {
-                    appWindow.startDragging();
+      body: Stack(
+        children: [
+          AdaptiveLayout(
+            transitionDuration: const Duration(milliseconds: 200),
+            primaryNavigation: SlotLayout(
+              config: {
+                Breakpoints.mediumAndUp: SlotLayout.from(
+                  key: const ValueKey('navigation medium'),
+                  builder: (_) {
+                    return GestureDetector(
+                      onPanStart: (details) {
+                        appWindow.startDragging();
+                      },
+                      child: Obx(() {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          color: context.theme.colorScheme.surfaceContainer,
+                          child: AdaptiveScaffold.standardNavigationRail(
+                            destinations:
+                                [
+                                      NavigationDestination(
+                                        icon: const Icon(
+                                          Icons.article_outlined,
+                                        ),
+                                        label: context.l10n.homeNavigatorDiary,
+                                        selectedIcon: const Icon(Icons.article),
+                                      ),
+                                      NavigationDestination(
+                                        icon: const Icon(
+                                          Icons.calendar_month_outlined,
+                                        ),
+                                        label:
+                                            context.l10n.homeNavigatorCalendar,
+                                        selectedIcon: const Icon(
+                                          Icons.calendar_month_rounded,
+                                        ),
+                                      ),
+                                      NavigationDestination(
+                                        icon: const Icon(
+                                          Icons.photo_library_outlined,
+                                        ),
+                                        label: context.l10n.homeNavigatorMedia,
+                                        selectedIcon: const Icon(
+                                          Icons.photo_library_rounded,
+                                        ),
+                                      ),
+                                      NavigationDestination(
+                                        icon: const Icon(
+                                          Icons.business_outlined,
+                                        ),
+                                        label: context.l10n.homeNavigatorCrm,
+                                        selectedIcon: const Icon(
+                                          Icons.business_rounded,
+                                        ),
+                                      ),
+                                      NavigationDestination(
+                                        icon: const Icon(
+                                          Icons.auto_awesome_outlined,
+                                        ),
+                                        label: context.l10n.homeNavigatorAi,
+                                        selectedIcon: const Icon(
+                                          Icons.auto_awesome_rounded,
+                                        ),
+                                      ),
+                                      NavigationDestination(
+                                        icon: const Icon(
+                                          Icons.settings_outlined,
+                                        ),
+                                        label:
+                                            context.l10n.homeNavigatorSetting,
+                                        selectedIcon: const Icon(
+                                          Icons.settings_rounded,
+                                        ),
+                                      ),
+                                    ]
+                                    .map(
+                                      (destination) =>
+                                          AdaptiveScaffold.toRailDestination(
+                                            destination,
+                                          ),
+                                    )
+                                    .toList(),
+                            selectedIndex: logic.navigatorIndex.value,
+                            backgroundColor:
+                                context.theme.colorScheme.surfaceContainer,
+                            labelType: NavigationRailLabelType.all,
+                            padding: EdgeInsets.zero,
+                            trailing: Expanded(
+                              child: DesktopHomeFabComponent(
+                                toQuickCapture: () async {
+                                  await _openQuickCapture(context, logic);
+                                },
+                                isToTopShow: logic.isToTopShow,
+                                toTop: logic.toTop,
+                                toNewDiary: () async {
+                                  await logic.toEditPage(
+                                    type: DiaryType.markdown,
+                                  );
+                                },
+                              ),
+                            ),
+                            onDestinationSelected: logic.changeNavigator,
+                          ),
+                        );
+                      }),
+                    );
                   },
-                  child: Obx(() {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      color: context.theme.colorScheme.surfaceContainer,
-                      child: AdaptiveScaffold.standardNavigationRail(
-                        destinations: [
-                          NavigationDestination(
-                            icon: const Icon(Icons.article_outlined),
-                            label: context.l10n.homeNavigatorDiary,
-                            selectedIcon: const Icon(Icons.article),
-                          ),
-                          NavigationDestination(
-                            icon: const Icon(Icons.calendar_month_outlined),
-                            label: context.l10n.homeNavigatorCalendar,
-                            selectedIcon: const Icon(
-                              Icons.calendar_month_rounded,
-                            ),
-                          ),
-                          NavigationDestination(
-                            icon: const Icon(Icons.photo_library_outlined),
-                            label: context.l10n.homeNavigatorMedia,
-                            selectedIcon: const Icon(
-                              Icons.photo_library_rounded,
-                            ),
-                          ),
-                          NavigationDestination(
-                            icon: const Icon(Icons.business_outlined),
-                            label: context.l10n.homeNavigatorCrm,
-                            selectedIcon: const Icon(Icons.business_rounded),
-                          ),
-                          NavigationDestination(
-                            icon: const Icon(Icons.auto_awesome_outlined),
-                            label: context.l10n.homeNavigatorAi,
-                            selectedIcon: const Icon(
-                              Icons.auto_awesome_rounded,
-                            ),
-                          ),
-                          NavigationDestination(
-                            icon: const Icon(Icons.settings_outlined),
-                            label: context.l10n.homeNavigatorSetting,
-                            selectedIcon: const Icon(Icons.settings_rounded),
-                          ),
-                        ]
-                            .map(
-                              (destination) =>
-                                  AdaptiveScaffold.toRailDestination(
-                                    destination,
-                                  ),
-                            )
-                            .toList(),
-                        selectedIndex: logic.navigatorIndex.value,
-                        backgroundColor:
-                            context.theme.colorScheme.surfaceContainer,
-                        labelType: NavigationRailLabelType.all,
-                        padding: EdgeInsets.zero,
-                        trailing: Expanded(
-                          child: DesktopHomeFabComponent(
-                            toQuickCapture: () async {
-                              await _openQuickCapture(context, logic);
-                            },
-                            isToTopShow: logic.isToTopShow,
-                            toTop: logic.toTop,
-                            toNewDiary: () async {
-                              await logic.toEditPage(
-                                type: DiaryType.markdown,
-                              );
-                            },
-                          ),
-                        ),
-                        onDestinationSelected: logic.changeNavigator,
+                ),
+              },
+            ),
+            body: SlotLayout(
+              config: {
+                Breakpoints.standard: SlotLayout.from(
+                  key: const ValueKey('body'),
+                  builder: (_) {
+                    return AdaptiveBackground(
+                      child: PageView(
+                        key: logic.bodyKey,
+                        controller: logic.pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: const [
+                          DiaryPage(),
+                          CalendarPage(),
+                          MediaPage(),
+                          CrmHomePage(),
+                          AiHomePage(),
+                          SettingPage(),
+                        ],
                       ),
                     );
-                  }),
-                );
+                  },
+                ),
               },
             ),
-          },
-        ),
-        body: SlotLayout(
-          config: {
-            Breakpoints.standard: SlotLayout.from(
-              key: const ValueKey('body'),
-              builder: (_) {
-                return AdaptiveBackground(
-                  child: PageView(
-                    key: logic.bodyKey,
-                    controller: logic.pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: const [
-                      DiaryPage(),
-                      CalendarPage(),
-                      MediaPage(),
-                      CrmHomePage(),
-                      AiHomePage(),
-                      SettingPage(),
-                    ],
-                  ),
-                );
-              },
-            ),
-          },
-        ),
+          ),
+          Modal(onTap: logic.closeFab, animation: logic.fabAnimation),
+        ],
       ),
       bottomNavigationBar: HomeNavigatorBar(
         animation: logic.barAnimation,
         navigatorIndex: logic.navigatorIndex,
         onTap: logic.changeNavigator,
-        onCapture: () => _openQuickCapture(context, logic),
         onMore: () => _showMoreSheet(context, logic),
+      ),
+      floatingActionButton: HomeFabComponent(
+        animation: logic.fabAnimation,
+        shouldShow: logic.shouldShow,
         isToTopShow: logic.isToTopShow,
-        onToTop: logic.toTop,
+        isExpanded: logic.isFabExpanded,
+        showShadow: true,
+        openFab: () => _openQuickCapture(context, logic),
+        onLongPressOpen: logic.openFab,
+        toTop: logic.toTop,
+        toNewDiary: () async {
+          await logic.toEditPage(type: DiaryType.markdown);
+        },
+        closeFab: logic.closeFab,
       ),
     );
   }
 
-  Future<void> _openQuickCapture(
-    BuildContext context,
-    HomeLogic logic,
-  ) async {
+  Future<void> _openQuickCapture(BuildContext context, HomeLogic logic) async {
     await QuickCaptureSheet.show(
       context,
       onCreate: (type) async {
@@ -195,7 +228,10 @@ class HomePage extends StatelessWidget {
               ),
               if (PrefUtil.getValue<bool>('moduleCrm') != false)
                 ListTile(
-                  leading: Icon(Icons.business_outlined, color: colorScheme.primary),
+                  leading: Icon(
+                    Icons.business_outlined,
+                    color: colorScheme.primary,
+                  ),
                   title: const Text('CRM'),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () {
@@ -230,10 +266,7 @@ class HomePage extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: Icon(
-                  Icons.today_rounded,
-                  color: colorScheme.primary,
-                ),
+                leading: Icon(Icons.today_rounded, color: colorScheme.primary),
                 title: const Text('每日回望'),
                 subtitle: const Text('生成今日回顾'),
                 trailing: const Icon(Icons.chevron_right_rounded),
@@ -256,7 +289,10 @@ class HomePage extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: Icon(Icons.settings_outlined, color: colorScheme.primary),
+                leading: Icon(
+                  Icons.settings_outlined,
+                  color: colorScheme.primary,
+                ),
                 title: const Text('设置'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () {
@@ -279,20 +315,20 @@ class HomePage extends StatelessWidget {
       if (diary == null) {
         // 需要全局便捷提示
         // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('AI 未配置或生成失败，请检查设置')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('AI 未配置或生成失败，请检查设置')));
       } else {
         // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已生成「${diary.title}」')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('已生成「${diary.title}」')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('回望失败：$e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('回望失败：$e')));
       }
     }
   }
