@@ -58,6 +58,10 @@ class BlockMeta {
   /// 所属主题知识库 id 列表（逗号分隔，meta 承载，避免建新表）
   String knowledgeBaseIds;
 
+  /// 订阅源 id / 条目去重键（captureType=feed 时使用）
+  String feedId;
+  String feedItemKey;
+
   BlockMeta({
     this.source = sourceInitial,
     this.syncStatus = syncSynced,
@@ -73,6 +77,8 @@ class BlockMeta {
     this.captureType = '',
     this.sourceUrl = '',
     this.knowledgeBaseIds = '',
+    this.feedId = '',
+    this.feedItemKey = '',
   });
 
   bool get isAi => source == sourceAi;
@@ -101,6 +107,8 @@ class BlockMeta {
       captureType: captureType,
       sourceUrl: sourceUrl,
       knowledgeBaseIds: knowledgeBaseIds,
+      feedId: feedId,
+      feedItemKey: feedItemKey,
     );
   }
 
@@ -120,6 +128,8 @@ class BlockMeta {
       'captureType': captureType,
       'sourceUrl': sourceUrl,
       'knowledgeBaseIds': knowledgeBaseIds,
+      'feedId': feedId,
+      'feedItemKey': feedItemKey,
     };
   }
 
@@ -139,6 +149,8 @@ class BlockMeta {
       captureType: json['captureType'] as String? ?? '',
       sourceUrl: json['sourceUrl'] as String? ?? '',
       knowledgeBaseIds: json['knowledgeBaseIds'] as String? ?? '',
+      feedId: json['feedId'] as String? ?? '',
+      feedItemKey: json['feedItemKey'] as String? ?? '',
     );
   }
 
@@ -173,7 +185,9 @@ class BlockMeta {
           role == other.role &&
           captureType == other.captureType &&
           sourceUrl == other.sourceUrl &&
-          knowledgeBaseIds == other.knowledgeBaseIds;
+          knowledgeBaseIds == other.knowledgeBaseIds &&
+          feedId == other.feedId &&
+          feedItemKey == other.feedItemKey;
 
   @override
   int get hashCode =>
@@ -192,5 +206,7 @@ class BlockMeta {
         captureType,
         sourceUrl,
         knowledgeBaseIds,
+        feedId,
+        feedItemKey,
       );
 }

@@ -112,6 +112,8 @@ class PrefUtil {
     'digestAutoEnabled',
     // 移动端底部导航按钮配置（JSON 数组）
     'mobileNavItems',
+    // RSS/订阅源列表（JSON）
+    'feedSources',
     // 联网搜索
     'aiSearchEnabled',
     'aiSearchEngine',

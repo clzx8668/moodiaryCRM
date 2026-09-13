@@ -67,6 +67,9 @@ class FeedItem {
 
   /// 原始 HTML（description/content:encoded 等），用于正文兜底
   final String contentHtml;
+
+  /// 正文（摘要不足时由链接采集补齐；空表示未补齐）
+  final String body;
   final String author;
   final String guid;
   final DateTime? publishedAt;
@@ -76,10 +79,22 @@ class FeedItem {
     required this.link,
     this.summary = '',
     this.contentHtml = '',
+    this.body = '',
     this.author = '',
     this.guid = '',
     this.publishedAt,
   });
+
+  FeedItem copyWith({String? body}) => FeedItem(
+    title: title,
+    link: link,
+    summary: summary,
+    contentHtml: contentHtml,
+    body: body ?? this.body,
+    author: author,
+    guid: guid,
+    publishedAt: publishedAt,
+  );
 }
 
 /// 单次拉取结果。
