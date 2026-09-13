@@ -633,17 +633,17 @@ class SettingPage extends StatelessWidget {
             margin: EdgeInsets.zero,
             child: Obx(() {
               final current = MobileNavConfig.items;
+              const all = MobileNavConfig.all;
               return Column(
                 children: [
-                  for (final d in MobileNavConfig.all)
-                    CheckboxListTile(
-                      dense: true,
-                      value: current.contains(d.pageIndex),
-                      title: Text(d.label),
-                      secondary: Icon(d.icon),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      onChanged: (v) =>
-                          _toggleNavItem(d.pageIndex, v == true),
+                  for (var i = 0; i < all.length; i++)
+                    AdaptiveSwitchListTile(
+                      value: current.contains(all[i].pageIndex),
+                      onChanged: (v) => _toggleNavItem(all[i].pageIndex, v),
+                      title: Text(all[i].label),
+                      secondary: Icon(all[i].icon),
+                      isFirst: i == 0,
+                      isLast: i == all.length - 1,
                     ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
@@ -821,7 +821,7 @@ class _DigestAutoSwitchTileState extends State<_DigestAutoSwitchTile> {
       value: _value,
       onChanged: _toggle,
       title: const Text('自动生成回望'),
-      subtitle: const Text('每天 21:00 后生成每日回望；周一另生成每周回望'),
+      subtitle: const Text('每日 21:00 后自动生成；周一含周报'),
       secondary: const Icon(Icons.auto_mode_rounded),
       isLast: widget.isLast,
     );

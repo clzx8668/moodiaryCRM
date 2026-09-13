@@ -202,7 +202,12 @@ class _DiaryTabViewComponentState extends State<DiaryTabViewComponent> {
     );
 
     return Padding(
-      padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
+      // 移动端右下角有展开式 FAB：底部留白避免遮住最后一条卡片
+      padding: EdgeInsets.only(
+        left: 8,
+        right: 8,
+        bottom: size.width < 600 ? 88 : 8,
+      ),
       child: ClipRRect(
         clipper: TopRRectClipper(
           // tab 行已在外部控制行，NestedScrollView 头部为 0 高度 absorber，
