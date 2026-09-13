@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:moodiary/features/nav/mobile_nav_config.dart';
 
 void main() {
@@ -27,6 +28,13 @@ void main() {
       expect(MobileNavConfig.byIndex(4)?.label, 'AI');
       expect(MobileNavConfig.byIndex(5)?.label, '设置');
       expect(MobileNavConfig.byIndex(99), isNull);
+    });
+
+    test('items 可被 assignAll 覆写（底层必须是可增长列表）', () {
+      MobileNavConfig.items.assignAll([0, 1, 4, 5]);
+      expect(MobileNavConfig.items, [0, 1, 4, 5]);
+      MobileNavConfig.items.assignAll([0, 5]);
+      expect(MobileNavConfig.items.length, 2);
     });
   });
 }

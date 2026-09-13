@@ -75,7 +75,7 @@ class MobileNavConfig {
   static const int maxItems = 5;
 
   /// 当前生效的导航项（pageIndex 列表，RxList 便于 UI 即时刷新）。
-  static final RxList<int> items = defaultItems.obs;
+  static final RxList<int> items = List<int>.of(defaultItems).obs;
 
   static bool _loaded = false;
 
