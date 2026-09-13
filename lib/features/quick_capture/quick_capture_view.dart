@@ -8,6 +8,8 @@ import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/link_capture/link_capture_saver.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_logic.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
+import 'package:moodiary/features/vision/vision_capture_saver.dart';
+import 'package:moodiary/utils/media_util.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 快速收集面板（进入即激活态两行输入框，提交后清空并退出）。
@@ -298,6 +300,15 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                         _showLinkCapture(context);
                       },
                     ),
+                    _AppendTile(
+                      icon: Icons.document_scanner_outlined,
+                      label: '图片速记',
+                      color: colorScheme.tertiaryContainer,
+                      onTap: () {
+                        Get.back();
+                        _showVisionCapture(context);
+                      },
+                    ),
                   ],
                 ),
               ],
@@ -348,6 +359,27 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
       }
     } catch (e) {
       if (mounted) toast.error(message: '链接采集失败：$e');
+    }
+  }
+
+  /// 图片速记（对标得到大脑「智能拍书」）：选图 → 视觉整理 → 生成笔记。
+  Future<void> _showVisionCapture(BuildContext context) async {
+    try {
+      final files = await MediaUtil.pickMultiPhoto(null);
+      if (files.isEmpty) return;
+      toast.info(message: '正在识别图片…');
+      final diary = await VisionCaptureSaver.saveFromImagePath(
+        files.first.path,
+      );
+      if (!mounted) return;
+      if (diary == null) {
+        toast.error(message: '图片识别失败：请先在设置配置视觉模型');
+        return;
+      }
+      toast.success(message: '已生成图片笔记「${diary.title}」');
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) toast.error(message: '图片速记失败：$e');
     }
   }
 }

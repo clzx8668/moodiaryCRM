@@ -51,9 +51,31 @@ class AiChatMessage {
   final String role; // system / user / assistant
   final String content;
 
-  const AiChatMessage({required this.role, required this.content});
+  /// 多模态图片（data URL 或公网 URL）；非空时 content 序列化为 parts 数组。
+  final List<String> images;
 
-  Map<String, dynamic> toJson() => {'role': role, 'content': content};
+  const AiChatMessage({
+    required this.role,
+    required this.content,
+    this.images = const [],
+  });
+
+  bool get hasImages => images.isNotEmpty;
+
+  Map<String, dynamic> toJson() {
+    if (images.isEmpty) return {'role': role, 'content': content};
+    return {
+      'role': role,
+      'content': [
+        if (content.trim().isNotEmpty) {'type': 'text', 'text': content},
+        for (final url in images)
+          {
+            'type': 'image_url',
+            'image_url': {'url': url},
+          },
+      ],
+    };
+  }
 }
 
 /// 工具定义（Function Calling）
@@ -136,6 +158,46 @@ class AiProviderFactory {
       if (c.isConfigured) {
         return OpenAiCompatibleProvider(
           config: c.toAiConfig(modelOverride: light.modelName),
+        );
+      }
+    }
+    return AiCompositeProvider.fromStore();
+  }
+
+  /// 视觉模型 Provider（图片理解 / OCR / 拍书）：优先 vision 能力指定的服务商+模型，
+  /// 未指定时回退第一个配置了 visionModel 的服务商。
+  static Future<AiProvider> loadVision() async {
+    final providers = await AiProviderStore.loadAll();
+    final caps = await AiCapabilityStore.load();
+    final enabled = AiProviderStore.enabledConfigured(providers);
+    if (enabled.isEmpty) return AiCompositeProvider.fromStore();
+
+    final vision = caps.vision;
+    var pid = vision.providerId;
+    if (pid.isEmpty) {
+      for (final c in enabled) {
+        if (c.visionModel.isNotEmpty) {
+          pid = c.id;
+          break;
+        }
+      }
+    }
+    for (final c in enabled) {
+      if (c.id == pid && c.isConfigured) {
+        return OpenAiCompatibleProvider(
+          config: c.toAiConfig(
+            modelOverride: vision.modelName.isNotEmpty
+                ? vision.modelName
+                : c.visionModel,
+          ),
+        );
+      }
+    }
+    // 回退：首个启用了视觉模型的服务商
+    for (final c in enabled) {
+      if (c.visionModel.isNotEmpty && c.isConfigured) {
+        return OpenAiCompatibleProvider(
+          config: c.toAiConfig(modelOverride: c.visionModel),
         );
       }
     }
