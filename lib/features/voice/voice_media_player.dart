@@ -38,6 +38,21 @@ class _VoiceMediaPlayerState extends State<VoiceMediaPlayer> {
   }
 
   @override
+  void didUpdateWidget(covariant VoiceMediaPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 录音文件变化（重新录音/换文件）时重新挂载音源
+    if (oldWidget.path != widget.path) {
+      _player.stop();
+      setState(() {
+        _position = Duration.zero;
+        _duration = Duration.zero;
+        _state = PlayerState.stopped;
+      });
+      _player.setSourceDeviceFile(widget.path);
+    }
+  }
+
+  @override
   void dispose() {
     _player.dispose();
     super.dispose();

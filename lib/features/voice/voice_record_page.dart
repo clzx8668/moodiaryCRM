@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:record/record.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/ai/colloquial/de_colloquial_meta.dart';
@@ -24,6 +26,13 @@ import 'package:uuid/uuid.dart';
 class VoiceRecordPage extends StatefulWidget {
   const VoiceRecordPage({super.key});
 
+  /// 录音时长格式化（纯函数，便于单测）。
+  static String formatRecordDuration(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
   @override
   State<VoiceRecordPage> createState() => _VoiceRecordPageState();
 }
@@ -36,12 +45,68 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
   String _cleaned = '';
   bool _listening = false;
   bool _saving = false;
+  bool _recording = false;
+  Duration _elapsed = Duration.zero;
+  Timer? _timer;
+  final AudioRecorder _recorder = AudioRecorder();
 
   @override
   void dispose() {
+    _timer?.cancel();
+    _recorder.dispose();
     _titleCtrl.dispose();
     _transcriptCtrl.dispose();
     super.dispose();
+  }
+
+  /// 应用内直接录音（Android/iOS 用 m4a，桌面用 wav）。
+  Future<void> _toggleRecording() async {
+    if (_recording) {
+      try {
+        await _recorder.stop();
+      } catch (_) {}
+      _timer?.cancel();
+      if (!mounted) return;
+      setState(() {
+        _recording = false;
+        _elapsed = Duration.zero;
+      });
+      toast.success(message: '录音完成，可回放或转写');
+      return;
+    }
+
+    final hasPermission = await _recorder.hasPermission();
+    if (!hasPermission) {
+      if (mounted) toast.error(message: '未获得麦克风权限');
+      return;
+    }
+    final isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final ext = isDesktop ? '.wav' : '.m4a';
+    final name = 'audio-${const Uuid().v7()}$ext';
+    final path = FileUtil.getRealPath('audio', name);
+    try {
+      await _recorder.start(
+        RecordConfig(
+          encoder: isDesktop ? AudioEncoder.wav : AudioEncoder.aacLc,
+        ),
+        path: path,
+      );
+      if (!mounted) return;
+      setState(() {
+        _recording = true;
+        _audioFile = name;
+        _elapsed = Duration.zero;
+      });
+      _timer?.cancel();
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) {
+          setState(() => _elapsed += const Duration(seconds: 1));
+        }
+      });
+    } catch (e) {
+      if (mounted) toast.error(message: '录音失败：$e');
+    }
   }
 
   Future<void> _pickAudio() async {
@@ -183,32 +248,58 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Card.filled(
+            color: theme.colorScheme.surfaceContainerLow,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(
+                    _recording
+                        ? Icons.graphic_eq_rounded
+                        : Icons.mic_none_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _recording
+                              ? '正在录音 ${VoiceRecordPage.formatRecordDuration(_elapsed)}'
+                              : '直接录音',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '也可点右上角选择已有音频文件（m4a / wav / mp3）',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed: _toggleRecording,
+                    icon: Icon(
+                      _recording
+                          ? Icons.stop_rounded
+                          : Icons.fiber_manual_record_rounded,
+                      size: 18,
+                    ),
+                    label: Text(_recording ? '停止' : '录音'),
+                  ),
+                ],
+              ),
+            ),
+          ),
           if (_audioFile != null) ...[
+            const SizedBox(height: 12),
             VoiceMediaPlayer(
               path: FileUtil.getRealPath('audio', _audioFile!),
               label: '录音回放（重听）',
             ),
-            const SizedBox(height: 12),
-          ] else
-            Card.filled(
-              color: theme.colorScheme.surfaceContainerLow,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(Icons.graphic_eq_rounded,
-                        color: theme.colorScheme.primary),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '点击右上角选择录音文件后，可在此回放与转写',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          ],
 
           const SizedBox(height: 12),
           TextField(
@@ -291,3 +382,4 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
     );
   }
 }
+
