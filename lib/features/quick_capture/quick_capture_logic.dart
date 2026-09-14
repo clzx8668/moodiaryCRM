@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_saver.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
+import 'package:moodiary/features/quick_capture/quick_capture_template_action.dart';
 import 'package:moodiary/features/sync_log/sync_log.dart';
 import 'package:moodiary/features/voice/speech_service.dart';
 import 'package:moodiary/utils/media_util.dart';
@@ -150,14 +154,28 @@ class QuickCaptureLogic extends GetxController {
         template: state.selectedTemplate.value,
       );
       if (state.selectedTemplate.value.isNotEmpty) {
+        final template = state.selectedTemplate.value;
+        final action = quickCaptureActionFor(template);
         await SyncLogService.instance.write(
           level: SyncLogLevel.info,
           operation: 'ai',
           target: 'template',
-          detail:
-              '模板【${state.selectedTemplate.value}】AI 处理占位（diary ${diary.id}）',
+          detail: action == null
+              ? '模板【$template】已保存（无后台处理）'
+              : '模板【$template】已提交 AI 处理（diary ${diary.id}）',
         );
-        toast.success(message: '已按【${state.selectedTemplate.value}】模板保存，AI 处理接入中');
+        if (action != null) {
+          unawaited(
+            AiTaskQueueWorker.instance.submitTask(
+              type: action.type,
+              refId: diary.id,
+              payload: action.payload,
+            ),
+          );
+          toast.success(message: '已按【$template】保存，AI 正在处理…');
+        } else {
+          toast.success(message: '已按【$template】模板保存');
+        }
       } else {
         toast.success(message: '已保存速记');
       }

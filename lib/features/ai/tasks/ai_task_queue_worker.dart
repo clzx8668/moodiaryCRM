@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:moodiary/features/ai/colloquial/de_colloquial_service.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_service.dart';
+import 'package:moodiary/features/ai/template_process_service.dart';
 import 'package:moodiary/features/ai/tagging_service.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
 import 'package:moodiary/persistence/app_database.dart';
@@ -96,6 +97,10 @@ class AiTaskQueueWorker {
         case AiTaskType.extractPlan:
           // extract_plan：抽取待办/CRM/日程；待办与日程落库，CRM 生成提案待审核
           await ExtractPlanService.processDiary(task.refId);
+          break;
+        case AiTaskType.aiTemplate:
+          // 快速收集模板：按 payload 指定的模板处理并落 AI 生成区
+          await TemplateProcessService.processDiary(task.refId, task.payload);
           break;
         default:
           // 预留类型（embedding/index）暂不执行，直接完成

@@ -21,6 +21,8 @@ class AiTaskType {
   static const index = 'index';
   static const deColloquial = 'de_colloquial';
   static const extractPlan = 'extract_plan';
+  /// 快速收集模板的 AI 处理（payload = AiTemplates 模板 id）
+  static const aiTemplate = 'ai_template';
 }
 
 /// AI 任务仓储（Drift `AiTasks` 表读写，M2 队列的数据层）。

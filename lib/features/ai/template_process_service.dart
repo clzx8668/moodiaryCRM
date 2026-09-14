@@ -1,0 +1,61 @@
+import 'package:moodiary/features/ai/ai_provider.dart';
+import 'package:moodiary/features/ai/prompts.dart';
+import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/persistence/isar.dart';
+import 'package:uuid/uuid.dart';
+
+/// 快速收集「模板」的 AI 处理：把日记主文本按模板（扩写/润色/会议/翻译/打卡）处理后，
+/// 在 AI 生成区新建 `source=ai, aiTemplate=<模板>` 的文本块（原文保留）。
+class TemplateProcessService {
+  TemplateProcessService._();
+
+  static Future<bool> processDiary(String diaryId, String templateId) async {
+    if (templateId.trim().isEmpty) return false;
+    final block = await _primaryTextBlock(diaryId);
+    if (block == null || block.content.trim().isEmpty) return false;
+
+    final provider = await AiProviderFactory.load();
+    if (!provider.isConfigured) return false;
+
+    final completion = await provider.completeChat([
+      const AiChatMessage(role: 'system', content: '你是笔记整理助手，用中文输出。'),
+      AiChatMessage(
+        role: 'user',
+        content: AiTemplates.build(templateId, block.content),
+      ),
+    ]);
+    final text = completion.content.trim();
+    if (text.isEmpty) return false;
+
+    final blocks = await IsarUtil.getBlocksByDiary(diaryId);
+    final sortOrder = blocks.isEmpty
+        ? 0
+        : blocks.map((b) => b.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+    final now = DateTime.now();
+    final aiBlock = Block()
+      ..id = const Uuid().v7()
+      ..diaryId = diaryId
+      ..blockType = BlockType.text
+      ..content = text
+      ..sortOrder = sortOrder
+      ..createdAt = now
+      ..updatedAt = now
+      ..meta = BlockMeta(
+        source: BlockMeta.sourceAi,
+        aiTemplate: templateId,
+        sourceContent: block.content,
+        title: AiTemplates.label(templateId),
+      );
+    await IsarUtil.insertBlock(aiBlock);
+    return true;
+  }
+
+  static Future<Block?> _primaryTextBlock(String diaryId) async {
+    final blocks = await IsarUtil.getBlocksByDiary(diaryId);
+    final texts = blocks
+        .where((b) => b.blockType == BlockType.text && !b.isDeleted)
+        .toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    return texts.isEmpty ? null : texts.first;
+  }
+}
