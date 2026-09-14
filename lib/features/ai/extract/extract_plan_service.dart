@@ -1,4 +1,5 @@
 import 'package:moodiary/features/ai/ai_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
 import 'package:moodiary/features/schedule/schedule_repository.dart';
@@ -45,12 +46,16 @@ class ExtractPlanService {
         return null;
       }
 
+      // 去重：同标题的待办/日程合并（模型可能把同一件事同时放进 actions 与 events）
+      final deduped = dedupe(result);
+      final plan = deduped.result;
+
       final createdSchedules = <String>[];
       final createdTitles = <String>[];
       final scheduleRepo = ScheduleRepository();
       final today = DateTime.now();
       if (config.todo) {
-        for (final a in result.actions) {
+        for (final a in plan.actions) {
           final s = await scheduleRepo.create(
             Schedule()
               ..title = a.title
@@ -67,8 +72,10 @@ class ExtractPlanService {
         }
       }
       if (config.schedule) {
-        for (final e in result.events) {
+        for (final e in plan.events) {
           final start = _date(e.start);
+          // 若同标题的待办被合并进日程，继承其优先级与备注
+          final merged = deduped.eventActions[normalizeTitle(e.title)];
           final s = await scheduleRepo.create(
             Schedule()
               ..title = e.title
@@ -76,6 +83,10 @@ class ExtractPlanService {
               ..endTime = e.end != null ? _date(e.end) : null
               ..allDay = e.allDay
               ..remindOffsetMin = _remind(e.remind)
+              ..priority = merged == null
+                  ? SchedulePriority.none
+                  : _priority(merged.priority)
+              ..notes = merged?.note ?? ''
               ..linkedDiaryId = diaryId
               ..linkedBlockId = block.id,
           );
@@ -84,7 +95,7 @@ class ExtractPlanService {
         }
       }
 
-      final crmProposals = config.crm ? result.crm : const <ExtractCrm>[];
+      final crmProposals = config.crm ? plan.crm : const <ExtractCrm>[];
       if (createdSchedules.isNotEmpty || crmProposals.isNotEmpty) {
         // 在 AI 生成区新建「AI 提取」块（source=ai，aiTemplate='extract'），源笔记块保持原样
         final aiBlock = await _createExtractBlock(
@@ -92,7 +103,7 @@ class ExtractPlanService {
           originalContent: block.content,
           titles: createdTitles,
           crm: crmProposals,
-          summary: config.summary ? result.summary : '',
+          summary: config.summary ? plan.summary : '',
           scheduleIds: createdSchedules,
           crmProposalsMeta: crmProposals,
         );
@@ -101,11 +112,61 @@ class ExtractPlanService {
           return null;
         }
       }
-      return result;
+      return plan;
     } catch (e) {
       _writeMeta(block, 'failed', '抽取异常：$e');
       rethrow;
     }
+  }
+
+  /// 标题归一化（去空白 + 小写），用于判重。
+  static String normalizeTitle(String s) =>
+      s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
+
+  /// 纯函数去重：
+  /// - 待办 / 日程各自按标题去重（保留首个）；
+  /// - 待办与日程同标题时保留日程（时间更具体），并通过 [eventActions] 返回被合并的待办，
+  ///   供落库时继承其优先级与备注。
+  @visibleForTesting
+  static ({ExtractPlanResult result, Map<String, ExtractAction> eventActions})
+  dedupe(ExtractPlanResult raw) {
+    final actions = <ExtractAction>[];
+    final actionSeen = <String>{};
+    for (final a in raw.actions) {
+      final key = normalizeTitle(a.title);
+      if (key.isEmpty || !actionSeen.add(key)) continue;
+      actions.add(a);
+    }
+
+    final events = <ExtractEvent>[];
+    final eventSeen = <String>{};
+    for (final e in raw.events) {
+      final key = normalizeTitle(e.title);
+      if (key.isEmpty || !eventSeen.add(key)) continue;
+      events.add(e);
+    }
+
+    final eventKeys = events.map((e) => normalizeTitle(e.title)).toSet();
+    final eventActions = <String, ExtractAction>{};
+    final keptActions = <ExtractAction>[];
+    for (final a in actions) {
+      final key = normalizeTitle(a.title);
+      if (eventKeys.contains(key)) {
+        eventActions[key] = a;
+      } else {
+        keptActions.add(a);
+      }
+    }
+
+    return (
+      result: ExtractPlanResult(
+        actions: keptActions,
+        events: events,
+        crm: raw.crm,
+        summary: raw.summary,
+      ),
+      eventActions: eventActions,
+    );
   }
 
   static Future<Block?> _createExtractBlock({
