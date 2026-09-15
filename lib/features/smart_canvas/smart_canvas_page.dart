@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/components/base/button.dart';
 import 'package:moodiary/components/mood_icon/mood_icon_view.dart';
@@ -15,6 +14,7 @@ import 'package:moodiary/features/ai/skills/works_service.dart';
 import 'package:moodiary/features/ai/autolink/auto_link_service.dart';
 import 'package:moodiary/features/ai/autolink/semantic_link_service.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
+import 'package:moodiary/features/smart_canvas/widgets/relative_time.dart';
 import 'package:moodiary/features/collection/kb_collection_service.dart';
 import 'package:moodiary/features/ai/extract/ai_extract_meta.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_config.dart';
@@ -71,6 +71,10 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
   bool _voiceMode = false;
   bool _listening = false;
 
+  /// 滚动到一定距离后，才在顶栏显示笔记标题（滚动前标题已在正文首卡里，避免重复）。
+  final ScrollController _scrollController = ScrollController();
+  final ValueNotifier<bool> _barTitleVisible = ValueNotifier<bool>(false);
+
   /// 📎 附加知识文本列表（文件/笔记/CRM），注入 AI 对话上下文
   final List<String> _attachments = [];
 
@@ -81,10 +85,14 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     logic = Get.isRegistered<SmartCanvasLogic>(tag: _tag)
         ? Get.find<SmartCanvasLogic>(tag: _tag)
         : Get.put(SmartCanvasLogic(), tag: _tag);
+    _scrollController.addListener(_onScrollForBarTitle);
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScrollForBarTitle);
+    _scrollController.dispose();
+    _barTitleVisible.dispose();
     _aiInput.dispose();
     _aiFocus.dispose();
     // 手动注册的 SmartCanvasLogic 需显式删除，否则每次进详情页泄漏
@@ -92,6 +100,14 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
       Get.delete<SmartCanvasLogic>(tag: _tag, force: true);
     }
     super.dispose();
+  }
+
+  void _onScrollForBarTitle() {
+    if (!_scrollController.hasClients) return;
+    final visible = _scrollController.offset > 56;
+    if (_barTitleVisible.value != visible) {
+      _barTitleVisible.value = visible;
+    }
   }
 
   Future<void> _showAiTemplateSheet(Block block) async {
@@ -519,7 +535,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
           MoodIconComponent(value: diary.mood),
           const SizedBox(width: 8),
           Text(
-            DateFormat('M月d日 HH:mm').format(diary.time),
+            relativeTimeLabel(diary.time),
             style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(width: 8),
@@ -771,12 +787,24 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
           children: [
           Expanded(
             child: CustomScrollView(
+              controller: _scrollController,
               slivers: [
                 SliverAppBar(
-                  title: Obx(
-                    () => Text(
-                      logic.canvasState.diaryTitle.value,
-                      style: Theme.of(context).textTheme.titleMedium,
+                  // 标题在正文首卡里已大字展示：滚动前不重复，滚过首屏后再淡入顶栏
+                  title: ValueListenableBuilder<bool>(
+                    valueListenable: _barTitleVisible,
+                    builder: (context, visible, child) => AnimatedOpacity(
+                      opacity: visible ? 1 : 0,
+                      duration: const Duration(milliseconds: 160),
+                      child: child,
+                    ),
+                    child: Obx(
+                      () => Text(
+                        logic.canvasState.diaryTitle.value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                     ),
                   ),
                   leading: const PageBackButton(),

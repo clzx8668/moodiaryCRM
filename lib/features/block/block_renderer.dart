@@ -8,8 +8,18 @@ import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/components/diary_render/diary_render.dart';
 import 'package:moodiary/components/markdown_embed/image_embed.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/smart_canvas/widgets/reading_typography.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/file_util.dart';
+
+/// Markdown 渲染的标题层级口径。
+enum MarkdownHeadingScale {
+  /// 与编辑器一致（H1 = 32px）
+  standard,
+
+  /// 卡片正文阅读态（标题整体收敛一档）
+  card,
+}
 
 /// Markdown 内容渲染（统一配置 + 图片解析）
 class MarkdownContentView extends StatelessWidget {
@@ -19,11 +29,16 @@ class MarkdownContentView extends StatelessWidget {
   /// 是否允许文本选择（SelectionArea）。详情页卡片内关闭，避免拦截点击进编辑器。
   final bool selectable;
 
+  /// 阅读态标题层级：card 表示「卡片正文」（标题收敛，避免巨字墙），
+  /// 默认与编辑器一致（保持上层行为不变）。
+  final MarkdownHeadingScale headingScale;
+
   const MarkdownContentView({
     super.key,
     required this.data,
     this.customColorScheme,
     this.selectable = true,
+    this.headingScale = MarkdownHeadingScale.standard,
   });
 
   @override
@@ -34,11 +49,15 @@ class MarkdownContentView extends StatelessWidget {
         brightness == Brightness.dark
             ? MarkdownConfig.darkConfig
             : MarkdownConfig.defaultConfig;
+    final typography = headingScale == MarkdownHeadingScale.card
+        ? ReadingTypography.configs(colorScheme)
+        : const <LeafConfig>[];
     return MarkdownBlock(
       data: data,
       selectable: selectable,
       config: config.copy(
         configs: [
+          ...typography,
           ImgConfig(
             builder: (src, _) {
               return MarkdownImageEmbed(isEdit: false, imageName: src);

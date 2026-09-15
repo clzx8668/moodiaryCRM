@@ -48,6 +48,7 @@ class TextCard extends StatelessWidget {
                     child: MarkdownContentView(
                       data: text,
                       selectable: selectable,
+                      headingScale: MarkdownHeadingScale.card,
                     ),
                   ),
                   // 底部渐变遮罩：指示还有更多内容
@@ -76,7 +77,11 @@ class TextCard extends StatelessWidget {
             ),
           )
         else
-          MarkdownContentView(data: text, selectable: selectable),
+          MarkdownContentView(
+            data: text,
+            selectable: selectable,
+            headingScale: MarkdownHeadingScale.card,
+          ),
         if (needCollapse)
           Center(
             // 只保留箭头图标（展开 ▾ / 收起 ▴），紧凑精致、无文字

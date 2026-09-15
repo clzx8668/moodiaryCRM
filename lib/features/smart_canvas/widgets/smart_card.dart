@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/ai/colloquial/de_colloquial_meta.dart';
@@ -12,6 +11,7 @@ import 'package:moodiary/features/smart_canvas/widgets/chart_card.dart';
 import 'package:moodiary/features/smart_canvas/widgets/code_card.dart';
 import 'package:moodiary/features/smart_canvas/widgets/entity_card.dart';
 import 'package:moodiary/features/smart_canvas/widgets/image_card.dart';
+import 'package:moodiary/features/smart_canvas/widgets/relative_time.dart';
 import 'package:moodiary/features/smart_canvas/widgets/streaming_card.dart';
 import 'package:moodiary/features/smart_canvas/widgets/text_card.dart';
 import 'package:moodiary/features/smart_canvas/widgets/todo_card.dart';
@@ -67,12 +67,7 @@ class SmartCard extends StatelessWidget {
   });
 
   String get _relativeTime {
-    final diff = DateTime.now().difference(block.updatedAt);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} 分钟前';
-    if (diff.inHours < 24) return '${diff.inHours} 小时前';
-    if (diff.inDays < 30) return '${diff.inDays} 天前';
-    return DateFormat('M月d日 HH:mm').format(block.updatedAt);
+    return relativeTimeLabel(block.updatedAt);
   }
 
   String get _aiLabel {
