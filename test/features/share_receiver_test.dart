@@ -33,4 +33,29 @@ void main() {
       expect(ShareReceiver.extractUrl(''), isNull);
     });
   });
+
+  group('ShareReceiver.normalizeShortcutId（长按图标快捷方式）', () {
+    test('三个已知入口原样返回', () {
+      expect(ShareReceiver.normalizeShortcutId('voice'), 'voice');
+      expect(ShareReceiver.normalizeShortcutId('camera'), 'camera');
+      expect(ShareReceiver.normalizeShortcutId('note'), 'note');
+    });
+
+    test('大小写与空白容错', () {
+      expect(ShareReceiver.normalizeShortcutId(' VOICE '), 'voice');
+      expect(ShareReceiver.normalizeShortcutId('Note'), 'note');
+    });
+
+    test('未知 / 空 → 空串（不误触发）', () {
+      expect(ShareReceiver.normalizeShortcutId('unknown'), '');
+      expect(ShareReceiver.normalizeShortcutId(''), '');
+      expect(ShareReceiver.normalizeShortcutId(null), '');
+    });
+
+    test('常量与 shortcuts.xml 对齐', () {
+      expect(ShareReceiver.shortcutVoice, 'voice');
+      expect(ShareReceiver.shortcutCamera, 'camera');
+      expect(ShareReceiver.shortcutNote, 'note');
+    });
+  });
 }

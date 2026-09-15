@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- debug 变体 applicationId 带 .debug 后缀，快捷方式 intent 必须指向它 -->
+    <string name="shortcut_target_package" translatable="false">cn.yooss.moodiary.debug</string>
+</resources>

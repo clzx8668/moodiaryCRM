@@ -2,15 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:moodiary/common/values/border.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/link_capture/link_capture_saver.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_logic.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
-import 'package:moodiary/features/vision/vision_capture_saver.dart';
-import 'package:moodiary/utils/media_util.dart';
+import 'package:moodiary/features/vision/quick_vision.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 快速收集面板（进入即激活态两行输入框，提交后清空并退出）。
@@ -349,17 +347,14 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
   }
 
   /// 图片速记（对标得到大脑「智能拍书」）：选图 → 视觉整理 → 生成笔记。
+  /// 复用 [QuickVisionActions]（未配置视觉模型时退化为附件速记，不丢图片）。
   Future<void> _showVisionCapture(BuildContext context) async {
     try {
-      final files = await MediaUtil.pickMultiPhoto(null);
-      if (files.isEmpty) return;
       toast.info(message: '正在识别图片…');
-      final diary = await VisionCaptureSaver.saveFromImagePath(
-        files.first.path,
-      );
+      final diary = await QuickVisionActions.captureFromGallery();
       if (!mounted) return;
       if (diary == null) {
-        toast.error(message: '图片识别失败：请先在设置配置视觉模型');
+        toast.info(message: '已取消选图');
         return;
       }
       toast.success(message: '已生成图片笔记「${diary.title}」');
@@ -372,13 +367,11 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
   /// 拍照速记（相机直拍 → 视觉整理 → 生成笔记）。
   Future<void> _showCameraCapture(BuildContext context) async {
     try {
-      final shot = await ImagePicker().pickImage(source: ImageSource.camera);
-      if (shot == null) return;
       toast.info(message: '正在识别图片…');
-      final diary = await VisionCaptureSaver.saveFromImagePath(shot.path);
+      final diary = await QuickVisionActions.captureFromCamera();
       if (!mounted) return;
       if (diary == null) {
-        toast.error(message: '图片识别失败：请先在设置配置视觉模型');
+        toast.info(message: '已取消拍照');
         return;
       }
       toast.success(message: '已生成图片笔记「${diary.title}」');

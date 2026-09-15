@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 长按桌面图标弹出的快捷入口（对标 Get 笔记的快速记录入口） -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/launcher_icon"
+        android:shortcutId="voice"
+        android:shortcutLongLabel="@string/shortcut_voice_long"
+        android:shortcutShortLabel="@string/shortcut_voice_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="cn.yooss.moodiary.MainActivity"
+            android:targetPackage="@string/shortcut_target_package">
+            <extra
+                android:name="shortcut_id"
+                android:value="voice" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/launcher_icon"
+        android:shortcutId="camera"
+        android:shortcutLongLabel="@string/shortcut_camera_long"
+        android:shortcutShortLabel="@string/shortcut_camera_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="cn.yooss.moodiary.MainActivity"
+            android:targetPackage="@string/shortcut_target_package">
+            <extra
+                android:name="shortcut_id"
+                android:value="camera" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/launcher_icon"
+        android:shortcutId="note"
+        android:shortcutLongLabel="@string/shortcut_note_long"
+        android:shortcutShortLabel="@string/shortcut_note_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="cn.yooss.moodiary.MainActivity"
+            android:targetPackage="@string/shortcut_target_package">
+            <extra
+                android:name="shortcut_id"
+                android:value="note" />
+        </intent>
+    </shortcut>
+</shortcuts>

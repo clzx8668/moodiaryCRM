@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Moodiary</string>
+    <!-- 长按图标快捷方式（shortcuts.xml） -->
+    <string name="shortcut_voice_short">语音速记</string>
+    <string name="shortcut_voice_long">语音速记（录音→转写→纪要）</string>
+    <string name="shortcut_camera_short">拍照速记</string>
+    <string name="shortcut_camera_long">拍照速记（图片→整理成笔记）</string>
+    <string name="shortcut_note_short">新建笔记</string>
+    <string name="shortcut_note_long">新建一条笔记</string>
+    <!-- 快捷方式 intent 的目标包名：debug 变体在 src/debug 里覆盖（applicationId 带 .debug 后缀） -->
+    <string name="shortcut_target_package" translatable="false">cn.yooss.moodiary</string>
 </resources>

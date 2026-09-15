@@ -3,10 +3,14 @@ package cn.yooss.moodiary
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Bundle
+import android.webkit.MimeTypeMap
 import com.github.gzuliyujiang.oaid.DeviceID
 import com.github.gzuliyujiang.oaid.IGetter
+import java.io.File
+import java.util.UUID
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -17,11 +21,15 @@ class MainActivity : FlutterFragmentActivity() {
 
     private var shareChannel: MethodChannel? = null
     private var pendingShare: String? = null
+    private var pendingShareImage: String? = null
+    private var pendingShortcut: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 冷启动由分享触发时，先记录分享文本，待 Dart 侧就绪后取回
-        pendingShare = extractShare(intent)
+        // 冷启动由分享/快捷方式触发时，先记录负载，待 Dart 侧就绪后取回
+        pendingShare = extractShareText(intent)
+        pendingShortcut = extractShortcut(intent)
+        pendingShareImage = extractShareImage(intent)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -50,7 +58,7 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
-        // 系统分享接收：ACTION_SEND 文本 → Dart（链接采集 / 速记）
+        // 系统分享 / 桌面快捷方式接收：文本、图片 → Dart；长按图标快捷方式 → Dart
         shareChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger, "share_channel"
         ).apply {
@@ -59,6 +67,16 @@ class MainActivity : FlutterFragmentActivity() {
                     "getInitialShare" -> {
                         result.success(pendingShare)
                         pendingShare = null
+                    }
+
+                    "getInitialShareImage" -> {
+                        result.success(pendingShareImage)
+                        pendingShareImage = null
+                    }
+
+                    "getInitialShortcut" -> {
+                        result.success(pendingShortcut)
+                        pendingShortcut = null
                     }
 
                     else -> result.notImplemented()
@@ -70,19 +88,66 @@ class MainActivity : FlutterFragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        val text = extractShare(intent) ?: return
-        val channel = shareChannel
-        if (channel != null) {
-            channel.invokeMethod("onShare", text)
-        } else {
-            pendingShare = text
+        val shortcut = extractShortcut(intent)
+        if (shortcut != null) {
+            deliver("onShortcut", shortcut) { pendingShortcut = it }
+            return
+        }
+        val text = extractShareText(intent)
+        if (text != null) {
+            deliver("onShare", text) { pendingShare = it }
+        }
+        val image = extractShareImage(intent)
+        if (image != null) {
+            deliver("onShareImage", image) { pendingShareImage = it }
         }
     }
 
-    private fun extractShare(intent: Intent?): String? {
+    /** 有通道就直接投递，否则挂起等待 Dart 侧取回（冷启动）。 */
+    private fun deliver(method: String, payload: String, park: (String) -> Unit) {
+        val channel = shareChannel
+        if (channel != null) {
+            channel.invokeMethod(method, payload)
+        } else {
+            park(payload)
+        }
+    }
+
+    private fun extractShareText(intent: Intent?): String? {
         if (intent == null || intent.action != Intent.ACTION_SEND) return null
         return intent.getStringExtra(Intent.EXTRA_TEXT)
             ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
+    }
+
+    /** 长按图标的快捷方式入口（短按启动则是普通 LAUNCHER，无该 extra）。 */
+    private fun extractShortcut(intent: Intent?): String? {
+        return intent?.getStringExtra("shortcut_id")
+    }
+
+    /**
+     * 分享进来的图片/文件（ACTION_SEND + EXTRA_STREAM）：
+     * 复制到私有缓存目录后把本地路径交给 Dart，避免依赖外部 URI 权限。
+     */
+    private fun extractShareImage(intent: Intent?): String? {
+        if (intent == null || intent.action != Intent.ACTION_SEND) return null
+        @Suppress("DEPRECATION")
+        val uri: Uri = intent.getParcelableExtra(Intent.EXTRA_STREAM) ?: return null
+        val mime = intent.type ?: "image/jpeg"
+        if (!mime.startsWith("image/")) return null
+        return try {
+            val dir = File(cacheDir, "shared").apply { mkdirs() }
+            val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "jpg"
+            val target = File(dir, "shared-${UUID.randomUUID()}.$ext")
+            val input = if (uri.scheme == "file") {
+                uri.path?.let { File(it).inputStream() }
+            } else {
+                contentResolver.openInputStream(uri)
+            } ?: return null
+            input.use { source -> target.outputStream().use { source.copyTo(it) } }
+            if (target.length() <= 0L) null else target.absolutePath
+        } catch (e: Exception) {
+            null
+        }
     }
 
     @SuppressLint("WifiManagerLeak")
