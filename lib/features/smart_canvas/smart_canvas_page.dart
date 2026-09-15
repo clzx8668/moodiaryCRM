@@ -628,19 +628,28 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
           );
         }
 
-        // 「+ 追加笔记」按钮（左下角，随新笔记下移）
+        // 「+ 追加笔记」入口：轻量文字按钮（避免大药丸抢走正文注意力）
         slivers.add(
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(padX, notes.isNotEmpty ? 12 : 0, padX, 4),
+              padding: EdgeInsets.fromLTRB(
+                notes.isNotEmpty ? padX - 8 : padX,
+                notes.isNotEmpty ? 4 : 0,
+                padX,
+                0,
+              ),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
+                child: TextButton.icon(
                   onPressed: _openAppendEditor,
                   icon: const Icon(Icons.add_rounded, size: 18),
                   label: const Text('追加笔记'),
-                  style: OutlinedButton.styleFrom(
+                  style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                   ),
                 ),
               ),

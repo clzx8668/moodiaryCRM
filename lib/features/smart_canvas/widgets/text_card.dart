@@ -83,21 +83,32 @@ class TextCard extends StatelessWidget {
             headingScale: MarkdownHeadingScale.card,
           ),
         if (needCollapse)
-          Center(
-            // 只保留箭头图标（展开 ▾ / 收起 ▴），紧凑精致、无文字
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: onToggleExpand,
-              child: Padding(
-                // 底部不保留内边距：让箭头与下方标签/操作行贴近（≈2px）
-                padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
-                child: Icon(
-                  expanded
-                      ? Icons.expand_less_rounded
-                      : Icons.expand_more_rounded,
-                  size: 18,
-                  color: colorScheme.primary,
-                ),
+          // 整行可点的轻量「展开全文 / 收起」：可点区域覆盖整行宽度，
+          // 文案明确（旧版只有一个 18px 箭头，手机上很难点、语义也弱）
+          InkWell(
+            onTap: onToggleExpand,
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              height: 34,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    expanded ? '收起' : '展开全文',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    expanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    size: 18,
+                    color: colorScheme.primary,
+                  ),
+                ],
               ),
             ),
           ),
