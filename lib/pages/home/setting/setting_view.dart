@@ -27,6 +27,8 @@ import 'package:moodiary/features/feed/feed_scheduler.dart';
 import 'package:moodiary/features/nav/mobile_nav_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_settings_page.dart';
 import 'package:moodiary/features/reminder/reminder_scheduler.dart';
+import 'package:moodiary/features/quick_capture/global_capture.dart';
+import 'package:moodiary/features/quick_capture/global_shortcut_service.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/router/app_routes.dart';
@@ -705,7 +707,8 @@ class SettingPage extends StatelessWidget {
                 ),
                 const _FeedAutoSwitchTile(),
                 const _DigestAutoSwitchTile(),
-                const _ReminderSwitchTile(isLast: true),
+                const _ReminderSwitchTile(),
+                const _GlobalShortcutSwitchTile(isLast: true),
               ],
             ),
           ),
@@ -876,9 +879,7 @@ class _FeedAutoSwitchTileState extends State<_FeedAutoSwitchTile> {
 
 /// 到点提醒开关（默认开；应用运行时轮询日程/CRM 提醒，到点浮出提醒卡）。
 class _ReminderSwitchTile extends StatefulWidget {
-  const _ReminderSwitchTile({this.isLast = false});
-
-  final bool isLast;
+  const _ReminderSwitchTile();
 
   @override
   State<_ReminderSwitchTile> createState() => _ReminderSwitchTileState();
@@ -909,6 +910,53 @@ class _ReminderSwitchTileState extends State<_ReminderSwitchTile> {
       title: const Text('到点提醒'),
       subtitle: const Text('日程/CRM 提醒到点浮出提醒卡（需应用运行）'),
       secondary: const Icon(Icons.alarm_rounded),
+    );
+  }
+}
+
+/// 桌面全局快捷键开关（默认开；Ctrl+Alt+M 从任意程序唤起快速收集）。
+class _GlobalShortcutSwitchTile extends StatefulWidget {
+  const _GlobalShortcutSwitchTile({this.isLast = false});
+
+  final bool isLast;
+
+  @override
+  State<_GlobalShortcutSwitchTile> createState() =>
+      _GlobalShortcutSwitchTileState();
+}
+
+class _GlobalShortcutSwitchTileState
+    extends State<_GlobalShortcutSwitchTile> {
+  bool _value = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = GlobalShortcutService.enabled;
+  }
+
+  Future<void> _toggle(bool value) async {
+    setState(() => _value = value);
+    await GlobalShortcutService.setEnabled(value);
+    toast.success(
+      message: value
+          ? '已开启全局快捷键（$globalShortcutLabel 唤起快速收集）'
+          : '已关闭全局快捷键（不再占用系统按键）',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AdaptiveSwitchListTile(
+      value: _value,
+      onChanged: GlobalShortcutService.supported ? _toggle : null,
+      title: const Text('全局快捷键速记'),
+      subtitle: Text(
+        GlobalShortcutService.supported
+            ? '$globalShortcutLabel 从任意程序唤起快速收集'
+            : '仅桌面端可用',
+      ),
+      secondary: const Icon(Icons.keyboard_alt_outlined),
       isLast: widget.isLast,
     );
   }

@@ -114,6 +114,8 @@ class PrefUtil {
     'reminderEnabled',
     // 到点提醒状态（已提醒/延后中，JSON）
     'reminderState',
+    // 桌面全局快捷键（闪念速记）
+    'globalHotkeyEnabled',
     // 移动端底部导航按钮配置（JSON 数组）
     'mobileNavItems',
     // RSS/订阅源列表（JSON）
@@ -337,6 +339,11 @@ class PrefUtil {
     await _prefs.setString(
       'reminderState',
       _prefs.getString('reminderState') ?? '',
+    );
+    // 桌面全局快捷键（闪念速记，默认开启）
+    await _prefs.setBool(
+      'globalHotkeyEnabled',
+      _prefs.getBool('globalHotkeyEnabled') ?? true,
     );
     // 联网搜索（默认关；引擎默认 DuckDuckGo 零配置）
     await _prefs.setBool(
