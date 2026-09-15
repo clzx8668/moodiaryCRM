@@ -191,13 +191,8 @@ class HomePage extends StatelessWidget {
   }
 
   Future<void> _openQuickCapture(BuildContext context, HomeLogic logic) async {
-    await QuickCaptureSheet.show(
-      context,
-      onCreate: (type) async {
-        if (Get.isBottomSheetOpen == true) Get.back();
-        await logic.toEditPage(type: type);
-      },
-    );
+    // 面板只做速记；「新建日记」等入口在首页 FAB 展开菜单里，避免重复入口
+    await QuickCaptureSheet.show(context);
     // 面板关闭（保存或失焦）后统一刷新首页各视图
     await logic.refreshDiaryLists();
   }

@@ -219,24 +219,51 @@ class _SmartInputBarState extends State<SmartInputBar>
           ),
           child: widget.voiceMode
               ? _buildVoiceHold()
-              : TextField(
-                  controller: widget.controller,
-                  focusNode: widget.focusNode,
-                  autofocus: widget.startActive,
-                  minLines: 1,
-                  maxLines: 5,
-                  textInputAction: TextInputAction.newline,
-                  decoration: InputDecoration(
-                    hintText: widget.activeHint,
-                    isDense: true,
-                    border:
-                        const OutlineInputBorder(borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
+              : Stack(
+                  children: [
+                    TextField(
+                      controller: widget.controller,
+                      focusNode: widget.focusNode,
+                      autofocus: widget.startActive,
+                      minLines: 1,
+                      maxLines: 5,
+                      textInputAction: TextInputAction.newline,
+                      decoration: InputDecoration(
+                        hintText: widget.activeHint,
+                        isDense: true,
+                        border: const OutlineInputBorder(
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                      ),
+                      onSubmitted: (_) => _submit(),
                     ),
-                  ),
-                  onSubmitted: (_) => _submit(),
+                    // 空输入框时覆盖一层长按区：长按即说话（与提示文案一致），
+                    // 轻点仍聚焦键盘；一旦有内容就撤掉，保留正常的文本选择。
+                    if (widget.controller.text.trim().isEmpty &&
+                        widget.onLongPressStart != null)
+                      Positioned.fill(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            setState(() => _active = true);
+                            widget.focusNode?.requestFocus();
+                          },
+                          onLongPressStart: (_) =>
+                              widget.onLongPressStart!.call(),
+                          onLongPressEnd: widget.onLongPressEnd == null
+                              ? null
+                              : (_) => widget.onLongPressEnd!.call(),
+                          onLongPressCancel: widget.onLongPressCancel,
+                          child: widget.listening
+                              ? _listeningOverlay(colorScheme)
+                              : const SizedBox.shrink(),
+                        ),
+                      ),
+                  ],
                 ),
         ),
         const SizedBox(height: 4),
@@ -378,6 +405,25 @@ class _SmartInputBarState extends State<SmartInputBar>
             color: colorScheme.primary,
           ),
         ),
+      ),
+    );
+  }
+
+  /// 长按说话进行中的浮层反馈（空输入框覆盖层上）。
+  Widget _listeningOverlay(ColorScheme colorScheme) {
+    return Container(
+      alignment: Alignment.center,
+      color: colorScheme.surfaceContainerHigh,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _pulsingMic(colorScheme),
+          const SizedBox(width: 8),
+          Text(
+            '正在聆听…',
+            style: TextStyle(color: colorScheme.primary),
+          ),
+        ],
       ),
     );
   }

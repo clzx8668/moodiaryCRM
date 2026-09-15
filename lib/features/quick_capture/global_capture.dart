@@ -1,9 +1,6 @@
 import 'package:get/get.dart';
-import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_view.dart';
-import 'package:moodiary/pages/edit/edit_arguments.dart';
 import 'package:moodiary/pages/home/home_logic.dart';
-import 'package:moodiary/router/app_routes.dart';
 
 /// 全局快速收集入口（供全局快捷键、托盘等「非首页」路径调用）。
 ///
@@ -20,26 +17,8 @@ class GlobalCapture {
     final context = Get.context;
     if (context == null) return;
 
-    await QuickCaptureSheet.show(
-      context,
-      onCreate: (type) async {
-        if (Get.isBottomSheetOpen == true) Get.back();
-        await _openEditor(type);
-      },
-    );
+    await QuickCaptureSheet.show(context);
     _refreshHome();
-  }
-
-  /// 打开新建页：主界面在栈内时走 HomeLogic（沿用其分类/刷新逻辑），否则直接路由。
-  static Future<void> _openEditor(DiaryType type) async {
-    if (Get.isRegistered<HomeLogic>()) {
-      await Get.find<HomeLogic>().toEditPage(type: type);
-      return;
-    }
-    await Get.toNamed(
-      AppRoutes.editPage,
-      arguments: EditArguments(type: type),
-    );
   }
 
   static void _refreshHome() {

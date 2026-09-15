@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/values/border.dart';
-import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/link_capture/link_capture_saver.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_logic.dart';
@@ -12,26 +11,23 @@ import 'package:moodiary/features/vision/quick_vision.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 快速收集面板（进入即激活态两行输入框，提交后清空并退出）。
+///
+/// 说明：面板不承载「新建日记/格式选择」等入口——新建走首页 FAB 展开菜单，
+/// 输入条与 AI 助手/详情页共用 [SmartInputBar]，保持三处交互一致。
 class QuickCaptureSheet extends StatefulWidget {
-  /// 快速新建入口（Markdown/纯文本/富文本），由调用方注入
-  final Future<void> Function(DiaryType type)? onCreate;
-
-  const QuickCaptureSheet({super.key, this.onCreate});
+  const QuickCaptureSheet({super.key});
 
   @override
   State<QuickCaptureSheet> createState() => _QuickCaptureSheetState();
 
   /// 唤起底部收集面板
-  static Future<bool> show(
-    BuildContext context, {
-    Future<void> Function(DiaryType type)? onCreate,
-  }) async {
+  static Future<bool> show(BuildContext context) async {
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black38,
-      builder: (_) => QuickCaptureSheet(onCreate: onCreate),
+      builder: (_) => const QuickCaptureSheet(),
     );
     return saved ?? false;
   }
@@ -65,21 +61,19 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
           color: context.theme.colorScheme.surfaceContainerLow,
           borderRadius: AppBorderRadius.largeBorderRadius,
         ),
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildDragHandle(context),
             _buildAttachmentPreview(context, logic, state),
-            const SizedBox(height: 4),
             Obx(() {
               return SmartInputBar(
                 controller: _controller,
                 focusNode: _focusNode,
                 startActive: true,
                 streaming: state.saving.value,
-                activeHint: '发消息或按住说话',
+                activeHint: '记点什么，或按住说话…',
                 modelLabel: state.selectedTemplate.value.isEmpty
                     ? '快速'
                     : state.selectedTemplate.value,
@@ -89,13 +83,15 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                 onToggleVoice: logic.toggleVoiceMode,
                 onLongPressStart: () => logic.startRecording(
                   onText: (text) {
-                    final base = _controller.text.trim();
-                    _controller.text = base.isEmpty ? text : '$base\n$text';
+                    _controller.text = QuickCaptureLogic.appendTranscript(
+                      _controller.text,
+                      text,
+                    );
                     state.text.value = _controller.text;
                   },
                 ),
                 onLongPressEnd: logic.stopRecording,
-                listening: state.recording.value,
+                listening: state.recording.value || state.transcribing.value,
                 onPlus: () => _showAttachmentGrid(context, logic),
                 onSend: (text) async {
                   state.text.value = text;
@@ -112,49 +108,6 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
           ],
         ),
       ),
-    );
-  }
-
-  /// 顶部：拖拽条 + 更多新建方式
-  Widget _buildDragHandle(BuildContext context) {
-    return Row(
-      children: [
-        const SizedBox(width: 32),
-        Expanded(
-          child: Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: context.theme.colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-        ),
-        if (widget.onCreate != null)
-          PopupMenuButton<DiaryType>(
-            tooltip: '更多新建方式',
-            icon: const Icon(Icons.more_horiz, size: 20),
-            onSelected: (type) async {
-              await widget.onCreate!(type);
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: DiaryType.markdown,
-                child: Text('Markdown 日记'),
-              ),
-              const PopupMenuItem(
-                value: DiaryType.text,
-                child: Text('纯文本日记'),
-              ),
-              const PopupMenuItem(
-                value: DiaryType.richText,
-                child: Text('富文本日记'),
-              ),
-            ],
-          ),
-      ],
     );
   }
 
