@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:moodiary/features/ai/colloquial/de_colloquial_service.dart';
+import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_service.dart';
 import 'package:moodiary/features/ai/template_process_service.dart';
 import 'package:moodiary/features/ai/tagging_service.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
+import 'package:moodiary/features/ai/tasks/ai_task_retry_policy.dart';
 import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/utils/log_util.dart';
 import 'package:moodiary/utils/network_util.dart';
@@ -58,6 +60,20 @@ class AiTaskQueueWorker {
     _busy = true;
     try {
       final online = await NetworkUtil.isNetworkConnected();
+      // AI 配置就绪：把「等配置」的任务放回队列（用户配好 Key 后自动继续）
+      final waitingConfig = await _repo.listByStatus(AiTaskStatus.waitingConfig);
+      if (waitingConfig.isNotEmpty) {
+        try {
+          final provider = await AiProviderFactory.load();
+          if (provider.isConfigured) {
+            for (final row in waitingConfig) {
+              await _repo.updateStatus(row, AiTaskStatus.pending);
+            }
+          }
+        } catch (_) {
+          // 配置读取失败时保持挂起
+        }
+      }
       // 网络恢复：批量将 waiting_network → pending
       if (online) {
         final waiting = await _repo.listByStatus(AiTaskStatus.waitingNetwork);
@@ -66,10 +82,19 @@ class AiTaskQueueWorker {
         }
       }
       final tasks = await _repo.listByStatus(AiTaskStatus.pending);
+      final now = DateTime.now();
       for (final task in tasks) {
         if (!_running) return;
         if (!online) {
           await _repo.updateStatus(task, AiTaskStatus.waitingNetwork);
+          continue;
+        }
+        // 退避：上次失败后等够间隔再试，避免持续打网络
+        if (!AiTaskRetryPolicy.shouldAttempt(
+          retryCount: task.retryCount,
+          lastUpdated: task.updatedAt,
+          now: now,
+        )) {
           continue;
         }
         await _process(task);
@@ -109,12 +134,35 @@ class AiTaskQueueWorker {
       await _repo.updateStatus(task, AiTaskStatus.done);
     } catch (e) {
       final msg = e.toString();
-      logger.e('AI 任务失败：${task.type}/${task.refId}', error: e);
-      if (task.retryCount + 1 >= task.maxRetries) {
-        await _repo.updateStatus(task, AiTaskStatus.failed, error: msg);
-      } else {
-        // 保留 pending，下一轮重试（轮询间隔即指数退避的最小步长）
-        await _repo.incrementRetry(task, msg);
+      final outcome = AiTaskRetryPolicy.classify(
+        e,
+        retryCount: task.retryCount,
+        maxRetries: task.maxRetries,
+      );
+      logger.e(
+        'AI 任务失败：${task.type}/${task.refId} → ${outcome.name}',
+        error: e,
+      );
+      switch (outcome) {
+        case AiTaskOutcome.waitNetwork:
+          // 网络问题：挂起等恢复（下次上线自动继续），不消耗重试次数
+          await _repo.updateStatus(
+            task,
+            AiTaskStatus.waitingNetwork,
+            error: msg,
+          );
+        case AiTaskOutcome.waitConfig:
+          // 未配置 AI：挂起等用户在设置里配好，不消耗重试次数
+          await _repo.updateStatus(
+            task,
+            AiTaskStatus.waitingConfig,
+            error: msg,
+          );
+        case AiTaskOutcome.giveUp:
+          await _repo.updateStatus(task, AiTaskStatus.failed, error: msg);
+        case AiTaskOutcome.retry:
+          // 保留 pending，下一轮按退避间隔重试
+          await _repo.incrementRetry(task, msg);
       }
     }
   }

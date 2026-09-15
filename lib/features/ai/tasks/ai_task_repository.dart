@@ -8,6 +8,8 @@ class AiTaskStatus {
   static const pending = 'pending';
   static const processing = 'processing';
   static const waitingNetwork = 'waiting_network';
+  /// 等待用户配置 AI（缺 API Key / 模型）；配置好后自动继续，不消耗重试次数
+  static const waitingConfig = 'waiting_config';
   static const done = 'done';
   static const failed = 'failed';
 }
