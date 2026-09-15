@@ -11,6 +11,9 @@ import 'package:moodiary/features/ai/colloquial/de_colloquial_meta.dart';
 import 'package:moodiary/features/ai/colloquial/de_colloquial_service.dart';
 import 'package:moodiary/features/ai/voice/audio_transcribe_service.dart';
 import 'package:moodiary/features/ai/voice/long_audio_transcribe_service.dart';
+import 'package:moodiary/features/ai/voice/meeting_minutes_service.dart';
+import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
+import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/voice/speech_service.dart';
 import 'package:moodiary/features/voice/voice_media_player.dart';
@@ -50,6 +53,8 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
   bool _recording = false;
   bool _transcribing = false;
   String _transcribeLabel = '云端转写';
+  bool _generatingMinutes = false;
+  MeetingMinutesResult? _minutes;
   Duration _elapsed = Duration.zero;
   Timer? _timer;
   final AudioRecorder _recorder = AudioRecorder();
@@ -221,6 +226,39 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
     if (mounted) setState(() => _cleaned = result.cleaned);
   }
 
+  /// 生成结构化纪要：转写文本 → 摘要/决定/待办/正文（保存后进入 AI 生成区）。
+  Future<void> _generateMinutes() async {
+    final text = _transcriptCtrl.text.trim();
+    if (text.isEmpty) {
+      toast.info(message: '请先转写或输入文本');
+      return;
+    }
+    if (_generatingMinutes) return;
+    setState(() => _generatingMinutes = true);
+    try {
+      final result = await MeetingMinutesService.generate(
+        text,
+        title: _titleCtrl.text.trim(),
+      );
+      if (!mounted) return;
+      if (result == null) {
+        toast.error(message: '生成纪要失败：AI 未配置或未返回可用结果');
+        return;
+      }
+      setState(() {
+        _minutes = result;
+        if (_titleCtrl.text.trim().isEmpty && result.title.isNotEmpty) {
+          _titleCtrl.text = result.title;
+        }
+      });
+      toast.success(message: '纪要已生成，保存后进入 AI 生成区');
+    } catch (e) {
+      if (mounted) toast.error(message: '生成纪要失败：$e');
+    } finally {
+      if (mounted) setState(() => _generatingMinutes = false);
+    }
+  }
+
   Future<void> _save() async {
     final raw = _transcriptCtrl.text.trim();
     if (raw.isEmpty) {
@@ -253,7 +291,12 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
         ..content = raw
         ..sortOrder = 0
         ..createdAt = now
-        ..updatedAt = now;
+        ..updatedAt = now
+        // 先落 BlockMeta，再由 VoiceRecordMeta/DeColoquialMeta 往 metaJson 里补字段
+        ..meta = BlockMeta(
+          source: BlockMeta.sourceInitial,
+          captureType: 'voice',
+        );
       if (_audioFile != null) {
         VoiceRecordMeta.write(
           block,
@@ -272,8 +315,33 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
       }
       await IsarUtil.insertBlock(block);
 
+      // 纪要：落 AI 生成区（新块，原文保留），并异步抽取待办/日程
+      final minutes = _minutes;
+      var minutesSaved = false;
+      if (minutes != null) {
+        minutesSaved =
+            await MeetingMinutesService.saveAsAiBlock(
+              diaryId: diary.id,
+              minutes: minutes,
+              sourceContent: raw,
+            ) !=
+            null;
+        if (minutesSaved) {
+          unawaited(
+            AiTaskQueueWorker.instance.submitTask(
+              type: AiTaskType.extractPlan,
+              refId: diary.id,
+            ),
+          );
+        }
+      }
+
       if (!mounted) return;
-      toast.success(message: '已保存语音记录');
+      toast.success(
+        message: minutesSaved
+            ? '已保存语音记录（纪要已存，待办/日程抽取中…）'
+            : '已保存语音记录',
+      );
       Get.back(result: true);
     } catch (e) {
       if (mounted) toast.error(message: '保存失败：$e');
@@ -406,6 +474,17 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
                 icon: const Icon(Icons.auto_fix_high_rounded),
                 label: const Text('去口语化'),
               ),
+              OutlinedButton.icon(
+                onPressed: _generatingMinutes ? null : _generateMinutes,
+                icon: _generatingMinutes
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.summarize_rounded),
+                label: Text(_generatingMinutes ? '生成纪要中…' : '生成纪要'),
+              ),
             ],
           ),
 
@@ -424,6 +503,51 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
                         )),
                     const SizedBox(height: 4),
                     SelectableText(_cleaned),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+          if (_minutes != null) ...[
+            const SizedBox(height: 12),
+            Card.filled(
+              color: theme.colorScheme.tertiaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.summarize_rounded,
+                          size: 16,
+                          color: theme.colorScheme.onTertiaryContainer,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '纪要预览',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.onTertiaryContainer,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _minutes!.title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onTertiaryContainer,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '保存后进入该笔记的 AI 生成区，并自动抽取待办/日程',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onTertiaryContainer,
+                      ),
+                    ),
                   ],
                 ),
               ),
