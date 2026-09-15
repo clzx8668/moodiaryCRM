@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/colloquial/de_colloquial_service.dart';
@@ -561,6 +562,8 @@ class SmartCanvasLogic extends GetxController {
 
   /// 待办勾选
   Future<void> toggleTodo(Block block) async {
+    // 轻震动反馈：勾选是高频动作，手感要「有回应」
+    HapticFeedback.selectionClick();
     await datasource.toggleTodo(block);
     blockList.replace(block);
   }

@@ -91,7 +91,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                   },
                 ),
                 onLongPressEnd: logic.stopRecording,
-                listening: state.recording.value || state.transcribing.value,
+                listening: state.recording.value,
                 onPlus: () => _showAttachmentGrid(context, logic),
                 onSend: (text) async {
                   state.text.value = text;

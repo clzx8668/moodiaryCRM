@@ -66,9 +66,6 @@ class QuickCaptureState extends GetxController {
   /// 正在录音（占位视觉）
   final RxBool recording = false.obs;
 
-  /// 录音结束后的转写中
-  final RxBool transcribing = false.obs;
-
   /// 已选功能模板
   final RxString selectedTemplate = ''.obs;
 

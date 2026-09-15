@@ -26,6 +26,9 @@ class SmartInputBar extends StatefulWidget {
   final VoidCallback? onAt;
   final VoidCallback? onPlus;
 
+  /// 外部激活信号：值变化时展开输入条并聚焦（如详情页「追加笔记」按钮）。
+  final Listenable? activationTrigger;
+
   const SmartInputBar({
     super.key,
     required this.controller,
@@ -46,6 +49,7 @@ class SmartInputBar extends StatefulWidget {
     this.onModelSelect,
     this.onAt,
     this.onPlus,
+    this.activationTrigger,
   });
 
   @override
@@ -71,6 +75,7 @@ class _SmartInputBarState extends State<SmartInputBar>
     );
     widget.controller.addListener(_onChanged);
     widget.focusNode?.addListener(_onFocusChanged);
+    widget.activationTrigger?.addListener(_onActivationTriggered);
   }
 
   @override
@@ -89,6 +94,7 @@ class _SmartInputBarState extends State<SmartInputBar>
     _pulse.dispose();
     widget.controller.removeListener(_onChanged);
     widget.focusNode?.removeListener(_onFocusChanged);
+    widget.activationTrigger?.removeListener(_onActivationTriggered);
     super.dispose();
   }
 
@@ -101,6 +107,15 @@ class _SmartInputBarState extends State<SmartInputBar>
         widget.controller.text.trim().isEmpty) {
       setState(() => _active = false);
     }
+  }
+
+  /// 外部要求激活（追加模式等）：展开为激活态并把焦点交给输入框。
+  void _onActivationTriggered() {
+    if (!mounted) return;
+    setState(() => _active = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.focusNode?.requestFocus();
+    });
   }
 
   void _submit() {

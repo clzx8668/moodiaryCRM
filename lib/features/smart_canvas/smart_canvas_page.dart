@@ -39,7 +39,7 @@ import 'package:moodiary/features/smart_canvas/services/card_action_router.dart'
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
 import 'package:moodiary/features/smart_canvas/widgets/chat_bubble.dart';
 import 'package:moodiary/features/smart_canvas/widgets/smart_card.dart';
-import 'package:moodiary/features/voice/speech_service.dart';
+import 'package:moodiary/features/voice/voice_input_controller.dart';
 import 'package:moodiary/pages/edit/edit_arguments.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/persistence/isar.dart';
@@ -71,6 +71,16 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
   bool _voiceMode = false;
   bool _listening = false;
 
+  /// 长按说话控制器（与快捷收集面板共用同一套「录音落盘 + 云端转写」逻辑）
+  late final VoiceInputController _voiceInput;
+  final ValueNotifier<bool> _voiceBusy = ValueNotifier<bool>(false);
+
+  /// 追加模式：底部输入条发出去的是新卡片，而不是 AI 提问
+  bool _appendMode = false;
+
+  /// 触发底部输入条展开（追加模式进入时立刻可打字）
+  final ValueNotifier<int> _activateInput = ValueNotifier<int>(0);
+
   /// 滚动到一定距离后，才在顶栏显示笔记标题（滚动前标题已在正文首卡里，避免重复）。
   final ScrollController _scrollController = ScrollController();
   final ValueNotifier<bool> _barTitleVisible = ValueNotifier<bool>(false);
@@ -86,13 +96,26 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
         ? Get.find<SmartCanvasLogic>(tag: _tag)
         : Get.put(SmartCanvasLogic(), tag: _tag);
     _scrollController.addListener(_onScrollForBarTitle);
+    _voiceInput = VoiceInputController(
+      onText: (text) {
+        _aiInput.text = appendVoiceText(_aiInput.text, text);
+        _aiInput.selection = TextSelection.collapsed(
+          offset: _aiInput.text.length,
+        );
+      },
+    );
+    _voiceInput.busy.addListener(_onVoiceBusyChanged);
   }
 
   @override
   void dispose() {
+    _voiceInput.busy.removeListener(_onVoiceBusyChanged);
+    _voiceInput.dispose();
+    _voiceBusy.dispose();
     _scrollController.removeListener(_onScrollForBarTitle);
     _scrollController.dispose();
     _barTitleVisible.dispose();
+    _activateInput.dispose();
     _aiInput.dispose();
     _aiFocus.dispose();
     // 手动注册的 SmartCanvasLogic 需显式删除，否则每次进详情页泄漏
@@ -170,29 +193,24 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
 
   /// 语音识别：长按「按住 说话」开始，识别结果追加到输入框。
   Future<void> _startVoiceInput() async {
-    if (_listening || SpeechService.instance.isListening) return;
-    final ok = await SpeechService.instance.startListening((text) {
-      if (mounted) setState(() => _listening = false);
-      if (text.trim().isEmpty) return;
-      final base = _aiInput.text.trim();
-      _aiInput.text = base.isEmpty ? text : '$base\n$text';
-      _aiInput.selection = TextSelection.collapsed(
-        offset: _aiInput.text.length,
-      );
-      toast.success(message: '已识别：$text');
-    });
-    if (ok) {
-      setState(() => _listening = true);
-    } else {
-      toast.error(message: '当前设备不支持语音识别，请检查系统语音设置');
-    }
+    if (_listening) return;
+    await _voiceInput.start();
+    if (mounted) setState(() => _listening = _voiceInput.busy.value);
   }
 
   /// 松手结束识别。
   Future<void> _stopVoiceInput() async {
-    if (!_listening && !SpeechService.instance.isListening) return;
-    await SpeechService.instance.stopListening();
+    if (!_listening) return;
+    await _voiceInput.stop();
     if (mounted) setState(() => _listening = false);
+  }
+
+  /// 录音结束到转写回填之间也保持「正在聆听…」反馈
+  void _onVoiceBusyChanged() {
+    if (!mounted) return;
+    final busy = _voiceInput.busy.value;
+    if (busy == _listening) return;
+    setState(() => _listening = busy);
   }
 
   /// 📎 附加知识选择器：本地文件 / 已有笔记 / CRM 记录。
@@ -598,7 +616,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                     ),
                     const SizedBox(height: 16),
                     FilledButton.tonalIcon(
-                      onPressed: _openAppendEditor,
+                      onPressed: _enterAppendMode,
                       icon: const Icon(Icons.add_rounded, size: 18),
                       label: const Text('写第一张卡片'),
                     ),
@@ -641,7 +659,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  onPressed: _openAppendEditor,
+                  onPressed: _enterAppendMode,
                   icon: const Icon(Icons.add_rounded, size: 18),
                   label: const Text('追加笔记'),
                   style: TextButton.styleFrom(
@@ -850,6 +868,11 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           child: Text('笔记整合'),
                         ),
                         const PopupMenuItem(
+                          // 保留全屏编辑入口：长文/需要格式时仍走编辑页
+                          value: 'fullscreen_append',
+                          child: Text('全屏写卡片'),
+                        ),
+                        const PopupMenuItem(
                           value: 'voice',
                           child: Text('语音记录'),
                         ),
@@ -882,6 +905,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                       onSelected: (v) {
                         if (v == 'consolidate') {
                           _openConsolidateEditor();
+                        } else if (v == 'fullscreen_append') {
+                          _openAppendEditor();
                         } else if (v == 'voice') {
                           Get.toNamed(AppRoutes.voiceRecordPage);
                         } else if (v == 'extract') {
@@ -965,6 +990,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
               ),
             ),
           _buildSuggestionBar(context),
+          if (_appendMode) _buildAppendModeBar(context),
           Obx(() {
             // 桌面端与内容区同宽对齐（720 阅读宽度），移动端全宽
             return Padding(
@@ -975,10 +1001,13 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                 controller: _aiInput,
                 focusNode: _aiFocus,
                 startActive: false,
+                activationTrigger: _activateInput,
                 streaming: logic.isChatStreaming,
-                collapsedHint: '按住输入语音',
-                activeHint: '问问这条记录，或输入问题…',
-                modelLabel: '记录问答',
+                collapsedHint: _appendMode ? '记点什么，或按住说话' : '按住输入语音',
+                activeHint: _appendMode
+                    ? '记点什么…回车保存为新卡片'
+                    : '问问这条记录，或输入问题…',
+                modelLabel: _appendMode ? '追加到笔记' : '记录问答',
                 voiceMode: _voiceMode,
                 onToggleVoice: () => setState(() => _voiceMode = !_voiceMode),
                 onLongPressStart: _startVoiceInput,
@@ -989,6 +1018,12 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                 onPlus: _showAttachmentPicker,
                 onSend: (text) {
                   _aiInput.clear();
+                  if (_appendMode) {
+                    logic.appendNote(text);
+                    _exitAppendMode();
+                    toast.success(message: '已追加为新卡片');
+                    return;
+                  }
                   logic.sendChat(text, attachments: List.of(_attachments));
                 },
                 onStop: logic.cancelStreaming,
@@ -1070,6 +1105,52 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
         logic.init();
       }
     });
+  }
+
+  /// 进入/退出「追加模式」：底部输入条从「记录问答」切到「追加到笔记」，
+  /// 发出去的是新卡片而不是 AI 提问（比跳全屏编辑页少两步）。
+  void _enterAppendMode() {
+    setState(() => _appendMode = true);
+    // 展开输入条并聚焦（只 requestFocus 不会把折叠态展开）
+    _activateInput.value++;
+  }
+
+  void _exitAppendMode() {
+    if (!_appendMode) return;
+    setState(() => _appendMode = false);
+  }
+
+  /// 追加模式提示条：明确当前输入的去向，并提供一键退出。
+  Widget _buildAppendModeBar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        _contentPadX(context),
+        0,
+        _contentPadX(context),
+        4,
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.playlist_add_rounded, size: 16, color: scheme.primary),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '追加模式：输入的内容会保存为新卡片',
+              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+            ),
+          ),
+          TextButton(
+            onPressed: _exitAppendMode,
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            child: const Text('取消', style: TextStyle(fontSize: 12)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _openAppendEditor() {
