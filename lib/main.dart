@@ -601,6 +601,9 @@ class _MoodiaryState extends State<Moodiary> with WidgetsBindingObserver {
     final debugInitialRoute = widget.initialRoute;
     debugPrintSynchronously('[Moodiary.build] 构建 GetMaterialApp.router initialRoute=$debugInitialRoute');
     return GetMaterialApp.router(
+      // 关掉 Flutter 自带的右上角 DEBUG 绶带（仅 debug 构建会出现，
+      // 真机/桌面自测时不希望它盖住界面）
+      debugShowCheckedModeBanner: false,
       routeInformationParser: GetInformationParser.createInformationParser(
         initialRoute: debugInitialRoute,
       ),
