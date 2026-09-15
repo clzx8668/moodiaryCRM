@@ -1,3 +1,4 @@
+import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/ai/ai_capability_store.dart';
@@ -775,10 +776,14 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
 }
 
 /// 模型名选择：优先下拉已选服务商的可用模型，空列表时回退手输。
-class _ModelField extends StatelessWidget {
+class _ModelField extends StatefulWidget {
   final List<String> models;
   final String modelName;
   final ValueChanged<String> onChanged;
+
+  /// 下拉里的「自定义…」哨兵值：允许手动输入官方列表之外的模型名
+  /// （如百炼语音转写的 `qwen3-asr-flash`，其 /models 接口通常不返回该模型）。
+  static const String customValue = '__custom__';
 
   const _ModelField({
     super.key,
@@ -788,7 +793,17 @@ class _ModelField extends StatelessWidget {
   });
 
   @override
+  State<_ModelField> createState() => _ModelFieldState();
+}
+
+class _ModelFieldState extends State<_ModelField> {
+  /// 用于在「自定义…」被取消后强制重建下拉，避免哨兵值停留在选中态。
+  int _epoch = 0;
+
+  @override
   Widget build(BuildContext context) {
+    final models = widget.models;
+    final modelName = widget.modelName;
     if (models.isEmpty) {
       return TextFormField(
         initialValue: modelName,
@@ -798,11 +813,12 @@ class _ModelField extends StatelessWidget {
           border: OutlineInputBorder(),
           isDense: true,
         ),
-        onChanged: (v) => onChanged(v.trim()),
+        onChanged: (v) => widget.onChanged(v.trim()),
       );
     }
 
     return DropdownButtonFormField<String>(
+      key: ValueKey('model-$_epoch-$modelName'),
       initialValue: modelName,
       decoration: const InputDecoration(
         labelText: '模型名',
@@ -811,11 +827,36 @@ class _ModelField extends StatelessWidget {
       ),
       items: [
         for (final m in models) DropdownMenuItem(value: m, child: Text(m)),
+        const DropdownMenuItem(
+          value: _ModelField.customValue,
+          child: Text('自定义…'),
+        ),
         if (!models.contains(modelName) && modelName.isNotEmpty)
           DropdownMenuItem(value: modelName, child: Text('$modelName（自定义）')),
       ],
-      onChanged: (v) {
-        if (v != null) onChanged(v);
+      onChanged: (v) async {
+        if (v == null) return;
+        if (v != _ModelField.customValue) {
+          widget.onChanged(v);
+          return;
+        }
+        final res = await showTextInputDialog(
+          context: context,
+          title: '自定义模型名',
+          textFields: [
+            DialogTextField(
+              initialText: models.contains(modelName) ? '' : modelName,
+              hintText: '如 qwen3-asr-flash / whisper-1',
+            ),
+          ],
+        );
+        final typed = res?.first.trim() ?? '';
+        if (!mounted) return;
+        if (typed.isNotEmpty) {
+          widget.onChanged(typed);
+        } else {
+          setState(() => _epoch++);
+        }
       },
     );
   }

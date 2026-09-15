@@ -9,6 +9,7 @@ import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/ai/colloquial/de_colloquial_meta.dart';
 import 'package:moodiary/features/ai/colloquial/de_colloquial_service.dart';
+import 'package:moodiary/features/ai/voice/audio_transcribe_service.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/voice/speech_service.dart';
 import 'package:moodiary/features/voice/voice_media_player.dart';
@@ -46,6 +47,7 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
   bool _listening = false;
   bool _saving = false;
   bool _recording = false;
+  bool _transcribing = false;
   Duration _elapsed = Duration.zero;
   Timer? _timer;
   final AudioRecorder _recorder = AudioRecorder();
@@ -149,6 +151,39 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
     if (!ok && mounted) {
       setState(() => _listening = false);
       toast.info(message: '当前设备不支持语音识别');
+    }
+  }
+
+  /// 云端转写：把录音/已选音频交给语音识别模型（不依赖设备语音服务）。
+  Future<void> _transcribeCloud() async {
+    final fileName = _audioFile;
+    if (fileName == null) {
+      toast.info(message: '请先录音或在右上角选择音频文件');
+      return;
+    }
+    if (_transcribing) return;
+    setState(() => _transcribing = true);
+    try {
+      final result = await AudioTranscribeService.transcribeFile(
+        FileUtil.getRealPath('audio', fileName),
+      );
+      if (!mounted) return;
+      setState(() {
+        _transcriptCtrl.text = result.text;
+        _cleaned = '';
+        if (_titleCtrl.text.trim().isEmpty) {
+          _titleCtrl.text = result.text.length > 16
+              ? '${result.text.substring(0, 16)}…'
+              : result.text;
+        }
+      });
+      toast.success(message: '云端转写完成（${result.model}）');
+    } on TranscribeException catch (e) {
+      if (mounted) toast.error(message: e.message);
+    } catch (e) {
+      if (mounted) toast.error(message: '云端转写失败：$e');
+    } finally {
+      if (mounted) setState(() => _transcribing = false);
     }
   }
 
@@ -273,7 +308,8 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '也可点右上角选择已有音频文件（m4a / wav / mp3）',
+                          '也可点右上角选择已有音频文件（m4a / wav / mp3）；'
+                          '录完可用「云端转写」识别',
                           style: theme.textTheme.bodySmall,
                         ),
                       ],
@@ -315,7 +351,7 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
             maxLines: 6,
             decoration: const InputDecoration(
               labelText: '转写文本 *',
-              hintText: '点「语音转写」朗读，或手动输入',
+              hintText: '点「云端转写」识别录音，或「语音转写」当场朗读',
               border: OutlineInputBorder(),
             ),
             onChanged: (_) => setState(() => _cleaned = ''),
@@ -331,6 +367,19 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
                   _listening ? Icons.stop_rounded : Icons.mic_rounded,
                 ),
                 label: Text(_listening ? '停止转写' : '语音转写'),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: _transcribing || _audioFile == null
+                    ? null
+                    : _transcribeCloud,
+                icon: _transcribing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.cloud_sync_rounded),
+                label: Text(_transcribing ? '云端转写中…' : '云端转写'),
               ),
               OutlinedButton.icon(
                 onPressed: _cleaned.isNotEmpty ? null : _deColloquial,

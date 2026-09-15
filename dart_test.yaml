@@ -4,3 +4,5 @@
 tags:
   integration:
     skip: "需要真实 Twenty 环境（config/twenty.local.json 且内网可达）"
+  asr_cloud:
+    skip: "需要真实语音识别服务（环境变量 MOODIARY_ASR_API_KEY，可选 MOODIARY_ASR_SAMPLE 音频路径）"
