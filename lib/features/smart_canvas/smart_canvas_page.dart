@@ -15,6 +15,7 @@ import 'package:moodiary/features/ai/autolink/auto_link_service.dart';
 import 'package:moodiary/features/ai/autolink/semantic_link_service.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/smart_canvas/widgets/relative_time.dart';
+import 'package:moodiary/features/smart_canvas/widgets/canvas_skeleton.dart';
 import 'package:moodiary/features/collection/kb_collection_service.dart';
 import 'package:moodiary/features/ai/extract/ai_extract_meta.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_config.dart';
@@ -584,12 +585,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
         final blocks = logic.blockList.blocks.value;
         final diary = logic.canvasState.diary;
         if (logic.blockList.loading.value && blocks.isEmpty) {
-          return const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(48),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          );
+          // 骨架屏代替居中转圈：结构先到位，内容到了再替换
+          return SliverToBoxAdapter(child: CanvasSkeleton(padding: padX));
         }
         if (blocks.isEmpty) {
           final colorScheme = Theme.of(context).colorScheme;
@@ -863,26 +860,30 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                     PopupMenuButton<String>(
                       tooltip: '更多',
                       itemBuilder: (_) => [
+                        // ① 写：内联追加 / 全屏写卡片
+                        const PopupMenuItem(
+                          value: 'fullscreen_append',
+                          child: Text('全屏写卡片'),
+                        ),
+                        const PopupMenuDivider(),
+                        // ② 整理：把这条记录归档、沉淀
                         const PopupMenuItem(
                           value: 'consolidate',
                           child: Text('笔记整合'),
                         ),
                         const PopupMenuItem(
-                          // 保留全屏编辑入口：长文/需要格式时仍走编辑页
-                          value: 'fullscreen_append',
-                          child: Text('全屏写卡片'),
+                          value: 'kb',
+                          child: Text('加入知识库'),
                         ),
                         const PopupMenuItem(
                           value: 'voice',
                           child: Text('语音记录'),
                         ),
+                        const PopupMenuDivider(),
+                        // ③ AI：抽取与产出
                         const PopupMenuItem(
                           value: 'extract',
                           child: Text('AI 抽取'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'plan',
-                          child: Text('抽取计划'),
                         ),
                         const PopupMenuItem(
                           value: 'skills',
@@ -892,9 +893,11 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           value: 'works',
                           child: Text('生成作品'),
                         ),
+                        const PopupMenuDivider(),
+                        // ④ 设置
                         const PopupMenuItem(
-                          value: 'kb',
-                          child: Text('加入知识库'),
+                          value: 'plan',
+                          child: Text('抽取设置'),
                         ),
                         if (kDebugMode)
                           const PopupMenuItem(
