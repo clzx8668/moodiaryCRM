@@ -10,6 +10,7 @@ import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/ai/colloquial/de_colloquial_meta.dart';
 import 'package:moodiary/features/ai/colloquial/de_colloquial_service.dart';
 import 'package:moodiary/features/ai/voice/audio_transcribe_service.dart';
+import 'package:moodiary/features/ai/voice/long_audio_transcribe_service.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/voice/speech_service.dart';
 import 'package:moodiary/features/voice/voice_media_player.dart';
@@ -48,6 +49,7 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
   bool _saving = false;
   bool _recording = false;
   bool _transcribing = false;
+  String _transcribeLabel = '云端转写';
   Duration _elapsed = Duration.zero;
   Timer? _timer;
   final AudioRecorder _recorder = AudioRecorder();
@@ -155,6 +157,7 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
   }
 
   /// 云端转写：把录音/已选音频交给语音识别模型（不依赖设备语音服务）。
+  /// 长录音（WAV）自动切片逐段识别后合并。
   Future<void> _transcribeCloud() async {
     final fileName = _audioFile;
     if (fileName == null) {
@@ -162,10 +165,18 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
       return;
     }
     if (_transcribing) return;
-    setState(() => _transcribing = true);
+    setState(() {
+      _transcribing = true;
+      _transcribeLabel = '云端转写中…';
+    });
     try {
-      final result = await AudioTranscribeService.transcribeFile(
+      final result = await LongAudioTranscribeService.transcribe(
         FileUtil.getRealPath('audio', fileName),
+        onProgress: (progress) {
+          if (mounted) {
+            setState(() => _transcribeLabel = progress.label);
+          }
+        },
       );
       if (!mounted) return;
       setState(() {
@@ -177,13 +188,22 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
               : result.text;
         }
       });
-      toast.success(message: '云端转写完成（${result.model}）');
+      toast.success(
+        message: result.chunked
+            ? '云端转写完成（${result.chunkCount} 段合并）'
+            : '云端转写完成',
+      );
     } on TranscribeException catch (e) {
       if (mounted) toast.error(message: e.message);
     } catch (e) {
       if (mounted) toast.error(message: '云端转写失败：$e');
     } finally {
-      if (mounted) setState(() => _transcribing = false);
+      if (mounted) {
+        setState(() {
+          _transcribing = false;
+          _transcribeLabel = '云端转写';
+        });
+      }
     }
   }
 
@@ -379,7 +399,7 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.cloud_sync_rounded),
-                label: Text(_transcribing ? '云端转写中…' : '云端转写'),
+                label: Text(_transcribeLabel),
               ),
               OutlinedButton.icon(
                 onPressed: _cleaned.isNotEmpty ? null : _deColloquial,
