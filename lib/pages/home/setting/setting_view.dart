@@ -29,6 +29,7 @@ import 'package:moodiary/features/obsidian/obsidian_settings_page.dart';
 import 'package:moodiary/features/reminder/reminder_scheduler.dart';
 import 'package:moodiary/features/quick_capture/global_capture.dart';
 import 'package:moodiary/features/quick_capture/global_shortcut_service.dart';
+import 'package:moodiary/features/quick_capture/shortcut_capture_dialog.dart';
 import 'package:moodiary/features/quick_capture/tray_service.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/pref.dart';
@@ -710,6 +711,7 @@ class SettingPage extends StatelessWidget {
                 const _DigestAutoSwitchTile(),
                 const _ReminderSwitchTile(),
                 const _GlobalShortcutSwitchTile(),
+                const _ShortcutComboTile(),
                 const _CloseToTraySwitchTile(isLast: true),
               ],
             ),
@@ -1004,5 +1006,42 @@ class _CloseToTraySwitchTileState extends State<_CloseToTraySwitchTile> {
       secondary: const Icon(Icons.desktop_windows_outlined),
       isLast: widget.isLast,
     );
+  }
+}
+
+/// 全局快捷键组合键设置（点按录制；冲突时回滚并提示）。
+class _ShortcutComboTile extends StatefulWidget {
+  const _ShortcutComboTile();
+
+  @override
+  State<_ShortcutComboTile> createState() => _ShortcutComboTileState();
+}
+
+class _ShortcutComboTileState extends State<_ShortcutComboTile> {
+  @override
+  Widget build(BuildContext context) {
+    final label = GlobalShortcutService.spec.label;
+    return AdaptiveListTile(
+      title: const Text('快捷键组合'),
+      subtitle: Text(
+        GlobalShortcutService.supported
+            ? '当前：$label（点按重新录制）'
+            : '仅桌面端可用',
+      ),
+      leading: const Icon(Icons.keyboard_rounded),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: GlobalShortcutService.supported ? _record : null,
+    );
+  }
+
+  Future<void> _record() async {
+    final spec = await ShortcutCaptureDialog.show(context);
+    if (spec == null || !mounted) return;
+    final ok = await GlobalShortcutService.setSpec(spec);
+    if (!mounted) return;
+    if (ok) {
+      toast.success(message: '已设为 ${spec.label}');
+    }
+    setState(() {});
   }
 }

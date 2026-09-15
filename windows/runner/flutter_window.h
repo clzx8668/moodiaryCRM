@@ -41,6 +41,10 @@ class FlutterWindow : public Win32Window {
   static constexpr int kShortcutId = 0xB1;
   bool shortcut_registered_ = false;
 
+  // 当前注册的组合键（默认 Ctrl+Alt+M；可由 Dart 侧自定义）。
+  int shortcut_modifiers_ = MOD_CONTROL | MOD_ALT;
+  int shortcut_virtual_key_ = 0x4D;  // 'M'
+
   // 注册/注销 Ctrl+Alt+M。
   void RegisterShortcut();
   void UnregisterShortcut();

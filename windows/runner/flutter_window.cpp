@@ -43,14 +43,46 @@ bool FlutterWindow::OnCreate() {
       [this](const flutter::MethodCall<flutter::EncodableValue>& call,
              std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
                  result) {
-        if (call.method_name() == "setEnabled") {
-          const bool* enabled = std::get_if<bool>(call.arguments());
-          const bool value = enabled == nullptr ? true : *enabled;
-          if (value) {
-            RegisterShortcut();
-          } else {
-            UnregisterShortcut();
+        if (call.method_name() == "setShortcut") {
+          bool want_enabled = true;
+          int modifiers = shortcut_modifiers_;
+          int virtual_key = shortcut_virtual_key_;
+          if (const auto* args =
+                  std::get_if<flutter::EncodableMap>(call.arguments())) {
+            const auto enabled_it = args->find(flutter::EncodableValue("enabled"));
+            if (enabled_it != args->end()) {
+              if (const auto* value =
+                      std::get_if<bool>(&enabled_it->second)) {
+                want_enabled = *value;
+              }
+            }
+            const auto mods_it =
+                args->find(flutter::EncodableValue("modifiers"));
+            if (mods_it != args->end()) {
+              if (const auto* value =
+                      std::get_if<int32_t>(&mods_it->second)) {
+                modifiers = *value;
+              }
+            }
+            const auto vk_it =
+                args->find(flutter::EncodableValue("virtualKey"));
+            if (vk_it != args->end()) {
+              if (const auto* value = std::get_if<int32_t>(&vk_it->second)) {
+                virtual_key = *value;
+              }
+            }
           }
+
+          // 组合键变化或开关状态变化都先注销，再按需重新注册，
+          // 保证「同一时刻只占用一个组合键」。
+          UnregisterShortcut();
+          if (!want_enabled) {
+            result->Success(flutter::EncodableValue(false));
+            return;
+          }
+          shortcut_modifiers_ = modifiers;
+          shortcut_virtual_key_ = virtual_key;
+          RegisterShortcut();
           result->Success(flutter::EncodableValue(shortcut_registered_));
           return;
         }
@@ -237,14 +269,16 @@ void FlutterWindow::RegisterShortcut() {
   // MOD_NOREPEAT：按住不放不重复触发。
   shortcut_registered_ =
       ::RegisterHotKey(hwnd, kShortcutId,
-                       MOD_CONTROL | MOD_ALT | MOD_NOREPEAT,
-                       0x4D /* 'M' */) != 0;
-  std::cout << "[shortcut] RegisterHotKey(Ctrl+Alt+M) ok="
-            << (shortcut_registered_ ? 1 : 0)
+                       static_cast<UINT>(shortcut_modifiers_) | MOD_NOREPEAT,
+                       static_cast<UINT>(shortcut_virtual_key_)) != 0;
+  std::cout << "[shortcut] RegisterHotKey mods=0x" << std::hex
+            << shortcut_modifiers_ << std::dec
+            << " vk=0x" << std::hex << shortcut_virtual_key_ << std::dec
+            << " ok=" << (shortcut_registered_ ? 1 : 0)
             << " err=" << ::GetLastError() << std::endl;
   if (!shortcut_registered_) {
     OutputDebugStringW(
-        L"[shortcut] RegisterHotKey(Ctrl+Alt+M) 失败：可能已被其它程序占用\n");
+        L"[shortcut] RegisterHotKey 失败：可能已被其它程序占用\n");
   }
 }
 

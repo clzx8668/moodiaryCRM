@@ -116,6 +116,8 @@ class PrefUtil {
     'reminderState',
     // 桌面全局快捷键（闪念速记）
     'globalHotkeyEnabled',
+    // 桌面全局快捷键组合键（JSON：modifiers/virtualKey）
+    'globalHotkeySpec',
     // 关闭窗口时最小化到托盘
     'closeToTray',
     // 移动端底部导航按钮配置（JSON 数组）
@@ -346,6 +348,10 @@ class PrefUtil {
     await _prefs.setBool(
       'globalHotkeyEnabled',
       _prefs.getBool('globalHotkeyEnabled') ?? true,
+    );
+    await _prefs.setString(
+      'globalHotkeySpec',
+      _prefs.getString('globalHotkeySpec') ?? '',
     );
     // 关闭窗口时最小化到托盘（默认开启）
     await _prefs.setBool(
