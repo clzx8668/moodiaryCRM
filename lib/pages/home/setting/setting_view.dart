@@ -29,6 +29,7 @@ import 'package:moodiary/features/obsidian/obsidian_settings_page.dart';
 import 'package:moodiary/features/reminder/reminder_scheduler.dart';
 import 'package:moodiary/features/quick_capture/global_capture.dart';
 import 'package:moodiary/features/quick_capture/global_shortcut_service.dart';
+import 'package:moodiary/features/quick_capture/tray_service.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/router/app_routes.dart';
@@ -708,7 +709,8 @@ class SettingPage extends StatelessWidget {
                 const _FeedAutoSwitchTile(),
                 const _DigestAutoSwitchTile(),
                 const _ReminderSwitchTile(),
-                const _GlobalShortcutSwitchTile(isLast: true),
+                const _GlobalShortcutSwitchTile(),
+                const _CloseToTraySwitchTile(isLast: true),
               ],
             ),
           ),
@@ -916,9 +918,7 @@ class _ReminderSwitchTileState extends State<_ReminderSwitchTile> {
 
 /// 桌面全局快捷键开关（默认开；Ctrl+Alt+M 从任意程序唤起快速收集）。
 class _GlobalShortcutSwitchTile extends StatefulWidget {
-  const _GlobalShortcutSwitchTile({this.isLast = false});
-
-  final bool isLast;
+  const _GlobalShortcutSwitchTile();
 
   @override
   State<_GlobalShortcutSwitchTile> createState() =>
@@ -957,6 +957,51 @@ class _GlobalShortcutSwitchTileState
             : '仅桌面端可用',
       ),
       secondary: const Icon(Icons.keyboard_alt_outlined),
+    );
+  }
+}
+
+/// 关闭窗口到托盘开关（默认开；关闭后点关闭按钮直接退出）。
+class _CloseToTraySwitchTile extends StatefulWidget {
+  const _CloseToTraySwitchTile({this.isLast = false});
+
+  final bool isLast;
+
+  @override
+  State<_CloseToTraySwitchTile> createState() => _CloseToTraySwitchTileState();
+}
+
+class _CloseToTraySwitchTileState extends State<_CloseToTraySwitchTile> {
+  bool _value = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = TrayService.enabled;
+  }
+
+  Future<void> _toggle(bool value) async {
+    setState(() => _value = value);
+    await TrayService.setEnabled(value);
+    toast.success(
+      message: value
+          ? '已开启：关闭窗口时最小化到托盘（托盘菜单可退出）'
+          : '已关闭：关闭窗口将直接退出应用',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AdaptiveSwitchListTile(
+      value: _value,
+      onChanged: TrayService.supported ? _toggle : null,
+      title: const Text('关闭到托盘'),
+      subtitle: Text(
+        TrayService.supported
+            ? '关闭窗口时最小化到托盘；托盘菜单：打开 / 快速收集 / 退出'
+            : '仅桌面端可用',
+      ),
+      secondary: const Icon(Icons.desktop_windows_outlined),
       isLast: widget.isLast,
     );
   }

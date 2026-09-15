@@ -27,6 +27,7 @@ import 'package:moodiary/features/ai/digest/digest_scheduler.dart';
 import 'package:moodiary/features/feed/feed_scheduler.dart';
 import 'package:moodiary/features/reminder/reminder_scheduler.dart';
 import 'package:moodiary/features/quick_capture/global_shortcut_service.dart';
+import 'package:moodiary/features/quick_capture/tray_service.dart';
 import 'package:moodiary/l10n/app_localizations.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/hive.dart';
@@ -532,6 +533,8 @@ void main() async {
     ReminderScheduler.start();
     // 桌面全局快捷键（闪念速记）：Ctrl + Alt + M 唤起快速收集
     GlobalShortcutService.init();
+    // 桌面托盘常驻：关闭窗口隐藏到托盘（不退出进程）
+    TrayService.init();
   });
 }
 

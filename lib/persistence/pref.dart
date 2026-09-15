@@ -116,6 +116,8 @@ class PrefUtil {
     'reminderState',
     // 桌面全局快捷键（闪念速记）
     'globalHotkeyEnabled',
+    // 关闭窗口时最小化到托盘
+    'closeToTray',
     // 移动端底部导航按钮配置（JSON 数组）
     'mobileNavItems',
     // RSS/订阅源列表（JSON）
@@ -344,6 +346,11 @@ class PrefUtil {
     await _prefs.setBool(
       'globalHotkeyEnabled',
       _prefs.getBool('globalHotkeyEnabled') ?? true,
+    );
+    // 关闭窗口时最小化到托盘（默认开启）
+    await _prefs.setBool(
+      'closeToTray',
+      _prefs.getBool('closeToTray') ?? true,
     );
     // 联网搜索（默认关；引擎默认 DuckDuckGo 零配置）
     await _prefs.setBool(

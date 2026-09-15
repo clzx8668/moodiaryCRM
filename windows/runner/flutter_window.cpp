@@ -8,6 +8,7 @@
 #include <flutter/standard_method_codec.h>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "resource.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -75,6 +76,36 @@ bool FlutterWindow::OnCreate() {
     }).detach();
   }
 
+  // 托盘常驻：关闭窗口隐藏到托盘；托盘菜单可打开主界面 / 快速收集 / 退出。
+  tray_channel_ =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "moodiary/tray",
+          &flutter::StandardMethodCodec::GetInstance());
+  tray_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
+                 result) {
+        if (call.method_name() == "setCloseToTray") {
+          const bool* value = std::get_if<bool>(call.arguments());
+          close_to_tray_ = value == nullptr ? true : *value;
+          result->Success(flutter::EncodableValue(tray_installed_));
+          return;
+        }
+        if (call.method_name() == "hideWindow") {
+          ::ShowWindow(GetHandle(), SW_HIDE);
+          result->Success();
+          return;
+        }
+        if (call.method_name() == "quit") {
+          quitting_ = true;
+          ::PostMessage(GetHandle(), WM_CLOSE, 0, 0);
+          result->Success();
+          return;
+        }
+        result->NotImplemented();
+      });
+  InstallTray();
+
   // 兜底：CreateWindow 阶段还没把窗口内容/尺寸刷进引擎时，先显示一个空壳窗口，
   // 避免首帧断言/插件初始化阻塞时用户看到"无窗口"。SetNextFrameCallback
   // 保留作冗余（等首帧后再 Show 一次也幂等）。
@@ -94,7 +125,9 @@ bool FlutterWindow::OnCreate() {
 
 void FlutterWindow::OnDestroy() {
   UnregisterShortcut();
+  RemoveTray();
   shortcut_channel_.reset();
+  tray_channel_.reset();
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
@@ -106,6 +139,51 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  // 托盘图标回调：双击左键打开主界面，右键弹菜单。
+  if (message == kTrayCallbackMessage) {
+    switch (LOWORD(lparam)) {
+      case WM_LBUTTONDBLCLK:
+      case WM_LBUTTONUP:
+        ActivateWindow();
+        return 0;
+      case WM_RBUTTONUP:
+        ShowTrayMenu();
+        return 0;
+      default:
+        break;
+    }
+  }
+
+  // 托盘菜单命令
+  if (message == WM_COMMAND && HIWORD(wparam) == 0) {
+    const int command_id = LOWORD(wparam);
+    if (command_id == kTrayMenuOpen || command_id == kTrayMenuCapture ||
+        command_id == kTrayMenuQuit) {
+      HandleTrayCommand(command_id);
+      return 0;
+    }
+  }
+
+  // 自定义标题栏的关闭按钮走 WM_SYSCOMMAND/SC_CLOSE：同样按「最小化到托盘」处理，
+  // 否则消息会先进 Flutter 的窗口过程，可能不再产生 WM_CLOSE。
+  if (message == WM_SYSCOMMAND && (wparam & 0xFFF0) == SC_CLOSE &&
+      close_to_tray_ && !quitting_) {
+    ::ShowWindow(hwnd, SW_HIDE);
+    if (tray_channel_) {
+      tray_channel_->InvokeMethod("hiddenToTray", nullptr);
+    }
+    return 0;
+  }
+
+  // 关闭窗口：开启「最小化到托盘」时隐藏而非退出（托盘菜单「退出」除外）。
+  if (message == WM_CLOSE && close_to_tray_ && !quitting_) {
+    ::ShowWindow(hwnd, SW_HIDE);
+    if (tray_channel_) {
+      tray_channel_->InvokeMethod("hiddenToTray", nullptr);
+    }
+    return 0;
+  }
+
   // 兜底：正常关闭应走 引擎收尾→PostQuitMessage 快速退出；
   // 若 8 秒仍未退出（引擎收尾被后台资源阻塞），强制结束进程，避免无限残留。
   // 放在 HandleTopLevelWindowProc 之前，避免被 Flutter 消费 WM_CLOSE 而漏掉。
@@ -203,5 +281,76 @@ void FlutterWindow::ActivateWindow() {
   ::SetForegroundWindow(hwnd);
   if (attached) {
     ::AttachThreadInput(current_thread, foreground_thread, FALSE);
+  }
+}
+
+void FlutterWindow::InstallTray() {
+  HWND hwnd = GetHandle();
+  if (hwnd == nullptr || tray_installed_) {
+    return;
+  }
+  tray_icon_ = {};
+  tray_icon_.cbSize = sizeof(NOTIFYICONDATAW);
+  tray_icon_.hWnd = hwnd;
+  tray_icon_.uID = kTrayId;
+  tray_icon_.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+  tray_icon_.uCallbackMessage = kTrayCallbackMessage;
+  tray_icon_.hIcon =
+      ::LoadIcon(::GetModuleHandle(nullptr), MAKEINTRESOURCE(IDI_APP_ICON));
+  wcscpy_s(tray_icon_.szTip, L"Moodiary 私人助理（双击打开）");
+  tray_installed_ = ::Shell_NotifyIconW(NIM_ADD, &tray_icon_) != FALSE;
+  std::cout << "[tray] Shell_NotifyIcon(NIM_ADD) ok=" << (tray_installed_ ? 1 : 0)
+            << std::endl;
+}
+
+void FlutterWindow::RemoveTray() {
+  if (!tray_installed_) {
+    return;
+  }
+  ::Shell_NotifyIconW(NIM_DELETE, &tray_icon_);
+  tray_installed_ = false;
+}
+
+void FlutterWindow::ShowTrayMenu() {
+  HWND hwnd = GetHandle();
+  if (hwnd == nullptr) {
+    return;
+  }
+  POINT cursor;
+  ::GetCursorPos(&cursor);
+  HMENU menu = ::CreatePopupMenu();
+  if (menu == nullptr) {
+    return;
+  }
+  ::AppendMenuW(menu, MF_STRING, kTrayMenuOpen, L"打开 Moodiary");
+  ::AppendMenuW(menu, MF_STRING, kTrayMenuCapture, L"快速收集");
+  ::AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+  ::AppendMenuW(menu, MF_STRING, kTrayMenuQuit, L"退出");
+  // 菜单消失前必须把窗口置前，否则点击别处不会关闭菜单（Win32 约定）
+  ::SetForegroundWindow(hwnd);
+  ::TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_BOTTOMALIGN, cursor.x, cursor.y,
+                   0, hwnd, nullptr);
+  ::DestroyMenu(menu);
+  ::PostMessage(hwnd, WM_NULL, 0, 0);
+}
+
+void FlutterWindow::HandleTrayCommand(int command_id) {
+  switch (command_id) {
+    case kTrayMenuOpen:
+      ActivateWindow();
+      break;
+    case kTrayMenuCapture:
+      ActivateWindow();
+      if (shortcut_channel_) {
+        // 与全局热键同一条链路：唤起快速收集面板
+        shortcut_channel_->InvokeMethod("hotkeyPressed", nullptr);
+      }
+      break;
+    case kTrayMenuQuit:
+      quitting_ = true;
+      ::PostMessage(GetHandle(), WM_CLOSE, 0, 0);
+      break;
+    default:
+      break;
   }
 }

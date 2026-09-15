@@ -6,6 +6,8 @@
 #include <flutter/encodable_value.h>
 #include <flutter/method_channel.h>
 
+#include <shellapi.h>
+
 #include <memory>
 
 #include "win32_window.h"
@@ -46,6 +48,24 @@ class FlutterWindow : public Win32Window {
   // 把窗口提到前台（含最小化恢复）。Windows 对非前台进程抢焦点有限制，
   // 用 AttachThreadInput 兜底。
   void ActivateWindow();
+
+  // 托盘常驻：关闭窗口时隐藏到托盘，托盘图标提供「打开 / 快速收集 / 退出」。
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> tray_channel_;
+  NOTIFYICONDATAW tray_icon_{};
+  bool tray_installed_ = false;
+  bool close_to_tray_ = true;
+  bool quitting_ = false;
+
+  static constexpr UINT kTrayCallbackMessage = WM_APP + 1;
+  static constexpr int kTrayId = 1;
+  static constexpr int kTrayMenuOpen = 40001;
+  static constexpr int kTrayMenuCapture = 40002;
+  static constexpr int kTrayMenuQuit = 40003;
+
+  void InstallTray();
+  void RemoveTray();
+  void ShowTrayMenu();
+  void HandleTrayCommand(int command_id);
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_
