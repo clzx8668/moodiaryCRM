@@ -10,6 +10,7 @@ import android.webkit.MimeTypeMap
 import com.github.gzuliyujiang.oaid.DeviceID
 import com.github.gzuliyujiang.oaid.IGetter
 import java.io.File
+import java.util.ArrayList
 import java.util.UUID
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -21,7 +22,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     private var shareChannel: MethodChannel? = null
     private var pendingShare: String? = null
-    private var pendingShareImage: String? = null
+    private var pendingShareImages: ArrayList<String> = ArrayList()
     private var pendingShortcut: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,7 +30,7 @@ class MainActivity : FlutterFragmentActivity() {
         // 冷启动由分享/快捷方式触发时，先记录负载，待 Dart 侧就绪后取回
         pendingShare = extractShareText(intent)
         pendingShortcut = extractShortcut(intent)
-        pendingShareImage = extractShareImage(intent)
+        pendingShareImages = extractShareImages(intent)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -69,9 +70,9 @@ class MainActivity : FlutterFragmentActivity() {
                         pendingShare = null
                     }
 
-                    "getInitialShareImage" -> {
-                        result.success(pendingShareImage)
-                        pendingShareImage = null
+                    "getInitialShareImages" -> {
+                        result.success(ArrayList(pendingShareImages))
+                        pendingShareImages = ArrayList()
                     }
 
                     "getInitialShortcut" -> {
@@ -97,9 +98,14 @@ class MainActivity : FlutterFragmentActivity() {
         if (text != null) {
             deliver("onShare", text) { pendingShare = it }
         }
-        val image = extractShareImage(intent)
-        if (image != null) {
-            deliver("onShareImage", image) { pendingShareImage = it }
+        val images = extractShareImages(intent)
+        if (images.isNotEmpty()) {
+            val channel = shareChannel
+            if (channel != null) {
+                channel.invokeMethod("onShareImages", images)
+            } else {
+                pendingShareImages = images
+            }
         }
     }
 
@@ -125,18 +131,90 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     /**
-     * 分享进来的图片/文件（ACTION_SEND + EXTRA_STREAM）：
-     * 复制到私有缓存目录后把本地路径交给 Dart，避免依赖外部 URI 权限。
+     * 分享进来的图片/文件（ACTION_SEND / ACTION_SEND_MULTIPLE + EXTRA_STREAM）：
+     * 逐个复制到私有缓存目录，再把本地路径列表交给 Dart（避免依赖外部 URI 权限）。
      */
-    private fun extractShareImage(intent: Intent?): String? {
-        if (intent == null || intent.action != Intent.ACTION_SEND) return null
+    private fun extractShareImages(intent: Intent?): ArrayList<String> {
+        val results = ArrayList<String>()
+        if (intent == null) return results
+        val multiple = intent.action == Intent.ACTION_SEND_MULTIPLE
+        if (intent.action != Intent.ACTION_SEND && !multiple) return results
+
+        val mime = intent.type ?: ""
+        // 只接管图片与常见文档；纯文本分享仍走文本链路
+        val acceptImage = mime.startsWith("image/")
+        val acceptDocument = mime == "application/pdf" ||
+            mime.startsWith("application/msword") ||
+            mime.startsWith("application/vnd.openxmlformats") ||
+            mime.startsWith("text/") && mime != "text/plain"
+        if (!acceptImage && !acceptDocument) return results
+
         @Suppress("DEPRECATION")
-        val uri: Uri = intent.getParcelableExtra(Intent.EXTRA_STREAM) ?: return null
-        val mime = intent.type ?: "image/jpeg"
-        if (!mime.startsWith("image/")) return null
+        val uris: List<Uri> = collectSharedUris(intent, multiple)
+        for (uri in uris) {
+            copySharedUri(uri, acceptImage)?.let { results.add(it) }
+        }
+        return results
+    }
+
+    /**
+     * 兼容三种分享来源（真机踩坑）：
+     * 1) 相册/文件管理器：`EXTRA_STREAM` = ArrayList&lt;Uri&gt;（API 33+ 也可能是单个 Uri）；
+     * 2) `am` 或部分老应用：`EXTRA_STREAM` = String[] / String；
+     * 3) 新式分享：只给 `clipData`。
+     */
+    @Suppress("DEPRECATION")
+    private fun collectSharedUris(intent: Intent, multiple: Boolean): List<Uri> {
+        val uris = ArrayList<Uri>()
+        if (multiple) {
+            intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+                ?.let { uris.addAll(it) }
+        }
+        if (uris.isEmpty()) {
+            intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.let { uris.add(it) }
+        }
+        if (uris.isEmpty()) {
+            intent.getStringArrayListExtra(Intent.EXTRA_STREAM)?.forEach { value ->
+                value.toUriOrNull()?.let { uris.add(it) }
+            }
+        }
+        // `adb shell am --esa` 与部分老应用给的是 String[]（不是 ArrayList<String>）
+        if (uris.isEmpty()) {
+            intent.getStringArrayExtra(Intent.EXTRA_STREAM)?.forEach { value ->
+                value.toUriOrNull()?.let { uris.add(it) }
+            }
+        }
+        if (uris.isEmpty()) {
+            intent.getStringExtra(Intent.EXTRA_STREAM)?.toUriOrNull()?.let { uris.add(it) }
+        }
+        if (uris.isEmpty()) {
+            intent.clipData?.let { clip ->
+                for (i in 0 until clip.itemCount) {
+                    clip.getItemAt(i)?.uri?.let { uris.add(it) }
+                }
+            }
+        }
+        return uris
+    }
+
+    private fun String.toUriOrNull(): Uri? {
+        val text = trim().trim('[', ']', '"')
+        if (text.isEmpty()) return null
+        return try {
+            Uri.parse(text)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** 单个分享 URI → 本地缓存文件路径；失败返回 null。 */
+    private fun copySharedUri(uri: Uri, isImage: Boolean): String? {
         return try {
             val dir = File(cacheDir, "shared").apply { mkdirs() }
-            val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "jpg"
+            val mime = contentResolver.getType(uri)
+                ?: if (isImage) "image/jpeg" else "application/octet-stream"
+            val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)
+                ?: if (isImage) "jpg" else "bin"
             val target = File(dir, "shared-${UUID.randomUUID()}.$ext")
             val input = if (uri.scheme == "file") {
                 uri.path?.let { File(it).inputStream() }

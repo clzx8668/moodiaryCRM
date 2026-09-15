@@ -37,6 +37,10 @@ class ShareReceiver {
           await handleSharedText(call.arguments as String?);
         case 'onShareImage':
           await handleSharedImage(call.arguments as String?);
+        case 'onShareImages':
+          await handleSharedImages(
+            (call.arguments as List?)?.map((e) => e.toString()).toList(),
+          );
         case 'onShortcut':
           await handleShortcut(call.arguments as String?);
       }
@@ -49,6 +53,11 @@ class ShareReceiver {
       );
       await handleSharedImage(
         await _channel.invokeMethod<String>('getInitialShareImage'),
+      );
+      await handleSharedImages(
+        (await _channel.invokeMethod<List<Object?>>('getInitialShareImages'))
+            ?.map((e) => e.toString())
+            .toList(),
       );
       await handleShortcut(
         await _channel.invokeMethod<String>('getInitialShortcut'),
@@ -106,6 +115,76 @@ class ShareReceiver {
     } catch (e) {
       toast.error(message: '分享图片失败：$e');
     }
+  }
+
+  /// 单张图片分享走后端整理；**多张图片合并成一条速记（多图附件）**，
+  /// 避免一次多选刷出 N 条笔记、N 次 AI 调用；文档（PDF/Word）保存为文档附件速记。
+  static Future<void> handleSharedImages(List<String>? paths) async {
+    final files = (paths ?? const [])
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (files.isEmpty) return;
+    final split = classifySharedPaths(files);
+    try {
+      if (split.images.length == 1 && split.documents.isEmpty) {
+        await handleSharedImage(split.images.first);
+        return;
+      }
+      final attachments = <QuickAttachment>[
+        for (final path in split.images)
+          QuickAttachment(
+            path: path,
+            type: QuickAttachmentType.image,
+            name: path.split(RegExp(r'[/\\]')).last,
+          ),
+        for (final path in split.documents)
+          QuickAttachment(
+            path: path,
+            type: QuickAttachmentType.document,
+            name: path.split(RegExp(r'[/\\]')).last,
+          ),
+      ];
+      if (attachments.isEmpty) return;
+      await QuickCaptureSaver.save(
+        text: multiShareText(images: split.images.length, documents: split.documents.length),
+        attachments: attachments,
+      );
+      toast.success(
+        message: '已从分享保存 ${attachments.length} 个附件为一条速记',
+      );
+      await _refreshHome();
+    } catch (e) {
+      toast.error(message: '分享保存失败：$e');
+    }
+  }
+
+  /// 按扩展名分类分享进来的文件（纯函数，可单测）。
+  static ({List<String> images, List<String> documents}) classifySharedPaths(
+    List<String> paths,
+  ) {
+    const imageExts = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.heic'};
+    final images = <String>[];
+    final documents = <String>[];
+    for (final path in paths) {
+      final dot = path.lastIndexOf('.');
+      final ext = dot < 0 ? '' : path.substring(dot).toLowerCase();
+      if (imageExts.contains(ext)) {
+        images.add(path);
+      } else {
+        documents.add(path);
+      }
+    }
+    return (images: images, documents: documents);
+  }
+
+  /// 多附件分享的速记正文（纯函数，可单测）。
+  static String multiShareText({required int images, required int documents}) {
+    final parts = <String>[];
+    if (images > 0) parts.add('$images 张图片');
+    if (documents > 0) parts.add('$documents 个文档');
+    if (parts.isEmpty) return '来自分享的附件';
+    return '（分享保存：${parts.join(' + ')}）';
   }
 
   /// 长按图标的快捷入口。

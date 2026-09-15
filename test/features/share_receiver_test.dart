@@ -58,4 +58,34 @@ void main() {
       expect(ShareReceiver.shortcutNote, 'note');
     });
   });
+
+  group('ShareReceiver 分享文件分类（多图 / 文档）', () {
+    test('按扩展名区分图片与文档', () {
+      final split = ShareReceiver.classifySharedPaths([
+        '/tmp/a.jpg',
+        '/tmp/b.PNG',
+        '/tmp/c.pdf',
+        '/tmp/d.docx',
+        '/tmp/noext',
+      ]);
+      expect(split.images, ['/tmp/a.jpg', '/tmp/b.PNG']);
+      expect(split.documents, ['/tmp/c.pdf', '/tmp/d.docx', '/tmp/noext']);
+    });
+
+    test('多附件速记正文按类型计数', () {
+      expect(
+        ShareReceiver.multiShareText(images: 3, documents: 0),
+        '（分享保存：3 张图片）',
+      );
+      expect(
+        ShareReceiver.multiShareText(images: 2, documents: 1),
+        '（分享保存：2 张图片 + 1 个文档）',
+      );
+      expect(
+        ShareReceiver.multiShareText(images: 0, documents: 1),
+        '（分享保存：1 个文档）',
+      );
+      expect(ShareReceiver.multiShareText(images: 0, documents: 0), '来自分享的附件');
+    });
+  });
 }
