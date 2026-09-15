@@ -26,6 +26,7 @@ import 'package:moodiary/features/feed/feed_settings_page.dart';
 import 'package:moodiary/features/feed/feed_scheduler.dart';
 import 'package:moodiary/features/nav/mobile_nav_config.dart';
 import 'package:moodiary/features/obsidian/obsidian_settings_page.dart';
+import 'package:moodiary/features/reminder/reminder_scheduler.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/router/app_routes.dart';
@@ -703,7 +704,8 @@ class SettingPage extends StatelessWidget {
                   onTap: () => Get.to(() => const FeedSettingsPage()),
                 ),
                 const _FeedAutoSwitchTile(),
-                const _DigestAutoSwitchTile(isLast: true),
+                const _DigestAutoSwitchTile(),
+                const _ReminderSwitchTile(isLast: true),
               ],
             ),
           ),
@@ -800,9 +802,7 @@ class SettingPage extends StatelessWidget {
 
 /// 自动回望开关（每天 21:00 后自动生成每日回望；周一另生成每周回望）。
 class _DigestAutoSwitchTile extends StatefulWidget {
-  final bool isLast;
-
-  const _DigestAutoSwitchTile({this.isLast = false});
+  const _DigestAutoSwitchTile();
 
   @override
   State<_DigestAutoSwitchTile> createState() => _DigestAutoSwitchTileState();
@@ -833,7 +833,6 @@ class _DigestAutoSwitchTileState extends State<_DigestAutoSwitchTile> {
       title: const Text('自动生成回望'),
       subtitle: const Text('每日 21:00 后自动生成；周一含周报'),
       secondary: const Icon(Icons.auto_mode_rounded),
-      isLast: widget.isLast,
     );
   }
 }
@@ -871,6 +870,46 @@ class _FeedAutoSwitchTileState extends State<_FeedAutoSwitchTile> {
       title: const Text('自动刷新订阅'),
       subtitle: const Text('启动/回前台时刷新到期源（间隔 6 小时）'),
       secondary: const Icon(Icons.sync_rounded),
+    );
+  }
+}
+
+/// 到点提醒开关（默认开；应用运行时轮询日程/CRM 提醒，到点浮出提醒卡）。
+class _ReminderSwitchTile extends StatefulWidget {
+  const _ReminderSwitchTile({this.isLast = false});
+
+  final bool isLast;
+
+  @override
+  State<_ReminderSwitchTile> createState() => _ReminderSwitchTileState();
+}
+
+class _ReminderSwitchTileState extends State<_ReminderSwitchTile> {
+  bool _value = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = ReminderScheduler.enabled;
+  }
+
+  Future<void> _toggle(bool value) async {
+    setState(() => _value = value);
+    await PrefUtil.setValue(ReminderScheduler.prefKey, value);
+    toast.success(
+      message: value ? '已开启到点提醒（应用运行时生效）' : '已关闭到点提醒',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AdaptiveSwitchListTile(
+      value: _value,
+      onChanged: _toggle,
+      title: const Text('到点提醒'),
+      subtitle: const Text('日程/CRM 提醒到点浮出提醒卡（需应用运行）'),
+      secondary: const Icon(Icons.alarm_rounded),
+      isLast: widget.isLast,
     );
   }
 }

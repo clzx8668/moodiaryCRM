@@ -110,6 +110,10 @@ class PrefUtil {
     'aiUserProfile',
     // 自动生成每日/每周回望
     'digestAutoEnabled',
+    // 到点提醒（应用内）
+    'reminderEnabled',
+    // 到点提醒状态（已提醒/延后中，JSON）
+    'reminderState',
     // 移动端底部导航按钮配置（JSON 数组）
     'mobileNavItems',
     // RSS/订阅源列表（JSON）
@@ -324,6 +328,15 @@ class PrefUtil {
     await _prefs.setBool(
       'aiAutoSummary',
       _prefs.getBool('aiAutoSummary') ?? false,
+    );
+    // 到点提醒（应用内，默认开启；状态 JSON 缺省为空）
+    await _prefs.setBool(
+      'reminderEnabled',
+      _prefs.getBool('reminderEnabled') ?? true,
+    );
+    await _prefs.setString(
+      'reminderState',
+      _prefs.getString('reminderState') ?? '',
     );
     // 联网搜索（默认关；引擎默认 DuckDuckGo 零配置）
     await _prefs.setBool(
