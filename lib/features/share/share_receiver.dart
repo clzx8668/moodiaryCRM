@@ -8,6 +8,7 @@ import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
 import 'package:moodiary/pages/edit/edit_arguments.dart';
 import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/router/app_routes.dart';
+import 'package:moodiary/utils/log_util.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 移动端系统分享与桌面快捷方式接收（对标得到大脑「分享到 App」/ App Shortcuts）。
@@ -73,13 +74,16 @@ class ShareReceiver {
     try {
       final url = extractUrl(text);
       if (url != null) {
-        await LinkCaptureSaver.saveFromUrl(url);
+        final diary = await LinkCaptureSaver.saveFromUrl(url);
+        // 真机冒烟脚本据此判定「分享先落地」（不依赖 uiautomator，见 tool/device_smoke.ps1）
+        logger.i('[share] 链接笔记已入库 id=${diary.id} url=$url');
         toast.success(message: '已从分享保存链接笔记');
       } else {
-        await QuickCaptureSaver.save(
+        final diary = await QuickCaptureSaver.save(
           text: text,
           attachments: const <QuickAttachment>[],
         );
+        logger.i('[share] 文本速记已入库 id=${diary.id}');
         toast.success(message: '已从分享保存速记');
       }
       if (Get.isRegistered<HomeLogic>()) {

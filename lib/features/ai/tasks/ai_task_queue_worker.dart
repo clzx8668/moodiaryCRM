@@ -30,8 +30,22 @@ class AiTaskQueueWorker {
   void start() {
     if (_running) return;
     _running = true;
+    // 上次进程被杀时可能留下 processing 任务（Worker 只捞 pending），启动先自愈
+    unawaited(_recoverStuckTasks());
     _timer = Timer.periodic(const Duration(seconds: 5), (_) => unawaited(_tick()));
     unawaited(_tick());
+  }
+
+  /// 把上次残留的「执行中」任务放回队列（真机实测：强杀会留下永久卡住的任务）。
+  Future<void> _recoverStuckTasks() async {
+    try {
+      final recovered = await _repo.recoverProcessing();
+      if (recovered > 0) {
+        logger.i('AI 任务队列：恢复 $recovered 条残留的执行中任务');
+      }
+    } catch (e) {
+      logger.e('AI 任务队列恢复残留任务失败', error: e);
+    }
   }
 
   void stop() {

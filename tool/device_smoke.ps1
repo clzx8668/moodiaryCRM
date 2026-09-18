@@ -195,17 +195,25 @@ Start-Sleep -Seconds 2
 $url = 'https://example.com/smoke-' + (Get-Random)
 Adb logcat -c | Out-Null
 Adb shell am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT $url -n $Activity | Out-Null
-# UI dump 在列表动画期间偶发取不到：轮询最多 12 秒，命中即通过
+# 判定优先级：① 应用日志标记 `[share] …已入库`（不依赖 uiautomator，机型无关）
+#             ② 首页列表出现该 URL（UI dump；部分机型动画期间取不到）
 $shareFound = $false
+$shareEvidence = ''
 $dumpOk = $false
 for ($i = 0; $i -lt 6; $i++) {
   Start-Sleep -Seconds 2
+  $log = (Adb logcat -d 2>&1) -join "`n"
+  if ($log -match '\[share\] (链接笔记|文本速记)已入库') {
+    $shareFound = $true; $shareEvidence = '日志命中'; break
+  }
   $dumpEarly = UiDump -retry 3
   if ($dumpEarly) { $dumpOk = $true }
-  if ($dumpEarly -match 'example\.com') { $shareFound = $true; break }
+  if ($dumpEarly -match 'example\.com') {
+    $shareFound = $true; $shareEvidence = '列表命中'; break
+  }
 }
 if ($shareFound) {
-  Say '5 分享链接先落地（数秒内入库）' $true
+  Say '5 分享链接先落地（数秒内入库）' $true $shareEvidence
 } elseif (-not $dumpOk) {
   # 部分机型在首页动画期间 uiautomator 取不��� idle（dump 失败）→ 以截图人工确认为准
   SaySkip '5 分享链接先落地（数秒内入库）' '本机 uiautomator 不可用，请看 05_share_fast.png 人工确认'
@@ -237,10 +245,11 @@ Shot '06_long_press_record'
 
 # 7) 设置 → 待处理任务 页可打开（批次 88）
 #    回首页 → 点底部「设置」→ 向上滚动找「待处理任务」→ 点开
+#    注意：只按一次返回（退出录音页）；首页是根路由，再按一次会退到桌面（本批踩到）
 Adb shell input keyevent 4 | Out-Null   # 退出录音页
 Start-Sleep -Seconds 2
-Adb shell input keyevent 4 | Out-Null
-Start-Sleep -Seconds 3
+Adb shell am start -n $Activity | Out-Null   # 把首页拉回前台，比按第二次返回安全
+Start-Sleep -Seconds 4
 Adb shell input tap ([int]($W * 0.875)) ([int]($H - 40)) | Out-Null
 Start-Sleep -Seconds 3
 

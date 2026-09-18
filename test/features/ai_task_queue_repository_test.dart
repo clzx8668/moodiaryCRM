@@ -93,4 +93,23 @@ void main() {
     await repo.delete(row.id);
     expect(await repo.listAll(), isEmpty);
   });
+
+  test('recoverProcessing 把残留的「执行中」放回 pending（宕机自愈）', () async {
+    final a = await repo.submit(type: AiTaskType.autoTag, refId: 'd1');
+    final b = await repo.submit(type: AiTaskType.autoSummary, refId: 'd2');
+    final c = await repo.submit(type: AiTaskType.linkFetch, refId: 'd3');
+    // 模拟：两条在执行中被强杀，一条已正常完成
+    await repo.updateStatus(a, AiTaskStatus.processing, error: '上次残留');
+    await repo.updateStatus(b, AiTaskStatus.processing);
+    await repo.updateStatus(c, AiTaskStatus.done);
+
+    expect(await repo.countByStatus(AiTaskStatus.processing), 2);
+    expect(await repo.recoverProcessing(), 2);
+    expect(await repo.countByStatus(AiTaskStatus.processing), 0);
+    expect(await repo.countByStatus(AiTaskStatus.pending), 2);
+    // 已完成的不受影响
+    expect(await repo.countByStatus(AiTaskStatus.done), 1);
+    // 恢复后不再重复恢复
+    expect(await repo.recoverProcessing(), 0);
+  });
 }

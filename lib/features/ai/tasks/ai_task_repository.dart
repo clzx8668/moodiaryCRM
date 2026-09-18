@@ -154,4 +154,17 @@ class AiTaskRepository {
     if (list.isEmpty) return 0;
     return (_db.delete(_db.aiTasks)..where((t) => t.status.isIn(list))).go();
   }
+
+  /// 宕机/强杀恢复：把残留的 `processing` 任务放回 `pending`，返回恢复条数。
+  ///
+  /// 任务在执行中被强杀（进程被杀、崩溃）时会永久停留在 processing——
+  /// Worker 只捞 pending，于是这条任务再也不会被执行（真机实测卡了 16 天）。
+  /// 应用启动时调用一次即可自愈。
+  Future<int> recoverProcessing() async {
+    final rows = await listByStatus(AiTaskStatus.processing);
+    for (final row in rows) {
+      await updateStatus(row, AiTaskStatus.pending);
+    }
+    return rows.length;
+  }
 }

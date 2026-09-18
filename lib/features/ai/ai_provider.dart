@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:moodiary/utils/log_util.dart';
 
 import 'ai_config.dart';
 import 'ai_composite_provider.dart';
 import 'ai_capability_store.dart';
 import 'ai_provider_store.dart';
+import 'model_name_fix.dart';
 import 'prompts.dart';
 
 /// AI 处理结果分块
@@ -363,6 +365,30 @@ class OpenAiCompatibleProvider implements AiProvider {
   @override
   bool get isConfigured => config.isConfigured;
 
+  /// 模型名容错：服务端返回「supported API model names are …」时，
+  /// 用规范名重试一次（真机实测：配置里的展示名与接口 slug 大小写不符会 400）。
+  Future<Response<T>> _postWithModelFix<T>({
+    required String url,
+    required Map<String, dynamic> data,
+    required Options options,
+    required String model,
+    String modelKey = 'model',
+  }) async {
+    Future<Response<T>> send(String name) =>
+        dio.post<T>(url, options: options, data: {...data, modelKey: name});
+    try {
+      return await send(model);
+    } on DioException catch (e) {
+      final corrected = ModelNameFix.fromError(
+        requested: model,
+        message: serverMessage(e.response?.data),
+      );
+      if (corrected == null) rethrow;
+      logger.i('[ai] 模型名自动纠正：$model → $corrected');
+      return send(corrected);
+    }
+  }
+
   @override
   Stream<AiChunk> streamTemplate({
     required String content,
@@ -373,8 +399,8 @@ class OpenAiCompatibleProvider implements AiProvider {
       return;
     }
     try {
-      final response = await dio.post<ResponseBody>(
-        config.chatCompletionsUrl,
+      final response = await _postWithModelFix<ResponseBody>(
+        url: config.chatCompletionsUrl,
         options: Options(
           responseType: ResponseType.stream,
           headers: {
@@ -384,7 +410,6 @@ class OpenAiCompatibleProvider implements AiProvider {
           },
         ),
         data: {
-          'model': config.model,
           'messages': [
             {
               'role': 'user',
@@ -393,6 +418,7 @@ class OpenAiCompatibleProvider implements AiProvider {
           ],
           'stream': true,
         },
+        model: config.model,
       );
       final body = response.data;
       if (body == null) {
@@ -452,8 +478,8 @@ class OpenAiCompatibleProvider implements AiProvider {
       return;
     }
     try {
-      final response = await dio.post<ResponseBody>(
-        config.chatCompletionsUrl,
+      final response = await _postWithModelFix<ResponseBody>(
+        url: config.chatCompletionsUrl,
         options: Options(
           responseType: ResponseType.stream,
           headers: {
@@ -463,10 +489,10 @@ class OpenAiCompatibleProvider implements AiProvider {
           },
         ),
         data: {
-          'model': config.model,
           'messages': messages.map((m) => m.toJson()).toList(),
           'stream': true,
         },
+        model: config.model,
       );
       final body = response.data;
       if (body == null) {
@@ -492,8 +518,8 @@ class OpenAiCompatibleProvider implements AiProvider {
       throw StateError('AI 未配置：请先在设置中填写 API Key');
     }
     try {
-      final resp = await dio.post<Map<String, dynamic>>(
-        config.chatCompletionsUrl,
+      final resp = await _postWithModelFix<Map<String, dynamic>>(
+        url: config.chatCompletionsUrl,
         options: Options(
           headers: {
             'Authorization': 'Bearer ${config.apiKey}',
@@ -501,12 +527,12 @@ class OpenAiCompatibleProvider implements AiProvider {
           },
         ),
         data: {
-          'model': config.model,
           'messages': messages.map((m) => m.toJson()).toList(),
           if (tools != null && tools.isNotEmpty)
             'tools': tools.map((t) => t.toJson()).toList(),
           'stream': false,
         },
+        model: config.model,
       );
       final data = resp.data;
       final choices = data?['choices'] as List?;
@@ -548,18 +574,16 @@ class OpenAiCompatibleProvider implements AiProvider {
       throw StateError('AI 未配置：请先在设置中填写 API Key');
     }
     try {
-      final response = await dio.post<Map<String, dynamic>>(
-        config.embeddingsUrl,
+      final response = await _postWithModelFix<Map<String, dynamic>>(
+        url: config.embeddingsUrl,
         options: Options(
           headers: {
             'Authorization': 'Bearer ${config.apiKey}',
             'Content-Type': 'application/json',
           },
         ),
-        data: {
-          'model': config.effectiveEmbeddingModel,
-          'input': text,
-        },
+        data: {'input': text},
+        model: config.effectiveEmbeddingModel,
       );
       final data = response.data;
       final list = data?['data'] as List?;
