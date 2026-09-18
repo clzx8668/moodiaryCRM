@@ -18,6 +18,7 @@ import 'package:moodiary/components/remove_password/remove_password_view.dart';
 import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
+import 'package:moodiary/features/ai/tasks/ai_task_queue_page.dart';
 import 'package:moodiary/features/ai/digest/digest_prompts.dart';
 import 'package:moodiary/features/ai/digest/digest_scheduler.dart';
 import 'package:moodiary/features/ai/digest/digest_service.dart';
@@ -307,6 +308,8 @@ class SettingPage extends StatelessWidget {
                     Get.to(() => const AiSettingsPage());
                   },
                 ),
+                const Divider(height: 1),
+                const AiTaskQueueTile(),
                 const Divider(height: 1),
                 GetBuilder<SettingLogic>(
                   id: 'AiProcess',

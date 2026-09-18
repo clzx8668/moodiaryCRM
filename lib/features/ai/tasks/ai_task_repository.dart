@@ -69,6 +69,30 @@ class AiTaskRepository {
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 
+  /// 全部任务（更新时间倒序，供队列管理页展示）。
+  Future<List<AiTaskRow>> listAll() async {
+    final rows = await _db.select(_db.aiTasks).get();
+    return rows.toList()..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  }
+
+  /// 未完成任务（排除 done；更新时间倒序）。
+  Future<List<AiTaskRow>> listQueue() async {
+    final rows = await listAll();
+    return rows.where((t) => t.status != AiTaskStatus.done).toList();
+  }
+
+  /// 各状态计数（仅统计传入的状态，未出现的补 0）。
+  Future<Map<String, int>> countByStatuses(Iterable<String> statuses) async {
+    final rows = await _db.select(_db.aiTasks).get();
+    final result = {for (final s in statuses) s: 0};
+    for (final row in rows) {
+      if (result.containsKey(row.status)) {
+        result[row.status] = result[row.status]! + 1;
+      }
+    }
+    return result;
+  }
+
   Future<void> updateStatus(
     AiTaskRow row,
     String status, {
@@ -98,7 +122,36 @@ class AiTaskRepository {
     return rows.where((t) => t.status == status).length;
   }
 
+  /// 重新排队：状态回到 pending、清零重试次数与错误信息（等下一轮轮询执行）。
+  Future<void> requeue(AiTaskRow row) async {
+    await (_db.update(_db.aiTasks)..where((t) => t.id.equals(row.id))).write(
+      AiTasksCompanion(
+        status: const Value(AiTaskStatus.pending),
+        retryCount: const Value(0),
+        errorMessage: const Value(''),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// 批量重新排队，返回处理条数。
+  Future<int> requeueMany(Iterable<AiTaskRow> rows) async {
+    var count = 0;
+    for (final row in rows) {
+      await requeue(row);
+      count++;
+    }
+    return count;
+  }
+
   Future<void> delete(String id) async {
     await (_db.delete(_db.aiTasks)..where((t) => t.id.equals(id))).go();
+  }
+
+  /// 按状态批量删除，返回删除条数。
+  Future<int> deleteByStatuses(Iterable<String> statuses) async {
+    final list = statuses.toList();
+    if (list.isEmpty) return 0;
+    return (_db.delete(_db.aiTasks)..where((t) => t.status.isIn(list))).go();
   }
 }
