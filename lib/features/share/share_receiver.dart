@@ -193,7 +193,11 @@ class ShareReceiver {
     if (id.isEmpty) return;
     switch (id) {
       case shortcutVoice:
-        await Get.toNamed(AppRoutes.voiceRecordPage);
+        // 快捷入口语义就是「开始说」，进入即自动开录（批次 89）
+        await Get.toNamed(
+          AppRoutes.voiceRecordPage,
+          arguments: {'autoStart': true},
+        );
       case shortcutNote:
         await Get.toNamed(
           AppRoutes.editPage,

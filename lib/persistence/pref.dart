@@ -126,6 +126,8 @@ class PrefUtil {
     'feedSources',
     // 快速收集面板草稿（未保存内容的临时记忆，JSON）
     'quickCaptureDraft',
+    // 首页 FAB 手势一次性提示（长按录音 / 上滑菜单）
+    'fabGestureHintShown',
     // 订阅自动刷新开关
     'feedAutoRefreshEnabled',
     // 订阅条目归入的知识库 id（空=不归入）

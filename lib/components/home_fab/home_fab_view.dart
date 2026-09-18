@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/values/border.dart';
+import 'package:moodiary/features/quick_capture/fab_gesture.dart';
 import 'package:moodiary/l10n/l10n.dart';
 
 class HomeFabComponent extends StatelessWidget {
@@ -21,8 +22,11 @@ class HomeFabComponent extends StatelessWidget {
   final Function() toTop;
   final Function() toNewDiary;
 
-  /// 长按主按钮时展开菜单（点击主按钮默认打开快速收集）
-  final Function()? onLongPressOpen;
+  /// 长按主按钮：直达语音记录页并自动开始录音（批次 89）
+  final Function()? onLongPressRecord;
+
+  /// 上滑主按钮：展开菜单（原长按行为，批次 89 迁移）
+  final Function()? onSwipeOpenMenu;
 
   final bool showShadow;
 
@@ -36,7 +40,8 @@ class HomeFabComponent extends StatelessWidget {
     required this.toNewDiary,
     required this.closeFab,
     required this.openFab,
-    this.onLongPressOpen,
+    this.onLongPressRecord,
+    this.onSwipeOpenMenu,
     required this.showShadow,
   });
 
@@ -191,7 +196,18 @@ class HomeFabComponent extends StatelessWidget {
         builder: (context, child) {
           return GestureDetector(
             onTap: isExpanded.value ? closeFab : openFab,
-            onLongPress: onLongPressOpen,
+            onLongPress: onLongPressRecord,
+            onVerticalDragEnd: (details) {
+              // 上滑展开菜单 / 下滑收起（长按已让给「直达录音」）
+              switch (FabGesturePolicy.swipe(details.primaryVelocity)) {
+                case FabSwipeAction.openMenu:
+                  onSwipeOpenMenu?.call();
+                case FabSwipeAction.closeMenu:
+                  if (isExpanded.value) closeFab();
+                case FabSwipeAction.none:
+                  break;
+              }
+            },
             child: Container(
               width: 56.0,
               height: 56.0,

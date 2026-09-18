@@ -189,7 +189,10 @@ class AppPages {
     ),
     MoodiaryGetPage(
       name: AppRoutes.voiceRecordPage,
-      page: () => const VoiceRecordPage(),
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>? ?? const {};
+        return VoiceRecordPage(autoStart: args['autoStart'] == true);
+      },
     ),
     MoodiaryGetPage(
       name: AppRoutes.sponsorPage,

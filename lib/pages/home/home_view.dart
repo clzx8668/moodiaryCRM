@@ -1,5 +1,6 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_adaptive_scaffold/flutter_adaptive_scaffold.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/values/diary_type.dart';
@@ -9,12 +10,16 @@ import 'package:moodiary/components/home_fab/home_fab_view.dart';
 import 'package:moodiary/components/home_nativatorbar/navigatorbar.dart';
 import 'package:moodiary/features/ai/ai_home_page.dart';
 import 'package:moodiary/features/crm/crm_home_page.dart';
+import 'package:moodiary/features/quick_capture/fab_gesture.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_view.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/pages/home/calendar/calendar_view.dart';
 import 'package:moodiary/pages/home/diary/diary_view.dart';
 import 'package:moodiary/pages/home/media/media_view.dart';
 import 'package:moodiary/pages/home/setting/setting_view.dart';
+import 'package:moodiary/persistence/pref.dart';
+import 'package:moodiary/router/app_routes.dart';
+import 'package:moodiary/utils/notice_util.dart';
 
 import 'home_logic.dart';
 
@@ -180,7 +185,9 @@ class HomePage extends StatelessWidget {
         isExpanded: logic.isFabExpanded,
         showShadow: true,
         openFab: () => _openQuickCapture(context, logic),
-        onLongPressOpen: logic.openFab,
+        // 长按直达录音（批次 89）；菜单改由上滑展开
+        onLongPressRecord: () => _longPressVoiceRecord(context, logic),
+        onSwipeOpenMenu: logic.openFab,
         toTop: logic.toTop,
         toNewDiary: () async {
           await logic.toEditPage(type: DiaryType.markdown);
@@ -188,6 +195,26 @@ class HomePage extends StatelessWidget {
         closeFab: logic.closeFab,
       ),
     );
+  }
+
+  /// 长按 FAB：直达语音记录页并自动开始录音（首次给出一次手势提示）。
+  Future<void> _longPressVoiceRecord(
+    BuildContext context,
+    HomeLogic logic,
+  ) async {
+    await HapticFeedback.mediumImpact();
+    if (FabGesturePolicy.shouldShowHint(
+      PrefUtil.getValue<bool>(FabGesturePolicy.hintPrefKey),
+    )) {
+      await PrefUtil.setValue(FabGesturePolicy.hintPrefKey, true);
+      toast.info(message: FabGesturePolicy.hintMessage);
+    }
+    if (!context.mounted) return;
+    await Get.toNamed(
+      AppRoutes.voiceRecordPage,
+      arguments: {'autoStart': true},
+    );
+    await logic.refreshDiaryLists();
   }
 
   Future<void> _openQuickCapture(BuildContext context, HomeLogic logic) async {

@@ -29,7 +29,10 @@ import 'package:uuid/uuid.dart';
 /// 保留录音文件 + 原始转写文本，支持：播放重听、语音转写/重新转写、去口语化、
 /// 保存为日记（文本块带 `audio` 与 `deColoquial` 元数据，原文始终保留）。
 class VoiceRecordPage extends StatefulWidget {
-  const VoiceRecordPage({super.key});
+  const VoiceRecordPage({super.key, this.autoStart = false});
+
+  /// 进入页面后自动开始录音（首页 FAB 长按直达、长按图标「语音速记」）。
+  final bool autoStart;
 
   /// 录音时长格式化（纯函数，便于单测）。
   static String formatRecordDuration(Duration d) {
@@ -58,6 +61,16 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
   Duration _elapsed = Duration.zero;
   Timer? _timer;
   final AudioRecorder _recorder = AudioRecorder();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_toggleRecording());
+      });
+    }
+  }
 
   @override
   void dispose() {
