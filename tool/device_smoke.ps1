@@ -214,6 +214,69 @@ if ($shareFound) {
 }
 Shot '05_share_fast'
 
+# 6) 长按 FAB → 直达语音记录页并自动开始录音（批次 89）
+#    录制需要麦克风权限，先静默授予，避免系统权限弹窗干扰判定
+Adb shell pm grant $Pkg android.permission.RECORD_AUDIO 2>&1 | Out-Null
+Adb shell am force-stop $Pkg | Out-Null
+Adb shell am start -n $Activity | Out-Null
+Start-Sleep -Seconds 14
+$fabRecord = FindFab -w $W -h $H
+if (-not $fabRecord) {
+  $fabRecord = @([int]($W * 0.855), [int]($H * 0.89))
+  Write-Host "  · 未定位到 FAB，退回估算坐标 ≈ ($($fabRecord[0]),$($fabRecord[1]))"
+} else {
+  Write-Host "  · 截图定位到 FAB ≈ ($($fabRecord[0]),$($fabRecord[1]))"
+}
+# 同点 swipe + 900ms 时长 = 长按（不是滑动）
+Adb shell input swipe $fabRecord[0] $fabRecord[1] $fabRecord[0] $fabRecord[1] 900 | Out-Null
+Start-Sleep -Seconds 4
+$dump = UiDump
+$voiceOpen = ($dump -match '语音记录') -or ($dump -match '正在录音') -or ($dump -match '停止录音')
+Say '6 长按 FAB 直达录音（进入语音记录页并自动开录）' $voiceOpen
+Shot '06_long_press_record'
+
+# 7) 设置 → 待处理任务 页可打开（批次 88）
+#    回首页 → 点底部「设置」→ 向上滚动找「待处理任务」→ 点开
+Adb shell input keyevent 4 | Out-Null   # 退出录音页
+Start-Sleep -Seconds 2
+Adb shell input keyevent 4 | Out-Null
+Start-Sleep -Seconds 3
+Adb shell input tap ([int]($W * 0.875)) ([int]($H - 40)) | Out-Null
+Start-Sleep -Seconds 3
+
+function FindCenter([string]$xml, [string]$pattern) {
+  $m = [regex]::Match(
+    $xml,
+    'text="[^"]*' + $pattern + '[^"]*"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"'
+  )
+  if (-not $m.Success) { return $null }
+  $x = ([int]$m.Groups[1].Value + [int]$m.Groups[3].Value) / 2
+  $y = ([int]$m.Groups[2].Value + [int]$m.Groups[4].Value) / 2
+  return @([int]$x, [int]$y)
+}
+
+$target = $null
+for ($i = 0; $i -lt 8; $i++) {
+  $dump = UiDump -retry 3
+  if ($dump -match '清理已完成') { break }   # 已经在目标页
+  $target = FindCenter $dump '待处理任务'
+  if ($target) { break }
+  Adb shell input swipe ([int]($W * 0.5)) ([int]($H * 0.72)) ([int]($W * 0.5)) ([int]($H * 0.28)) 320 | Out-Null
+  Start-Sleep -Seconds 2
+}
+if ($target) {
+  Adb shell input tap $target[0] $target[1] | Out-Null
+  Start-Sleep -Seconds 3
+  $dump = UiDump
+}
+$queueOpen = ($dump -match '清理已完成') -or ($dump -match '队列是空的') -or ($dump -match '全部重试')
+if (-not $target -and -not $queueOpen) {
+  SaySkip '7 设置→待处理任务 页可打开' '未在设置页定位到「待处理任务」入口，请看 07_task_queue.png 人工确认'
+} else {
+  Say '7 设置→待处理任务 页可打开' $queueOpen
+}
+Shot '07_task_queue'
+
 Write-Host "`n===== 结果 ====="
 $results.GetEnumerator() | ForEach-Object { "  $($_.Key): $($_.Value)" }
 $failed = ($results.Values | Where-Object { $_ -like 'FAIL*' }).Count
