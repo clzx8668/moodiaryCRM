@@ -207,7 +207,10 @@ class _CrmSettingsPageState extends State<CrmSettingsPage> {
       title: const Text('默认币种'),
       subtitle: Text('新建金额类字段默认使用：${CrmPrefs.defaultCurrency()}'),
       trailing: DropdownButton<String>(
-        value: CrmPrefs.defaultCurrency(),
+        // 旧配置/手填的币种可能不在内置列表里：置空显示占位，避免断言崩溃
+        value: kCurrencies.contains(CrmPrefs.defaultCurrency())
+            ? CrmPrefs.defaultCurrency()
+            : null,
         underline: const SizedBox.shrink(),
         items: [
           for (final code in kCurrencies)

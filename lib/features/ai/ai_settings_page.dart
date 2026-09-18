@@ -1,4 +1,3 @@
-import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/ai/ai_capability_store.dart';
@@ -10,6 +9,7 @@ import 'package:moodiary/features/ai/models/ai_provider_config.dart';
 import 'package:moodiary/features/ai/profile/user_profile.dart';
 import 'package:moodiary/features/ai/search/search_service.dart';
 import 'package:moodiary/features/ai/search/search_skill.dart';
+import 'package:moodiary/features/ai/widgets/ai_model_field.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -339,6 +339,11 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
       ('bing', 'Bing — 填 API Key'),
       ('custom', 'Custom — 填 Endpoint + Key'),
     ];
+    // 旧配置里可能存着已下线的引擎 id：不在列表就置空，避免 DropdownButton 断言
+    final engineIds = [for (final (id, _) in engines) id];
+    final engineInitial = engineIds.contains(_searchEngine)
+        ? _searchEngine
+        : null;
     final skill = SearchService.create(
       _searchEngine,
       url: _searchUrl,
@@ -382,7 +387,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                 if (_searchEnabled) ...[
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
-                    initialValue: _searchEngine,
+                    initialValue: engineInitial,
                     decoration: const InputDecoration(
                       labelText: '搜索引擎',
                       border: OutlineInputBorder(),
@@ -652,10 +657,22 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     final providerOptions = _providers
         .where((c) => c.isConfigured)
         .toList();
+    // 去重（存储里若出现重复 id，DropdownButton 会因「同值多项」直接抛断言）
+    final seenIds = <String>{};
+    providerOptions.retainWhere((c) => seenIds.add(c.id));
     final selectedProvider = _findProvider(
       providerOptions,
       capability.providerId,
     );
+    // 服务商下拉的可选值；当前值不在其中时置空（同样是为了避开断言）
+    final providerValues = <String>[
+      if (capability.id == 'chat' && providerOptions.isNotEmpty) '',
+      for (final p in providerOptions) p.id,
+    ];
+    final providerInitial =
+        providerValues.contains(capability.providerId)
+        ? capability.providerId
+        : null;
 
     return Card.outlined(
       margin: const EdgeInsets.only(bottom: 10),
@@ -689,7 +706,11 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                 Switch(
                   value: capability.enabled,
                   onChanged: (v) async {
-                    setState(() => capability.enabled = v);
+                    setState(() {
+                      capability.enabled = v;
+                      // 开启时若还没选模型，先用服务商默认模型补上，避免空白下拉
+                      if (v) _ensureModelSelected(capability, selectedProvider);
+                    });
                     await _saveCaps();
                   },
                 ),
@@ -698,7 +719,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
             if (capability.enabled) ...[
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
-                initialValue: selectedProvider?.id,
+                initialValue: providerInitial,
                 decoration: const InputDecoration(
                   labelText: '使用服务商',
                   border: OutlineInputBorder(),
@@ -734,7 +755,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                   (capability.id == 'chat' &&
                       capability.providerId.isNotEmpty)) ...[
                 const SizedBox(height: 10),
-                _ModelField(
+                AiModelField(
                   key: ValueKey(
                     '${capability.id}-${capability.providerId}-${capability.modelName}',
                   ),
@@ -773,92 +794,26 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
     }
     return null;
   }
-}
 
-/// 模型名选择：优先下拉已选服务商的可用模型，空列表时回退手输。
-class _ModelField extends StatefulWidget {
-  final List<String> models;
-  final String modelName;
-  final ValueChanged<String> onChanged;
-
-  /// 下拉里的「自定义…」哨兵值：允许手动输入官方列表之外的模型名
-  /// （如百炼语音转写的 `qwen3-asr-flash`，其 /models 接口通常不返回该模型）。
-  static const String customValue = '__custom__';
-
-  const _ModelField({
-    super.key,
-    required this.models,
-    required this.modelName,
-    required this.onChanged,
-  });
-
-  @override
-  State<_ModelField> createState() => _ModelFieldState();
-}
-
-class _ModelFieldState extends State<_ModelField> {
-  /// 用于在「自定义…」被取消后强制重建下拉，避免哨兵值停留在选中态。
-  int _epoch = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final models = widget.models;
-    final modelName = widget.modelName;
-    if (models.isEmpty) {
-      return TextFormField(
-        initialValue: modelName,
-        decoration: const InputDecoration(
-          labelText: '模型名',
-          helperText: '该服务商尚未选择模型，可先到「服务商」拉取官方模型列表',
-          border: OutlineInputBorder(),
-          isDense: true,
-        ),
-        onChanged: (v) => widget.onChanged(v.trim()),
-      );
+  /// 开启某项能力时若模型名为空：用服务商默认值补上，再退到官方列表首个。
+  void _ensureModelSelected(
+    AiCapabilityConfig capability,
+    AiProviderConfig? provider,
+  ) {
+    if (capability.modelName.trim().isNotEmpty) return;
+    if (capability.id == 'chat' && capability.providerId.isEmpty) return;
+    if (provider == null) return;
+    final fallback = switch (capability.id) {
+      'embedding' => provider.embeddingModel,
+      'vision' => provider.visionModel,
+      'voice' => provider.voiceModel,
+      _ => provider.chatModel,
+    };
+    if (fallback.trim().isNotEmpty) {
+      capability.modelName = fallback.trim();
+    } else if (provider.models.isNotEmpty) {
+      capability.modelName = provider.models.first;
     }
-
-    return DropdownButtonFormField<String>(
-      key: ValueKey('model-$_epoch-$modelName'),
-      initialValue: modelName,
-      decoration: const InputDecoration(
-        labelText: '模型名',
-        border: OutlineInputBorder(),
-        isDense: true,
-      ),
-      items: [
-        for (final m in models) DropdownMenuItem(value: m, child: Text(m)),
-        const DropdownMenuItem(
-          value: _ModelField.customValue,
-          child: Text('自定义…'),
-        ),
-        if (!models.contains(modelName) && modelName.isNotEmpty)
-          DropdownMenuItem(value: modelName, child: Text('$modelName（自定义）')),
-      ],
-      onChanged: (v) async {
-        if (v == null) return;
-        if (v != _ModelField.customValue) {
-          widget.onChanged(v);
-          return;
-        }
-        final res = await showTextInputDialog(
-          context: context,
-          title: '自定义模型名',
-          textFields: [
-            DialogTextField(
-              initialText: models.contains(modelName) ? '' : modelName,
-              hintText: '如 qwen3-asr-flash / whisper-1',
-            ),
-          ],
-        );
-        final typed = res?.first.trim() ?? '';
-        if (!mounted) return;
-        if (typed.isNotEmpty) {
-          widget.onChanged(typed);
-        } else {
-          setState(() => _epoch++);
-        }
-      },
-    );
   }
 }
 
