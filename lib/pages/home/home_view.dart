@@ -203,6 +203,8 @@ class HomePage extends StatelessWidget {
     HomeLogic logic,
   ) async {
     await HapticFeedback.mediumImpact();
+    // 菜单若处于展开态先收起，避免录音页返回后残留展开菜单
+    if (logic.isFabExpanded.value) await logic.closeFab();
     if (FabGesturePolicy.shouldShowHint(
       PrefUtil.getValue<bool>(FabGesturePolicy.hintPrefKey),
     )) {
