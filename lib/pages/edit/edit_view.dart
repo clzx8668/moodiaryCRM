@@ -921,7 +921,12 @@ class EditPage extends StatelessWidget {
                               hintStyle: context.textTheme.bodyLarge?.copyWith(
                                 fontSize: 20,
                                 height: 1.5,
-                                color: Colors.grey.withValues(alpha: 0.6),
+                                // 深色模式可用：走主题色而非固定灰
+                                color: context
+                                    .theme
+                                    .colorScheme
+                                    .onSurfaceVariant
+                                    .withValues(alpha: 0.7),
                               ),
                             ),
                             maxLines: null,

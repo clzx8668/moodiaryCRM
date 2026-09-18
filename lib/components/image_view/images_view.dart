@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:moodiary/pages/image/image_view.dart';
 import 'package:moodiary/utils/file_util.dart';
+import 'package:moodiary/utils/image_decode_util.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:uuid/uuid.dart';
 
@@ -95,6 +96,11 @@ class _ImagesViewState extends State<ImagesView> {
                 child: Image.file(
                   File(FileUtil.getRealPath('image', imageName[index])),
                   fit: BoxFit.cover,
+                  // 手机原图（12MP≈48MB/张）按屏宽解码，避免整屏轮播时内存爆掉
+                  cacheWidth: ImageDecodeUtil.cacheWidthFor(
+                    logicalWidth: MediaQuery.sizeOf(context).width,
+                    devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+                  ),
                 ),
               ),
             );

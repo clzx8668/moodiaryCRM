@@ -451,7 +451,12 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
             const SizedBox(height: 6),
             for (final field in shown) _buildFieldTile(field),
             if (shown.isEmpty)
-              const Text('无可见字段，点右上「字段设置」勾选显示', style: TextStyle(color: Colors.grey)),
+              Text(
+                '无可见字段，点右上「字段设置」勾选显示',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
             const SizedBox(height: 8),
             _buildTags(),
           ],
@@ -485,7 +490,9 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
                 field.label,
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                ).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             Expanded(
@@ -1231,7 +1238,9 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
       linked.isEmpty
           ? Text(
               '暂无${crmTypeLabel(type)}，点右上「⊕」选择已有或新增',
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1545,7 +1554,11 @@ class _CrmEntityDetailViewState extends State<CrmEntityDetailView> {
           height: 34,
           child: Row(
             children: [
-              Icon(_assocIcon(type), size: 15, color: Colors.grey),
+              Icon(
+                _assocIcon(type),
+                size: 15,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(

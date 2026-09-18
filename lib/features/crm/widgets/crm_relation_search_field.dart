@@ -259,21 +259,33 @@ class _CrmRelationSearchFieldState extends State<CrmRelationSearchField> {
                     _open = true;
                     _results = widget.candidates.take(5).toList();
                   }),
-                  child: const Padding(
-                    padding: EdgeInsets.all(2),
-                    child: Icon(Icons.edit_rounded, size: 16, color: Colors.grey),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Icon(
+                      Icons.edit_rounded,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               if (_display.isNotEmpty && widget.onClear != null)
                 InkWell(
                   onTap: _clear,
-                  child: const Padding(
-                    padding: EdgeInsets.all(2),
-                    child: Icon(Icons.close_rounded, size: 16, color: Colors.grey),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               if (!hasLinkedValue)
-                const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+                Icon(
+                  Icons.search_rounded,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
             ],
           ),
         ),

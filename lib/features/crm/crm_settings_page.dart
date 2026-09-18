@@ -170,9 +170,9 @@ class _CrmSettingsPageState extends State<CrmSettingsPage> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: Theme.of(
-          context,
-        ).textTheme.titleSmall?.copyWith(color: Colors.grey),
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

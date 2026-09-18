@@ -149,9 +149,14 @@ class _CrmRecordInlineFieldsState extends State<CrmRecordInlineFields> {
       );
     }
     if (_item == null) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
-        child: Text('记录不存在或已删除', style: TextStyle(color: Colors.grey)),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          '记录不存在或已删除',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       );
     }
     final theme = Theme.of(context);
@@ -191,7 +196,9 @@ class _CrmRecordInlineFieldsState extends State<CrmRecordInlineFields> {
             width: 86,
             child: Text(
               field.label,
-              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           Expanded(

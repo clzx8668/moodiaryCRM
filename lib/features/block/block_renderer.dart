@@ -11,6 +11,7 @@ import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/smart_canvas/widgets/reading_typography.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/file_util.dart';
+import 'package:moodiary/utils/image_decode_util.dart';
 
 /// Markdown 渲染的标题层级口径。
 enum MarkdownHeadingScale {
@@ -166,10 +167,17 @@ class _BlockItem extends StatelessWidget {
           padding: const EdgeInsets.all(8.0),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.file(
-              File(FileUtil.getRealPath('image', name)),
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+            child: LayoutBuilder(
+              builder: (context, constraints) => Image.file(
+                File(FileUtil.getRealPath('image', name)),
+                fit: BoxFit.contain,
+                // 按块可用宽度解码（手机原图全尺寸解码会吃掉几十 MB）
+                cacheWidth: ImageDecodeUtil.cacheWidthFor(
+                  logicalWidth: constraints.maxWidth,
+                  devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+                ),
+                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+              ),
             ),
           ),
         );

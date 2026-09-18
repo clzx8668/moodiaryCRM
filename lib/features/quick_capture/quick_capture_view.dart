@@ -10,6 +10,7 @@ import 'package:moodiary/features/quick_capture/quick_capture_logic.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_draft.dart';
 import 'package:moodiary/features/vision/quick_vision.dart';
+import 'package:moodiary/utils/image_decode_util.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 快速收集面板（进入即激活态两行输入框，提交后清空并退出）。
@@ -532,6 +533,11 @@ class _AttachmentThumb extends StatelessWidget {
         return Image.file(
           File(attachment.path),
           fit: BoxFit.cover,
+          // 64×64 附件格：按实际格宽解码（缩略图没必要读整张原图）
+          cacheWidth: ImageDecodeUtil.thumbnailWidth(
+            logicalSize: 64,
+            devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+          ),
           errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
         );
       case QuickAttachmentType.audio:
