@@ -388,6 +388,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     initialValue: engineInitial,
+                    isExpanded: true, // 引擎名较长（如 DuckDuckGo (Free) — 无需 Key）
                     decoration: const InputDecoration(
                       labelText: '搜索引擎',
                       border: OutlineInputBorder(),
@@ -395,7 +396,14 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                     ),
                     items: [
                       for (final (id, label) in engines)
-                        DropdownMenuItem(value: id, child: Text(label)),
+                        DropdownMenuItem(
+                          value: id,
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                     ],
                     onChanged: (v) async {
                       if (v == null) return;
@@ -720,6 +728,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 initialValue: providerInitial,
+                isExpanded: true, // 长服务商名在手机窄屏下不再溢出
                 decoration: const InputDecoration(
                   labelText: '使用服务商',
                   border: OutlineInputBorder(),
@@ -732,7 +741,14 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                       child: Text('全部（主备自动切换）'),
                     ),
                   for (final p in providerOptions)
-                    DropdownMenuItem(value: p.id, child: Text(p.name)),
+                    DropdownMenuItem(
+                      value: p.id,
+                      child: Text(
+                        p.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                 ],
                 onChanged: (v) async {
                   setState(() {

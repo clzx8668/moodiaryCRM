@@ -505,6 +505,18 @@ void main() async {
     pretty.writeln('library: ${details.library}');
     pretty.writeln('context: ${details.context}');
     pretty.writeln('silent: ${details.silent}');
+    // 真机排查红屏/溢出必需：「The relevant error-causing widget was: …」
+    // 只存在于 informationCollector，默认日志里看不到（真机没有控制台可交互）
+    try {
+      final collector = details.informationCollector;
+      if (collector != null) {
+        for (final node in collector()) {
+          pretty.writeln('info: ${node.toString().trim()}');
+        }
+      }
+    } catch (_) {
+      // 诊断信息收集失败不影响错误上报
+    }
     debugPrintSynchronously(pretty.toString());
     logger.e(
       'Flutter error',

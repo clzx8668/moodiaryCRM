@@ -144,5 +144,33 @@ void main() {
       await tester.pumpAndSettle();
       expect(picked, 'qwen3-asr-flash');
     });
+
+    testWidgets('窄屏 + 超长模型名 → 不再 RenderFlex 溢出（真机 6.6px 溢出回归）', (tester) async {
+      // 真机现象：DropdownButton 内部 Row 是 MainAxisSize.min，
+      // IndexedStack 按最宽候选项撑开 → 手机窄屏下右侧溢出
+      const longName = 'qwen3.8-omni-flash-super-long-model-identifier';
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 180,
+                child: AiModelField(
+                  models: const [longName, 'bge-m3'],
+                  modelName: longName,
+                  onChanged: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      // 单行省略显示（不换行、不溢出）
+      final text = tester.widget<Text>(find.text(longName));
+      expect(text.maxLines, 1);
+      expect(text.overflow, TextOverflow.ellipsis);
+    });
   });
 }

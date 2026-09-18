@@ -119,6 +119,10 @@ class _AiModelFieldState extends State<AiModelField> {
       key: ValueKey('model-$_epoch-$modelName'),
       initialValue: initial,
       hint: const Text('选择模型…'),
+      // 不加 isExpanded 时：DropdownButton 内部 Row 是 MainAxisSize.min，
+      // 而 IndexedStack 会按「最宽的候选项」撑开——手机窄屏下模型名较长
+      // （如 qwen3.8-omni-flash 一类）就会报 RenderFlex overflowed（真机实测 6.6px）
+      isExpanded: true,
       decoration: const InputDecoration(
         labelText: '模型名',
         border: OutlineInputBorder(),
@@ -132,6 +136,8 @@ class _AiModelFieldState extends State<AiModelField> {
               value == ModelDropdownModel.customValue
                   ? '自定义…'
                   : (isCustom && value == modelName ? '$value（自定义）' : value),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
       ],
