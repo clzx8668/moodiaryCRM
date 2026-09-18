@@ -7,6 +7,7 @@ import 'package:moodiary/features/ai/template_process_service.dart';
 import 'package:moodiary/features/ai/tagging_service.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_retry_policy.dart';
+import 'package:moodiary/features/ai/tasks/pending_content_service.dart';
 import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/utils/log_util.dart';
 import 'package:moodiary/utils/network_util.dart';
@@ -126,6 +127,27 @@ class AiTaskQueueWorker {
         case AiTaskType.aiTemplate:
           // 快速收集模板：按 payload 指定的模板处理并落 AI 生成区
           await TemplateProcessService.processDiary(task.refId, task.payload);
+          break;
+        case AiTaskType.visionOcr:
+          // 图片速记后续处理：视觉整理 → 写回占位卡（payload = 图片文件名）
+          await PendingContentService.processVision(
+            diaryId: task.refId,
+            imageName: task.payload,
+          );
+          break;
+        case AiTaskType.linkFetch:
+          // 链接速记后续处理：抓取正文 → 写回占位卡（payload = url）
+          await PendingContentService.processLink(
+            diaryId: task.refId,
+            url: task.payload,
+          );
+          break;
+        case AiTaskType.voiceTranscribe:
+          // 语音速记后续处理：云端转写 → 写回占位卡（payload = 音频文件名）
+          await PendingContentService.processTranscription(
+            diaryId: task.refId,
+            audioFileName: task.payload,
+          );
           break;
         default:
           // 预留类型（embedding/index）暂不执行，直接完成

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/common/models/isar/diary.dart';
+import 'package:moodiary/features/ai/tasks/pending_content_service.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_saver.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
@@ -42,6 +44,10 @@ class QuickCaptureLogic extends GetxController {
       onText: (text) {
         state.text.value = appendTranscript(state.text.value, text);
         _voiceTextCallback?.call(text);
+      },
+      // 云端转写路径：录音先落库，转写交给后台（先落地、异步处理）
+      onAudioCaptured: (name) {
+        unawaited(saveVoiceNoteFast(name));
       },
       onAudioSaved: (name) {
         // 录音先作为附件保留：转写失败也不丢内容
@@ -160,6 +166,21 @@ class QuickCaptureLogic extends GetxController {
   /// 结束长按说话：停止录音并（云端路径）转写回填。
   Future<void> stopRecording() async {
     await _voiceInput.stop();
+  }
+
+  /// 语音速记（先落地）：把刚刚录好的音频**立即**存成一条语音笔记，
+  /// 转写交给后台队列，用户不必等待。
+  Future<Diary?> saveVoiceNoteFast(String audioFileName) async {
+    try {
+      final diary = await PendingContentService.saveVoiceFast(
+        audioFileName: audioFileName,
+      );
+      toast.success(message: '已保存语音笔记，正在后台转写…');
+      return diary;
+    } catch (e) {
+      toast.error(message: '保存语音笔记失败：$e');
+      return null;
+    }
   }
 
   /// 追加文本（纯函数，供面板回填与单测）。

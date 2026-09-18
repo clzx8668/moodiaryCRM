@@ -54,6 +54,29 @@ class SmartCanvasLogic extends GetxController {
   String? _chatStreamingBlockId;
   StreamSubscription<dynamic>? _syncSub;
 
+  /// 正在执行的 AI 动作名（空 = 空闲）：用于「进行中」指示 + 防重复点击。
+  final RxString runningAction = ''.obs;
+
+  bool get isBusy => runningAction.value.isNotEmpty;
+
+  /// 互斥执行 AI 动作：同一时刻只允许一个，重复点击给出明确提示。
+  ///
+  /// 交互约定：点击后立刻给出「正在 X…」反馈，随后由页面上的常驻小指示器
+  /// 表明仍在进行，直到动作结束。
+  Future<T?> runExclusive<T>(String label, Future<T> Function() task) async {
+    if (isBusy) {
+      toast.info(message: '正在执行「${runningAction.value}」，请稍候');
+      return null;
+    }
+    runningAction.value = label;
+    toast.info(message: '正在$label…');
+    try {
+      return await task();
+    } finally {
+      runningAction.value = '';
+    }
+  }
+
   /// 详情页 AI 交流进行中（底部输入框显示停止）。
   bool get isChatStreaming => chatStreaming.value;
 
@@ -158,6 +181,12 @@ class SmartCanvasLogic extends GetxController {
 
   /// AI 模板处理完整生命周期：创建流式卡 → 流式渲染 → 转正。
   Future<void> runAiTemplate(Block source, String template) async {
+    await runExclusive(AiTemplates.label(template), () async {
+      await _runAiTemplateOnce(source, template);
+    });
+  }
+
+  Future<void> _runAiTemplateOnce(Block source, String template) async {
     final aiBlock = await datasource.createAiStreamBlock(
       diary: canvasState.diary,
       template: template,
@@ -307,6 +336,10 @@ class SmartCanvasLogic extends GetxController {
 
   /// 对主文本卡片运行「AI 技能」（点评/发芽/拷问/打磨成稿），结果落 AI 生成区新块。
   Future<void> runSkill(AiSkillType type) async {
+    await runExclusive(type.label, () => _runSkillOnce(type));
+  }
+
+  Future<void> _runSkillOnce(AiSkillType type) async {
     final blocks = await datasource.loadBlocks(canvasState.diary.id);
     final sources = blocks
         .where((b) => !b.isDeleted && b.blockType == BlockType.text)
@@ -336,6 +369,10 @@ class SmartCanvasLogic extends GetxController {
   /// 把本日记全部文本卡片合成一篇作品草稿（公众号/小红书/汇报/邮件），
   /// 结果落 AI 生成区 `aiTemplate='work'` 新块。
   Future<void> runWorks(WorksFormat format) async {
+    await runExclusive('生成${format.label}', () => _runWorksOnce(format));
+  }
+
+  Future<void> _runWorksOnce(WorksFormat format) async {
     final blocks = await datasource.loadBlocks(canvasState.diary.id);
     final sources = blocks
         .where((b) => !b.isDeleted && b.blockType == BlockType.text)

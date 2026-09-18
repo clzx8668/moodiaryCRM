@@ -7,13 +7,23 @@ import '../schedule_repository.dart';
 
 /// 日程/待办详情页（兼新建与编辑，参考指尖时光样式）。
 ///
-/// 传入 [editable] 表示编辑已有日程；否则新建。保存成功以 `true` 返回，
-/// 由调用方刷新日历。
+/// - 传入 [editable] 表示**编辑已有**日程；
+/// - 传入 [prefilled] 表示**预填新建**（AI 提取等场景：字段已填好，用户改完再确认保存）；
+/// - 都不传则新建空白日程。
+/// 保存成功以 `true` 返回，由调用方刷新日历。
 class ScheduleDetailPage extends StatefulWidget {
   final Schedule? editable;
+
+  /// 预填草稿（id 可预先指定，保存后按该 id 落库，便于调用方建立双向关联）
+  final Schedule? prefilled;
   final DateTime? initialStart;
 
-  const ScheduleDetailPage({super.key, this.editable, this.initialStart});
+  const ScheduleDetailPage({
+    super.key,
+    this.editable,
+    this.prefilled,
+    this.initialStart,
+  });
 
   @override
   State<ScheduleDetailPage> createState() => _ScheduleDetailPageState();
@@ -41,7 +51,8 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
   void initState() {
     super.initState();
     _repo = ScheduleRepository();
-    final base = widget.editable?.clone() ?? Schedule();
+    final base =
+        widget.editable?.clone() ?? widget.prefilled?.clone() ?? Schedule();
     if (widget.editable == null && widget.initialStart != null) {
       base.startTime = widget.initialStart!;
     }

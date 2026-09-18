@@ -25,6 +25,12 @@ class AiTaskType {
   static const extractPlan = 'extract_plan';
   /// 快速收集模板的 AI 处理（payload = AiTemplates 模板 id）
   static const aiTemplate = 'ai_template';
+  /// 图片速记：先落地占位卡，后台视觉整理（payload = 图片文件名）
+  static const visionOcr = 'vision_ocr';
+  /// 链接速记：先落地占位卡，后台抓取正文（payload = url）
+  static const linkFetch = 'link_fetch';
+  /// 语音速记：先落地占位卡，后台云端转写（payload = 音频文件名）
+  static const voiceTranscribe = 'voice_transcribe';
 }
 
 /// AI 任务仓储（Drift `AiTasks` 表读写，M2 队列的数据层）。

@@ -39,13 +39,21 @@ enum VoiceInputRoute {
 /// （音频同时通过 [onAudioSaved] 回调保留，便于作为附件入库）；否则退回系统实时听写；
 /// 都没有则给出可执行提示，不再静默失效。
 class VoiceInputController {
-  VoiceInputController({required this.onText, this.onAudioSaved});
+  VoiceInputController({
+    required this.onText,
+    this.onAudioSaved,
+    this.onAudioCaptured,
+  });
 
   /// 识别/转写结果回填
   final void Function(String text) onText;
 
   /// 录音文件落盘回调（可选；用于把音频保留为附件）
   final void Function(String fileName)? onAudioSaved;
+
+  /// 「先落地」模式：录音结束**不在这里转写**，把音频文件名交给调用方
+  /// （调用方立即存一条语音笔记，转写交给后台队列）。
+  final void Function(String audioFileName)? onAudioCaptured;
 
   /// 录音或转写中（UI 显示「正在聆听…」）
   final ValueNotifier<bool> busy = ValueNotifier<bool>(false);
@@ -152,6 +160,13 @@ class VoiceInputController {
       // 停止失败也继续（文件可能已落盘）
     }
     if (name == null) return;
+
+    // 先落地模式：立刻把音频交给调用方落库，转写由后台队列完成
+    if (onAudioCaptured != null) {
+      busy.value = false;
+      onAudioCaptured!(name);
+      return;
+    }
     onAudioSaved?.call(name);
 
     busy.value = true;

@@ -19,6 +19,7 @@ import 'package:moodiary/features/smart_canvas/widgets/canvas_skeleton.dart';
 import 'package:moodiary/features/collection/kb_collection_service.dart';
 import 'package:moodiary/features/ai/extract/ai_extract_meta.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_config.dart';
+import 'package:moodiary/features/ai/extract/extract_plan_service.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_types.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/crm/local/crm_write_service.dart';
@@ -43,6 +44,7 @@ import 'package:moodiary/features/smart_canvas/widgets/smart_card.dart';
 import 'package:moodiary/features/voice/voice_input_controller.dart';
 import 'package:moodiary/pages/edit/edit_arguments.dart';
 import 'package:moodiary/persistence/pref.dart';
+import 'package:uuid/uuid.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/src/rust/api/ffi_api.dart' as rust_ffi;
@@ -1065,15 +1067,33 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     ];
     return Obx(() {
       if (logic.blockList.blocks.value.isEmpty) return const SizedBox.shrink();
+      final running = logic.runningAction.value;
       return SizedBox(
         height: 38,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.symmetric(horizontal: _contentPadX(context)),
-          itemCount: actions.length,
+          itemCount: actions.length + (running.isEmpty ? 0 : 1),
           separatorBuilder: (_, __) => const SizedBox(width: 8),
           itemBuilder: (context, index) {
-            final action = actions[index];
+            // 进行中：最前面显示运行指示器（小转圈 + 动作名），其余动作置灰防重复点击
+            if (running.isNotEmpty && index == 0) {
+              return Chip(
+                avatar: const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                label: Text(
+                  '正在$running…',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                visualDensity: VisualDensity.compact,
+                backgroundColor:
+                    Theme.of(context).colorScheme.secondaryContainer,
+              );
+            }
+            final action = actions[running.isEmpty ? index : index - 1];
             return ActionChip(
               avatar: Icon(action.icon, size: 16),
               label: Text(
@@ -1081,7 +1101,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                 style: const TextStyle(fontSize: 12),
               ),
               visualDensity: VisualDensity.compact,
-              onPressed: action.onTap,
+              onPressed: running.isEmpty ? action.onTap : null,
             );
           },
         ),
@@ -1171,17 +1191,19 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
   }
 
   Future<void> _showAiExtract(BuildContext context) async {
-    final meta = await logic.runExtractPlan();
+    final meta = await logic.runExclusive('提取待办', logic.runExtractPlan);
     if (!context.mounted) return;
     if (meta == null) return;
     if (meta.status == 'failed') {
       toast.info(
         message: meta.message.isEmpty ? 'AI 抽取未成功，可稍后重试' : meta.message,
       );
-    } else {
-      toast.success(
-        message: '已抽取：待办/日程 ${meta.scheduleIds.length}，CRM 建议 ${meta.crmProposals.length}',
-      );
+      return;
+    }
+    // 没有提取到任何待办/日程/CRM 建议：明确告知并返回
+    if (meta.pendingItems.isEmpty && meta.crmProposals.isEmpty) {
+      toast.info(message: '没有提取到待办或日程');
+      return;
     }
     await showModalBottomSheet<void>(
       context: context,
@@ -1607,6 +1629,9 @@ class _AiExtractSheetState extends State<_AiExtractSheet> {
   final ScheduleRepository _scheduleRepo = ScheduleRepository();
   final Map<String, Schedule> _schedules = {};
 
+  /// 已确认创建的条目下标 → 预先生成的日程 id
+  final Map<int, String> _createdIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -1623,6 +1648,63 @@ class _AiExtractSheetState extends State<_AiExtractSheet> {
 
   Future<void> _openSchedule(Schedule s) async {
     await Get.to<bool>(() => ScheduleDetailPage(editable: s));
+  }
+
+  /// 待确认条目的呈现：确认「创建」→ 打开**预填**的待办/日程创建页 →
+  /// 用户改完保存才真正落库（并自动建立「日记 ↔ 待办」双向关联）。
+  Widget _buildPendingItem(BuildContext context, ThemeData theme, int index) {
+    final item = widget.meta.pendingItems[index];
+    final created = _createdIds.containsKey(index);
+    final when = (item.start ?? '').trim();
+    return ListTile(
+      leading: Icon(
+        item.isTodo ? Icons.check_circle_outline_rounded : Icons.event_rounded,
+        color: created ? theme.colorScheme.primary : null,
+      ),
+      title: Text(item.title),
+      subtitle: Text(
+        created
+            ? '已创建'
+            : [
+                item.isTodo ? '待办' : '日程',
+                if (when.isNotEmpty) when,
+                if (item.floating) '浮动',
+              ].join(' · '),
+      ),
+      dense: true,
+      trailing: created
+          ? Icon(Icons.check_rounded, color: theme.colorScheme.primary)
+          : TextButton(
+              onPressed: () => _confirmCreate(index),
+              child: const Text('创建'),
+            ),
+    );
+  }
+
+  /// 打开预填创建页；保存成功后记录 id（供 AI 提取块与后续双向关联使用）。
+  Future<void> _confirmCreate(int index) async {
+    final item = widget.meta.pendingItems[index];
+    final id = const Uuid().v7();
+    final draft = ExtractPlanService.scheduleFromPending(
+      item,
+      id: id,
+      diaryId: widget.diaryId,
+    );
+    final saved = await Get.to<bool>(
+      () => ScheduleDetailPage(prefilled: draft),
+    );
+    if (saved != true) return;
+    _createdIds[index] = id;
+    _schedules[id] = draft;
+    // 双向关联 + 状态回写（供详情页展示与后续审计）
+    await ExtractPlanService.recordCreatedSchedule(
+      diaryId: widget.diaryId,
+      scheduleId: id,
+    );
+    if (mounted) {
+      setState(() {});
+      toast.success(message: '已创建${item.isTodo ? '待办' : '日程'}：${item.title}');
+    }
   }
 
   Future<void> _createCrm(ExtractCrm crm) async {
@@ -1690,14 +1772,26 @@ class _AiExtractSheetState extends State<_AiExtractSheet> {
                   child: Text('摘要：${meta.summary}'),
                 ),
               ),
+            if (meta.pendingItems.isNotEmpty) ...[
+              const Divider(),
+              Text(
+                '待确认（确认后才写入待办/日程）',
+                style: theme.textTheme.labelLarge,
+              ),
+              const SizedBox(height: 4),
+              for (var i = 0; i < meta.pendingItems.length; i++)
+                _buildPendingItem(context, theme, i),
+            ],
             if (_schedules.isNotEmpty) ...[
               const Divider(),
-              Text('待办/日程（点击编辑）', style: theme.textTheme.labelLarge),
+              Text('已创建（点击编辑）', style: theme.textTheme.labelLarge),
               for (final s in _schedules.values)
                 ListTile(
                   leading: const Icon(Icons.event_rounded),
                   title: Text(s.title),
-                  subtitle: Text(s.floating ? '浮动' : '${s.day.month}月${s.day.day}日'),
+                  subtitle: Text(
+                    s.floating ? '浮动' : '${s.day.month}月${s.day.day}日',
+                  ),
                   dense: true,
                   onTap: () => _openSchedule(s),
                 ),
@@ -1718,7 +1812,9 @@ class _AiExtractSheetState extends State<_AiExtractSheet> {
                   ),
                 ),
             ],
-            if (_schedules.isEmpty && meta.crmProposals.isEmpty)
+            if (_schedules.isEmpty &&
+                meta.crmProposals.isEmpty &&
+                meta.pendingItems.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text('未抽取到待办/日程或 CRM 建议'),

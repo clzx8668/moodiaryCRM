@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,6 +8,7 @@ import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/link_capture/link_capture_saver.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_logic.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
+import 'package:moodiary/features/quick_capture/quick_capture_draft.dart';
 import 'package:moodiary/features/vision/quick_vision.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -36,9 +38,55 @@ class QuickCaptureSheet extends StatefulWidget {
 class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
   late final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  late final QuickCaptureLogic logic;
+  late final QuickCaptureState state;
+  Timer? _draftTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // 每次打开都用全新的面板状态（避免残留上一条的附件/模板）
+    if (Get.isRegistered<QuickCaptureLogic>()) {
+      Get.delete<QuickCaptureLogic>(force: true);
+    }
+    logic = Get.put(QuickCaptureLogic());
+    state = logic.state;
+    _restoreDraft();
+    _controller.addListener(_scheduleDraftSave);
+  }
+
+  /// 「临时记忆」：上次没写完就关掉的草稿，这次打开原样恢复
+  void _restoreDraft() {
+    final draft = QuickCaptureDraftStore.load();
+    if (draft.isEmpty) return;
+    _controller.text = draft.text;
+    state.text.value = draft.text;
+    state.selectedTemplate.value = draft.template;
+    state.attachments.addAll(draft.attachments);
+  }
+
+  void _scheduleDraftSave() {
+    state.text.value = _controller.text;
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 400), _saveDraft);
+  }
+
+  void _saveDraft() {
+    QuickCaptureDraftStore.save(
+      QuickCaptureDraft(
+        text: _controller.text,
+        template: state.selectedTemplate.value,
+        attachments: state.attachments.toList(),
+      ),
+    );
+  }
 
   @override
   void dispose() {
+    _draftTimer?.cancel();
+    // 关掉面板即记住当前内容（下次打开继续写）
+    _saveDraft();
+    _controller.removeListener(_scheduleDraftSave);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -46,13 +94,6 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // 面板每次打开都确保全新控制器（打开前清理旧实例）
-    if (Get.isRegistered<QuickCaptureLogic>()) {
-      Get.delete<QuickCaptureLogic>(force: true);
-    }
-    final logic = Get.put(QuickCaptureLogic());
-    final state = logic.state;
-
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Container(
@@ -95,13 +136,18 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                 onPlus: () => _showAttachmentGrid(context, logic),
                 onSend: (text) async {
                   state.text.value = text;
+                  // 先取好 Navigator，避免 await 之后再触碰 context
+                  final navigator = Navigator.of(context);
                   final saved = await logic.save();
-                  if (saved && context.mounted) {
-                    _controller.clear();
-                    state.text.value = '';
-                    state.attachments.clear();
-                    Navigator.of(context).pop(true);
-                  }
+                  if (!saved) return;
+                  _controller.clear();
+                  state.text.value = '';
+                  state.attachments.clear();
+                  state.selectedTemplate.value = '';
+                  // 已入库：清掉临时草稿，下次打开是干净的
+                  await QuickCaptureDraftStore.clear();
+                  if (!mounted) return;
+                  navigator.pop(true);
                 },
               );
             }),
@@ -129,7 +175,10 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
           itemBuilder: (context, index) {
             return _AttachmentThumb(
               attachment: state.attachments[index],
-              onRemove: () => logic.removeAttachment(index),
+              onRemove: () {
+                logic.removeAttachment(index);
+                _saveDraft(); // 附件变化也进草稿
+              },
             );
           },
         ),
@@ -166,6 +215,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                   ),
                   onTap: () {
                     logic.selectTemplate(template);
+                    _saveDraft();
                     Get.back();
                   },
                 ),
@@ -173,6 +223,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                 TextButton(
                   onPressed: () {
                     logic.selectTemplate(null);
+                    _saveDraft();
                     Get.back();
                   },
                   child: const Text('清除模板'),
@@ -213,7 +264,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                       color: colorScheme.primaryContainer,
                       onTap: () {
                         Get.back();
-                        logic.pickImages();
+                        logic.pickImages().then((_) => _saveDraft());
                       },
                     ),
                     _AppendTile(
@@ -222,7 +273,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                       color: colorScheme.tertiaryContainer,
                       onTap: () {
                         Get.back();
-                        logic.pickAudio();
+                        logic.pickAudio().then((_) => _saveDraft());
                       },
                     ),
                     _AppendTile(
@@ -231,7 +282,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                       color: colorScheme.secondaryContainer,
                       onTap: () {
                         Get.back();
-                        logic.pickDocument();
+                        logic.pickDocument().then((_) => _saveDraft());
                       },
                     ),
                     _AppendTile(
@@ -240,7 +291,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                       color: colorScheme.surfaceContainerHighest,
                       onTap: () {
                         Get.back();
-                        logic.pickDocument(other: true);
+                        logic.pickDocument(other: true).then((_) => _saveDraft());
                       },
                     ),
                     _AppendTile(

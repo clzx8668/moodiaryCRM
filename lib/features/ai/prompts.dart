@@ -42,6 +42,17 @@ class AiTemplates {
         return '总结';
       case chat:
         return '对话';
+      // 「先落地、后台处理」类卡片的中文名（批次 85）
+      case 'vision_ocr':
+        return '图片速记';
+      case 'link_fetch':
+        return '链接正文';
+      case 'voice_transcribe':
+        return '语音转写';
+      case 'extract':
+        return 'AI 提取';
+      case 'work':
+        return '作品草稿';
       default:
         return id;
     }

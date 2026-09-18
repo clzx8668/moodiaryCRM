@@ -2,7 +2,6 @@ import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
-import 'package:moodiary/features/schedule/schedule_repository.dart';
 import 'package:moodiary/persistence/isar.dart';
 
 import 'ai_extract_meta.dart';
@@ -34,7 +33,11 @@ class ExtractPlanService {
     return ExtractPlanResult.tryParse(completion.content);
   }
 
-  /// 对日记主文本块执行：抽取 → 日程入库 → 写 aiExtract meta。
+  /// 对日记主文本块执行：抽取 → **只生成「待确认」清单，不写日程表** →
+  /// 在 AI 生成区落一张待确认卡片。
+  ///
+  /// 落库原则（用户要求）：AI 只负责提取，**必须由用户在预填创建页确认**后
+  /// 才写入日程/CRM 表，保证数据严谨、与详情页展示一致。
   static Future<ExtractPlanResult?> processDiary(String diaryId) async {
     final block = await _primaryTextBlock(diaryId);
     if (block == null) return null;
@@ -50,62 +53,41 @@ class ExtractPlanService {
       final deduped = dedupe(result);
       final plan = deduped.result;
 
-      final createdSchedules = <String>[];
-      final createdTitles = <String>[];
-      final scheduleRepo = ScheduleRepository();
-      final today = DateTime.now();
-      if (config.todo) {
-        for (final a in plan.actions) {
-          final s = await scheduleRepo.create(
-            Schedule()
-              ..title = a.title
-              ..startTime = _date(a.dueAt) ??
-                  DateTime(today.year, today.month, today.day)
-              ..floating = a.dueAt == null || a.dueAt!.trim().isEmpty
-              ..priority = _priority(a.priority)
-              ..notes = a.note ?? ''
-              ..linkedDiaryId = diaryId
-              ..linkedBlockId = block.id,
-          );
-          createdSchedules.add(s.id);
-          createdTitles.add(a.title);
-        }
-      }
-      if (config.schedule) {
-        for (final e in plan.events) {
-          final start = _date(e.start);
-          // 若同标题的待办被合并进日程，继承其优先级与备注
-          final merged = deduped.eventActions[normalizeTitle(e.title)];
-          final s = await scheduleRepo.create(
-            Schedule()
-              ..title = e.title
-              ..startTime = start ?? today
-              ..endTime = e.end != null ? _date(e.end) : null
-              ..allDay = e.allDay
-              ..remindOffsetMin = _remind(e.remind)
-              ..priority = merged == null
-                  ? SchedulePriority.none
-                  : _priority(merged.priority)
-              ..notes = merged?.note ?? ''
-              ..linkedDiaryId = diaryId
-              ..linkedBlockId = block.id,
-          );
-          createdSchedules.add(s.id);
-          createdTitles.add(e.title);
-        }
-      }
+      // 待确认清单（不落库）
+      final pending = <ExtractPendingItem>[
+        if (config.todo)
+          for (final a in plan.actions)
+            ExtractPendingItem(
+              kind: 'todo',
+              title: a.title,
+              start: a.dueAt,
+              floating: a.dueAt == null || a.dueAt!.trim().isEmpty,
+              priority: a.priority,
+              notes: a.note ?? '',
+            ),
+        if (config.schedule)
+          for (final e in plan.events)
+            ExtractPendingItem(
+              kind: 'schedule',
+              title: e.title,
+              start: e.start,
+              end: e.end,
+              allDay: e.allDay,
+              priority: deduped.eventActions[normalizeTitle(e.title)]?.priority ?? '',
+              notes: deduped.eventActions[normalizeTitle(e.title)]?.note ?? '',
+              remind: e.remind ?? '',
+            ),
+      ];
 
       final crmProposals = config.crm ? plan.crm : const <ExtractCrm>[];
-      if (createdSchedules.isNotEmpty || crmProposals.isNotEmpty) {
+      if (pending.isNotEmpty || crmProposals.isNotEmpty) {
         // 在 AI 生成区新建「AI 提取」块（source=ai，aiTemplate='extract'），源笔记块保持原样
         final aiBlock = await _createExtractBlock(
           diaryId: diaryId,
           originalContent: block.content,
-          titles: createdTitles,
+          pending: pending,
           crm: crmProposals,
           summary: config.summary ? plan.summary : '',
-          scheduleIds: createdSchedules,
-          crmProposalsMeta: crmProposals,
         );
         if (aiBlock == null) {
           _writeMeta(block, 'failed', '无法创建 AI 提取块');
@@ -169,14 +151,76 @@ class ExtractPlanService {
     );
   }
 
+  /// 用户确认创建一条待办/日程后回写 AI 提取块：记录已创建的日程 id，
+  /// 全部确认完则把状态置为 ok（详情页据此展示「已创建」列表与双向关联）。
+  static Future<void> recordCreatedSchedule({
+    required String diaryId,
+    required String scheduleId,
+  }) async {
+    final blocks = await IsarUtil.getBlocksByDiary(diaryId);
+    final block = blocks
+        .where((b) => !b.isDeleted && b.meta.aiTemplate == 'extract')
+        .lastOrNull;
+    if (block == null) return;
+    final meta = AiExtractMeta.read(block);
+    if (meta == null) return;
+    final ids = {...meta.scheduleIds, scheduleId}.toList();
+    final allDone = ids.length >= meta.pendingItems.length;
+    AiExtractMeta.write(
+      block,
+      AiExtractMeta(
+        summary: meta.summary,
+        scheduleIds: ids,
+        crmProposals: meta.crmProposals,
+        pendingItems: meta.pendingItems,
+        status: allDone ? 'ok' : 'pending',
+      ),
+    );
+    await IsarUtil.updateBlock(block);
+  }
+
+  /// 把「待确认」条目转成**预填**的日程/待办对象（供用户确认后落库）。
+  ///
+  /// [id] 由调用方预先生成：预填页保存时按该 id 写入，调用方即可直接建立
+  /// 「日记 ↔ 待办」双向关联。
+  static Schedule scheduleFromPending(
+    ExtractPendingItem item, {
+    required String id,
+    required String diaryId,
+    String blockId = '',
+  }) {
+    final start = _date(item.start);
+    final today = DateTime.now();
+    final schedule = Schedule()
+      ..id = id
+      ..title = item.title
+      ..notes = item.notes
+      ..linkedDiaryId = diaryId
+      ..linkedBlockId = blockId.isEmpty ? null : blockId;
+    if (item.isTodo) {
+      schedule
+        ..startTime = start ?? DateTime(today.year, today.month, today.day)
+        ..floating = item.floating || start == null
+        ..priority = _priority(item.priority);
+    } else {
+      schedule
+        ..startTime = start ?? today
+        ..endTime = _date(item.end)
+        ..allDay = item.allDay
+        ..priority = _priority(item.priority);
+    }
+    // 提醒：日程沿用原始文本（如「提前 15 分钟」→ 15）
+    final remind = _remind(item.remind);
+    if (remind != null) schedule.remindOffsetMin = remind;
+    return schedule;
+  }
+
   static Future<Block?> _createExtractBlock({
     required String diaryId,
     required String originalContent,
-    required List<String> titles,
+    required List<ExtractPendingItem> pending,
     required List<ExtractCrm> crm,
     required String summary,
-    required List<String> scheduleIds,
-    required List<ExtractCrm> crmProposalsMeta,
   }) async {
     final blocks = await IsarUtil.getBlocksByDiary(diaryId);
     final sortOrder = blocks.isEmpty
@@ -184,10 +228,14 @@ class ExtractPlanService {
         : blocks.map((b) => b.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
     final now = DateTime.now();
     final content = StringBuffer('**AI 提取**\n\n');
-    if (titles.isNotEmpty) {
-      content.writeln('生成 ${titles.length} 个待办/日程：');
-      for (final t in titles) {
-        content.writeln('- 📌 $t');
+    if (pending.isNotEmpty) {
+      content.writeln('待确认 ${pending.length} 条（在下方确认后才会写入待办/日程）：');
+      for (final p in pending) {
+        final mark = p.isTodo ? '📌' : '🗓';
+        final when = (p.start ?? '').trim();
+        content.writeln(
+          '- $mark ${p.title}${when.isEmpty ? '' : '（$when）'}',
+        );
       }
     }
     if (crm.isNotEmpty) {
@@ -216,9 +264,9 @@ class ExtractPlanService {
       aiBlock,
       AiExtractMeta(
         summary: summary,
-        scheduleIds: scheduleIds,
-        crmProposals: crmProposalsMeta,
-        status: 'ok',
+        crmProposals: crm,
+        pendingItems: pending,
+        status: 'pending',
       ),
     );
     await IsarUtil.insertBlock(aiBlock);

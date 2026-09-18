@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
+import 'package:moodiary/features/ai/tasks/pending_content_service.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/link_capture/captured_content.dart';
-import 'package:moodiary/features/link_capture/link_capture_service.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:uuid/uuid.dart';
 
@@ -17,8 +17,9 @@ class LinkCaptureSaver {
   LinkCaptureSaver._();
 
   static Future<Diary> saveFromUrl(String url) async {
-    final content = await LinkCaptureService.instance.capture(url);
-    return save(content);
+    // 「先落地」：立即保存链接笔记（保留 URL），正文由后台任务抓取后回填，
+    // 避免网络慢/SPA 渲染时用户干等。
+    return PendingContentService.saveLinkFast(url);
   }
 
   static Future<Diary> save(CapturedContent content) async {
