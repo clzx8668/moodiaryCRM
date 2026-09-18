@@ -66,12 +66,13 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
   }
 
   void _scheduleDraftSave() {
-    state.text.value = _controller.text;
     _draftTimer?.cancel();
     _draftTimer = Timer(const Duration(milliseconds: 400), _saveDraft);
   }
 
   void _saveDraft() {
+    // 只在防抖落地时同步一次 Rx（避免每次按键都触发 UI 重建，干扰输入法）
+    state.text.value = _controller.text;
     QuickCaptureDraftStore.save(
       QuickCaptureDraft(
         text: _controller.text,

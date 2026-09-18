@@ -62,6 +62,10 @@ class _SmartInputBarState extends State<SmartInputBar>
   late final AnimationController _pulse;
   late final Animation<double> _pulseAnim;
 
+  /// 上一次「是否有内容」的状态：只在空↔非空翻转时重建，
+  /// 避免每次按键都 setState（频繁重建会打断输入法的语音输入/联想会话）。
+  bool _hadText = false;
+
   @override
   void initState() {
     super.initState();
@@ -98,7 +102,12 @@ class _SmartInputBarState extends State<SmartInputBar>
     super.dispose();
   }
 
-  void _onChanged() => setState(() {});
+  void _onChanged() {
+    final hasText = widget.controller.text.trim().isNotEmpty;
+    if (hasText == _hadText) return;
+    _hadText = hasText;
+    setState(() {});
+  }
 
   void _onFocusChanged() {
     // 非快速收集（resident）：失焦且无输入时收缩回一行
