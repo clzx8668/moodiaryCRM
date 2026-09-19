@@ -314,39 +314,45 @@ class _SmartInputBarState extends State<SmartInputBar>
 
   Widget _modelButton(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return PopupMenuButton<String>(
-      tooltip: '大模型选择',
-      padding: EdgeInsets.zero,
-      onSelected: (_) => widget.onModelSelect?.call(),
-      itemBuilder: (_) => const [
-        PopupMenuItem(value: 'switch', child: Text('切换模型')),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.auto_awesome_rounded,
-                size: 14, color: colorScheme.primary),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                widget.modelLabel,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSurfaceVariant,
+    // 点按即打开「切换模型」面板（此前这里只是个占位菜单，点了不会真的换模型）
+    return Tooltip(
+      message: '切换模型',
+      child: InkWell(
+        onTap: widget.onModelSelect,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                size: 14,
+                color: colorScheme.primary,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  widget.modelLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
-            ),
-            Icon(Icons.arrow_drop_down_rounded,
-                size: 16, color: colorScheme.onSurfaceVariant),
-          ],
+              Icon(
+                Icons.arrow_drop_down_rounded,
+                size: 16,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
       ),
     );

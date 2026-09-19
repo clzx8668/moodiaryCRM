@@ -606,11 +606,6 @@ class SmartCanvasLogic extends GetxController {
     blockList.replace(assistant);
   }
 
-  /// LLM 模型选择回调（预留：打开模型选择）。
-  void pickChatModel() {
-    toast.info(message: '模型选择接入中');
-  }
-
   /// @ 知识库回调（预留）。
   void pickChatKnowledge() {
     toast.info(message: '@ 知识库接入中');

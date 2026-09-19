@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/values/border.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
+import 'package:moodiary/features/ai/chat_model_selector.dart';
+import 'package:moodiary/features/ai/widgets/chat_model_picker_sheet.dart';
 import 'package:moodiary/features/link_capture/link_capture_saver.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_logic.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
@@ -44,6 +46,9 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
   late final QuickCaptureState state;
   Timer? _draftTimer;
 
+  /// 当前对话模型的短标签（点 chip 可切换）
+  String _modelLabel = '默认';
+
   @override
   void initState() {
     super.initState();
@@ -55,6 +60,22 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
     state = logic.state;
     _restoreDraft();
     _controller.addListener(_scheduleDraftSave);
+    unawaited(_loadModelLabel());
+  }
+
+  Future<void> _loadModelLabel() async {
+    try {
+      final label = await ChatModelSelector.currentShortLabel();
+      if (mounted && label != _modelLabel) setState(() => _modelLabel = label);
+    } catch (_) {
+      // 读取失败保持默认标签
+    }
+  }
+
+  /// 切换当前对话模型（对标 ima 的模型选择弹层）
+  Future<void> _pickModel(BuildContext context) async {
+    final picked = await showChatModelPicker(context);
+    if (picked != null) await _loadModelLabel();
   }
 
   /// 「临时记忆」：上次没写完就关掉的草稿，这次打开原样恢复
@@ -146,11 +167,8 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                           startActive: true,
                           streaming: state.saving.value,
                           activeHint: '记点什么，或点麦克风说话…',
-                          modelLabel: state.selectedTemplate.value.isEmpty
-                              ? '快速'
-                              : state.selectedTemplate.value,
-                          onModelSelect: () =>
-                              _showTemplatePicker(context, logic, state),
+                          modelLabel: _modelLabel,
+                          onModelSelect: () => _pickModel(context),
                           onAt: () => toast.info(message: '智能提及功能预留'),
                           // 点按麦克风＝切到语音输入页并直接开录（不再「按住说话」）
                           onToggleVoice: () =>
@@ -357,6 +375,16 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                       onTap: () {
                         Get.back();
                         _showCameraCapture(context);
+                      },
+                    ),
+                    // 模板入口（原先挂在输入条的模型 chip 上）：切到附件的同一张网格里
+                    _AppendTile(
+                      icon: Icons.auto_awesome_outlined,
+                      label: 'AI 模板',
+                      color: colorScheme.tertiaryContainer,
+                      onTap: () {
+                        Get.back();
+                        _showTemplatePicker(context, logic, state);
                       },
                     ),
                   ],

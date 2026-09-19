@@ -15,6 +15,8 @@ import 'package:moodiary/features/ai/skills/works_service.dart';
 import 'package:moodiary/features/ai/autolink/auto_link_service.dart';
 import 'package:moodiary/features/ai/autolink/semantic_link_service.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
+import 'package:moodiary/features/ai/chat_model_selector.dart';
+import 'package:moodiary/features/ai/widgets/chat_model_picker_sheet.dart';
 import 'package:moodiary/features/smart_canvas/widgets/relative_time.dart';
 import 'package:moodiary/features/smart_canvas/widgets/canvas_skeleton.dart';
 import 'package:moodiary/features/collection/kb_collection_service.dart';
@@ -106,6 +108,9 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
   /// 转写进行中的自动刷新（转好即写入正文，不必手动返回重进）
   Timer? _transcribePoll;
 
+  /// 当前对话模型短标签（底部输入条 chip）
+  String _chatModelLabel = '默认';
+
   @override
   void initState() {
     super.initState();
@@ -114,6 +119,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
         ? Get.find<SmartCanvasLogic>(tag: _tag)
         : Get.put(SmartCanvasLogic(), tag: _tag);
     _scrollController.addListener(_onScrollForBarTitle);
+    unawaited(_loadChatModelLabel());
     _voiceInput = VoiceInputController(
       onText: (text) {
         _aiInput.text = appendVoiceText(_aiInput.text, text);
@@ -150,6 +156,23 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     if (_barTitleVisible.value != visible) {
       _barTitleVisible.value = visible;
     }
+  }
+
+  Future<void> _loadChatModelLabel() async {
+    try {
+      final label = await ChatModelSelector.currentShortLabel();
+      if (mounted && label != _chatModelLabel) {
+        setState(() => _chatModelLabel = label);
+      }
+    } catch (_) {
+      // 读取失败保持默认标签
+    }
+  }
+
+  /// 切换当前对话模型（与快速收集/AI 助手共用同一面板与配置）
+  Future<void> _pickChatModel(BuildContext context) async {
+    final picked = await showChatModelPicker(context);
+    if (picked != null) await _loadChatModelLabel();
   }
 
   Future<void> _showAiTemplateSheet(Block block) async {
@@ -1198,13 +1221,13 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                 activeHint: _appendMode
                     ? '记点什么…回车保存为新卡片'
                     : '问问这条记录，或输入问题…',
-                modelLabel: _appendMode ? '追加到笔记' : '记录问答',
+                modelLabel: _appendMode ? '追加到笔记' : _chatModelLabel,
                 voiceMode: _voiceMode,
                 onToggleVoice: () => setState(() => _voiceMode = !_voiceMode),
                 onLongPressStart: _startVoiceInput,
                 onLongPressEnd: _stopVoiceInput,
                 listening: _listening,
-                onModelSelect: logic.pickChatModel,
+                onModelSelect: () => _pickChatModel(context),
                 onAt: logic.pickChatKnowledge,
                 onPlus: _showAttachmentPicker,
                 onSend: (text) {
