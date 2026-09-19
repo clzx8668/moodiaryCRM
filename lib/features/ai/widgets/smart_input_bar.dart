@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 /// 通用两态输入框（详情页常驻 / AI 知识库页 / 快速收集 复用）。
 ///
@@ -23,6 +24,9 @@ class SmartInputBar extends StatefulWidget {
   final bool listening;
   final String modelLabel;
   final VoidCallback? onModelSelect;
+
+  /// @ 按钮的激活态（如已选定知识库作为上下文）
+  final bool atActive;
   final VoidCallback? onAt;
   final VoidCallback? onPlus;
 
@@ -47,6 +51,7 @@ class SmartInputBar extends StatefulWidget {
     this.listening = false,
     this.modelLabel = '快速',
     this.onModelSelect,
+    this.atActive = false,
     this.onAt,
     this.onPlus,
     this.activationTrigger,
@@ -154,11 +159,7 @@ class _SmartInputBarState extends State<SmartInputBar>
             mainAxisSize: MainAxisSize.min,
             children: [
               _modelButton(context),
-              _roundIcon(
-                Icons.alternate_email_rounded,
-                '知识库',
-                widget.onAt,
-              ),
+              ?_atIcon(context),
             ],
           ),
           Expanded(
@@ -276,11 +277,7 @@ class _SmartInputBarState extends State<SmartInputBar>
                 children: [
                   // 模型按钮可收缩：模板名较长时避免功能栏右侧溢出
                   Flexible(child: _modelButton(context)),
-                  _roundIcon(
-                    Icons.alternate_email_rounded,
-                    '知识库',
-                    widget.onAt,
-                  ),
+                  ?_atIcon(context),
                 ],
               ),
             ),
@@ -420,13 +417,27 @@ class _SmartInputBarState extends State<SmartInputBar>
     String tooltip,
     VoidCallback? onTap, {
     double iconSize = 20,
+    Color? color,
   }) {
     return IconButton(
       onPressed: onTap,
-      icon: Icon(icon, size: iconSize),
+      icon: Icon(icon, size: iconSize, color: color),
       tooltip: tooltip,
       visualDensity: VisualDensity.compact,
       constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+    );
+  }
+
+  /// @ 按钮：未提供回调时不渲染（避免出现点了没反应的假入口）
+  Widget? _atIcon(BuildContext context) {
+    if (widget.onAt == null) return null;
+    return _roundIcon(
+      widget.atActive
+          ? Icons.alternate_email_rounded
+          : Icons.alternate_email_rounded,
+      widget.atActive ? '知识库上下文（已选）' : '选择知识库上下文',
+      widget.onAt,
+      color: widget.atActive ? context.theme.colorScheme.primary : null,
     );
   }
 }

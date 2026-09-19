@@ -15,6 +15,8 @@ import 'package:moodiary/features/ai/tool_executor.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/block/markdown_projection.dart';
+import 'package:moodiary/features/rag/models/knowledge_base.dart';
+import 'package:moodiary/features/rag/rag_service.dart';
 import 'package:moodiary/features/crm/widgets/crm_write_confirm_card.dart';
 import 'package:moodiary/features/smart_canvas/services/canvas_datasource.dart';
 import 'package:moodiary/features/smart_canvas/states/block_list_state.dart';
@@ -33,6 +35,9 @@ import 'package:moodiary/utils/notice_util.dart';
 class SmartCanvasLogic extends GetxController {
   final CanvasState canvasState = CanvasState();
   final BlockListState blockList = BlockListState();
+
+  /// 对话时选定的知识库上下文（@ 按钮）：非空则在提问时先做 RAG 检索注入。
+  final Rxn<KnowledgeBase> chatKnowledgeBase = Rxn<KnowledgeBase>();
   final StreamingState streaming = StreamingState();
   final EditState edit = EditState();
   final SyncState sync = SyncState();
@@ -440,6 +445,7 @@ class SmartCanvasLogic extends GetxController {
       toast.info(message: 'AI 未配置，请在设置中填写 API Key');
       return;
     }
+    final effectiveAttachments = await _withKnowledgeBaseContext(q, attachments);
     final user = await datasource.createChatBlock(
       diary: canvasState.diary,
       role: 'user',
@@ -451,7 +457,29 @@ class SmartCanvasLogic extends GetxController {
       content: '',
     );
     blockList.blocks.addAll([user, assistant]);
-    await _streamChatBlock(assistant, userQuestion: q, attachments: attachments);
+    await _streamChatBlock(
+      assistant,
+      userQuestion: q,
+      attachments: effectiveAttachments,
+    );
+  }
+
+  /// 若选了知识库上下文：用问题做一次 RAG 检索，把命中片段拼成附加知识。
+  Future<List<String>> _withKnowledgeBaseContext(
+    String question,
+    List<String> attachments,
+  ) async {
+    final kb = chatKnowledgeBase.value;
+    if (kb == null || question.trim().isEmpty) return attachments;
+    try {
+      final ctx = await RagService().buildContext(kb.id, question, topK: 5);
+      final context = ctx.context.trim();
+      if (context.isEmpty) return attachments;
+      return [...attachments, '【${kb.name}】检索到的相关片段：\n$context'];
+    } catch (e) {
+      toast.info(message: '知识库检索失败，已按普通对话回答');
+      return attachments;
+    }
   }
 
   /// 针对某条助手块重新生成。

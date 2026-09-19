@@ -230,21 +230,27 @@ class PendingContentService {
   }
 
   /// 处理失败：把占位卡改成明确的失败提示（保留原因，不静默）。
+  ///
+  /// [warningOnly]：只是"未配置能力"这类可预期的跳过（如图片未配多模态模型），
+  /// 用 📎 中性文案而不是 ⚠️ 报错，避免把"没配模型"渲染成"处理失败"吓人。
   static Future<void> markFailed({
     required String diaryId,
     required String template,
     required String reason,
+    bool warningOnly = false,
   }) async {
     await AiBlockWriter.upsert(
       diaryId: diaryId,
       template: template,
-      content: '⚠️ 处理未完成：$reason\n（原始内容已保留，可稍后重试）',
+      content: warningOnly
+          ? '📎 原始内容已保存：$reason\n（配好模型后可在这里重试）'
+          : '⚠️ 处理未完成：$reason\n（原始内容已保留，可稍后重试）',
     );
     // 列表卡片别一直停在"处理中"：同步写一句失败原因（详情页另有完整说明）
     final diary = await IsarUtil.getDiaryById(diaryId);
     if (diary != null && diary.contentText.trim().startsWith('⏳')) {
       diary
-        ..contentText = '⚠️ 处理未完成：$reason'
+        ..contentText = warningOnly ? '📎 原始内容已保存（$reason）' : '⚠️ 处理未完成：$reason'
         ..lastModified = DateTime.now();
       await IsarUtil.updateADiary(oldDiary: diary, newDiary: diary);
     }
@@ -280,12 +286,22 @@ class PendingContentService {
       await markFailed(diaryId: diaryId, template: template, reason: '图片文件不存在');
       return;
     }
+    // 未配多模态模型是可预期的状态：中性提示 + 原图保留，而不是报"处理失败"
+    if (!await VisionCaptureService.isConfigured()) {
+      await markFailed(
+        diaryId: diaryId,
+        template: template,
+        reason: '未配置多模态模型（可在 设置 → AI 设置 → 多模态模型 配置后重试）',
+        warningOnly: true,
+      );
+      return;
+    }
     final result = await VisionCaptureService.extractFile(path);
     if (result == null) {
       await markFailed(
         diaryId: diaryId,
         template: template,
-        reason: '未配置视觉模型或识别失败（可在 设置 → AI 设置 配置）',
+        reason: '识别失败（原图已保留，可稍后重试）',
       );
       return;
     }

@@ -1,5 +1,6 @@
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_block_writer.dart';
+import 'package:moodiary/features/ai/colloquial/de_colloquial_meta.dart';
 import 'package:flutter/foundation.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
@@ -44,7 +45,7 @@ class ExtractPlanService {
     if (block == null) return null;
     final config = ExtractPlanConfig.load();
     try {
-      final result = await extract(block.content, config: config);
+      final result = await extract(sourceTextOf(block), config: config);
       if (result == null) {
         _writeMeta(block, 'failed', 'AI 未返回可用结果（可能未配置或格式不符）');
         return null;
@@ -100,6 +101,16 @@ class ExtractPlanService {
       _writeMeta(block, 'failed', '抽取异常：$e');
       rethrow;
     }
+  }
+
+  /// 抽取使用的源文本：优先「去口语化」保留的原文。
+  ///
+  /// de_colloquial 与 extract_plan 是同一个队列里的两条独立任务，先后顺序不定；
+  /// 固定读原文可以保证抽取结果与顺序无关（清洗稿只影响正文展示）。
+  @visibleForTesting
+  static String sourceTextOf(Block block) {
+    final original = DeColoquialMeta.read(block)?.original.trim() ?? '';
+    return original.isNotEmpty ? original : block.content;
   }
 
   /// 标题归一化（去空白 + 小写），用于判重。

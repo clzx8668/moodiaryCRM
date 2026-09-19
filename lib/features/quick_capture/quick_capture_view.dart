@@ -169,7 +169,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                           activeHint: '记点什么，或点麦克风说话…',
                           modelLabel: _modelLabel,
                           onModelSelect: () => _pickModel(context),
-                          onAt: () => toast.info(message: '智能提及功能预留'),
+                          // 速记面板不需要知识库提及：不传 onAt，输入条就不渲染 @（不再弹"功能预留"假提示）
                           // 点按麦克风＝切到语音输入页并直接开录（不再「按住说话」）
                           onToggleVoice: () =>
                               unawaited(logic.enterVoiceInput()),

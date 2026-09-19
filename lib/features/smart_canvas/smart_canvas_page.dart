@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/components/base/button.dart';
@@ -58,7 +57,6 @@ import 'package:moodiary/persistence/pref.dart';
 import 'package:uuid/uuid.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/router/app_routes.dart';
-import 'package:moodiary/src/rust/api/ffi_api.dart' as rust_ffi;
 import 'package:moodiary/utils/notice_util.dart';
 
 /// 中间详情页（SmartCanvasPage）：智能卡片工作台。
@@ -175,6 +173,62 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     if (picked != null) await _loadChatModelLabel();
   }
 
+  /// 选择「知识库上下文」：提问时先在该库里做 RAG 检索，把命中片段交给模型。
+  Future<void> _pickChatKnowledge(BuildContext context) async {
+    final kbs = await RagService().listKnowledgeBases();
+    if (!context.mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 6),
+              child: Text('知识库上下文'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.block_rounded),
+              title: const Text('不使用知识库'),
+              trailing: logic.chatKnowledgeBase.value == null
+                  ? const Icon(Icons.check_rounded)
+                  : null,
+              onTap: () {
+                logic.chatKnowledgeBase.value = null;
+                Navigator.pop(sheetContext);
+                toast.info(message: '已关闭知识库上下文');
+              },
+            ),
+            if (kbs.isEmpty)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 4, 16, 16),
+                child: Text('还没有知识库：可在「设置 → 知识库」里创建并索引内容'),
+              )
+            else
+              for (final kb in kbs)
+                ListTile(
+                  leading: const Icon(Icons.menu_book_rounded),
+                  title: Text(kb.name),
+                  subtitle: kb.description.trim().isEmpty
+                      ? const Text('提问时在该库里检索相关片段')
+                      : Text(kb.description.trim()),
+                  trailing: logic.chatKnowledgeBase.value?.id == kb.id
+                      ? const Icon(Icons.check_rounded)
+                      : null,
+                  onTap: () {
+                    logic.chatKnowledgeBase.value = kb;
+                    Navigator.pop(sheetContext);
+                    toast.success(message: '已选用知识库：${kb.name}');
+                  },
+                ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _showAiTemplateSheet(Block block) async {
     final template = await showModalBottomSheet<String>(
       context: context,
@@ -277,11 +331,6 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     } catch (_) {}
     if (!mounted) return;
     navigator.pop();
-  }
-
-  Future<void> _runDemoSyncEvents() async {
-    toast.info(message: '正在发送演示同步事件…');
-    await rust_ffi.emitDemoSyncEvents();
   }
 
   /// 语音识别：长按「按住 说话」开始，识别结果追加到输入框。
@@ -1051,7 +1100,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                         // ① 写：内联追加 / 全屏写卡片
                         const PopupMenuItem(
                           value: 'fullscreen_append',
-                          child: Text('全屏写卡片'),
+                          child: Text('全屏编辑（新卡片）'),
                         ),
                         const PopupMenuDivider(),
                         // ② 整理：把这条记录归档、沉淀
@@ -1068,15 +1117,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           child: Text('语音记录'),
                         ),
                         const PopupMenuDivider(),
-                        // ③ AI：抽取与产出
-                        const PopupMenuItem(
-                          value: 'extract',
-                          child: Text('AI 抽取'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'skills',
-                          child: Text('AI 技能'),
-                        ),
+                        // ③ AI 产出（抽取/技能在底部动作条，这里不重复）
                         const PopupMenuItem(
                           value: 'works',
                           child: Text('生成作品'),
@@ -1087,11 +1128,6 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           value: 'plan',
                           child: Text('抽取设置'),
                         ),
-                        if (kDebugMode)
-                          const PopupMenuItem(
-                            value: 'demo_sync',
-                            child: Text('测试同步事件流'),
-                          ),
                         const PopupMenuDivider(),
                         // ⑤ 危险操作：不需要的记录直接在详情页删掉
                         const PopupMenuItem(
@@ -1119,20 +1155,14 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           _openAppendEditor();
                         } else if (v == 'voice') {
                           Get.toNamed(AppRoutes.voiceRecordPage);
-                        } else if (v == 'extract') {
-                          _showAiExtract(context);
                         } else if (v == 'plan') {
                           _showPlanSettings(context);
-                        } else if (v == 'skills') {
-                          _showSkillSheet(context);
                         } else if (v == 'works') {
                           _showWorksSheet(context);
                         } else if (v == 'kb') {
                           _showKbSheet(context);
                         } else if (v == 'delete_diary') {
                           _deleteCurrentDiary();
-                        } else if (v == 'demo_sync') {
-                          _runDemoSyncEvents();
                         }
                       },
                     ),
@@ -1228,7 +1258,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                 onLongPressEnd: _stopVoiceInput,
                 listening: _listening,
                 onModelSelect: () => _pickChatModel(context),
-                onAt: logic.pickChatKnowledge,
+                atActive: logic.chatKnowledgeBase.value != null,
+                onAt: () => _pickChatKnowledge(context),
                 onPlus: _showAttachmentPicker,
                 onSend: (text) {
                   _aiInput.clear();
@@ -1267,6 +1298,11 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
         label: '发芽',
         icon: Icons.eco_outlined,
         onTap: () => logic.runSkill(AiSkillType.sprout),
+      ),
+      (
+        label: '拷问',
+        icon: Icons.local_fire_department_outlined,
+        onTap: () => logic.runSkill(AiSkillType.interrogate),
       ),
       (
         label: '打磨成稿',
@@ -1432,42 +1468,6 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
       showDragHandle: true,
       isScrollControlled: true,
       builder: (_) => const _ExtractPlanSheet(),
-    );
-  }
-
-  /// 弹出「AI 技能」选择，执行后结果落 AI 生成区新块。
-  void _showSkillSheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(
-                  'AI 技能',
-                  style: Theme.of(sheetContext).textTheme.titleMedium,
-                ),
-              ),
-              for (final skill in AiSkillType.values)
-                ListTile(
-                  leading: Text(skill.icon),
-                  title: Text(skill.label),
-                  subtitle: Text(skill.hint),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    logic.runSkill(skill);
-                  },
-                ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
     );
   }
 

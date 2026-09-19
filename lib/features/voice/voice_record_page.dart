@@ -349,6 +349,14 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
         }
       }
 
+      // 与其它采集入口保持一致：保存后异步补自动标签/分类/摘要
+      unawaited(
+        AiTaskQueueWorker.instance.submitTask(
+          type: AiTaskType.autoTag,
+          refId: diary.id,
+        ),
+      );
+
       if (!mounted) return;
       toast.success(
         message: minutesSaved
@@ -588,4 +596,3 @@ class _VoiceRecordPageState extends State<VoiceRecordPage> {
     );
   }
 }
-

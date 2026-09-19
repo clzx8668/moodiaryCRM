@@ -30,6 +30,16 @@ class VisionNotePrompts {
 
 /// 图片速记服务：图片 → 视觉模型 → 结构化笔记文本。
 class VisionCaptureService {
+  /// 是否已配置可用的多模态模型（用于把"未配置"与"识别失败"分开提示）。
+  static Future<bool> isConfigured() async {
+    try {
+      final provider = await AiProviderFactory.loadVision();
+      return provider.isConfigured;
+    } catch (_) {
+      return false;
+    }
+  }
+
   VisionCaptureService._();
 
   static String mimeFor(String path) {
