@@ -11,7 +11,27 @@ class VoicePlayerCard extends StatefulWidget {
   /// 已知时长（毫秒，来自 meta；0 = 由播放器解析）
   final int durationMs;
 
-  const VoicePlayerCard({super.key, required this.path, this.durationMs = 0});
+  /// 录音的响度包络（0..1）：非空时按下方的波形条渲染并随进度高亮
+  final List<double> waveform;
+
+  const VoicePlayerCard({
+    super.key,
+    required this.path,
+    this.durationMs = 0,
+    this.waveform = const [],
+  });
+
+  /// 播放进度对应到第几根波形柱（纯函数，便于单测）
+  static int playedBars({
+    required int barCount,
+    required Duration position,
+    required Duration total,
+  }) {
+    if (barCount <= 0) return 0;
+    if (total <= Duration.zero) return 0;
+    final ratio = position.inMilliseconds / total.inMilliseconds;
+    return (ratio.clamp(0.0, 1.0) * barCount).ceil().clamp(0, barCount);
+  }
 
   /// 可选倍速档位
   static const List<double> speeds = [1.0, 1.25, 1.5, 2.0];
@@ -126,6 +146,40 @@ class _VoicePlayerCardState extends State<VoicePlayerCard> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // 真实响度波形（有包络时）：已播放部分用主色高亮，随进度扫过
+            if (widget.waveform.isNotEmpty) ...[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (details) {
+                  final box = context.findRenderObject() as RenderBox?;
+                  if (box == null || _total <= Duration.zero) return;
+                  final width = box.size.width;
+                  final ratio = (details.localPosition.dx / width).clamp(0.0, 1.0);
+                  _player.seek(
+                    Duration(
+                      milliseconds: (ratio * _total.inMilliseconds).round(),
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  height: 34,
+                  child: CustomPaint(
+                    painter: _WaveformProgressPainter(
+                      waveform: widget.waveform,
+                      played: VoicePlayerCard.playedBars(
+                        barCount: widget.waveform.length,
+                        position: _position,
+                        total: _total,
+                      ),
+                      playedColor: colorScheme.primary,
+                      restColor: colorScheme.outlineVariant,
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+            ],
             Row(
               children: [
                 Text(
@@ -201,4 +255,49 @@ class _VoicePlayerCardState extends State<VoicePlayerCard> {
       ),
     );
   }
+}
+
+/// 真实响度波形 + 播放进度：已播放柱用主色，未播放用弱色。
+class _WaveformProgressPainter extends CustomPainter {
+  final List<double> waveform;
+  final int played;
+  final Color playedColor;
+  final Color restColor;
+
+  _WaveformProgressPainter({
+    required this.waveform,
+    required this.played,
+    required this.playedColor,
+    required this.restColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const gap = 2.0;
+    final count = waveform.length;
+    if (count == 0) return;
+    final barWidth = ((size.width - gap * (count - 1)) / count).clamp(1.0, 6.0);
+    final centerY = size.height / 2;
+    final paint = Paint()..style = PaintingStyle.fill;
+    for (var i = 0; i < count; i++) {
+      final value = waveform[i].clamp(0.0, 1.0);
+      final barHeight = (3 + (size.height - 3) * value).clamp(3.0, size.height);
+      paint.color = i < played ? playedColor : restColor;
+      final left = i * (barWidth + gap);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, centerY - barHeight / 2, barWidth, barHeight),
+          Radius.circular(barWidth / 2),
+        ),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _WaveformProgressPainter old) =>
+      old.played != played ||
+      old.waveform != waveform ||
+      old.playedColor != playedColor ||
+      old.restColor != restColor;
 }

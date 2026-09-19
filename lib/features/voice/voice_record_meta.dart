@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/voice/voice_level_envelope.dart';
 import 'package:moodiary/utils/file_util.dart';
 
 /// 「语音/录音转写」在 `Block.metaJson` 上的读写视图。
@@ -17,12 +18,16 @@ class VoiceRecordMeta {
   final int durationMs;
   final String source;
 
+  /// 录音响度包络（0..1，固定长度）：详情页播放时按真实响度显示波形
+  final List<double> waveform;
+
   const VoiceRecordMeta({
     required this.file,
     this.rawTranscript = '',
     this.cleaned = '',
     this.durationMs = 0,
     this.source = sourceVoice,
+    this.waveform = const [],
   });
 
   String? get absolutePath {
@@ -42,8 +47,11 @@ class VoiceRecordMeta {
       cleaned: raw['cleaned']?.toString() ?? '',
       durationMs: (raw['durationMs'] as num?)?.toInt() ?? 0,
       source: raw['source']?.toString() ?? sourceVoice,
+      waveform: VoiceLevelEnvelope.decode(_waveformOf(raw['waveform'])),
     );
   }
+
+  static Object? _waveformOf(Object? raw) => raw;
 
   static bool has(Block block) => read(block) != null;
 
@@ -55,6 +63,7 @@ class VoiceRecordMeta {
       'cleaned': meta.cleaned,
       'durationMs': meta.durationMs,
       'source': meta.source,
+      if (meta.waveform.isNotEmpty) 'waveform': meta.waveform,
     };
     block.metaJson = jsonEncode(map);
   }

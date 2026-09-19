@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:moodiary/utils/file_util.dart';
+import 'package:moodiary/features/voice/voice_level_envelope.dart';
 import 'package:record/record.dart';
 import 'package:uuid/uuid.dart';
 
@@ -121,6 +122,9 @@ class VoiceCaptureController {
   /// 电平 0…1（驱动电平条动画）
   final ValueNotifier<double> level = ValueNotifier(0);
 
+  /// 整段录音的响度包络：保存后详情页播放时按**真实响度**显示波形
+  final VoiceLevelEnvelope envelope = VoiceLevelEnvelope();
+
   Timer? _ticker;
   StreamSubscription<double>? _ampSub;
   DateTime? _startedAt;
@@ -134,6 +138,9 @@ class VoiceCaptureController {
 
   /// 录音文件绝对路径（有音频时才有意义）
   String? get audioPath => hasAudio ? _audioPathResolver(audioFileName!) : null;
+
+  /// 保存用的波形（降采样成 64 条；没录到数据时为空列表）
+  List<double> get waveformForSave => envelope.downsample(64);
 
   static bool _defaultIsDesktop() =>
       Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -174,6 +181,7 @@ class VoiceCaptureController {
 
     audioFileName = name;
     _accumulated = Duration.zero;
+    envelope.clear();
     _startedAt = _clock();
     elapsed.value = Duration.zero;
     level.value = 0;
@@ -238,6 +246,7 @@ class VoiceCaptureController {
     await _disposeAudioFile();
     _accumulated = Duration.zero;
     _startedAt = null;
+    envelope.clear();
     elapsed.value = Duration.zero;
     level.value = 0;
     phase.value = VoiceCapturePhase.idle;
@@ -248,6 +257,7 @@ class VoiceCaptureController {
     _stopTicker();
     _accumulated = Duration.zero;
     _startedAt = null;
+    envelope.clear();
     elapsed.value = Duration.zero;
     level.value = 0;
     audioFileName = null;
@@ -279,6 +289,10 @@ class VoiceCaptureController {
     _stopTicker();
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
       elapsed.value = _elapsedNow();
+      // 每 200ms 记一条响度：整段录音的包络（保存后播放时按真实响度显示波形）
+      if (phase.value == VoiceCapturePhase.recording) {
+        envelope.add(level.value);
+      }
     });
   }
 

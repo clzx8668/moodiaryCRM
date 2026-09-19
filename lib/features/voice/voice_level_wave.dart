@@ -17,6 +17,12 @@ class VoiceLevelWave {
   /// 历史采样（左旧右新）
   final List<double> samples;
 
+  /// 版本号：每次推进/清空 +1。
+  ///
+  /// 绘制层用它判断是否需要重绘——`samples` 是同一个 List 实例（原地滚动），
+  /// 直接比较列表引用永远相等，会导致波形**冻结不重绘**（真机表现为一条静音细线）。
+  int revision = 0;
+
   double _smoothed = 0;
 
   /// 平滑后的当前电平
@@ -34,6 +40,7 @@ class VoiceLevelWave {
     _smoothed = next.clamp(0.0, 1.0);
     samples.removeAt(0);
     samples.add(_smoothed);
+    revision++;
   }
 
   /// 清空（重新开始录音时）
@@ -42,6 +49,7 @@ class VoiceLevelWave {
     for (var i = 0; i < samples.length; i++) {
       samples[i] = 0;
     }
+    revision++;
   }
 
   /// 当前波形峰值（供测试与"是否有声音"判断）

@@ -55,4 +55,17 @@ void main() {
     expect(wave.peak, 0);
     expect(wave.smoothed, 0);
   });
+
+  test('revision 随推进/清空递增（绘制层靠它触发重绘）', () {
+    final wave = VoiceLevelWave(barCount: 4);
+    final r0 = wave.revision;
+    wave.advance(active: true);
+    expect(wave.revision, r0 + 1);
+    wave.advance(active: true);
+    expect(wave.revision, r0 + 2);
+    wave.reset();
+    expect(wave.revision, r0 + 3);
+    // samples 是同一个 List 实例（原地滚动）——所以必须用 revision 判断重绘
+    expect(identical(wave.samples, wave.samples), isTrue);
+  });
 }

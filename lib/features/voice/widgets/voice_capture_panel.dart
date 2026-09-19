@@ -305,6 +305,7 @@ class _LevelWaveState extends State<_LevelWave> {
     return CustomPaint(
       painter: _WavePainter(
         samples: _wave.samples,
+        revision: _wave.revision,
         color: widget.color,
         idleColor: widget.idleColor,
       ),
@@ -316,11 +317,16 @@ class _LevelWaveState extends State<_LevelWave> {
 /// 波形绘制：以中线为轴的镜像柱状（左旧右新）。
 class _WavePainter extends CustomPainter {
   final List<double> samples;
+
+  /// 版本号：列表是原地滚动的，必须靠它触发重绘（否则波形冻结）
+  final int revision;
+
   final Color color;
   final Color idleColor;
 
   _WavePainter({
     required this.samples,
+    required this.revision,
     required this.color,
     required this.idleColor,
   });
@@ -350,8 +356,7 @@ class _WavePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _WavePainter old) =>
-      old.samples != samples ||
+      old.revision != revision ||
       old.color != color ||
       old.idleColor != idleColor;
 }
-

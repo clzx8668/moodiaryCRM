@@ -12,6 +12,7 @@ import 'package:moodiary/features/ai/voice/long_audio_transcribe_service.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/link_capture/link_capture_service.dart';
 import 'package:moodiary/features/vision/vision_capture_service.dart';
+import 'package:moodiary/features/voice/voice_record_meta.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:uuid/uuid.dart';
@@ -130,6 +131,8 @@ class PendingContentService {
   static Future<Diary> saveVoiceFast({
     required String audioFileName,
     String title = '语音速记',
+    List<double> waveform = const [],
+    int durationMs = 0,
   }) async {
     final now = DateTime.now();
     final diary = Diary()
@@ -146,8 +149,8 @@ class PendingContentService {
     diary.audioName = [audioFileName];
     await IsarUtil.insertADiary(diary);
 
-    await IsarUtil.insertBlock(
-      Block()
+    // 源块上挂录音元信息：文件 + 响度包络（详情页播放时按真实响度显示波形）
+    final sourceBlock = Block()
         ..diaryId = diary.id
         ..blockType = BlockType.text
         ..content = ''
@@ -157,8 +160,16 @@ class PendingContentService {
         ..meta = BlockMeta(
           source: BlockMeta.sourceInitial,
           captureType: 'voice',
-        ),
+        );
+    VoiceRecordMeta.write(
+      sourceBlock,
+      VoiceRecordMeta(
+        file: audioFileName,
+        durationMs: durationMs,
+        waveform: waveform,
+      ),
     );
+    await IsarUtil.insertBlock(sourceBlock);
     await _createPendingBlock(
       diaryId: diary.id,
       template: 'voice_transcribe',

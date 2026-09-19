@@ -160,6 +160,9 @@ class QuickCaptureLogic extends GetxController {
     try {
       final diary = await PendingContentService.saveVoiceFast(
         audioFileName: audioFileName,
+        // 把录音的响度包络一起存下来：详情页播放时按真实响度显示波形
+        waveform: voiceCapture.waveformForSave,
+        durationMs: voiceCapture.elapsed.value.inMilliseconds,
       );
       toast.success(message: '已保存语音笔记，正在后台转写…');
       return diary;

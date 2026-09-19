@@ -35,12 +35,16 @@ class VoiceNoteInfo {
   final String rawText;
   final String noteText;
 
+  /// 录音响度包络（0..1）：播放器按真实响度画波形并随进度高亮
+  final List<double> waveform;
+
   const VoiceNoteInfo({
     required this.audioFile,
     required this.status,
     this.failureReason = '',
     this.rawText = '',
     this.noteText = '',
+    this.waveform = const [],
   });
 
   /// 原文与正文有无差异（一致时不必显示两个 Tab）
@@ -104,6 +108,7 @@ class VoiceNoteInfo {
       failureReason: failureReason,
       rawText: raw,
       noteText: note,
+      waveform: vr?.waveform ?? const [],
     );
   }
 

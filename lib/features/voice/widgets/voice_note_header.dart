@@ -63,7 +63,8 @@ class VoiceNoteHeader extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        playerBuilder?.call(audioPath) ?? VoicePlayerCard(path: audioPath),
+        playerBuilder?.call(audioPath) ??
+            VoicePlayerCard(path: audioPath, waveform: info.waveform),
         const SizedBox(height: 10),
         switch (info.status) {
           VoiceNoteStatus.transcribing => _transcribing(context),
