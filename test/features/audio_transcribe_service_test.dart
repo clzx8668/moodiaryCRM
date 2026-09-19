@@ -171,7 +171,10 @@ void main() {
         '转写结果',
       );
       expect(AudioTranscribeCodec.parseTranscriptionText({'text': ''}), isNull);
-      expect(AudioTranscribeCodec.parseTranscriptionText({'error': 'x'}), isNull);
+      expect(
+        AudioTranscribeCodec.parseTranscriptionText({'error': 'x'}),
+        isNull,
+      );
     });
 
     test('sizeLabel 保留一位小数', () {
@@ -228,9 +231,7 @@ void main() {
       );
       expect(
         AudioTranscribePlanner.plan(
-          providers: [
-            _provider(enabled: false, voiceModel: 'qwen3-asr-flash'),
-          ],
+          providers: [_provider(enabled: false, voiceModel: 'qwen3-asr-flash')],
           caps: _caps(),
         ),
         isNull,
@@ -241,7 +242,12 @@ void main() {
       final endpoint = AudioTranscribePlanner.plan(
         providers: [
           _provider(id: 'a', name: 'A', voiceModel: 'qwen3-asr-flash'),
-          _provider(id: 'b', name: 'B', voiceModel: 'whisper-1', enabled: false),
+          _provider(
+            id: 'b',
+            name: 'B',
+            voiceModel: 'whisper-1',
+            enabled: false,
+          ),
         ],
         caps: _caps(providerId: 'b', modelName: 'whisper-1'),
       );
@@ -269,8 +275,7 @@ void main() {
       }
     });
 
-    Dio dioWith(_FakeAdapter adapter) => Dio()
-      ..httpClientAdapter = adapter;
+    Dio dioWith(_FakeAdapter adapter) => Dio()..httpClientAdapter = adapter;
 
     test('非百炼服务商：优先 multipart /audio/transcriptions', () async {
       final adapter = _FakeAdapter((_) async => _json({'text': '  转写好了 '}));
@@ -419,6 +424,40 @@ void main() {
         ),
       );
       expect(adapter.requests, isEmpty);
+    });
+  });
+
+  group('serverErrorOf（HTTP 200 + 业务错误码）', () {
+    test('真机返回体：code 2001 + message → 带错误码与模型名提示', () {
+      final message = AudioTranscribeService.serverErrorOf({
+        'code': 2001,
+        'message': 'Model not supported, please check carefully.',
+        'data': null,
+      });
+      expect(message, isNotNull);
+      expect(message, contains('2001'));
+      expect(message, contains('Model not supported'));
+      expect(message, contains('语音识别模型'));
+    });
+
+    test('正常返回（text 非空）→ 不算错误', () {
+      expect(AudioTranscribeService.serverErrorOf({'text': '今天开了个会'}), isNull);
+      expect(
+        AudioTranscribeService.serverErrorOf({
+          'message': 'ok',
+          'data': {'text': '正文'},
+        }),
+        isNull,
+      );
+    });
+
+    test('无 message / 空结构 → 不算错误（交给原有解析逻辑）', () {
+      expect(AudioTranscribeService.serverErrorOf(null), isNull);
+      expect(AudioTranscribeService.serverErrorOf(const {}), isNull);
+      expect(
+        AudioTranscribeService.serverErrorOf(const {'code': 2001}),
+        isNull,
+      );
     });
   });
 }

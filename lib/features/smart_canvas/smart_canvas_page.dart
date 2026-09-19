@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -41,8 +42,14 @@ import 'package:moodiary/features/smart_canvas/services/card_action_router.dart'
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
 import 'package:moodiary/features/smart_canvas/widgets/chat_bubble.dart';
 import 'package:moodiary/features/smart_canvas/widgets/smart_card.dart';
+import 'package:moodiary/features/voice/voice_note_info.dart';
 import 'package:moodiary/features/voice/voice_input_controller.dart';
+import 'package:moodiary/features/voice/widgets/voice_note_header.dart';
+import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
+import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
+import 'package:moodiary/features/ai/tasks/pending_content_service.dart';
 import 'package:moodiary/pages/edit/edit_arguments.dart';
+import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:uuid/uuid.dart';
 import 'package:moodiary/persistence/isar.dart';
@@ -91,6 +98,12 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
   /// 📎 附加知识文本列表（文件/笔记/CRM），注入 AI 对话上下文
   final List<String> _attachments = [];
 
+  /// 录音笔记：顶部「录音原文 / 笔记内容」当前页（普通笔记不使用）
+  VoiceNoteTab _voiceTab = VoiceNoteTab.note;
+
+  /// 转写进行中的自动刷新（转好即写入正文，不必手动返回重进）
+  Timer? _transcribePoll;
+
   @override
   void initState() {
     super.initState();
@@ -112,6 +125,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
 
   @override
   void dispose() {
+    _transcribePoll?.cancel();
     _voiceInput.busy.removeListener(_onVoiceBusyChanged);
     _voiceInput.dispose();
     _voiceBusy.dispose();
@@ -577,6 +591,67 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
   }
 
   /// 笔记区 + 追加按钮 + 分隔线 + AI 交互区，统一成一列 slivers。
+  /// 含录音的笔记在正上方追加播放器与转写状态区块；非语音笔记返回空列表。
+  List<Widget> _voiceSlivers(BuildContext context) {
+    return [
+      Obx(() {
+        final info = VoiceNoteInfo.from(
+          diary: logic.canvasState.diary,
+          blocks: logic.blockList.blocks.value,
+        );
+        _syncTranscribePoll(info);
+        if (info == null) return const SliverToBoxAdapter(child: SizedBox.shrink());
+        final padX = _contentPadX(context);
+        return SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(padX, 4, padX, 12),
+            child: VoiceNoteHeader(
+              info: info,
+              audioPath: FileUtil.getRealPath('audio', info.audioFile),
+              tab: _voiceTab,
+              onTabChanged: (t) => setState(() => _voiceTab = t),
+              onRetry: () => _retryVoiceTranscription(info),
+            ),
+          ),
+        );
+      }),
+    ];
+  }
+
+  /// 转写中每 3 秒拉一次块列表：转好即自动写入正文，用户不必退出重进。
+  void _syncTranscribePoll(VoiceNoteInfo? info) {
+    final shouldPoll = info?.status == VoiceNoteStatus.transcribing;
+    if (!shouldPoll) {
+      _transcribePoll?.cancel();
+      _transcribePoll = null;
+      return;
+    }
+    _transcribePoll ??= Timer.periodic(const Duration(seconds: 3), (_) async {
+      await logic.reloadBlocks();
+    });
+  }
+
+  /// 重试转写：占位卡改回「处理中」并重新入队（原始录音一直在本地）。
+  Future<void> _retryVoiceTranscription(VoiceNoteInfo info) async {
+    final diaryId = logic.canvasState.diary.id;
+    final ok = await PendingContentService.markPending(
+      diaryId: diaryId,
+      template: VoiceNoteInfo.transcribeTemplate,
+      text: '${PendingContentService.pendingPrefix}正在转写录音，稍后自动写入正文…',
+    );
+    if (!ok) {
+      toast.error(message: '找不到转写占位卡，无法重试');
+      return;
+    }
+    await AiTaskQueueWorker.instance.submitTask(
+      type: AiTaskType.voiceTranscribe,
+      refId: diaryId,
+      payload: info.audioFile,
+    );
+    await logic.reloadBlocks();
+    toast.success(message: '已重新提交转写');
+  }
+
   List<Widget> _contentSlivers(BuildContext context) {
     final padX = _contentPadX(context);
 
@@ -626,9 +701,44 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
           );
         }
 
-        final notes = blocks.where((b) => !b.meta.isAi).toList();
-        final ais = blocks.where((b) => b.meta.isAi).toList();
+        final voiceInfo = VoiceNoteInfo.from(diary: diary, blocks: blocks);
+        final isVoice = voiceInfo != null;
+        // 语音笔记：源块往往为空、正文由转写结果承担，这里改为「按 Tab 呈现段落」
+        final notes = isVoice
+            ? <Block>[]
+            : blocks.where((b) => !b.meta.isAi).toList();
+        final ais = blocks
+            .where((b) => b.meta.isAi)
+            // 转写占位/结果卡的职责已由顶部区块承担，不再重复成卡
+            .where(
+              (b) =>
+                  !(isVoice &&
+                      b.meta.aiTemplate == VoiceNoteInfo.transcribeTemplate),
+            )
+            .toList();
         final slivers = <Widget>[];
+
+        // 语音笔记正文：录音原文 ↔ 笔记内容
+        if (isVoice && voiceInfo.hasText) {
+          final text = _voiceTab == VoiceNoteTab.raw
+              ? voiceInfo.rawText
+              : voiceInfo.noteText;
+          if (text.trim().isNotEmpty) {
+            slivers.add(
+              SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: padX),
+                sliver: SliverToBoxAdapter(
+                  child: SelectableText(
+                    text,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      height: 1.65,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+        }
 
         // 笔记区
         if (notes.isNotEmpty) {
@@ -961,6 +1071,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                     }),
                   ),
                 ),
+                // 含录音的笔记：置顶播放器 + 转写状态 + 原文/正文切换（区别于普通详情页）
+                ..._voiceSlivers(context),
                 ..._contentSlivers(context),
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
               ],

@@ -176,9 +176,7 @@ class AudioTranscribePlanner {
     var providerId = voice.providerId.trim();
     if (providerId.isEmpty) {
       providerId =
-          enabled
-              .firstWhereOrNull((c) => c.voiceModel.trim().isNotEmpty)
-              ?.id ??
+          enabled.firstWhereOrNull((c) => c.voiceModel.trim().isNotEmpty)?.id ??
           '';
     }
 
@@ -344,6 +342,8 @@ class AudioTranscribeService {
     );
     final data = response.data;
     if (data == null) return null;
+    final serverError = serverErrorOf(data);
+    if (serverError != null) throw TranscribeException(serverError);
     return AudioTranscribeCodec.parseAudioChatText(data);
   }
 
@@ -360,7 +360,9 @@ class AudioTranscribeService {
       'file': await MultipartFile.fromFile(
         audioPath,
         filename: p.basename(audioPath),
-        contentType: DioMediaType.parse(AudioTranscribeCodec.mimeFor(audioPath)),
+        contentType: DioMediaType.parse(
+          AudioTranscribeCodec.mimeFor(audioPath),
+        ),
       ),
     });
     final response = await client.post<Map<String, dynamic>>(
@@ -370,7 +372,29 @@ class AudioTranscribeService {
     );
     final data = response.data;
     if (data == null) return null;
+    final serverError = serverErrorOf(data);
+    if (serverError != null) throw TranscribeException(serverError);
     return AudioTranscribeCodec.parseTranscriptionText(data);
+  }
+
+  /// 服务端用「HTTP 200 + 业务错误码」返回时（如
+  /// `{"code":2001,"message":"Model ... carefully.","data":null}`），
+  /// 直接把服务端 message 抛出来——比「返回空文本」有用得多（真机踩到过）。
+  static String? serverErrorOf(Map<String, dynamic>? data) {
+    if (data == null) return null;
+    final message = (data['message'] ?? '').toString().trim();
+    if (message.isEmpty) return null;
+    final hasText =
+        (data['text'] ?? '').toString().trim().isNotEmpty ||
+        data['data'] is String ||
+        data['data'] is Map;
+    if (hasText) return null;
+    final code = data['code'];
+    final lower = message.toLowerCase();
+    final hint = lower.contains('model')
+        ? '（请核对 设置 → AI 设置 → 语音识别模型 的模型名）'
+        : '';
+    return '转写服务返回错误${code == null ? '' : '（$code）'}：$message$hint';
   }
 
   static String _shortError(Object error, String strategy) {

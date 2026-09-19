@@ -238,6 +238,22 @@ class PendingContentService {
     await IsarUtil.updateBlock(target);
   }
 
+  /// 重试：把占位卡改回「处理中」文案（随后由调用方重新入队任务）。
+  static Future<bool> markPending({
+    required String diaryId,
+    required String template,
+    required String text,
+  }) async {
+    final blocks = await IsarUtil.getBlocksByDiary(diaryId);
+    final target = blocks
+        .where((b) => !b.isDeleted && b.meta.aiTemplate == template)
+        .lastOrNull;
+    if (target == null) return false;
+    target.content = text;
+    await IsarUtil.updateBlock(target);
+    return true;
+  }
+
   // ---- 后台处理实现（供 AiTaskQueueWorker 调用）----
 
   /// 图片 → 视觉整理
