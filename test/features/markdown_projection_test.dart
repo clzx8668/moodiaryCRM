@@ -53,10 +53,7 @@ void main() {
       final block = Block()
         ..blockType = BlockType.image
         ..content = '2026/08/abc.jpg';
-      expect(
-        MarkdownProjection.blockToMarkdown(block),
-        '![](2026/08/abc.jpg)',
-      );
+      expect(MarkdownProjection.blockToMarkdown(block), '![](2026/08/abc.jpg)');
     });
 
     test('chart JSON 摘要', () {
@@ -116,6 +113,62 @@ void main() {
 
     test('空列表返回空串', () {
       expect(MarkdownProjection.aggregate([]), '');
+    });
+
+    test('AI 派生卡片不进正文（提取/点评/作品/模板结果）', () {
+      Block ai(String template, String content, {int order = 1}) => Block()
+        ..id = 'ai-$template'
+        ..blockType = BlockType.text
+        ..content = content
+        ..sortOrder = order
+        ..meta = BlockMeta(source: BlockMeta.sourceAi, aiTemplate: template);
+
+      final note = Block()
+        ..id = 'n1'
+        ..blockType = BlockType.text
+        ..content = '原始笔记正文'
+        ..sortOrder = 0;
+
+      final result = MarkdownProjection.aggregate([
+        note,
+        ai('extract', '**AI 提取**\n待确认 2 条', order: 1),
+        ai('comment', '这段写得不错', order: 2),
+        ai('work', '# 公众号草稿', order: 3),
+        ai('polish', '润色后的文本', order: 4),
+      ]);
+
+      expect(result, '原始笔记正文');
+      expect(result.contains('AI 提取'), isFalse);
+      expect(result.contains('公众号草稿'), isFalse);
+    });
+
+    test('先落地管线的 AI 正文仍进正文（链接正文/图片识别/语音转写）', () {
+      Block ai(String template, String content, {int order = 1}) => Block()
+        ..id = 'ai-$template'
+        ..blockType = BlockType.text
+        ..content = content
+        ..sortOrder = order
+        ..meta = BlockMeta(source: BlockMeta.sourceAi, aiTemplate: template);
+
+      expect(MarkdownProjection.aggregate([ai('link_fetch', '文章正文')]), '文章正文');
+      expect(
+        MarkdownProjection.aggregate([ai('vision_ocr', '图片整理结果')]),
+        '图片整理结果',
+      );
+      expect(
+        MarkdownProjection.aggregate([ai('voice_transcribe', '语音转写文本')]),
+        '语音转写文本',
+      );
+    });
+
+    test('AI 对话块仍与笔记分区（不进正文）', () {
+      final chat = Block()
+        ..id = 'c1'
+        ..blockType = BlockType.text
+        ..content = 'AI 的回答'
+        ..sortOrder = 1
+        ..meta = BlockMeta(source: BlockMeta.sourceAi, role: 'assistant');
+      expect(MarkdownProjection.aggregate([chat]), '');
     });
   });
 }

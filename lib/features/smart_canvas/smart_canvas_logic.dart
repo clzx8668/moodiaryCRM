@@ -14,6 +14,7 @@ import 'package:moodiary/features/ai/skills/works_service.dart';
 import 'package:moodiary/features/ai/tool_executor.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/block/markdown_projection.dart';
 import 'package:moodiary/features/crm/widgets/crm_write_confirm_card.dart';
 import 'package:moodiary/features/smart_canvas/services/canvas_datasource.dart';
 import 'package:moodiary/features/smart_canvas/states/block_list_state.dart';
@@ -129,6 +130,7 @@ class SmartCanvasLogic extends GetxController {
       }
       await datasource.ensureInitialBlock(canvasState.diary);
       await reloadBlocks();
+      await _healProjection();
       blockList.initialized.value = true;
       final incomplete = blockList.blocks
           .where(
@@ -151,6 +153,20 @@ class SmartCanvasLogic extends GetxController {
   Future<void> reloadBlocks() async {
     final blocks = await datasource.loadBlocks(canvasState.diary.id);
     blockList.blocks.assignAll(blocks);
+  }
+
+  /// 自愈正文投影：历史上 AI 派生卡片被算进 `contentText`（列表预览/搜索/向量都会被污染），
+  /// 打开笔记时按当前规则重算一次，发现不一致就地修正。
+  Future<void> _healProjection() async {
+    try {
+      final diary = canvasState.diary;
+      final aggregated = MarkdownProjection.aggregate(blockList.blocks.toList());
+      if (aggregated.trim() == diary.content.trim()) return;
+      await datasource.refreshDiaryProjection(diary);
+      await refreshDiary();
+    } catch (_) {
+      // 自愈失败不影响打开
+    }
   }
 
   /// 重新加载当前日记并刷新 AppBar 标题（追加/编辑后标题变化即时生效）。
