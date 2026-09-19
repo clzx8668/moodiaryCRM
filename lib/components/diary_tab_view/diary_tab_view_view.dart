@@ -10,6 +10,7 @@ import 'package:moodiary/components/diary_card/block_diary_card_view.dart';
 import 'package:moodiary/components/diary_card/grid_diary_card_view.dart';
 import 'package:moodiary/components/diary_card/list_diary_card_view.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/smart_canvas/services/diary_delete_service.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/pages/home/diary/diary_logic.dart';
 import 'package:moodiary/persistence/isar.dart';
@@ -71,10 +72,15 @@ class _DiaryTabViewComponentState extends State<DiaryTabViewComponent> {
           }
         }
         if (diary != null) {
-          await IsarUtil.moveDiaryToRecycle(diary.isarId);
+          // 与详情页菜单同一套删除语义：日记进回收站 + 子块软删
+          await DiaryDeleteService.moveToRecycle(
+            diaryId: diary.id,
+            isarId: diary.isarId,
+          );
+        } else {
+          // 列表里找不到日记（异常态）时至少清掉它的子块
+          await IsarUtil.softDeleteBlocksByDiary(id);
         }
-        // 同步软删该日记下的子笔记块，避免残留
-        await IsarUtil.softDeleteBlocksByDiary(id);
       }
       toast.success(message: '已删除 ${_selected.length} 条记录');
     } catch (e) {

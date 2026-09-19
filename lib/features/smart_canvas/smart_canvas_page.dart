@@ -39,6 +39,7 @@ import 'package:moodiary/features/search/global_search_service.dart';
 import 'package:moodiary/features/rag/models/knowledge_base.dart';
 import 'package:moodiary/features/rag/rag_service.dart';
 import 'package:moodiary/features/smart_canvas/services/card_action_router.dart';
+import 'package:moodiary/features/smart_canvas/services/diary_delete_service.dart';
 import 'package:moodiary/features/smart_canvas/smart_canvas_logic.dart';
 import 'package:moodiary/features/smart_canvas/widgets/chat_bubble.dart';
 import 'package:moodiary/features/smart_canvas/widgets/smart_card.dart';
@@ -49,6 +50,7 @@ import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
 import 'package:moodiary/features/ai/tasks/pending_content_service.dart';
 import 'package:moodiary/pages/edit/edit_arguments.dart';
+import 'package:moodiary/pages/home/home_logic.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:uuid/uuid.dart';
@@ -201,6 +203,57 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     if (ok == true) {
       await logic.deleteBlock(block);
     }
+  }
+
+  /// 删除整条记录（详情页右上角菜单）：移入回收站，可恢复。
+  Future<void> _deleteCurrentDiary() async {
+    final diary = logic.canvasState.diary;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('删除这条记录？'),
+        content: const Text(
+          '记录会移入回收站（含这条记录下的所有卡片），'
+          '可在「设置 → 回收站」里恢复或彻底删除。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFE53935),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    if (!mounted) return;
+
+    final navigator = Navigator.of(context);
+    try {
+      await DiaryDeleteService.moveToRecycle(
+        diaryId: diary.id,
+        isarId: diary.isarId,
+      );
+    } catch (e) {
+      toast.error(message: '删除失败：$e');
+      return;
+    }
+    toast.success(message: '已删除，可在「设置 → 回收站」恢复');
+    // 首页/日历/各分类列表刷新
+    try {
+      if (Get.isRegistered<HomeLogic>()) {
+        await Get.find<HomeLogic>().refreshDiaryLists();
+      }
+    } catch (_) {}
+    if (!mounted) return;
+    navigator.pop();
   }
 
   Future<void> _runDemoSyncEvents() async {
@@ -1016,6 +1069,25 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                             value: 'demo_sync',
                             child: Text('测试同步事件流'),
                           ),
+                        const PopupMenuDivider(),
+                        // ⑤ 危险操作：不需要的记录直接在详情页删掉
+                        const PopupMenuItem(
+                          value: 'delete_diary',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.delete_outline_rounded,
+                                size: 18,
+                                color: Color(0xFFE53935),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                '删除这条记录',
+                                style: TextStyle(color: Color(0xFFE53935)),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                       onSelected: (v) {
                         if (v == 'consolidate') {
@@ -1034,6 +1106,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           _showWorksSheet(context);
                         } else if (v == 'kb') {
                           _showKbSheet(context);
+                        } else if (v == 'delete_diary') {
+                          _deleteCurrentDiary();
                         } else if (v == 'demo_sync') {
                           _runDemoSyncEvents();
                         }
