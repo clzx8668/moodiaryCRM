@@ -1,4 +1,5 @@
 import 'package:moodiary/features/ai/ai_provider.dart';
+import 'package:moodiary/features/ai/ai_block_writer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
@@ -222,11 +223,6 @@ class ExtractPlanService {
     required List<ExtractCrm> crm,
     required String summary,
   }) async {
-    final blocks = await IsarUtil.getBlocksByDiary(diaryId);
-    final sortOrder = blocks.isEmpty
-        ? 0
-        : blocks.map((b) => b.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
-    final now = DateTime.now();
     final content = StringBuffer('**AI 提取**\n\n');
     if (pending.isNotEmpty) {
       content.writeln('待确认 ${pending.length} 条（在下方确认后才会写入待办/日程）：');
@@ -248,18 +244,13 @@ class ExtractPlanService {
       content.writeln('\n摘要：$summary');
     }
 
-    final aiBlock = Block()
-      ..diaryId = diaryId
-      ..blockType = BlockType.text
-      ..content = content.toString().trim()
-      ..sortOrder = sortOrder
-      ..createdAt = now
-      ..updatedAt = now
-      ..meta = BlockMeta(
-        source: BlockMeta.sourceAi,
-        aiTemplate: 'extract',
-        sourceContent: originalContent,
-      );
+    // 同一笔记反复「提取待办」只保留最新一份提取卡（旧卡软删），避免 AI 区重复
+    final aiBlock = await AiBlockWriter.upsert(
+      diaryId: diaryId,
+      template: 'extract',
+      content: content.toString().trim(),
+      sourceContent: originalContent,
+    );
     AiExtractMeta.write(
       aiBlock,
       AiExtractMeta(
@@ -269,7 +260,7 @@ class ExtractPlanService {
         status: 'pending',
       ),
     );
-    await IsarUtil.insertBlock(aiBlock);
+    await IsarUtil.updateBlock(aiBlock);
     return aiBlock;
   }
 

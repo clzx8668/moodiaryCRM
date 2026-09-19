@@ -5,6 +5,8 @@ import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
+import 'package:moodiary/features/ai/ai_block_writer.dart';
+import 'package:moodiary/features/ai/tasks/note_refresh_service.dart';
 import 'package:moodiary/features/ai/voice/audio_transcribe_service.dart';
 import 'package:moodiary/features/ai/voice/long_audio_transcribe_service.dart';
 import 'package:moodiary/features/block/models/block.dart';
@@ -35,7 +37,9 @@ class PendingContentService {
     final diary = Diary()
       ..id = const Uuid().v7()
       ..title = title
-      ..contentText = ''
+      // 列表立即可读：后台转写完成前先显示"处理中"占位，避免空白卡片
+      ..contentText = '⏳ 正在识别图片内容…'
+      ..content = ''
       ..type = DiaryType.markdown.value
       ..time = now
       ..lastModified = now
@@ -131,7 +135,9 @@ class PendingContentService {
     final diary = Diary()
       ..id = const Uuid().v7()
       ..title = title
-      ..contentText = ''
+      // 列表立即可读：后台转写完成前先显示"处理中"占位，避免空白卡片
+      ..contentText = '⏳ 录音转写中…'
+      ..content = ''
       ..type = DiaryType.markdown.value
       ..time = now
       ..lastModified = now
@@ -205,14 +211,12 @@ class PendingContentService {
     required String text,
     String? title,
   }) async {
-    final blocks = await IsarUtil.getBlocksByDiary(diaryId);
-    final target = blocks
-        .where((b) => !b.isDeleted && b.meta.aiTemplate == template)
-        .lastOrNull;
-    if (target != null) {
-      target.content = text;
-      await IsarUtil.updateBlock(target);
-    }
+    // 同模板只保留最新一份（历史重复卡自动软删，见 AiBlockWriter）
+    await AiBlockWriter.upsert(
+      diaryId: diaryId,
+      template: template,
+      content: text,
+    );
     final diary = await IsarUtil.getDiaryById(diaryId);
     if (diary == null) return;
     diary.contentText = text;
@@ -221,6 +225,8 @@ class PendingContentService {
     if (t.isNotEmpty) diary.title = t;
     diary.lastModified = DateTime.now();
     await IsarUtil.updateADiary(oldDiary: diary, newDiary: diary);
+    // 首页列表/已打开的详情页立即刷新：不必再「进详情页看一眼」才有内容
+    await NoteRefreshService.afterWriteBack(diaryId);
   }
 
   /// 处理失败：把占位卡改成明确的失败提示（保留原因，不静默）。
@@ -229,13 +235,20 @@ class PendingContentService {
     required String template,
     required String reason,
   }) async {
-    final blocks = await IsarUtil.getBlocksByDiary(diaryId);
-    final target = blocks
-        .where((b) => !b.isDeleted && b.meta.aiTemplate == template)
-        .lastOrNull;
-    if (target == null) return;
-    target.content = '⚠️ 处理未完成：$reason\n（原始内容已保留，可稍后重试）';
-    await IsarUtil.updateBlock(target);
+    await AiBlockWriter.upsert(
+      diaryId: diaryId,
+      template: template,
+      content: '⚠️ 处理未完成：$reason\n（原始内容已保留，可稍后重试）',
+    );
+    // 列表卡片别一直停在"处理中"：同步写一句失败原因（详情页另有完整说明）
+    final diary = await IsarUtil.getDiaryById(diaryId);
+    if (diary != null && diary.contentText.trim().startsWith('⏳')) {
+      diary
+        ..contentText = '⚠️ 处理未完成：$reason'
+        ..lastModified = DateTime.now();
+      await IsarUtil.updateADiary(oldDiary: diary, newDiary: diary);
+    }
+    await NoteRefreshService.afterWriteBack(diaryId);
   }
 
   /// 重试：把占位卡改回「处理中」文案（随后由调用方重新入队任务）。
@@ -291,7 +304,12 @@ class PendingContentService {
   }) async {
     const template = 'link_fetch';
     final content = await LinkCaptureService.instance.capture(url);
-    final text = _linkMarkdown(content.title, content.author, content.textContent, url);
+    final text = _linkMarkdown(
+      content.title,
+      content.author,
+      content.textContent,
+      url,
+    );
     await applyResult(
       diaryId: diaryId,
       template: template,

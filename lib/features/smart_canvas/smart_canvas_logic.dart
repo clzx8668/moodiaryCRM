@@ -329,6 +329,7 @@ class SmartCanvasLogic extends GetxController {
       content: content,
       aiTemplate: 'todo',
       sourceContent: block.content,
+      replaceExisting: true,
     );
     toast.success(message: '已生成待办卡片（原文保留）');
     await reloadBlocks();
@@ -361,6 +362,7 @@ class SmartCanvasLogic extends GetxController {
       content: result.text,
       aiTemplate: type.name.toLowerCase(),
       sourceContent: source.content,
+      replaceExisting: true,
     );
     blockList.blocks.add(block);
     toast.success(message: '已生成「${type.label}」卡片');
@@ -398,6 +400,7 @@ class SmartCanvasLogic extends GetxController {
       content: text,
       aiTemplate: 'work',
       sourceContent: sources.join('\n'),
+      replaceExisting: true,
     );
     blockList.blocks.add(block);
     toast.success(message: '已生成「${format.label}」草稿');

@@ -1513,6 +1513,9 @@ class _RelatedNotesSection extends StatefulWidget {
 class _RelatedNotesSectionState extends State<_RelatedNotesSection> {
   List<RelatedNote>? _suggestions;
 
+  /// 关联笔记的正文预览（标题为空时的兜底显示）
+  Map<String, String> _previews = const {};
+
   @override
   void initState() {
     super.initState();
@@ -1520,7 +1523,14 @@ class _RelatedNotesSectionState extends State<_RelatedNotesSection> {
   }
 
   Future<void> _load() async {
-    final all = await IsarUtil.getAllDiaries();
+    // 只关联「在库」的笔记：回收站/已删除的不参与，避免点开是空的
+    final all = (await IsarUtil.getAllDiaries())
+        .where((d) => d.show)
+        .toList();
+    _previews = {
+      for (final d in all)
+        d.id: d.contentText.trim().replaceAll(RegExp(r'\s+'), ' '),
+    };
     // 优先语义相似（向量），失败/未配置时回退标签 + 标题重叠
     final candidates = all
         .where((d) => d.id != widget.diary.id)
@@ -1558,9 +1568,30 @@ class _RelatedNotesSectionState extends State<_RelatedNotesSection> {
 
   Future<void> _open(RelatedNote r) async {
     final d = await IsarUtil.getDiaryById(r.diaryId);
-    if (d == null) return;
+    if (d == null || !d.show) {
+      // 目标笔记已被删除/进回收站：给出明确提示并刷新建议列表
+      toast.info(message: '这条关联笔记已不在（可能在回收站）');
+      await _load();
+      return;
+    }
     Bind.lazyPut(() => DiaryDetailsLogic(), tag: d.id);
-    Get.toNamed(AppRoutes.diaryPage, arguments: [d.clone(), false]);
+    // GetX 的 preventDuplicates 默认为 true：当前就在「日记详情」路由上，
+    // 再 push 同名路由会被静默忽略（真机表现为"点了没反应"），必须显式关掉
+    await Get.toNamed(
+      AppRoutes.diaryPage,
+      arguments: [d.clone(), false],
+      preventDuplicates: false,
+    );
+    if (mounted) await _load(); // 回来时刷新建议（可能已变化）
+  }
+
+  /// 标题为空时用正文预览兜底（很多速记没有标题，否则整行是空的）
+  String _labelOf(RelatedNote r) {
+    final title = r.title.trim();
+    if (title.isNotEmpty) return title;
+    final preview = (_previews[r.diaryId] ?? '').trim();
+    if (preview.isEmpty) return '（无标题笔记）';
+    return preview.length > 24 ? '${preview.substring(0, 24)}…' : preview;
   }
 
   @override
@@ -1586,7 +1617,11 @@ class _RelatedNotesSectionState extends State<_RelatedNotesSection> {
                 color: theme.colorScheme.primary,
                 size: 20,
               ),
-              title: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              title: Text(
+                _labelOf(r),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               subtitle: Text(
                 r.similarity > 0
                     ? '相似度 ${(r.similarity * 100).round()}%'

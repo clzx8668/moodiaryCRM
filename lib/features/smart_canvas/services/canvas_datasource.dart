@@ -1,4 +1,5 @@
 import 'package:moodiary/common/models/isar/diary.dart';
+import 'package:moodiary/features/ai/ai_block_writer.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:uuid/uuid.dart';
@@ -144,7 +145,20 @@ class CanvasDatasource {
     required String content,
     String aiTemplate = '',
     String sourceContent = '',
+    bool replaceExisting = false,
   }) async {
+    // 同一模板只保留最新一份：反复跑同一 AI 动作不再堆重复卡（批次 96）
+    if (replaceExisting && aiTemplate.trim().isNotEmpty) {
+      final block = await AiBlockWriter.upsert(
+        diaryId: diary.id,
+        template: aiTemplate,
+        content: content,
+        blockType: blockType,
+        sourceContent: sourceContent,
+      );
+      await refreshDiaryProjection(diary);
+      return block;
+    }
     final blocks = await loadBlocks(diary.id);
     final sortOrder = blocks.isEmpty
         ? 0
