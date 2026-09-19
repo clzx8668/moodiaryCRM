@@ -8,24 +8,17 @@ import 'package:moodiary/features/quick_capture/quick_capture_saver.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_template_action.dart';
 import 'package:moodiary/features/sync_log/sync_log.dart';
-import 'package:moodiary/features/voice/voice_input_controller.dart';
-import 'package:moodiary/utils/file_util.dart';
+import 'package:moodiary/features/voice/voice_capture_controller.dart';
 import 'package:moodiary/utils/media_util.dart';
 import 'package:moodiary/utils/notice_util.dart';
 import 'package:path/path.dart' as p;
-
-/// 长按说话走向（与详情页输入条共用同一实现）。
-typedef QuickCaptureVoiceRoute = VoiceInputRoute;
 
 /// 快速收集面板逻辑（ima 式输入框）
 class QuickCaptureLogic extends GetxController {
   final state = QuickCaptureState();
 
-  /// 长按说话控制器（录音落盘 + 云端转写 / 系统听写，与详情页同一套逻辑）
-  late final VoiceInputController _voiceInput;
-
-  /// 视图侧回填回调（把识别结果写进输入框）
-  void Function(String text)? _voiceTextCallback;
+  /// 语音输入页录音控制器（先录音、后决定保存/取消；批次 94）
+  late final VoiceCaptureController voiceCapture = VoiceCaptureController();
 
   /// 重置输入面板状态（每次打开面板时调用，确保不残留上次内容）
   void reset() {
@@ -33,38 +26,7 @@ class QuickCaptureLogic extends GetxController {
     state.attachments.clear();
     state.selectedTemplate.value = '';
     state.voiceMode.value = false;
-    state.recording.value = false;
     state.saving.value = false;
-  }
-
-  @override
-  void onInit() {
-    super.onInit();
-    _voiceInput = VoiceInputController(
-      onText: (text) {
-        state.text.value = appendTranscript(state.text.value, text);
-        _voiceTextCallback?.call(text);
-      },
-      // 云端转写路径：录音先落库，转写交给后台（先落地、异步处理）
-      onAudioCaptured: (name) {
-        unawaited(saveVoiceNoteFast(name));
-      },
-      onAudioSaved: (name) {
-        // 录音先作为附件保留：转写失败也不丢内容
-        state.addAttachment(
-          QuickAttachment(
-            path: FileUtil.getRealPath('audio', name),
-            type: QuickAttachmentType.audio,
-            name: name,
-          ),
-        );
-      },
-    )..busy.addListener(_syncRecordingState);
-    reset();
-  }
-
-  void _syncRecordingState() {
-    state.recording.value = _voiceInput.busy.value;
   }
 
   /// 从相册选择多张图片
@@ -143,29 +105,53 @@ class QuickCaptureLogic extends GetxController {
     }
   }
 
-  /// 切换 语音/键盘 输入模式
-  void toggleVoiceMode() {
-    state.voiceMode.value = !state.voiceMode.value;
-    state.recording.value = false;
+  /// 进入语音输入页（点按麦克风）：切页并**直接开始录音**。
+  ///
+  /// 与旧的「按住说话」不同：这里只负责录音，是否入库由用户在停止后决定——
+  /// 避免「说完就自动落库」产生垃圾记录、白耗转写额度（用户反馈，批次 94）。
+  Future<void> enterVoiceInput() async {
+    if (state.voiceMode.value) return;
+    state.voiceMode.value = true;
+    final error = await voiceCapture.start();
+    if (error != null) {
+      state.voiceMode.value = false;
+      toast.error(message: error);
+    }
   }
 
-  /// 开始长按说话。
-  ///
-  /// 走向规则（[QuickCaptureVoiceRoute.decide]）：
-  /// - 配置了语音识别模型 → **录音落盘**（音频保留为附件）+ 松手后云端转写；
-  /// - 否则退回设备本机实时听写（原交互，Windows SAPI / 手机系统语音）；
-  /// - 两者都没有 → 明确提示去哪里配置（不再静默失效）。
-  ///
-  /// 输入框已有内容时同样可用，识别结果**追加**到末尾。
-  Future<void> startRecording({void Function(String text)? onText}) async {
-    // 面板内的回填走 state.text（由 onText 写入），这里额外回调给视图刷新输入框
-    _voiceTextCallback = onText;
-    await _voiceInput.start();
+  /// 取消：丢弃录音并回到键盘输入（不留记录）。
+  Future<void> exitVoiceInput() async {
+    await voiceCapture.discard();
+    state.voiceMode.value = false;
   }
 
-  /// 结束长按说话：停止录音并（云端路径）转写回填。
-  Future<void> stopRecording() async {
-    await _voiceInput.stop();
+  /// 重录：丢弃当前音频后重新开始。
+  Future<void> retakeVoiceInput() async {
+    await voiceCapture.discard();
+    final error = await voiceCapture.start();
+    if (error != null) {
+      state.voiceMode.value = false;
+      toast.error(message: error);
+    }
+  }
+
+  /// 保存语音笔记（先落地）：立刻入库（笔记 + 音频附件 + 占位卡），
+  /// 转写交给后台队列，用户不必等待；返回落库后的日记。
+  Future<Diary?> saveVoiceInput() async {
+    final name = voiceCapture.audioFileName;
+    if (name == null) return null;
+    final diary = await saveVoiceNoteFast(name);
+    if (diary != null) {
+      voiceCapture.reset();
+      state.voiceMode.value = false;
+    }
+    return diary;
+  }
+
+  /// 面板关闭时调用：停止录音并丢弃未保存的音频（避免麦克风常开/残留文件）。
+  Future<void> abandonVoiceInput() async {
+    await voiceCapture.discard();
+    state.voiceMode.value = false;
   }
 
   /// 语音速记（先落地）：把刚刚录好的音频**立即**存成一条语音笔记，
@@ -181,11 +167,6 @@ class QuickCaptureLogic extends GetxController {
       toast.error(message: '保存语音笔记失败：$e');
       return null;
     }
-  }
-
-  /// 追加文本（纯函数，供面板回填与单测）。
-  static String appendTranscript(String base, String addition) {
-    return appendVoiceText(base, addition);
   }
 
   /// 保存速记（发送）
@@ -240,8 +221,7 @@ class QuickCaptureLogic extends GetxController {
 
   @override
   void onClose() {
-    _voiceInput.busy.removeListener(_syncRecordingState);
-    _voiceInput.dispose();
+    unawaited(voiceCapture.discardAndDispose());
     state.dispose();
     super.onClose();
   }

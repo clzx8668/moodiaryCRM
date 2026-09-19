@@ -60,11 +60,8 @@ class QuickCaptureState extends GetxController {
   /// 保存中
   final RxBool saving = false.obs;
 
-  /// 语音输入模式（占位）
+  /// 是否处于「语音输入页」（快速收集面板内的文字 ↔ 语音切换）
   final RxBool voiceMode = false.obs;
-
-  /// 正在录音（占位视觉）
-  final RxBool recording = false.obs;
 
   /// 已选功能模板
   final RxString selectedTemplate = ''.obs;

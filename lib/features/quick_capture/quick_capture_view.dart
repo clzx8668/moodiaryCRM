@@ -10,6 +10,7 @@ import 'package:moodiary/features/quick_capture/quick_capture_logic.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_draft.dart';
 import 'package:moodiary/features/vision/quick_vision.dart';
+import 'package:moodiary/features/voice/widgets/voice_capture_panel.dart';
 import 'package:moodiary/utils/image_decode_util.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -86,6 +87,8 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
   @override
   void dispose() {
     _draftTimer?.cancel();
+    // 面板关闭：停掉可能还在进行的录音并丢弃未保存的音频
+    unawaited(logic.abandonVoiceInput());
     // 关掉面板即记住当前内容（下次打开继续写）
     _saveDraft();
     _controller.removeListener(_scheduleDraftSave);
@@ -111,52 +114,85 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
           children: [
             _buildAttachmentPreview(context, logic, state),
             Obx(() {
-              return SmartInputBar(
-                controller: _controller,
-                focusNode: _focusNode,
-                startActive: true,
-                streaming: state.saving.value,
-                activeHint: '记点什么，或按住说话…',
-                modelLabel: state.selectedTemplate.value.isEmpty
-                    ? '快速'
-                    : state.selectedTemplate.value,
-                voiceMode: state.voiceMode.value,
-                onModelSelect: () => _showTemplatePicker(context, logic, state),
-                onAt: () => toast.info(message: '智能提及功能预留'),
-                onToggleVoice: logic.toggleVoiceMode,
-                onLongPressStart: () => logic.startRecording(
-                  onText: (text) {
-                    _controller.text = QuickCaptureLogic.appendTranscript(
-                      _controller.text,
-                      text,
-                    );
-                    state.text.value = _controller.text;
-                  },
+              // 文字输入 ↔ 语音输入：同一张面板内平滑切换（不新开页面，避免割裂）
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SizeTransition(
+                    sizeFactor: animation,
+                    axisAlignment: -1,
+                    child: child,
+                  ),
                 ),
-                onLongPressEnd: logic.stopRecording,
-                listening: state.recording.value,
-                onPlus: () => _showAttachmentGrid(context, logic),
-                onSend: (text) async {
-                  state.text.value = text;
-                  // 先取好 Navigator，避免 await 之后再触碰 context
-                  final navigator = Navigator.of(context);
-                  final saved = await logic.save();
-                  if (!saved) return;
-                  _controller.clear();
-                  state.text.value = '';
-                  state.attachments.clear();
-                  state.selectedTemplate.value = '';
-                  // 已入库：清掉临时草稿，下次打开是干净的
-                  await QuickCaptureDraftStore.clear();
-                  if (!mounted) return;
-                  navigator.pop(true);
-                },
+                child: state.voiceMode.value
+                    ? VoiceCapturePanel(
+                        key: const ValueKey('voice-capture'),
+                        controller: logic.voiceCapture,
+                        onExitKeyboard: () => unawaited(
+                          logic.exitVoiceInput(),
+                        ),
+                        onCancel: () => unawaited(logic.exitVoiceInput()),
+                        onRetake: () => unawaited(logic.retakeVoiceInput()),
+                        onSave: () => _saveVoiceNote(context, logic),
+                      )
+                    : KeyedSubtree(
+                        key: const ValueKey('text-capture'),
+                        child: SmartInputBar(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          startActive: true,
+                          streaming: state.saving.value,
+                          activeHint: '记点什么，或点麦克风说话…',
+                          modelLabel: state.selectedTemplate.value.isEmpty
+                              ? '快速'
+                              : state.selectedTemplate.value,
+                          onModelSelect: () =>
+                              _showTemplatePicker(context, logic, state),
+                          onAt: () => toast.info(message: '智能提及功能预留'),
+                          // 点按麦克风＝切到语音输入页并直接开录（不再「按住说话」）
+                          onToggleVoice: () =>
+                              unawaited(logic.enterVoiceInput()),
+                          onPlus: () => _showAttachmentGrid(context, logic),
+                          onSend: (text) async {
+                            state.text.value = text;
+                            // 先取好 Navigator，避免 await 之后再触碰 context
+                            final navigator = Navigator.of(context);
+                            final saved = await logic.save();
+                            if (!saved) return;
+                            _controller.clear();
+                            state.text.value = '';
+                            state.attachments.clear();
+                            state.selectedTemplate.value = '';
+                            // 已入库：清掉临时草稿，下次打开是干净的
+                            await QuickCaptureDraftStore.clear();
+                            if (!mounted) return;
+                            navigator.pop(true);
+                          },
+                        ),
+                      ),
               );
             }),
           ],
         ),
       ),
     );
+  }
+
+  /// 保存语音笔记：先落地（笔记 + 音频附件）→ 后台转写 → 关面板刷新首页。
+  Future<void> _saveVoiceNote(
+    BuildContext context,
+    QuickCaptureLogic logic,
+  ) async {
+    final navigator = Navigator.of(context);
+    final diary = await logic.saveVoiceInput();
+    if (diary == null) return;
+    if (!mounted) return;
+    // 语音已入库为新笔记；面板里没写完的文字草稿保持不动
+    _saveDraft();
+    navigator.pop(true);
   }
 
   Widget _buildAttachmentPreview(
