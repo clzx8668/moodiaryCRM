@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moodiary/features/voice/widgets/voice_player_card.dart';
 
@@ -75,6 +77,43 @@ void main() {
         ),
         0,
       );
+    });
+  });
+
+  group('播放头跳动倍率（跟随该处真实响度）', () {
+    test('静音处不跳', () {
+      expect(VoicePlayerCard.pulseFactor(level: 0, phase: 1.2, offset: 0), 1.0);
+      expect(
+        VoicePlayerCard.pulseFactor(level: 0.01, phase: 0.4, offset: 1),
+        1.0,
+      );
+    });
+
+    test('有声处按响度摆动，且响度越大摆幅越大', () {
+      final quiet = VoicePlayerCard.pulseFactor(
+        level: 0.2,
+        phase: math.pi / 2,
+        offset: 0,
+      );
+      final loud = VoicePlayerCard.pulseFactor(
+        level: 1.0,
+        phase: math.pi / 2,
+        offset: 0,
+      );
+      expect(quiet, greaterThan(1.0));
+      expect(loud, greaterThan(quiet));
+      // 摆动是有上下限的（不会把柱子甩出画布）
+      expect(loud, lessThanOrEqualTo(1.5));
+      expect(
+        VoicePlayerCard.pulseFactor(level: 1, phase: -math.pi / 2, offset: 0),
+        greaterThanOrEqualTo(0.5),
+      );
+    });
+
+    test('不同柱子相位错开（看起来像流动而不是整体缩放）', () {
+      final a = VoicePlayerCard.pulseFactor(level: 1, phase: 0.6, offset: 0);
+      final b = VoicePlayerCard.pulseFactor(level: 1, phase: 0.6, offset: 2);
+      expect(a, isNot(closeTo(b, 0.001)));
     });
   });
 }

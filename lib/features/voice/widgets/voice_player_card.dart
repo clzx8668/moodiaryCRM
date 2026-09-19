@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -31,6 +34,21 @@ class VoicePlayerCard extends StatefulWidget {
     if (total <= Duration.zero) return 0;
     final ratio = position.inMilliseconds / total.inMilliseconds;
     return (ratio.clamp(0.0, 1.0) * barCount).ceil().clamp(0, barCount);
+  }
+
+  /// 播放头附近柱子的跳动倍率（纯函数，便于单测）。
+  ///
+  /// 只在播放中生效：倍率随 [phase] 摆动，**摆动幅度由该处真实响度 [level] 决定**——
+  /// 响度大的地方跳得明显，静音处几乎不动。
+  static double pulseFactor({
+    required double level,
+    required double phase,
+    required int offset,
+  }) {
+    final l = level.clamp(0.0, 1.0);
+    if (l <= 0.02) return 1.0;
+    final wave = math.sin(phase + offset * 0.7);
+    return 1.0 + 0.45 * l * wave;
   }
 
   /// 可选倍速档位
@@ -72,13 +90,20 @@ class _VoicePlayerCardState extends State<VoicePlayerCard> {
   Duration _position = Duration.zero;
   Duration _total = Duration.zero;
   double _speed = VoicePlayerCard.speeds.first;
+  Timer? _pulseTimer;
+  double _pulsePhase = 0;
+
+  bool get _playing => _state == PlayerState.playing;
 
   @override
   void initState() {
     super.initState();
     _total = Duration(milliseconds: widget.durationMs);
     _player.onPlayerStateChanged.listen((s) {
-      if (mounted) setState(() => _state = s);
+      if (mounted) {
+        setState(() => _state = s);
+        _syncPulse(s == PlayerState.playing);
+      }
     });
     _player.onPositionChanged.listen((p) {
       if (mounted && !_dragging) setState(() => _position = p);
@@ -99,8 +124,23 @@ class _VoicePlayerCardState extends State<VoicePlayerCard> {
 
   @override
   void dispose() {
+    _pulseTimer?.cancel();
     _player.dispose();
     super.dispose();
+  }
+
+  /// 播放时让播放头附近的波形轻微起伏（幅度跟随该处真实响度）
+  void _syncPulse(bool playing) {
+    if (playing) {
+      _pulseTimer ??= Timer.periodic(const Duration(milliseconds: 90), (_) {
+        if (!mounted) return;
+        setState(() => _pulsePhase += 0.55);
+      });
+    } else {
+      _pulseTimer?.cancel();
+      _pulseTimer = null;
+      if (mounted) setState(() => _pulsePhase = 0);
+    }
   }
 
   bool _dragging = false;
@@ -171,6 +211,8 @@ class _VoicePlayerCardState extends State<VoicePlayerCard> {
                         position: _position,
                         total: _total,
                       ),
+                      pulsePhase: _pulsePhase,
+                      pulsing: _playing,
                       playedColor: colorScheme.primary,
                       restColor: colorScheme.outlineVariant,
                     ),
@@ -179,6 +221,24 @@ class _VoicePlayerCardState extends State<VoicePlayerCard> {
                 ),
               ),
               const SizedBox(height: 2),
+            ] else if (_playing) ...[
+              // 旧录音没有响度包络：至少给一条会走的进度轨，播放时有反馈
+              SizedBox(
+                height: 6,
+                child: CustomPaint(
+                  painter: _TrackProgressPainter(
+                    played: VoicePlayerCard.playedBars(
+                      barCount: 100,
+                      position: _position,
+                      total: _total,
+                    ),
+                    playedColor: colorScheme.primary,
+                    restColor: colorScheme.outlineVariant,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+              const SizedBox(height: 4),
             ],
             Row(
               children: [
@@ -261,12 +321,16 @@ class _VoicePlayerCardState extends State<VoicePlayerCard> {
 class _WaveformProgressPainter extends CustomPainter {
   final List<double> waveform;
   final int played;
+  final double pulsePhase;
+  final bool pulsing;
   final Color playedColor;
   final Color restColor;
 
   _WaveformProgressPainter({
     required this.waveform,
     required this.played,
+    required this.pulsePhase,
+    required this.pulsing,
     required this.playedColor,
     required this.restColor,
   });
@@ -281,12 +345,29 @@ class _WaveformProgressPainter extends CustomPainter {
     final paint = Paint()..style = PaintingStyle.fill;
     for (var i = 0; i < count; i++) {
       final value = waveform[i].clamp(0.0, 1.0);
-      final barHeight = (3 + (size.height - 3) * value).clamp(3.0, size.height);
+      // 播放中：播放头附近按"该处真实响度"轻微起伏，动静看得见
+      final near = pulsing && (i - (played - 1)).abs() <= 3;
+      final factor = near
+          ? VoicePlayerCard.pulseFactor(
+              level: value,
+              phase: pulsePhase,
+              offset: i - played,
+            )
+          : 1.0;
+      final barHeight = (3 + (size.height - 3) * value)
+          .clamp(3.0, size.height)
+          .clamp(0.0, size.height) *
+          factor;
       paint.color = i < played ? playedColor : restColor;
       final left = i * (barWidth + gap);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(left, centerY - barHeight / 2, barWidth, barHeight),
+          Rect.fromLTWH(
+            left,
+            centerY - barHeight.clamp(3.0, size.height) / 2,
+            barWidth,
+            barHeight.clamp(3.0, size.height),
+          ),
           Radius.circular(barWidth / 2),
         ),
         paint,
@@ -298,6 +379,52 @@ class _WaveformProgressPainter extends CustomPainter {
   bool shouldRepaint(covariant _WaveformProgressPainter old) =>
       old.played != played ||
       old.waveform != waveform ||
+      old.pulsePhase != pulsePhase ||
+      old.pulsing != pulsing ||
       old.playedColor != playedColor ||
       old.restColor != restColor;
 }
+
+/// 没有响度包络时的进度轨（旧录音）
+class _TrackProgressPainter extends CustomPainter {
+  final int played;
+  final Color playedColor;
+  final Color restColor;
+
+  _TrackProgressPainter({
+    required this.played,
+    required this.playedColor,
+    required this.restColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    final centerY = size.height / 2;
+    const height = 4.0;
+    paint.color = restColor;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, centerY - height / 2, size.width, height),
+        const Radius.circular(height / 2),
+      ),
+      paint,
+    );
+    final playedWidth = size.width * (played / 100).clamp(0.0, 1.0);
+    paint.color = playedColor;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, centerY - height / 2, playedWidth, height),
+        const Radius.circular(height / 2),
+      ),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _TrackProgressPainter old) =>
+      old.played != played ||
+      old.playedColor != playedColor ||
+      old.restColor != restColor;
+}
+
