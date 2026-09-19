@@ -184,6 +184,9 @@ class AttachmentManager {
     return p.joinAll([baseDir(), ...p.split(relativePath)]);
   }
 
+  /// 相对路径 → 沙盒内绝对路径（正文里的附件链接点击时用）。
+  static String resolvePath(String relativePath) => _resolve(relativePath);
+
   static String _normalize(String path) => path.replaceAll('\\', '/');
 
   static String _capitalize(String value) {

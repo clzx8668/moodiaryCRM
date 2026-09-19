@@ -360,6 +360,33 @@ class PendingContentService {
     }
   }
 
+  /// 音频附件 → 云端转写（速记里选了已有音频文件）。
+  ///
+  /// 与语音速记不同：**不改正文**，只在 AI 生成区落一张「音频转写」卡；
+  /// 失败时直接抛出，由队列按 waitConfig / retry / failed 分类处理
+  /// （未配置语音模型 → 挂起等配置，不会产生垃圾卡）。
+  static Future<void> processAudioAttachment({
+    required String diaryId,
+    required String audioFileName,
+  }) async {
+    final path = FileUtil.getRealPath('audio', audioFileName);
+    if (!await File(path).exists()) {
+      throw StateError('音频文件不存在：$audioFileName');
+    }
+    final result = await LongAudioTranscribeService.transcribe(path);
+    final text = result.text.trim();
+    if (text.isEmpty) {
+      throw StateError('转写结果为空');
+    }
+    await AiBlockWriter.upsert(
+      diaryId: diaryId,
+      template: AiTaskType.audioTranscribe,
+      content: text,
+      title: '语音转写',
+    );
+    await NoteRefreshService.afterWriteBack(diaryId);
+  }
+
   static String _linkMarkdown(
     String title,
     String? author,

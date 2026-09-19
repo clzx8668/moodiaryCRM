@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/voice/voice_capture_controller.dart';
+import 'package:moodiary/features/voice/voice_level_wave.dart';
 import 'package:moodiary/features/voice/voice_media_player.dart';
 
 /// 快速收集面板里的「语音输入」页（批次 94）。
@@ -134,16 +137,11 @@ class VoiceCapturePanel extends StatelessWidget {
         color: colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: ValueListenableBuilder<double>(
-        valueListenable: controller.level,
-        builder: (context, level, _) => CustomPaint(
-          painter: _LevelPainter(
-            level: level,
-            color: colorScheme.primary,
-            idleColor: colorScheme.outlineVariant,
-          ),
-          child: const SizedBox.expand(),
-        ),
+      // 滚动波形：把电平随时间推成一条"历史波形"，比原地缩放的电平条好看得多
+      child: _LevelWave(
+        controller: controller,
+        color: colorScheme.primary,
+        idleColor: colorScheme.outlineVariant,
       ),
     );
   }
@@ -254,59 +252,91 @@ class VoiceCapturePanel extends StatelessWidget {
 }
 
 /// 电平条：录音时随音量起伏，暂停/停止时静止。
-class _LevelPainter extends CustomPainter {
-  final double level;
+/// 滚动波形：把电平随时间推成一条历史波形（说话时"流动"，停止后自然衰减）。
+class _LevelWave extends StatefulWidget {
+  final VoiceCaptureController controller;
   final Color color;
   final Color idleColor;
 
-  _LevelPainter({
-    required this.level,
+  const _LevelWave({
+    required this.controller,
     required this.color,
     required this.idleColor,
   });
 
-  /// 每根柱子的固定形状系数（避免随机数导致每帧抖动）
-  static const List<double> _shape = [
-    0.35,
-    0.55,
-    0.8,
-    1.0,
-    0.7,
-    0.45,
-    0.6,
-    0.9,
-    1.0,
-    0.75,
-    0.5,
-    0.65,
-    0.95,
-    1.0,
-    0.8,
-    0.55,
-    0.4,
-    0.6,
-    0.85,
-    0.95,
-    0.7,
-    0.5,
-    0.35,
-    0.55,
-  ];
+  @override
+  State<_LevelWave> createState() => _LevelWaveState();
+}
+
+class _LevelWaveState extends State<_LevelWave> {
+  static const Duration _shiftInterval = Duration(milliseconds: 80);
+
+  final VoiceLevelWave _wave = VoiceLevelWave();
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.level.addListener(_onLevel);
+    _timer = Timer.periodic(_shiftInterval, (_) => _shift());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    widget.controller.level.removeListener(_onLevel);
+    super.dispose();
+  }
+
+  void _onLevel() {
+    _wave.feed(widget.controller.level.value);
+  }
+
+  void _shift() {
+    if (!mounted) return;
+    final active = widget.controller.phase.value == VoiceCapturePhase.recording;
+    setState(() {
+      _wave.advance(active: active);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _WavePainter(
+        samples: _wave.samples,
+        color: widget.color,
+        idleColor: widget.idleColor,
+      ),
+      child: const SizedBox.expand(),
+    );
+  }
+}
+
+/// 波形绘制：以中线为轴的镜像柱状（左旧右新）。
+class _WavePainter extends CustomPainter {
+  final List<double> samples;
+  final Color color;
+  final Color idleColor;
+
+  _WavePainter({
+    required this.samples,
+    required this.color,
+    required this.idleColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final count = _shape.length;
     const gap = 3.0;
-    final barWidth = (size.width - gap * (count - 1)) / count;
+    final count = samples.length;
+    final barWidth = ((size.width - gap * (count - 1)) / count).clamp(1.5, 8.0);
     final centerY = size.height / 2;
     final paint = Paint()..style = PaintingStyle.fill;
     for (var i = 0; i < count; i++) {
-      final factor = _shape[i] * level;
-      final barHeight = (4 + (size.height - 4) * factor).clamp(
-        4.0,
-        size.height,
-      );
-      paint.color = factor > 0.02 ? color : idleColor;
+      final value = samples[i];
+      // 最小值给 2px：静音时是一条细线而不是空白
+      final barHeight = (2 + (size.height - 2) * value).clamp(2.0, size.height);
+      paint.color = value > 0.04 ? color : idleColor;
       final left = i * (barWidth + gap);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -319,6 +349,9 @@ class _LevelPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _LevelPainter old) =>
-      old.level != level || old.color != color || old.idleColor != idleColor;
+  bool shouldRepaint(covariant _WavePainter old) =>
+      old.samples != samples ||
+      old.color != color ||
+      old.idleColor != idleColor;
 }
+

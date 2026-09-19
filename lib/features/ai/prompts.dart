@@ -49,6 +49,8 @@ class AiTemplates {
         return '链接正文';
       case 'voice_transcribe':
         return '语音转写';
+      case 'audio_transcribe':
+        return '音频转写';
       case 'extract':
         return 'AI 提取';
       case 'work':

@@ -163,6 +163,13 @@ class AiTaskQueueWorker {
             audioFileName: task.payload,
           );
           break;
+        case AiTaskType.audioTranscribe:
+          // 音频附件转写：结果落 AI 卡（不改正文）
+          await PendingContentService.processAudioAttachment(
+            diaryId: task.refId,
+            audioFileName: task.payload,
+          );
+          break;
         default:
           // 预留类型（embedding/index）暂不执行，直接完成
           break;

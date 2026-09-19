@@ -8,13 +8,16 @@ extension QuickAttachmentTypeHint on QuickAttachmentType {
   String get hint {
     switch (this) {
       case QuickAttachmentType.image:
-        return '解读图片';
+        // 图片附件随速记原样保存；要 AI 整理请走「图片速记/拍照速记」
+        return '图片附件';
       case QuickAttachmentType.audio:
+        // 保存后会入队后台转写（结果落 AI 生成区）
         return '转录音频';
       case QuickAttachmentType.document:
-        return '提取文字';
+        // 目前只归档保存，不解析内容（文案不再承诺"提取文字"）
+        return '文档附件';
       case QuickAttachmentType.other:
-        return '解析文档';
+        return '其他附件';
     }
   }
 }

@@ -130,6 +130,8 @@ class AiTaskQueueModel {
         return '链接正文抓取';
       case AiTaskType.voiceTranscribe:
         return '语音转写';
+      case AiTaskType.audioTranscribe:
+        return '音频附件转写';
       case AiTaskType.embedding:
         return '向量化';
       case AiTaskType.index:

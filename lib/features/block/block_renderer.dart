@@ -8,10 +8,13 @@ import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/components/diary_render/diary_render.dart';
 import 'package:moodiary/components/markdown_embed/image_embed.dart';
 import 'package:moodiary/features/block/models/block.dart';
+import 'package:moodiary/features/block/markdown_link.dart';
 import 'package:moodiary/features/smart_canvas/widgets/reading_typography.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/image_decode_util.dart';
+import 'package:moodiary/utils/notice_util.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Markdown 渲染的标题层级口径。
 enum MarkdownHeadingScale {
@@ -59,6 +62,8 @@ class MarkdownContentView extends StatelessWidget {
       config: config.copy(
         configs: [
           ...typography,
+          // 链接可点：外链走浏览器；本地附件（正文里的 📎 相对路径）解析到沙盒后交给系统应用
+          LinkConfig(onTap: (url) => openLink(context, url)),
           ImgConfig(
             builder: (src, _) {
               return MarkdownImageEmbed(isEdit: false, imageName: src);
@@ -70,6 +75,36 @@ class MarkdownContentView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// 打开 Markdown 链接（纯逻辑在 [MarkdownLink]，这里只做打开与提示）。
+  static Future<void> openLink(BuildContext context, String url) async {
+    final kind = MarkdownLink.kindOf(url);
+    if (kind == MarkdownLinkKind.invalid) return;
+    try {
+      if (kind == MarkdownLinkKind.external) {
+        final uri = Uri.parse(url.trim());
+        final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!ok && context.mounted) toast.info(message: '无法打开链接');
+        return;
+      }
+      final path = MarkdownLink.localPathOf(url);
+      if (path == null) return;
+      final file = File(path);
+      if (!file.existsSync()) {
+        if (context.mounted) toast.info(message: '附件不存在（可能已被清理）');
+        return;
+      }
+      final ok = await launchUrl(
+        Uri.file(path),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!ok && context.mounted) {
+        toast.info(message: '没有可打开该格式的应用');
+      }
+    } catch (e) {
+      if (context.mounted) toast.info(message: '打开失败：$e');
+    }
   }
 }
 

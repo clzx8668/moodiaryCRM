@@ -31,6 +31,10 @@ class AiTaskType {
   static const linkFetch = 'link_fetch';
   /// 语音速记：先落地占位卡，后台云端转写（payload = 音频文件名）
   static const voiceTranscribe = 'voice_transcribe';
+
+  /// 音频附件转写：速记里"选了已有音频"当附件时，后台转写成 AI 卡
+  /// （payload = audio 目录下的文件名；结果落 AI 生成区，不改正文）
+  static const audioTranscribe = 'audio_transcribe';
 }
 
 /// AI 任务仓储（Drift `AiTasks` 表读写，M2 队列的数据层）。

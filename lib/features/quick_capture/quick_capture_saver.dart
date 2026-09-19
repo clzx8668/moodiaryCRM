@@ -6,6 +6,7 @@ import 'package:moodiary/common/values/diary_type.dart';
 import 'package:moodiary/features/attachments/attachment_manager.dart';
 import 'package:moodiary/features/ai/colloquial/colloquial_detector.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
+import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
 import 'package:moodiary/persistence/isar.dart';
@@ -61,6 +62,16 @@ class QuickCaptureSaver {
       audioNames.add(name);
     }
     diary.audioName = audioNames;
+    // 音频附件：入队后台转写（结果落 AI 卡，正文保持用户原文）
+    for (final name in audioNames) {
+      unawaited(
+        AiTaskQueueWorker.instance.submitTask(
+          type: AiTaskType.audioTranscribe,
+          refId: diary.id,
+          payload: name,
+        ),
+      );
+    }
 
     // 文档/其他附件：走 Obsidian 模式附件管线（Attachments/Documents/YYYY/MM）
     final documents = attachments

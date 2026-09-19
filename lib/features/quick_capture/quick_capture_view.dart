@@ -361,7 +361,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                     ),
                     _AppendTile(
                       icon: Icons.document_scanner_outlined,
-                      label: '图片速记',
+                      label: '图片整理',
                       color: colorScheme.tertiaryContainer,
                       onTap: () {
                         Get.back();
@@ -370,7 +370,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                     ),
                     _AppendTile(
                       icon: Icons.photo_camera_outlined,
-                      label: '拍照速记',
+                      label: '拍照整理',
                       color: colorScheme.secondaryContainer,
                       onTap: () {
                         Get.back();
