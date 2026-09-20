@@ -207,6 +207,8 @@ flutter:
     - assets/lottie/
     - res/sponsor/
     - assets/tflite/
+    # 端侧语音识别自检样例（16k/mono/16bit 人声，约 175KB）
+    - assets/asr/
 
   uses-material-design: true
 

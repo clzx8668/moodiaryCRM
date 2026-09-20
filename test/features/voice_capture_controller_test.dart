@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moodiary/features/voice/voice_capture_controller.dart';
@@ -43,6 +44,14 @@ class _FakeRecorder implements VoiceCaptureRecorder {
 
   @override
   Stream<double> amplitudeDb() => amp.stream;
+
+  int pcmStreamCount = 0;
+
+  @override
+  Future<Stream<Uint8List>> startPcmStream({int sampleRate = 16000}) async {
+    pcmStreamCount++;
+    return const Stream<Uint8List>.empty();
+  }
 
   @override
   Future<void> dispose() async {

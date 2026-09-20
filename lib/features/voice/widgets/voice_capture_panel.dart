@@ -14,7 +14,7 @@ import 'package:moodiary/features/voice/voice_media_player.dart';
 /// - 停止后由用户决定：**保存**（立刻入库 + 后台转写）或**取消**（删掉音频，
 ///   不留记录、不消耗转写额度），也能直接**重录**；
 /// - 音频从开始录就写在本地文件里——网络/进程异常都不会丢内容；
-/// - 实时转写留作后期能力（本页只录音，转写一律走后台任务）。
+/// - 端侧模型就绪时走**本地实时转写**（边说边出字）；未就绪则退回"录完再云端转写"。
 class VoiceCapturePanel extends StatelessWidget {
   final VoiceCaptureController controller;
 
@@ -56,6 +56,7 @@ class VoiceCapturePanel extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         _levelMeter(colorScheme),
+        _liveTranscript(context),
         const SizedBox(height: 10),
         ValueListenableBuilder<VoiceCapturePhase>(
           valueListenable: controller.phase,
@@ -72,6 +73,85 @@ class VoiceCapturePanel extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+
+  /// 端侧实时字幕：说话过程中逐句上屏（未启用端侧时不占位）。
+  Widget _liveTranscript(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return ValueListenableBuilder<String>(
+      valueListenable: controller.liveTranscript,
+      builder: (context, transcript, _) {
+        final hasText = transcript.trim().isNotEmpty;
+        if (!controller.onDeviceActive && !hasText) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 64, maxHeight: 132),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colorScheme.outlineVariant, width: 0.6),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    ValueListenableBuilder<bool>(
+                      valueListenable: controller.speaking,
+                      builder: (context, speaking, _) => Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: speaking
+                              ? colorScheme.primary
+                              : colorScheme.outlineVariant,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '端侧实时转写',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      hasText ? '本地 · 不耗流量' : '等待人声…',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Flexible(
+                  child: SingleChildScrollView(
+                    reverse: true,
+                    child: Text(
+                      hasText ? transcript : '开始说话，这里会实时出字…',
+                      style: textTheme.bodyMedium?.copyWith(
+                        height: 1.4,
+                        color: hasText
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -147,10 +227,17 @@ class VoiceCapturePanel extends StatelessWidget {
   }
 
   Widget _hint(BuildContext context, VoiceCapturePhase phase) {
+    final onDevice = controller.onDeviceActive;
     final text = switch (phase) {
-      VoiceCapturePhase.recording => '说话就行；可暂停、可继续，停止后再决定是否保存',
-      VoiceCapturePhase.paused => '已暂停录音（音频文件已保留），可继续或直接停止',
-      VoiceCapturePhase.stopped => '音频已存在本地：保存即入库并后台转写，取消则丢弃不留记录',
+      VoiceCapturePhase.recording => onDevice
+          ? '端侧转写中（本地出字）；可暂停、可继续，停止后再决定是否保存'
+          : '说话就行；可暂停、可继续，停止后再决定是否保存',
+      VoiceCapturePhase.paused => onDevice
+          ? '已暂停（音频与已识别文本都已落本地），可继续或直接停止'
+          : '已暂停录音（音频文件已保留），可继续或直接停止',
+      VoiceCapturePhase.stopped => onDevice
+          ? '端侧草稿已在本地：保存即入库（云端随后精修），取消则丢弃不留记录'
+          : '音频已存在本地：保存即入库并后台转写，取消则丢弃不留记录',
       VoiceCapturePhase.idle => '点「开始录音」即可说话',
     };
     return Text(

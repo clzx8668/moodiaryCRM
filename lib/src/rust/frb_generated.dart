@@ -5,6 +5,7 @@
 
 import 'api/aes.dart';
 import 'api/argon2.dart';
+import 'api/asr_bridge.dart';
 import 'api/compress.dart';
 import 'api/constants.dart';
 import 'api/event_bus.dart';
@@ -76,7 +77,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 397864373;
+  int get rustContentHash => 157076177;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -210,6 +211,38 @@ abstract class RustLibApi extends BaseApi {
   Stream<AiStreamEvent> crateApiFfiApiAiStreamStream();
 
   Future<int> crateApiFfiApiApiVersion();
+
+  void crateApiAsrBridgeAsrAcceptPcm16({
+    required BigInt handle,
+    required List<int> pcm,
+  });
+
+  BigInt crateApiAsrBridgeAsrCreate({
+    required String modelDir,
+    required String libDir,
+    required int numThreads,
+  });
+
+  Future<String> crateApiAsrBridgeAsrDefaultModelDir();
+
+  void crateApiAsrBridgeAsrDestroy({required BigInt handle});
+
+  void crateApiAsrBridgeAsrFlush({required BigInt handle});
+
+  Future<bool> crateApiAsrBridgeAsrIsAvailable();
+
+  Future<String> crateApiAsrBridgeAsrLayoutSelftest();
+
+  void crateApiAsrBridgeAsrStart({required BigInt handle});
+
+  String crateApiAsrBridgeAsrTakeText({required BigInt handle});
+
+  Future<String> crateApiAsrBridgeAsrTranscribePcm16Wav({
+    required String modelDir,
+    required String libDir,
+    required List<int> wavBytes,
+    required int numThreads,
+  });
 
   Future<Uint64List> crateApiKmpBuildPrefixTable({
     required List<String> pattern,
@@ -1239,6 +1272,279 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "api_version", argNames: []);
 
   @override
+  void crateApiAsrBridgeAsrAcceptPcm16({
+    required BigInt handle,
+    required List<int> pcm,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(handle, serializer);
+          sse_encode_list_prim_u_8_loose(pcm, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiAsrBridgeAsrAcceptPcm16ConstMeta,
+        argValues: [handle, pcm],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAsrBridgeAsrAcceptPcm16ConstMeta =>
+      const TaskConstMeta(
+        debugName: "asr_accept_pcm16",
+        argNames: ["handle", "pcm"],
+      );
+
+  @override
+  BigInt crateApiAsrBridgeAsrCreate({
+    required String modelDir,
+    required String libDir,
+    required int numThreads,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(modelDir, serializer);
+          sse_encode_String(libDir, serializer);
+          sse_encode_i_32(numThreads, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_64,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiAsrBridgeAsrCreateConstMeta,
+        argValues: [modelDir, libDir, numThreads],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAsrBridgeAsrCreateConstMeta => const TaskConstMeta(
+    debugName: "asr_create",
+    argNames: ["modelDir", "libDir", "numThreads"],
+  );
+
+  @override
+  Future<String> crateApiAsrBridgeAsrDefaultModelDir() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 29,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAsrBridgeAsrDefaultModelDirConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAsrBridgeAsrDefaultModelDirConstMeta =>
+      const TaskConstMeta(debugName: "asr_default_model_dir", argNames: []);
+
+  @override
+  void crateApiAsrBridgeAsrDestroy({required BigInt handle}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(handle, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiAsrBridgeAsrDestroyConstMeta,
+        argValues: [handle],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAsrBridgeAsrDestroyConstMeta =>
+      const TaskConstMeta(debugName: "asr_destroy", argNames: ["handle"]);
+
+  @override
+  void crateApiAsrBridgeAsrFlush({required BigInt handle}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(handle, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiAsrBridgeAsrFlushConstMeta,
+        argValues: [handle],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAsrBridgeAsrFlushConstMeta =>
+      const TaskConstMeta(debugName: "asr_flush", argNames: ["handle"]);
+
+  @override
+  Future<bool> crateApiAsrBridgeAsrIsAvailable() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 32,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAsrBridgeAsrIsAvailableConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAsrBridgeAsrIsAvailableConstMeta =>
+      const TaskConstMeta(debugName: "asr_is_available", argNames: []);
+
+  @override
+  Future<String> crateApiAsrBridgeAsrLayoutSelftest() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 33,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAsrBridgeAsrLayoutSelftestConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAsrBridgeAsrLayoutSelftestConstMeta =>
+      const TaskConstMeta(debugName: "asr_layout_selftest", argNames: []);
+
+  @override
+  void crateApiAsrBridgeAsrStart({required BigInt handle}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(handle, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiAsrBridgeAsrStartConstMeta,
+        argValues: [handle],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAsrBridgeAsrStartConstMeta =>
+      const TaskConstMeta(debugName: "asr_start", argNames: ["handle"]);
+
+  @override
+  String crateApiAsrBridgeAsrTakeText({required BigInt handle}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(handle, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiAsrBridgeAsrTakeTextConstMeta,
+        argValues: [handle],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAsrBridgeAsrTakeTextConstMeta =>
+      const TaskConstMeta(debugName: "asr_take_text", argNames: ["handle"]);
+
+  @override
+  Future<String> crateApiAsrBridgeAsrTranscribePcm16Wav({
+    required String modelDir,
+    required String libDir,
+    required List<int> wavBytes,
+    required int numThreads,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(modelDir, serializer);
+          sse_encode_String(libDir, serializer);
+          sse_encode_list_prim_u_8_loose(wavBytes, serializer);
+          sse_encode_i_32(numThreads, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 36,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiAsrBridgeAsrTranscribePcm16WavConstMeta,
+        argValues: [modelDir, libDir, wavBytes, numThreads],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAsrBridgeAsrTranscribePcm16WavConstMeta =>
+      const TaskConstMeta(
+        debugName: "asr_transcribe_pcm16_wav",
+        argNames: ["modelDir", "libDir", "wavBytes", "numThreads"],
+      );
+
+  @override
   Future<Uint64List> crateApiKmpBuildPrefixTable({
     required List<String> pattern,
   }) {
@@ -1250,7 +1556,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 37,
             port: port_,
           );
         },
@@ -1287,7 +1593,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 38,
             port: port_,
           );
         },
@@ -1317,7 +1623,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 39,
             port: port_,
           );
         },
@@ -1351,7 +1657,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 40,
             port: port_,
           );
         },
@@ -1388,7 +1694,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 41,
             port: port_,
           );
         },
@@ -1421,7 +1727,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 32,
+              funcId: 42,
               port: port_,
             );
           },
@@ -1450,7 +1756,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 43,
             port: port_,
           );
         },
@@ -1477,7 +1783,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 44,
             port: port_,
           );
         },
@@ -1509,7 +1815,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 45,
             port: port_,
           );
         },
@@ -1538,7 +1844,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 46,
             port: port_,
           );
         },
@@ -1565,7 +1871,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 47,
             port: port_,
           );
         },
@@ -1595,7 +1901,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 48,
             port: port_,
           );
         },
@@ -1628,7 +1934,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 39,
+              funcId: 49,
               port: port_,
             );
           },
@@ -1660,7 +1966,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 50,
             port: port_,
           );
         },
@@ -2180,6 +2486,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int dco_decode_u_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
+  }
+
+  @protected
+  BigInt dco_decode_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeU64(raw);
   }
 
   @protected
@@ -2766,6 +3078,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int sse_decode_u_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint32();
+  }
+
+  @protected
+  BigInt sse_decode_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getBigUint64();
   }
 
   @protected
@@ -3396,6 +3714,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_u_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint32(self);
+  }
+
+  @protected
+  void sse_encode_u_64(BigInt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putBigUint64(self);
   }
 
   @protected

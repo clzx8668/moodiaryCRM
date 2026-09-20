@@ -2,6 +2,12 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:moodiary/features/asr/asr_model_store.dart';
+import 'package:moodiary/features/asr/asr_types.dart';
+import 'package:moodiary/features/asr/ffi_asr_engine.dart';
+import 'package:moodiary/features/asr/method_channel_asr_engine.dart';
+import 'package:moodiary/features/asr/pcm_gate.dart';
+import 'package:moodiary/features/asr/wav_writer.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/features/voice/voice_level_envelope.dart';
 import 'package:record/record.dart';
@@ -38,6 +44,12 @@ abstract class VoiceCaptureRecorder {
   /// 音量（dB，通常 -60…0），用于电平动画
   Stream<double> amplitudeDb();
 
+  /// 端侧实时转写：以 PCM 流方式录音（16k/mono/int16），边录边喂引擎。
+  ///
+  /// 流模式不落文件（由调用方用 [WavWriter] 自己写），因此两者互斥：
+  /// 走流模式时不要再调 [start]。
+  Future<Stream<Uint8List>> startPcmStream({int sampleRate = 16000});
+
   Future<void> dispose();
 }
 
@@ -72,6 +84,21 @@ class RecordVoiceCaptureRecorder implements VoiceCaptureRecorder {
   Future<void> stop() => _recorder.stop();
 
   @override
+  Future<Stream<Uint8List>> startPcmStream({int sampleRate = 16000}) {
+    _ampSub?.cancel();
+    _ampSub = _recorder
+        .onAmplitudeChanged(const Duration(milliseconds: 150))
+        .listen((a) => _amp.add(a.current), onError: (_) {});
+    return _recorder.startStream(
+      RecordConfig(
+        encoder: AudioEncoder.pcm16bits,
+        sampleRate: sampleRate,
+        numChannels: 1,
+      ),
+    );
+  }
+
+  @override
   Stream<double> amplitudeDb() => _amp.stream;
 
   @override
@@ -97,19 +124,28 @@ class VoiceCaptureController {
     bool? isDesktop,
     String Function()? idGenerator,
     String Function(String fileName)? audioPathResolver,
+    OnDeviceAsrEngine Function()? asrEngineFactory,
   }) : _recorder = recorder ?? RecordVoiceCaptureRecorder(),
        _clock = clock ?? DateTime.now,
        _isDesktop = isDesktop ?? _defaultIsDesktop(),
        _idGenerator = idGenerator ?? (() => const Uuid().v7()),
        _audioPathResolver =
            audioPathResolver ??
-           ((fileName) => FileUtil.getRealPath('audio', fileName));
+           ((fileName) => FileUtil.getRealPath('audio', fileName)),
+       _asrEngineFactory = asrEngineFactory;
 
   final VoiceCaptureRecorder _recorder;
   final DateTime Function() _clock;
   final bool _isDesktop;
   final String Function() _idGenerator;
   final String Function(String fileName) _audioPathResolver;
+
+  /// 端侧转写引擎工厂（单测注入 fake；默认走 MethodChannel）。
+  final OnDeviceAsrEngine Function()? _asrEngineFactory;
+
+  /// 平台默认引擎：Android 走 Kotlin/JNI，Windows 走 Rust/FFI。
+  static OnDeviceAsrEngine defaultAsrEngine() =>
+      Platform.isWindows ? FfiAsrEngine() : MethodChannelAsrEngine();
 
   /// 当前阶段
   final ValueNotifier<VoiceCapturePhase> phase = ValueNotifier(
@@ -124,6 +160,20 @@ class VoiceCaptureController {
 
   /// 整段录音的响度包络：保存后详情页播放时按**真实响度**显示波形
   final VoiceLevelEnvelope envelope = VoiceLevelEnvelope();
+
+  /// 实时转写的当前文本（录音过程中逐句追加；停止后即为端侧草稿）
+  final ValueNotifier<String> liveTranscript = ValueNotifier('');
+
+  /// 当前是否「正在说话」（端侧 VAD 判定；驱动绿点/字幕态）
+  final ValueNotifier<bool> speaking = ValueNotifier(false);
+
+  /// 本次录音是否走了端侧实时转写
+  bool get onDeviceActive => _asrEngine != null;
+
+  OnDeviceAsrEngine? _asrEngine;
+  StreamSubscription<Uint8List>? _pcmSub;
+  WavWriter? _wavWriter;
+  PcmGate? _gate;
 
   Timer? _ticker;
   StreamSubscription<double>? _ampSub;
@@ -191,6 +241,109 @@ class VoiceCaptureController {
     return null;
   }
 
+  /// 用**端侧实时转写**方式开始录音：PCM 流 → 门卫 → WAV 落盘 + 端侧识别。
+  ///
+  /// 与 [start] 的区别：
+  /// - 音频以 16k/mono/int16 的 PCM 流进来，由本类用 [WavWriter] 边录边写
+  ///   （照样先落地，网络/进程异常都不丢）；
+  /// - 同时把 PCM 喂给端侧引擎，句子识别完立刻写进 [liveTranscript]。
+  ///
+  /// 返回 null = 端侧链路已启动；返回文案 = 端侧不可用/启动失败，
+  /// 调用方应退回 [start]（云端兜底路径）。
+  Future<String?> startStreaming() async {
+    if (phase.value == VoiceCapturePhase.recording) return null;
+    if (!AsrModelStore.isReady) return '端侧模型未就绪';
+    await _disposeAudioFile();
+
+    final granted = await _recorder.hasPermission();
+    if (!granted) return '未获得麦克风权限，请在系统设置里允许录音';
+
+    final engine = (_asrEngineFactory ?? defaultAsrEngine)();
+    try {
+      if (!await engine.isReady()) {
+        await engine.dispose();
+        return '端侧引擎不可用';
+      }
+      await engine.init();
+      await engine.start();
+    } catch (e) {
+      try {
+        await engine.dispose();
+      } catch (_) {}
+      return '端侧引擎启动失败：$e';
+    }
+
+    final name = 'voice-${_idGenerator()}.wav';
+    final path = _audioPathResolver(name);
+    final writer = WavWriter(path: path);
+    try {
+      await writer.open();
+    } catch (e) {
+      await engine.dispose();
+      return '音频文件创建失败：$e';
+    }
+
+    Stream<Uint8List> pcm;
+    try {
+      pcm = await _recorder.startPcmStream();
+    } catch (e) {
+      await writer.close();
+      await engine.dispose();
+      return '录音失败：$e';
+    }
+
+    _asrEngine = engine;
+    _wavWriter = writer;
+    _gate = PcmGate();
+    liveTranscript.value = '';
+    speaking.value = false;
+    audioFileName = name;
+    _accumulated = Duration.zero;
+    envelope.clear();
+    _startedAt = _clock();
+    elapsed.value = Duration.zero;
+    level.value = 0;
+    phase.value = VoiceCapturePhase.recording;
+    _listenAmplitude();
+    _startTicker();
+
+    engine.results.listen(
+      (r) {
+        if (!onDeviceActive) return;
+        liveTranscript.value = AsrPartialText.merge(
+          liveTranscript.value,
+          r.text,
+        );
+      },
+      onError: (_) {},
+    );
+
+    _pcmSub = pcm.listen(_onPcm, onError: (_) {}, cancelOnError: false);
+    return null;
+  }
+
+  void _onPcm(Uint8List chunk) {
+    if (chunk.isEmpty || _disposed) return;
+    final writer = _wavWriter;
+    if (writer == null) return;
+    // 暂停期间不写入（流一般也停了，这里兜一层防止把暂停段录进去）
+    if (phase.value != VoiceCapturePhase.recording) return;
+    unawaited(writer.add(chunk));
+
+    // 用 PCM 真实响度驱动电平与包络（比插件的 amplitude 更贴端侧链路）
+    final rms = PcmGate.rms(chunk);
+    envelope.add(rms);
+    level.value = rms.clamp(0.0, 1.0);
+
+    final gate = _gate;
+    final engine = _asrEngine;
+    if (gate == null || engine == null) return;
+    final pass = gate.accept(chunk);
+    speaking.value = gate.isSpeaking;
+    // 门卫不过（纯静音/底噪）时不喂模型：省电、也减少无效句
+    if (pass) unawaited(engine.acceptPcm(chunk));
+  }
+
   Future<void> pause() async {
     if (phase.value != VoiceCapturePhase.recording) return;
     _accumulated = _elapsedNow();
@@ -225,10 +378,15 @@ class VoiceCaptureController {
     _ampSub = null;
     level.value = 0;
     try {
-      await _recorder.stop();
+      if (onDeviceActive) {
+        await _teardownStream();
+      } else {
+        await _recorder.stop();
+      }
     } catch (_) {
       // 停止失败也继续（文件一般已落盘）
     }
+    speaking.value = false;
     elapsed.value = _accumulated;
     phase.value = VoiceCapturePhase.stopped;
   }
@@ -236,7 +394,11 @@ class VoiceCaptureController {
   /// 丢弃当前录音（取消 / 重录前）：删除本地文件，回到 idle。
   Future<void> discard() async {
     _stopTicker();
-    if (phase.value == VoiceCapturePhase.recording) {
+    if (onDeviceActive) {
+      try {
+        await _teardownStream();
+      } catch (_) {}
+    } else if (phase.value == VoiceCapturePhase.recording) {
       try {
         await _recorder.stop();
       } catch (_) {}
@@ -247,6 +409,8 @@ class VoiceCaptureController {
     _accumulated = Duration.zero;
     _startedAt = null;
     envelope.clear();
+    liveTranscript.value = '';
+    speaking.value = false;
     elapsed.value = Duration.zero;
     level.value = 0;
     phase.value = VoiceCapturePhase.idle;
@@ -258,6 +422,8 @@ class VoiceCaptureController {
     _accumulated = Duration.zero;
     _startedAt = null;
     envelope.clear();
+    liveTranscript.value = '';
+    speaking.value = false;
     elapsed.value = Duration.zero;
     level.value = 0;
     audioFileName = null;
@@ -271,12 +437,18 @@ class VoiceCaptureController {
     await _ampSub?.cancel();
     _ampSub = null;
     try {
-      if (phase.value == VoiceCapturePhase.recording) await _recorder.stop();
+      if (onDeviceActive) {
+        await _teardownStream();
+      } else if (phase.value == VoiceCapturePhase.recording) {
+        await _recorder.stop();
+      }
     } catch (_) {}
     await _recorder.dispose();
     phase.dispose();
     elapsed.dispose();
     level.dispose();
+    liveTranscript.dispose();
+    speaking.dispose();
   }
 
   /// 面板被关掉等场景：停止录音并删掉未保存的音频。
@@ -290,7 +462,8 @@ class VoiceCaptureController {
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
       elapsed.value = _elapsedNow();
       // 每 200ms 记一条响度：整段录音的包络（保存后播放时按真实响度显示波形）
-      if (phase.value == VoiceCapturePhase.recording) {
+      // 端侧流模式下由 PCM 块直接喂包络（更准），这里不重复记
+      if (phase.value == VoiceCapturePhase.recording && !onDeviceActive) {
         envelope.add(level.value);
       }
     });
@@ -313,6 +486,38 @@ class VoiceCaptureController {
       (db) => level.value = normalizeDb(db),
       onError: (_) {},
     );
+  }
+
+  /// 收尾端侧流式链路：停流 → 引擎吐尾句 → 回填 WAV 头 → 释放引擎。
+  Future<void> _teardownStream() async {
+    final sub = _pcmSub;
+    _pcmSub = null;
+    await sub?.cancel();
+
+    final engine = _asrEngine;
+    _asrEngine = null;
+    if (engine != null) {
+      try {
+        await engine.stop(); // VAD 未闭合的尾段也会被识别并推入 liveTranscript
+      } catch (_) {}
+      try {
+        await engine.dispose();
+      } catch (_) {}
+    }
+
+    final writer = _wavWriter;
+    _wavWriter = null;
+    if (writer != null) {
+      try {
+        await writer.close(); // 回填真实的 data 长度
+      } catch (_) {}
+    }
+
+    _gate?.reset();
+    _gate = null;
+    try {
+      await _recorder.stop(); // 兜底停流（部分平台上 startStream 需显式 stop）
+    } catch (_) {}
   }
 
   Future<void> _disposeAudioFile() async {

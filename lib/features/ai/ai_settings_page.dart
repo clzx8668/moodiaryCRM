@@ -10,6 +10,8 @@ import 'package:moodiary/features/ai/profile/user_profile.dart';
 import 'package:moodiary/features/ai/search/search_service.dart';
 import 'package:moodiary/features/ai/search/search_skill.dart';
 import 'package:moodiary/features/ai/widgets/ai_model_field.dart';
+import 'package:moodiary/features/asr/asr_model_store.dart';
+import 'package:moodiary/features/asr/on_device_asr_settings_page.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
@@ -215,6 +217,7 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                   icon: Icons.mic_none_rounded,
                   showModelField: true,
                 ),
+                _buildOnDeviceAsrTile(context),
                 const SizedBox(height: 18),
                 _buildSearchSection(context),
                 const SizedBox(height: 18),
@@ -226,6 +229,28 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                 _buildProfileTile(context),
               ],
             ),
+    );
+  }
+
+  /// 端侧语音识别（本地实时转写）：模型状态 + 一键进入安装页。
+  Widget _buildOnDeviceAsrTile(BuildContext context) {
+    final ready = AsrModelStore.isReady;
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ListTile(
+        leading: Icon(
+          Icons.offline_bolt_rounded,
+          color: ready ? colorScheme.primary : colorScheme.outline,
+        ),
+        title: const Text('本地实时转写（端侧）'),
+        subtitle: Text(AsrModelStore.statusLabel()),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () async {
+          await Get.to(() => const OnDeviceAsrSettingsPage());
+          if (mounted) setState(() {});
+        },
+      ),
     );
   }
 

@@ -133,14 +133,19 @@ class PendingContentService {
     String title = '语音速记',
     List<double> waveform = const [],
     int durationMs = 0,
+    String draftText = '',
   }) async {
     final now = DateTime.now();
+    // 端侧实时转写已经出稿时直接用草稿做正文，列表/详情立刻可读；
+    // 没有草稿才退回"转写中"占位（纯云端路径）。
+    final draft = draftText.trim();
+    final hasDraft = draft.isNotEmpty;
     final diary = Diary()
       ..id = const Uuid().v7()
       ..title = title
       // 列表立即可读：后台转写完成前先显示"处理中"占位，避免空白卡片
-      ..contentText = '⏳ 录音转写中…'
-      ..content = ''
+      ..contentText = hasDraft ? draft : '⏳ 录音转写中…'
+      ..content = hasDraft ? draft : ''
       ..type = DiaryType.markdown.value
       ..time = now
       ..lastModified = now
@@ -167,13 +172,18 @@ class PendingContentService {
         file: audioFileName,
         durationMs: durationMs,
         waveform: waveform,
+        // 端侧草稿标记：详情页据此显示"端侧草稿 / 云端精修中"
+        rawTranscript: hasDraft ? draft : '',
+        source: hasDraft ? 'on_device' : VoiceRecordMeta.sourceVoice,
       ),
     );
     await IsarUtil.insertBlock(sourceBlock);
     await _createPendingBlock(
       diaryId: diary.id,
       template: 'voice_transcribe',
-      text: '$pendingPrefix正在转写录音，稍后自动写入正文…',
+      text: hasDraft
+          ? '$pendingPrefix端侧已转写出草稿，云端正在精修…'
+          : '$pendingPrefix正在转写录音，稍后自动写入正文…',
       sourceContent: audioFileName,
     );
     unawaited(

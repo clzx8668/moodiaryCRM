@@ -9,3 +9,4 @@ pub mod argon2;
 pub mod event_bus;
 pub mod ffi_api;
 pub mod sync_events;
+pub mod asr_bridge;

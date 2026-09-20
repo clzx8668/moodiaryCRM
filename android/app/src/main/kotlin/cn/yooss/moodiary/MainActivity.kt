@@ -25,6 +25,23 @@ class MainActivity : FlutterFragmentActivity() {
     private var pendingShareImages: ArrayList<String> = ArrayList()
     private var pendingShortcut: String? = null
 
+    /** 端侧转写引擎桥（自检钩子复用） */
+    private var pendingAsr: AsrChannel? = null
+
+    /** `--es ASR selftest`：在后台跑一次端侧引擎自检，结论写 Logcat */
+    private fun maybeRunAsrSelftest(source: Intent?) {
+        if (source?.getStringExtra("ASR") != "selftest") return
+        val bridge = pendingAsr ?: return
+        Thread {
+            val started = System.currentTimeMillis()
+            val result = bridge.runSelfTest()
+            android.util.Log.i(
+                "AsrSelftest",
+                "$result（总耗时 ${System.currentTimeMillis() - started}ms）"
+            )
+        }.start()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // 冷启动由分享/快捷方式触发时，先记录负载，待 Dart 侧就绪后取回
@@ -84,11 +101,28 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             }
         }
+
+        // 端侧实时转写：Dart 送 PCM，Kotlin 侧做 VAD 切句 + Paraformer int8 识别后回吐文本
+        val asrChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger, "asr_channel"
+        )
+        val asr = AsrChannel(
+            asrChannel,
+            File(filesDir, "asr").absolutePath,
+            assets,
+        )
+        asrChannel.setMethodCallHandler { call, result -> asr.handle(call, result) }
+
+        // 现场自检钩子：adb shell am start -n <pkg>/cn.yooss.moodiary.MainActivity --es ASR selftest
+        // 结果打到 Logcat（TAG=AsrSelftest），方便真机/模拟器无 UI 验证端侧链路。
+        pendingAsr = asr
+        maybeRunAsrSelftest(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        maybeRunAsrSelftest(intent)
         val shortcut = extractShortcut(intent)
         if (shortcut != null) {
             deliver("onShortcut", shortcut) { pendingShortcut = it }

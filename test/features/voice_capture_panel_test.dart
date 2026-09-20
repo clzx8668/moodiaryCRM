@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,6 +25,10 @@ class _FakeRecorder implements VoiceCaptureRecorder {
 
   @override
   Stream<double> amplitudeDb() => const Stream<double>.empty();
+
+  @override
+  Future<Stream<Uint8List>> startPcmStream({int sampleRate = 16000}) async =>
+      const Stream<Uint8List>.empty();
 
   @override
   Future<void> dispose() async {}

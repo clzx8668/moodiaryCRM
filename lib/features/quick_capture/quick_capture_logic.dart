@@ -112,7 +112,9 @@ class QuickCaptureLogic extends GetxController {
   Future<void> enterVoiceInput() async {
     if (state.voiceMode.value) return;
     state.voiceMode.value = true;
-    final error = await voiceCapture.start();
+    // 优先走端侧实时转写（边说边出字）；模型没装/引擎不可用则退回云端路径
+    var error = await voiceCapture.startStreaming();
+    if (error != null) error = await voiceCapture.start();
     if (error != null) {
       state.voiceMode.value = false;
       toast.error(message: error);
@@ -128,7 +130,8 @@ class QuickCaptureLogic extends GetxController {
   /// 重录：丢弃当前音频后重新开始。
   Future<void> retakeVoiceInput() async {
     await voiceCapture.discard();
-    final error = await voiceCapture.start();
+    var error = await voiceCapture.startStreaming();
+    if (error != null) error = await voiceCapture.start();
     if (error != null) {
       state.voiceMode.value = false;
       toast.error(message: error);
@@ -163,8 +166,13 @@ class QuickCaptureLogic extends GetxController {
         // 把录音的响度包络一起存下来：详情页播放时按真实响度显示波形
         waveform: voiceCapture.waveformForSave,
         durationMs: voiceCapture.elapsed.value.inMilliseconds,
+        // 端侧实时转写草稿：直接做正文，列表/详情立刻可读
+        draftText: voiceCapture.liveTranscript.value,
       );
-      toast.success(message: '已保存语音笔记，正在后台转写…');
+      final hasDraft = voiceCapture.liveTranscript.value.trim().isNotEmpty;
+      toast.success(
+        message: hasDraft ? '已保存语音笔记（端侧转写完成，云端精修中）' : '已保存语音笔记，正在后台转写…',
+      );
       return diary;
     } catch (e) {
       toast.error(message: '保存语音笔记失败：$e');
