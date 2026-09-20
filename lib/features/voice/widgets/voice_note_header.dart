@@ -22,6 +22,9 @@ class VoiceNoteHeader extends StatelessWidget {
   /// 手动触发云端精修（仅端侧完成后可用）
   final VoidCallback? onRefine;
 
+  /// 去设置本地转写模型（失败态里给一条"能立刻修好"的路）
+  final VoidCallback? onSetupOnDevice;
+
   /// 播放器（单测注入占位，避免依赖音频插件）
   final Widget Function(String path)? playerBuilder;
 
@@ -33,6 +36,7 @@ class VoiceNoteHeader extends StatelessWidget {
     required this.onTabChanged,
     required this.onRetry,
     this.onRefine,
+    this.onSetupOnDevice,
     this.playerBuilder,
   });
 
@@ -215,10 +219,21 @@ class VoiceNoteHeader extends StatelessWidget {
             ),
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('重试转写'),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (onSetupOnDevice != null)
+                    TextButton.icon(
+                      onPressed: onSetupOnDevice,
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: const Text('装本地模型'),
+                    ),
+                  TextButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('重试转写'),
+                  ),
+                ],
               ),
             ),
           ],

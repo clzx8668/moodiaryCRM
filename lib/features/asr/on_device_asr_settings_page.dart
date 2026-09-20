@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:moodiary/features/asr/asr_model_store.dart';
+import 'package:moodiary/features/asr/asr_model_downloader.dart';
 import 'package:moodiary/features/asr/method_channel_asr_engine.dart';
 import 'package:moodiary/utils/notice_util.dart';
 import 'package:moodiary/src/rust/api/asr_bridge.dart' as rust_asr;
@@ -30,6 +31,12 @@ class _OnDeviceAsrSettingsPageState extends State<OnDeviceAsrSettingsPage> {
   /// 自检状态：null = 未跑过；否则是给用户看的一行结论
   String? _selftestResult;
   bool _selftestRunning = false;
+
+  /// 模型下载状态
+  final AsrModelDownloader _downloader = AsrModelDownloader();
+  bool _downloading = false;
+  double? _downloadFraction;
+  String _downloadLabel = '';
 
   /// 触发重建（导入后刷新状态）
   void _refresh() => setState(() {});
@@ -177,6 +184,8 @@ class _OnDeviceAsrSettingsPageState extends State<OnDeviceAsrSettingsPage> {
           for (final name in _modelFileNames())
             _fileTile(context, name),
           const SizedBox(height: 8),
+          _downloadCard(context),
+          const SizedBox(height: 8),
           const _SectionTitle(
             title: '自检',
             subtitle: '生成一段测试音，验证"引擎能否加载 + 是否回吐结果"。',
@@ -270,6 +279,114 @@ class _OnDeviceAsrSettingsPageState extends State<OnDeviceAsrSettingsPage> {
         ),
       ),
     );
+  }
+
+  /// 一键安装：应用内直接下载缺失的模型文件（约 84MB）。
+  Widget _downloadCard(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final missing = AsrModelStore.missingCoreFiles();
+    final ready = missing.isEmpty;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  ready
+                      ? Icons.check_circle_rounded
+                      : Icons.cloud_download_outlined,
+                  color: ready ? colorScheme.primary : colorScheme.onSurface,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ready ? '模型文件已齐全' : '一键安装本地转写模型',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        ready
+                            ? '无需重复下载；换设备时再装一次即可'
+                            : '约 84MB，只需下载 ${missing.length} 个文件；'
+                                  '装好后语音输入会立刻变成"边说边出字"',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (_downloading) ...[
+              const SizedBox(height: 10),
+              LinearProgressIndicator(value: _downloadFraction),
+              const SizedBox(height: 4),
+              Text(
+                _downloadLabel,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: _downloading
+                  ? TextButton(
+                      onPressed: () => _downloader.cancel(),
+                      child: const Text('取消下载'),
+                    )
+                  : FilledButton.icon(
+                      onPressed: ready ? null : _downloadModels,
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: Text(ready ? '已安装' : '立即下载安装'),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _downloadModels() async {
+    setState(() {
+      _downloading = true;
+      _downloadFraction = null;
+      _downloadLabel = '准备下载…';
+    });
+    try {
+      final error = await _downloader.downloadMissing(
+        onProgress: (p) {
+          if (!mounted) return;
+          setState(() {
+            _downloadFraction = p.fraction;
+            _downloadLabel = '${p.label} · ${p.detail}';
+          });
+        },
+      );
+      if (!mounted) return;
+      if (error == null) {
+        toast.success(message: '本地转写模型已安装完成');
+        _refresh();
+      } else {
+        toast.error(message: error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _downloading = false;
+          _downloadFraction = null;
+          _downloadLabel = '';
+        });
+      }
+    }
   }
 
   Future<void> _import(String fileName) async {

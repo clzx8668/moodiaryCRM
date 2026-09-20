@@ -16,6 +16,7 @@ import 'package:moodiary/features/ai/autolink/semantic_link_service.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/ai/chat_model_selector.dart';
 import 'package:moodiary/features/ai/widgets/chat_model_picker_sheet.dart';
+import 'package:moodiary/features/asr/on_device_asr_settings_page.dart';
 import 'package:moodiary/features/smart_canvas/widgets/relative_time.dart';
 import 'package:moodiary/features/smart_canvas/widgets/canvas_skeleton.dart';
 import 'package:moodiary/features/collection/kb_collection_service.dart';
@@ -739,6 +740,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
               onRefine: info.canRefineOnCloud
                   ? () => _refineVoiceTranscription(info)
                   : null,
+              onSetupOnDevice: () =>
+                  Get.to(() => const OnDeviceAsrSettingsPage()),
             ),
           ),
         );

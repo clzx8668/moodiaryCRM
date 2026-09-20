@@ -75,6 +75,16 @@ class AsrModelStore {
       ),
   ];
 
+  /// 缺失的**核心模型文件**（不含平台运行库）：下载器据此决定要拉哪几个
+  static List<String> missingCoreFiles() => [
+    if (!hasVad) AsrModelFiles.vad,
+    if (!hasAsr) AsrModelFiles.asr,
+    if (!hasTokens) AsrModelFiles.tokens,
+  ];
+
+  /// 是否有任何模型文件（哪怕只有一个）——用于区分"完全没装"与"装了一半"
+  static bool get hasAnyFile => hasVad || hasAsr || hasTokens;
+
   /// 单个文件大小（MB，保留一位小数；不存在返回 0）
   static double sizeMb(String fileName) {
     final file = File(pathOf(fileName));

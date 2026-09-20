@@ -17,6 +17,7 @@ void main() {
     VoiceNoteInfo info, {
     VoiceNoteTab tab = VoiceNoteTab.note,
     VoidCallback? onRefine,
+    VoidCallback? onSetupOnDevice,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -30,6 +31,7 @@ void main() {
               onTabChanged: tabs.add,
               onRetry: () => retries++,
               onRefine: onRefine,
+              onSetupOnDevice: onSetupOnDevice,
               // 播放器换成占位：widget test 里不碰音频插件
               playerBuilder: (_) => const SizedBox(height: 56),
             ),
@@ -73,6 +75,24 @@ void main() {
     await tester.tap(find.text('重试转写'));
     await tester.pump();
     expect(retries, 1);
+  });
+
+  testWidgets('转写失败：提供「装本地模型」入口（用户能当场修好）', (tester) async {
+    var setupTaps = 0;
+    await pump(
+      tester,
+      const VoiceNoteInfo(
+        audioFile: 'voice-a.m4a',
+        status: VoiceNoteStatus.failed,
+        failureReason: '未配置语音识别模型',
+      ),
+      onSetupOnDevice: () => setupTaps++,
+    );
+
+    expect(find.text('装本地模型'), findsOneWidget);
+    await tester.tap(find.text('装本地模型'));
+    await tester.pump();
+    expect(setupTaps, 1);
   });
 
   testWidgets('端侧完成：显示"本地未联网"+ 云端精修入口，不显示任何错误文案', (tester) async {

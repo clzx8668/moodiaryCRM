@@ -7,6 +7,7 @@ import 'package:moodiary/common/values/border.dart';
 import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/ai/chat_model_selector.dart';
 import 'package:moodiary/features/ai/widgets/chat_model_picker_sheet.dart';
+import 'package:moodiary/features/asr/on_device_asr_settings_page.dart';
 import 'package:moodiary/features/link_capture/link_capture_saver.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_logic.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
@@ -158,6 +159,9 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                         onCancel: () => unawaited(logic.exitVoiceInput()),
                         onRetake: () => unawaited(logic.retakeVoiceInput()),
                         onSave: () => _saveVoiceNote(context, logic),
+                        onSetupOnDevice: () => Get.to(
+                          () => const OnDeviceAsrSettingsPage(),
+                        ),
                       )
                     : KeyedSubtree(
                         key: const ValueKey('text-capture'),

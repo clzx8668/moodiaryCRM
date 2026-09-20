@@ -170,6 +170,12 @@ class VoiceCaptureController {
   /// 本次录音是否走了端侧实时转写
   bool get onDeviceActive => _asrEngine != null;
 
+  /// 本次录音为什么没走端侧（null = 端侧已启用或还没试过）。
+  ///
+  /// 以前这里失败是**静默**的：录音照录，只是最后走云端 —— 用户只看到
+  /// "转写失败"，不知道其实本地模型根本没装。现在把这个原因暴露给 UI。
+  String? onDeviceUnavailableReason;
+
   OnDeviceAsrEngine? _asrEngine;
   StreamSubscription<Uint8List>? _pcmSub;
   WavWriter? _wavWriter;
@@ -252,7 +258,15 @@ class VoiceCaptureController {
   /// 调用方应退回 [start]（云端兜底路径）。
   Future<String?> startStreaming() async {
     if (phase.value == VoiceCapturePhase.recording) return null;
-    if (!AsrModelStore.isReady) return '端侧模型未就绪';
+    if (!AsrModelStore.isReady) {
+      final missing = AsrModelStore.missingFiles();
+      final reason = missing.isEmpty
+          ? '端侧模型未就绪'
+          : '缺少${missing.length}个模型文件';
+      onDeviceUnavailableReason = reason;
+      if (kDebugMode) debugPrint('[ASR] 端侧不可用：$reason（${missing.join('、')}）');
+      return reason;
+    }
     await _disposeAudioFile();
 
     final granted = await _recorder.hasPermission();
@@ -262,6 +276,7 @@ class VoiceCaptureController {
     try {
       if (!await engine.isReady()) {
         await engine.dispose();
+        onDeviceUnavailableReason = '端侧引擎不可用（模型或运行库缺失）';
         return '端侧引擎不可用';
       }
       await engine.init();
@@ -270,6 +285,8 @@ class VoiceCaptureController {
       try {
         await engine.dispose();
       } catch (_) {}
+      onDeviceUnavailableReason = '端侧引擎启动失败';
+      if (kDebugMode) debugPrint('[ASR] 端侧引擎启动失败：$e');
       return '端侧引擎启动失败：$e';
     }
 
@@ -280,6 +297,7 @@ class VoiceCaptureController {
       await writer.open();
     } catch (e) {
       await engine.dispose();
+      onDeviceUnavailableReason = '音频文件创建失败';
       return '音频文件创建失败：$e';
     }
 
@@ -289,9 +307,12 @@ class VoiceCaptureController {
     } catch (e) {
       await writer.close();
       await engine.dispose();
+      onDeviceUnavailableReason = '录音流启动失败';
+      if (kDebugMode) debugPrint('[ASR] PCM 流启动失败：$e');
       return '录音失败：$e';
     }
 
+    onDeviceUnavailableReason = null;
     _asrEngine = engine;
     _wavWriter = writer;
     _gate = PcmGate();
@@ -411,6 +432,7 @@ class VoiceCaptureController {
     envelope.clear();
     liveTranscript.value = '';
     speaking.value = false;
+    onDeviceUnavailableReason = null;
     elapsed.value = Duration.zero;
     level.value = 0;
     phase.value = VoiceCapturePhase.idle;

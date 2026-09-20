@@ -30,6 +30,9 @@ class VoiceCapturePanel extends StatelessWidget {
   /// 保存并转写
   final VoidCallback onSave;
 
+  /// 本地转写未启用时，点「去设置」的回调（可空：不传则不显示入口）
+  final VoidCallback? onSetupOnDevice;
+
   /// 试听组件（默认内联播放器；单测注入占位，避免依赖音频插件）
   final Widget Function(String path)? previewBuilder;
 
@@ -40,6 +43,7 @@ class VoiceCapturePanel extends StatelessWidget {
     required this.onCancel,
     required this.onRetake,
     required this.onSave,
+    this.onSetupOnDevice,
     this.previewBuilder,
   });
 
@@ -56,6 +60,7 @@ class VoiceCapturePanel extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         _levelMeter(colorScheme),
+        _onDeviceBanner(context),
         _liveTranscript(context),
         const SizedBox(height: 10),
         ValueListenableBuilder<VoiceCapturePhase>(
@@ -77,6 +82,57 @@ class VoiceCapturePanel extends StatelessWidget {
   }
 
   /// 端侧实时字幕：说话过程中逐句上屏（未启用端侧时不占位）。
+  ///
+  /// 未启用端侧时**明确说明原因**（模型没装 / 引擎起不来），
+  /// 而不是静默地录完走云端 —— 之前用户只看到"转写失败"，查不到原因。
+  Widget _onDeviceBanner(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    // 端侧已启用：不占位
+    if (controller.onDeviceActive) {
+      return const SizedBox.shrink();
+    }
+    final reason = controller.onDeviceUnavailableReason;
+    if (reason == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.offline_bolt_outlined,
+              size: 16,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '未启用本地转写：$reason（保存后仍会走云端）',
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.3,
+                ),
+              ),
+            ),
+            if (onSetupOnDevice != null)
+              TextButton(
+                onPressed: onSetupOnDevice,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: const Text('去设置'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _liveTranscript(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -188,6 +244,22 @@ class VoiceCapturePanel extends StatelessWidget {
           label,
           style: context.textTheme.titleSmall?.copyWith(color: color),
         ),
+        if (controller.onDeviceActive) ...[
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              '本地',
+              style: context.textTheme.labelSmall?.copyWith(
+                color: colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ],
         const Spacer(),
         ValueListenableBuilder<Duration>(
           valueListenable: controller.elapsed,
