@@ -3,9 +3,56 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:moodiary/features/asr/asr_model_store.dart';
+import 'package:moodiary/features/asr/asr_types.dart';
 import 'package:moodiary/features/voice/voice_capture_controller.dart';
 
 /// 假录音器：记录调用顺序，不碰平台通道
+/// 假端侧引擎：只做"收 PCM → 回吐文本"，不碰任何原生库
+class _FakeAsrEngine implements OnDeviceAsrEngine {
+  final StreamController<AsrResult> _controller =
+      StreamController<AsrResult>.broadcast();
+  final List<Uint8List> received = [];
+  var index = 0;
+  bool stopped = false;
+  bool disposed = false;
+
+  @override
+  AsrEngineState state = AsrEngineState.ready;
+
+  @override
+  Stream<AsrResult> get results => _controller.stream;
+
+  @override
+  String? lastError;
+
+  /// 让测试推一句"识别结果"
+  void emit(String text) {
+    _controller.add(AsrResult(text: text, segmentIndex: index++));
+  }
+
+  @override
+  Future<bool> isReady() async => true;
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> start() async {}
+
+  @override
+  Future<void> acceptPcm(Uint8List pcm) async => received.add(pcm);
+
+  @override
+  Future<void> stop() async => stopped = true;
+
+  @override
+  Future<void> dispose() async {
+    disposed = true;
+    await _controller.close();
+  }
+}
+
 class _FakeRecorder implements VoiceCaptureRecorder {
   bool permission = true;
   bool started = false;
@@ -46,11 +93,13 @@ class _FakeRecorder implements VoiceCaptureRecorder {
   Stream<double> amplitudeDb() => amp.stream;
 
   int pcmStreamCount = 0;
+  StreamController<Uint8List>? pcmController;
 
   @override
   Future<Stream<Uint8List>> startPcmStream({int sampleRate = 16000}) async {
     pcmStreamCount++;
-    return const Stream<Uint8List>.empty();
+    pcmController = StreamController<Uint8List>();
+    return pcmController!.stream;
   }
 
   @override
@@ -263,4 +312,93 @@ void main() {
       expect(recorder.disposeCount, 1);
     });
   });
+
+  group('端侧流式转写（PCM → 实时字幕 → 落 WAV）', () {
+    late _FakeAsrEngine engine;
+
+    setUp(() {
+      // 单测里没有真实的 supportPath，直接把端侧模型判定为"已就绪"
+      AsrModelStore.readyOverride = true;
+      AsrModelStore.baseDirOverride = '${tempDir.path}/asr';
+      engine = _FakeAsrEngine();
+      controller = VoiceCaptureController(
+        recorder: recorder,
+        clock: () => now,
+        isDesktop: false,
+        idGenerator: () => 'test-id',
+        audioPathResolver: resolve,
+        asrEngineFactory: () => engine,
+      );
+    });
+
+    tearDown(() {
+      AsrModelStore.readyOverride = null;
+      AsrModelStore.baseDirOverride = null;
+    });
+
+    test('识别结果带标点地并入实时字幕；音频同时落成 WAV', () async {
+      final error = await controller.startStreaming();
+      expect(error, isNull, reason: '端侧可用时不该回退');
+      expect(controller.onDeviceActive, isTrue);
+      expect(recorder.pcmStreamCount, 1);
+
+      // 引擎回吐两句（端侧模型本来不带标点）
+      engine.emit('重点呢想谈三个问题');
+      await Future<void>.delayed(Duration.zero);
+      engine.emit('首先就是这一轮全球金融动荡的表现');
+      await Future<void>.delayed(Duration.zero);
+
+      final live = controller.liveTranscript.value;
+      expect(live, contains('重点'));
+      expect(live, contains('金融动荡'));
+      expect(
+        RegExp(r'[，。？！]').hasMatch(live),
+        isTrue,
+        reason: '实时字幕应当自动补标点（用户反馈：转写没有标点）',
+      );
+
+      // 喂一段 PCM：应写进 WAV（先落地）
+      final pcm = Uint8List.fromList(List<int>.filled(3200, 0));
+      recorder.pcmController!.add(pcm);
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+
+      await controller.stop();
+      expect(controller.phase.value, VoiceCapturePhase.stopped);
+      expect(engine.stopped, isTrue, reason: '停止时要让引擎吐出尾句');
+
+      final wav = File(controller.audioPath!);
+      expect(wav.existsSync(), isTrue);
+      expect(wav.lengthSync(), greaterThan(44), reason: 'WAV 头 + 音频数据');
+    });
+
+    test('引擎不可用 → 返回错误文案，调用方据此回退云端', () async {
+      final error = await controller.startStreaming();
+      // 上面这条正常；这里单独验"引擎 isReady=false"的分支
+      expect(error, isNull);
+      await controller.discard();
+
+      final bad = _FakeAsrEngineWithReady(false);
+      final c2 = VoiceCaptureController(
+        recorder: recorder,
+        clock: () => now,
+        isDesktop: false,
+        idGenerator: () => 'test-id-2',
+        audioPathResolver: resolve,
+        asrEngineFactory: () => bad,
+      );
+      final err = await c2.startStreaming();
+      expect(err, isNotNull);
+      expect(c2.onDeviceActive, isFalse);
+      await c2.dispose();
+    });
+  });
+}
+
+class _FakeAsrEngineWithReady extends _FakeAsrEngine {
+  _FakeAsrEngineWithReady(this._ready);
+
+  final bool _ready;
+
+  @override
+  Future<bool> isReady() async => _ready;
 }

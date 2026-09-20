@@ -236,7 +236,7 @@ class VoiceCapturePanel extends StatelessWidget {
           ? '已暂停（音频与已识别文本都已落本地），可继续或直接停止'
           : '已暂停录音（音频文件已保留），可继续或直接停止',
       VoiceCapturePhase.stopped => onDevice
-          ? '端侧草稿已在本地：保存即入库（云端随后精修），取消则丢弃不留记录'
+          ? '端侧草稿已在本地：保存即入库（不再联网转写），取消则丢弃不留记录'
           : '音频已存在本地：保存即入库并后台转写，取消则丢弃不留记录',
       VoiceCapturePhase.idle => '点「开始录音」即可说话',
     };

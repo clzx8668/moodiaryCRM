@@ -70,8 +70,11 @@ void main() {
       expect(AsrPartialText.merge('你好', '   '), '你好');
     });
 
-    test('依次追加；重复句不重复追加', () {
-      expect(AsrPartialText.merge('你好', '世界'), '你好世界');
+    test('依次追加：连接处自动补标点；重复句不重复追加', () {
+      // 端侧模型不输出标点，merge 负责在连接处补上（短句用逗号）
+      final both = AsrPartialText.merge('你好', '世界');
+      expect(both.replaceAll(RegExp(r'[，。？！]'), ''), '你好世界');
+      expect(RegExp(r'[，。？！]').hasMatch(both), isTrue);
       expect(AsrPartialText.merge('你好世界', '世界'), '你好世界');
     });
   });

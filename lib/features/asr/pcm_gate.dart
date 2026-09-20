@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:moodiary/features/asr/cn_punctuator.dart';
+
 /// 轻量「人声门卫」：在把 PCM 送进端侧模型之前，先用能量判断这一段是否值得计算。
 ///
 /// 端侧模型自带精确 VAD（silero）；这一层是**省电的第一道闸**：
@@ -82,13 +84,14 @@ class AsrPartialText {
   });
 
   /// 把新句子并进已有文本（纯函数，便于单测）：
-  /// 空句忽略；已存在的前缀不重复追加。
+  /// 空句忽略；已存在的前缀不重复追加；并在连接处补标点
+  /// （端侧模型不输出标点，靠 [CnPunctuator] 补）。
   static String merge(String base, String sentence) {
     final s = sentence.trim();
     if (s.isEmpty) return base;
     final b = base.trimRight();
     if (b.isEmpty) return s;
     if (b.endsWith(s)) return b;
-    return '$b$s';
+    return CnPunctuator.join(b, s);
   }
 }

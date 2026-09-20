@@ -171,7 +171,7 @@ class QuickCaptureLogic extends GetxController {
       );
       final hasDraft = voiceCapture.liveTranscript.value.trim().isNotEmpty;
       toast.success(
-        message: hasDraft ? '已保存语音笔记（端侧转写完成，云端精修中）' : '已保存语音笔记，正在后台转写…',
+        message: hasDraft ? '已保存语音笔记（本地转写，未联网）' : '已保存语音笔记，正在后台转写…',
       );
       return diary;
     } catch (e) {

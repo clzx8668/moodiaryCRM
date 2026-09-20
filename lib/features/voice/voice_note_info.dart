@@ -12,6 +12,9 @@ enum VoiceNoteStatus {
   /// 转写失败（占位卡为 ⚠️，保留原因可重试）
   failed,
 
+  /// 端侧（本地）已转写完成 —— 不是失败，只是还没做云端精修
+  onDeviceDone,
+
   /// 已有正文
   done,
 }
@@ -35,6 +38,9 @@ class VoiceNoteInfo {
   final String rawText;
   final String noteText;
 
+  /// 本次转写是否由端侧（本地）完成
+  final bool onDevice;
+
   /// 录音响度包络（0..1）：播放器按真实响度画波形并随进度高亮
   final List<double> waveform;
 
@@ -44,8 +50,12 @@ class VoiceNoteInfo {
     this.failureReason = '',
     this.rawText = '',
     this.noteText = '',
+    this.onDevice = false,
     this.waveform = const [],
   });
+
+  /// 端侧已完成 → 可以（但不必须）手动云端精修
+  bool get canRefineOnCloud => onDevice && status == VoiceNoteStatus.onDeviceDone;
 
   /// 原文与正文有无差异（一致时不必显示两个 Tab）
   bool get hasDistinctRaw {
@@ -77,15 +87,31 @@ class VoiceNoteInfo {
     var status = VoiceNoteStatus.done;
     var failureReason = '';
     final aiText = (aiCard?.content ?? '').trim();
+    // 正文里已经有的内容（端侧转写会把结果直接写进正文）
+    final bodyText = diary.contentText.trim();
     if (aiCard != null && aiText.startsWith(pendingPrefix.trim())) {
       status = VoiceNoteStatus.transcribing;
     } else if (aiText.startsWith('⚠️')) {
-      status = VoiceNoteStatus.failed;
-      failureReason = _failureReasonOf(aiText);
+      // 历史数据自愈：以前端侧转写成功后仍会入队云端精修，线上失败就把卡写成 ⚠️，
+      // 但正文其实已经有端侧稿。这种"有正文的失败"不应该再吓唬用户，
+      // 按"端侧已完成、可手动精修"呈现。
+      if (bodyText.isNotEmpty && !bodyText.startsWith('⚠️')) {
+        status = VoiceNoteStatus.onDeviceDone;
+      } else {
+        status = VoiceNoteStatus.failed;
+        failureReason = _failureReasonOf(aiText);
+      }
+    } else if (aiText.startsWith(_onDeviceMark)) {
+      status = VoiceNoteStatus.onDeviceDone;
     }
 
     final dc = sourceBlock == null ? null : DeColoquialMeta.read(sourceBlock);
     final vr = sourceBlock == null ? null : VoiceRecordMeta.read(sourceBlock);
+    final onDevice =
+        (vr?.source ?? '') == onDeviceSource ||
+        status == VoiceNoteStatus.onDeviceDone;
+    // 只有"真·云端结果"（done）时占位卡里才是正文；
+    // 端侧完成卡的内容是状态说明，正文在 diary.contentText 里。
     final transcript = status == VoiceNoteStatus.done ? aiText : '';
 
     final raw = _firstNonEmpty([
@@ -108,9 +134,16 @@ class VoiceNoteInfo {
       failureReason: failureReason,
       rawText: raw,
       noteText: note,
+      onDevice: onDevice,
       waveform: vr?.waveform ?? const [],
     );
   }
+
+  /// 端侧完成卡的识别标记（见 `PendingContentService.saveVoiceFast`）
+  static const String _onDeviceMark = '🎙️';
+
+  /// `VoiceRecordMeta.source` 里表示"端侧转写"的取值
+  static const String onDeviceSource = 'on_device';
 
   /// 从「⚠️ 处理未完成：原因\n（原始内容已保留…）」里取出原因。
   static String _failureReasonOf(String text) {

@@ -234,7 +234,9 @@ class _OnDeviceAsrSettingsPageState extends State<OnDeviceAsrSettingsPage> {
                 children: [
                   Text(
                     '三个文件都到位后，语音输入会自动切到「端侧实时转写」：'
-                    '说话时本地出字，不需要联网；保存后仍会在后台用云端模型精修一遍。',
+                    '说话时本地出字、自动断句补标点，保存后不再上传云端转写'
+                    '（省流量也没有失败记录）；需要更精细的措辞时，'
+                    '可在笔记详情页手动点「云端精修」。',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],

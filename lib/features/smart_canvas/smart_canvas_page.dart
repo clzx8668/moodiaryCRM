@@ -736,6 +736,9 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
               tab: _voiceTab,
               onTabChanged: (t) => setState(() => _voiceTab = t),
               onRetry: () => _retryVoiceTranscription(info),
+              onRefine: info.canRefineOnCloud
+                  ? () => _refineVoiceTranscription(info)
+                  : null,
             ),
           ),
         );
@@ -754,6 +757,29 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     _transcribePoll ??= Timer.periodic(const Duration(seconds: 3), (_) async {
       await logic.reloadBlocks();
     });
+  }
+
+  /// 重试转写：占位卡改回「处理中」并重新入队（原始录音一直在本地）。
+  /// 云端精修：端侧已经有稿，这里只是**用户主动**要一份更精细的标点/措辞，
+  /// 所以失败不影响已有正文（不会把笔记变成"转写失败"）。
+  Future<void> _refineVoiceTranscription(VoiceNoteInfo info) async {
+    final diaryId = logic.canvasState.diary.id;
+    final ok = await PendingContentService.markPending(
+      diaryId: diaryId,
+      template: VoiceNoteInfo.transcribeTemplate,
+      text: '${PendingContentService.pendingPrefix}正在云端精修（端侧草稿已保存在正文，不会丢）…',
+    );
+    if (!ok) {
+      toast.error(message: '找不到转写卡，无法精修');
+      return;
+    }
+    await AiTaskQueueWorker.instance.submitTask(
+      type: AiTaskType.voiceTranscribe,
+      refId: diaryId,
+      payload: info.audioFile,
+    );
+    await logic.reloadBlocks();
+    toast.success(message: '已提交云端精修，稍后自动更新正文');
   }
 
   /// 重试转写：占位卡改回「处理中」并重新入队（原始录音一直在本地）。

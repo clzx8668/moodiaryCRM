@@ -178,21 +178,33 @@ class PendingContentService {
       ),
     );
     await IsarUtil.insertBlock(sourceBlock);
-    await _createPendingBlock(
-      diaryId: diary.id,
-      template: 'voice_transcribe',
-      text: hasDraft
-          ? '$pendingPrefix端侧已转写出草稿，云端正在精修…'
-          : '$pendingPrefix正在转写录音，稍后自动写入正文…',
-      sourceContent: audioFileName,
-    );
-    unawaited(
-      AiTaskQueueWorker.instance.submitTask(
-        type: AiTaskType.voiceTranscribe,
-        refId: diary.id,
-        payload: audioFileName,
-      ),
-    );
+    if (hasDraft) {
+      // 端侧已经转写成功：正文就是结果，**不再自动走线上转写**
+      // （以前这里仍会入队 voice_transcribe，线上失败就变成"转写失败"错误记录）。
+      // 想要更准的标点/用词，在详情页手动点「云端精修」。
+      await _createPendingBlock(
+        diaryId: diary.id,
+        template: 'voice_transcribe',
+        text: '🎙️ 已用端侧模型转写（本地完成，未联网）\n'
+            '正文即为识别结果；如需更精细的标点或措辞，可在本页点「云端精修」。',
+        sourceContent: audioFileName,
+      );
+    } else {
+      // 没有端侧结果（未装模型/引擎不可用）→ 保持原有云端转写兜底
+      await _createPendingBlock(
+        diaryId: diary.id,
+        template: 'voice_transcribe',
+        text: '$pendingPrefix正在转写录音，稍后自动写入正文…',
+        sourceContent: audioFileName,
+      );
+      unawaited(
+        AiTaskQueueWorker.instance.submitTask(
+          type: AiTaskType.voiceTranscribe,
+          refId: diary.id,
+          payload: audioFileName,
+        ),
+      );
+    }
     return diary;
   }
 
@@ -267,12 +279,14 @@ class PendingContentService {
           ? '📎 原始内容已保存：$reason\n（配好模型后可在这里重试）'
           : '⚠️ 处理未完成：$reason\n（原始内容已保留，可稍后重试）',
     );
-    // 列表卡片别一直停在"处理中"：同步写一句失败原因（详情页另有完整说明）
+    // 列表卡片别一直停在"处理中"：同步写一句失败原因（详情页另有完整说明）。
+    // 但如果正文已经有内容（例如端侧转写已出稿，用户手动点云端精修但失败），
+    // **绝不能覆盖正文** —— 只是没精修成功而已，不是记录失败。
     final diary = await IsarUtil.getDiaryById(diaryId);
-    if (diary != null && diary.contentText.trim().startsWith('⏳')) {
+    if (diary != null && diary.contentText.trim().startsWith(pendingPrefix.trim())) {
       diary
-        ..contentText = warningOnly ? '📎 原始内容已保存（$reason）' : '⚠️ 处理未完成：$reason'
-        ..lastModified = DateTime.now();
+          ..contentText = warningOnly ? '📎 原始内容已保存（$reason）' : '⚠️ 处理未完成：$reason'
+          ..lastModified = DateTime.now();
       await IsarUtil.updateADiary(oldDiary: diary, newDiary: diary);
     }
     await NoteRefreshService.afterWriteBack(diaryId);

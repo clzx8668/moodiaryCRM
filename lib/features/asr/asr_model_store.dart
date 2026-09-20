@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:path/path.dart' as p;
 
@@ -30,7 +31,16 @@ class AsrModelStore {
   /// 模型目录名（挂在支持目录下）
   static const String dirName = 'asr';
 
-  static String baseDir() => FileUtil.getRealPath(dirName, '');
+  /// 目录覆盖（仅供测试注入：单测里没有真实的 supportPath）
+  @visibleForTesting
+  static String? baseDirOverride;
+
+  /// 就绪判定覆盖（仅供测试注入，避免单测依赖真实模型文件）
+  @visibleForTesting
+  static bool? readyOverride;
+
+  static String baseDir() =>
+      baseDirOverride ?? FileUtil.getRealPath(dirName, '');
 
   static String pathOf(String fileName) => p.join(baseDir(), fileName);
 
@@ -41,7 +51,8 @@ class AsrModelStore {
   static bool get hasTokens => File(pathOf(AsrModelFiles.tokens)).existsSync();
 
   /// 端侧识别是否就绪（VAD + 主模型 + 词表）
-  static bool get isReady => hasVad && hasAsr && hasTokens;
+  static bool get isReady =>
+      readyOverride ?? (hasVad && hasAsr && hasTokens);
 
   /// Windows 侧是否已放入运行库（Android/iOS 恒 false，但调用方会先判平台）
   static bool get hasWindowsLibs =>

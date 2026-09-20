@@ -19,6 +19,9 @@ class VoiceNoteHeader extends StatelessWidget {
   final ValueChanged<VoiceNoteTab> onTabChanged;
   final VoidCallback onRetry;
 
+  /// 手动触发云端精修（仅端侧完成后可用）
+  final VoidCallback? onRefine;
+
   /// 播放器（单测注入占位，避免依赖音频插件）
   final Widget Function(String path)? playerBuilder;
 
@@ -29,6 +32,7 @@ class VoiceNoteHeader extends StatelessWidget {
     required this.tab,
     required this.onTabChanged,
     required this.onRetry,
+    this.onRefine,
     this.playerBuilder,
   });
 
@@ -69,8 +73,54 @@ class VoiceNoteHeader extends StatelessWidget {
         switch (info.status) {
           VoiceNoteStatus.transcribing => _transcribing(context),
           VoiceNoteStatus.failed => _failed(context, colorScheme),
+          VoiceNoteStatus.onDeviceDone => _onDeviceDone(context, colorScheme),
           VoiceNoteStatus.done => _tabs(context, colorScheme),
         },
+      ],
+    );
+  }
+
+  /// 端侧转写完成：中性提示（**不是错误**）+ 可选的云端精修入口。
+  Widget _onDeviceDone(BuildContext context, ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card.filled(
+          margin: EdgeInsets.zero,
+          color: colorScheme.surfaceContainerHigh,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.offline_bolt_rounded,
+                  size: 16,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '端侧转写完成（本地，未联网）',
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                if (onRefine != null)
+                  TextButton.icon(
+                    onPressed: onRefine,
+                    icon: const Icon(Icons.auto_fix_high_rounded, size: 16),
+                    label: const Text('云端精修'),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _tabs(context, colorScheme),
       ],
     );
   }

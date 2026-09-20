@@ -16,6 +16,7 @@ void main() {
     WidgetTester tester,
     VoiceNoteInfo info, {
     VoiceNoteTab tab = VoiceNoteTab.note,
+    VoidCallback? onRefine,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -28,6 +29,7 @@ void main() {
               tab: tab,
               onTabChanged: tabs.add,
               onRetry: () => retries++,
+              onRefine: onRefine,
               // 播放器换成占位：widget test 里不碰音频插件
               playerBuilder: (_) => const SizedBox(height: 56),
             ),
@@ -71,6 +73,30 @@ void main() {
     await tester.tap(find.text('重试转写'));
     await tester.pump();
     expect(retries, 1);
+  });
+
+  testWidgets('端侧完成：显示"本地未联网"+ 云端精修入口，不显示任何错误文案', (tester) async {
+    var refined = 0;
+    await pump(
+      tester,
+      const VoiceNoteInfo(
+        audioFile: 'voice-a.m4a',
+        status: VoiceNoteStatus.onDeviceDone,
+        onDevice: true,
+        noteText: '今天和客户对了报价。',
+      ),
+      onRefine: () => refined++,
+    );
+
+    expect(find.textContaining('端侧转写完成'), findsOneWidget);
+    expect(find.textContaining('本地，未联网'), findsOneWidget);
+    // 不该再出现任何"失败"字样（用户反馈的核心问题）
+    expect(find.text('转写未完成'), findsNothing);
+    expect(find.textContaining('处理未完成'), findsNothing);
+
+    await tester.tap(find.text('云端精修'));
+    await tester.pump();
+    expect(refined, 1);
   });
 
   testWidgets('完成且有原文差异：出现两个 Tab，点击回调切换', (tester) async {

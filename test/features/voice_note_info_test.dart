@@ -53,6 +53,46 @@ void main() {
       expect(info.failureReason, '未配置语音识别模型');
     });
 
+    test('端侧完成卡（🎙️）→ onDeviceDone，不是失败', () {
+      final diary = _voiceDiary()..contentText = '今天和客户对了报价，下周给方案。';
+      final voice = _voiceBlock('');
+      VoiceRecordMeta.write(
+        voice,
+        const VoiceRecordMeta(
+          file: 'voice-a.m4a',
+          source: VoiceNoteInfo.onDeviceSource,
+        ),
+      );
+      final info = VoiceNoteInfo.from(
+        diary: diary,
+        blocks: [
+          voice,
+          _transcribeCard('🎙️ 已用端侧模型转写（本地完成，未联网）\n正文即为识别结果；如需…'),
+        ],
+      );
+      expect(info!.status, VoiceNoteStatus.onDeviceDone);
+      // 关键：不该被当作转写失败（这正是用户反馈的"每条都报转写失败"）
+      expect(info.status, isNot(VoiceNoteStatus.failed));
+      expect(info.onDevice, isTrue);
+      expect(info.canRefineOnCloud, isTrue);
+      // 正文仍能读出来（来自 diary.contentText，而不是状态卡）
+      expect(info.noteText, contains('报价'));
+    });
+
+    test('历史数据自愈：⚠️ 卡但正文已有内容 → 按端侧完成呈现', () {
+      final diary = _voiceDiary()..contentText = '对我做了介绍啊，那么我想说的是呢。';
+      final info = VoiceNoteInfo.from(
+        diary: diary,
+        blocks: [
+          _voiceBlock(''),
+          _transcribeCard('⚠️ 处理未完成：未配置语音识别模型\n（原始内容已保留，可稍后重试）'),
+        ],
+      );
+      // 正文没丢，就不该继续报"转写失败"
+      expect(info!.status, VoiceNoteStatus.onDeviceDone);
+      expect(info.noteText, contains('对我做了介绍'));
+    });
+
     test('转写完成 → done，正文取转写结果（源块为空也不为空壳）', () {
       final info = VoiceNoteInfo.from(
         diary: _voiceDiary(),
