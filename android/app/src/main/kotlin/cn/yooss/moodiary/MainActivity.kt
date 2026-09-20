@@ -30,13 +30,18 @@ class MainActivity : FlutterFragmentActivity() {
 
     /** `--es ASR selftest`：在后台跑一次端侧引擎自检，结论写 Logcat */
     private fun maybeRunAsrSelftest(source: Intent?) {
-        if (source?.getStringExtra("ASR") != "selftest") return
+        val mode = source?.getStringExtra("ASR") ?: return
+        if (mode != "selftest" && mode != "streamtest") return
         val bridge = pendingAsr ?: return
         Thread {
             val started = System.currentTimeMillis()
-            val result = bridge.runSelfTest()
+            val result = if (mode == "streamtest") {
+                bridge.runStreamSelfTest()
+            } else {
+                bridge.runSelfTest()
+            }
             android.util.Log.i(
-                "AsrSelftest",
+                if (mode == "streamtest") "AsrStreamTest" else "AsrSelftest",
                 "$result（总耗时 ${System.currentTimeMillis() - started}ms）"
             )
         }.start()

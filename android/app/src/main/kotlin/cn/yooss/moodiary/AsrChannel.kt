@@ -43,6 +43,19 @@ class AsrChannel(
     /** 本次会话已回吐的文本（自检用） */
     private val sessionResults = mutableListOf<String>()
 
+    /** 用固定时长静音把最后一句"压"出来（自检模拟说话结束） */
+    private fun appendSilenceTail(frames: Int = 60) {
+        val engine = vad ?: return
+        val silence = FloatArray(512)
+        repeat(frames) { engine.acceptWaveform(silence) }
+    }
+
+    /**
+     * 全部已识别文本（调用方负责在 `start` 前清空）。
+     * 供 `runStreamSelfTest` 取尾句使用。
+     */
+    fun takeSessionResults(): List<String> = sessionResults.toList()
+
     /** 模型文件名与 Dart 侧 AsrModelFiles 保持一致 */
     private val vadFile = "silero_vad.onnx"
     private val asrFile = "model.int8.onnx"
@@ -212,6 +225,65 @@ class AsrChannel(
     fun shutdown() {
         worker.execute { releaseEngine() }
         worker.shutdown()
+    }
+
+    /**
+     * **流式链路自检**：模拟"边录边转写"的完整过程。
+     *
+     * 用 `assets/asr_selftest.wav` 的真实人声，按录音时的节奏（每块 512 采样 ≈32ms）
+     * 依次喂给 VAD，模拟说话中的停顿，最后补静音把尾句压出来 —— 与真机录音走的是
+     * **完全同一条代码路径**（acceptWaveform → VAD 切句 → 逐句识别 → onResult）。
+     *
+     * 返回给人看的结论；过程中每识别出一句都会回调 `onResult`，用于验证
+     * "实时字幕逐句出现"而不是"录完才一次给"。
+     */
+    fun runStreamSelfTest(): String {
+        val started = System.currentTimeMillis()
+        val dir = resolveDir() ?: return "失败：未指定模型目录"
+        val err = initEngine(dir)
+        if (err != null) return "失败：$err"
+        val engine = vad ?: return "失败：VAD 未就绪"
+        val pcm = loadSelfTestPcm() ?: return "失败：未找到自检音频（assets/asr_selftest.wav）"
+        val samples = pcm16ToFloat(pcm)
+        if (samples.isEmpty()) return "失败：自检音频为空"
+        return try {
+            engine.reset()
+            segmentIndex = 0
+            sessionResults.clear()
+
+            var offset = 0
+            var blocks = 0
+            var silenceRun = 0
+            val timeline = StringBuilder()
+            while (offset < samples.size) {
+                val len = minOf(512, samples.size - offset)
+                engine.acceptWaveform(samples.copyOfRange(offset, offset + len))
+                offset += len
+                blocks++
+
+                // 模拟真实说话的节奏：每 ~800ms 插一小段静音（约 250ms）
+                if (blocks % 25 == 0) {
+                    val silence = FloatArray(512)
+                    repeat(8) {
+                        engine.acceptWaveform(silence)
+                        drain()
+                    }
+                    silenceRun++
+                    if (sessionResults.isNotEmpty()) {
+                        timeline.append("[${blocks * 32}ms] ${sessionResults.last()}; ")
+                    }
+                } else {
+                    drain()
+                }
+            }
+            appendSilenceTail()
+            drain()
+            val ms = System.currentTimeMillis() - started
+            val text = sessionResults.joinToString("")
+            "通过：${sessionResults.size} 句 / ${ms}ms；逐句时间线：$timeline；合并：$text"
+        } catch (e: Throwable) {
+            "失败：${e.message}"
+        }
     }
 
     private fun initEngine(dir: String): String? {
