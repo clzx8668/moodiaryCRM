@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:moodiary/features/block/block_renderer.dart';
 import 'package:moodiary/features/block/models/block.dart';
 
-/// AI 瀑布流对话气泡（持久化 source=ai 块）：用户（右）/ 助手（左，可 复制/更多·重新生成）。
+/// AI 瀑布流对话气泡（持久化 source=ai 块）。
+///
+/// 布局约定（批次 122/123）：
+/// - **身份标签在气泡上方**（用户「我」/ 助手「AI 助手」+ 图标 + 转圈）；
+/// - 气泡本体左右各留 12，**直接占满整行**——不再为左侧头像让出一列宽度，
+///   所以左右既对称、又不浪费横向空间；
+/// - 左右各自贴边（用户靠右、助手靠左），靠 `CrossAxisAlignment` 控制。
 class ChatBubble extends StatelessWidget {
   final Block block;
   final bool isStreaming;
@@ -19,54 +25,59 @@ class ChatBubble extends StatelessWidget {
     this.onStop,
   });
 
+  /// 气泡两侧的固定留白：靠边但不贴死屏幕
+  static const double sidePad = 12;
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isUser = block.meta.role == 'user';
-    // 气泡两侧的安全边距固定为 12，保证"左右对称、不贴死屏幕"；
-    // 可用空间小的时候（窄屏/分栏）自动收窄对侧的空白，
-    // 这样窄屏也能把内容用满，而不是被固定的 48/24 挤扁。
-    const sidePad = 12.0;
-    const bubbleMaxFraction = 0.78;
-    final available = MediaQuery.sizeOf(context).width;
-    final bubbleMax = available * bubbleMaxFraction;
-    // 对侧最小留白：让气泡看起来是"靠边但没贴死"
-    const oppositeMin = 12.0;
-    final oppositeMax = isUser ? 48.0 : 24.0;
-    final opposite = (available - bubbleMax - sidePad).clamp(
-      oppositeMin,
-      oppositeMax,
-    );
+    final align = isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start;
 
-    if (isUser) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: Container(
-          margin: EdgeInsets.only(
-            left: opposite,
-            right: sidePad,
-            bottom: 8,
-          ),
-          constraints: BoxConstraints(maxWidth: bubbleMax),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Text(
-            block.content,
-            style: TextStyle(color: colorScheme.onPrimaryContainer),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      margin: EdgeInsets.only(
+    return Padding(
+      padding: const EdgeInsets.only(
         left: sidePad,
-        right: opposite,
+        right: sidePad,
         bottom: 8,
       ),
+      child: Column(
+        crossAxisAlignment: align,
+        children: [
+          // ① 身份放在气泡上方（不占左右空间）
+          _identityLabel(
+            context,
+            isUser ? '我' : 'AI 助手',
+            isUser ? colorScheme.onSurfaceVariant : colorScheme.primary,
+            icon: isUser ? null : Icons.auto_awesome_rounded,
+          ),
+          const SizedBox(height: 4),
+          // ② 气泡本体
+          isUser ? _userBubble(context) : _assistantBubble(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _userBubble(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        block.content,
+        style: TextStyle(color: colorScheme.onPrimaryContainer),
+      ),
+    );
+  }
+
+  Widget _assistantBubble(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest,
@@ -75,34 +86,6 @@ class ChatBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.auto_awesome_rounded,
-                size: 14,
-                color: colorScheme.primary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'AI',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              if (isStreaming)
-                SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: colorScheme.primary,
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 6),
           if (block.content.isNotEmpty)
             MarkdownContentView(data: block.content),
           if (isStreaming && block.content.isEmpty)
@@ -148,6 +131,43 @@ class ChatBubble extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// 身份标签：放在气泡**上方**。
+  ///
+  /// 为什么不在左侧放头像：头像会占掉固定一列宽度，气泡左右都得为它让位。
+  /// 放到上方后气泡本体左右各留 12 就能用满整行。
+  Widget _identityLabel(
+    BuildContext context,
+    String text,
+    Color color, {
+    IconData? icon,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+        ],
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (isStreaming) ...[
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 10,
+            height: 10,
+            child: CircularProgressIndicator(strokeWidth: 2, color: color),
+          ),
+        ],
+      ],
     );
   }
 }

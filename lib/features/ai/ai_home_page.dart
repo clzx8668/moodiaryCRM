@@ -706,30 +706,28 @@ class _AiHomePageState extends State<AiHomePage> {
 
   Widget _buildUser(String content) {
     final colorScheme = Theme.of(context).colorScheme;
-    // 与助手气泡对称：左侧留白（≥12、随宽度自适应）+ 右侧固定 12，
-    // 气泡本体最宽 78% 宽，保证窄屏也能用满而不是被挤扁。
-    final available = MediaQuery.sizeOf(context).width;
-    final bubbleMax = available * 0.78;
-    final leftGap = (available - bubbleMax - 12.0).clamp(12.0, 48.0);
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Container(
-        constraints: BoxConstraints(maxWidth: bubbleMax),
-        margin: EdgeInsets.only(left: leftGap, right: 12, bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: colorScheme.primaryContainer,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(4),
+    // 身份标签放在气泡**上方**，气泡本体左右各留 12 占满整行：
+    // 不再为左侧头像让出宽度，左右对称且不浪费横向空间。
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _chatIdentity(context, '我', colorScheme.onSurfaceVariant),
+          const SizedBox(height: 4),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: SelectableText(
+              content,
+              style: TextStyle(color: colorScheme.onPrimaryContainer),
+            ),
           ),
-        ),
-        child: SelectableText(
-          content,
-          style: TextStyle(color: colorScheme.onPrimaryContainer),
-        ),
+        ],
       ),
     );
   }
@@ -767,112 +765,123 @@ class _AiHomePageState extends State<AiHomePage> {
     required VoidCallback? onSaveToKb,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    // 助手气泡左右对称留白：左 12 + 右 12（气泡左对齐在头像右侧）
-    final available = MediaQuery.sizeOf(context).width;
-    final rightGap = (available * 0.22 - 12).clamp(12.0, 24.0);
+    // 与用户气泡同一套规则：身份（AI 助手 + 图标）在气泡上方，气泡占满整行。
     return Padding(
-      padding: EdgeInsets.only(left: 12, right: rightGap, bottom: 12),
-      child: Row(
+      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: colorScheme.primaryContainer,
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              size: 16,
-              color: colorScheme.onPrimaryContainer,
-            ),
+          _chatIdentity(
+            context,
+            'AI 助手',
+            colorScheme.primary,
+            icon: Icons.auto_awesome_rounded,
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 4),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: content.trim().isEmpty
+                ? Row(
+                    children: [
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        streaming ? '正在思考…' : '（空）',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  )
+                : MarkdownContentView(data: content),
+          ),
+          if (sources.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
               children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
+                for (var i = 0; i < sources.length; i++)
+                  ActionChip(
+                    label: Text(
+                      '来源 ${i + 1}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _showSource(sources[i]),
                   ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: content.trim().isEmpty
-                      ? Row(
-                          children: [
-                            const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              streaming ? '正在思考…' : '（空）',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        )
-                      : MarkdownContentView(data: content),
-                ),
-                if (sources.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: [
-                      for (var i = 0; i < sources.length; i++)
-                        ActionChip(
-                          label: Text(
-                            '来源 ${i + 1}',
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () => _showSource(sources[i]),
-                        ),
-                    ],
-                  ),
-                ],
-                if (!streaming && index >= 0) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      _iconAction(
-                        icon: Icons.copy_rounded,
-                        tooltip: '复制',
-                        onTap: () {
-                          _copy(content);
-                        },
-                      ),
-                      _iconAction(
-                        icon: Icons.refresh_rounded,
-                        tooltip: '重新生成',
-                        onTap: () => _regenerate(index),
-                      ),
-                      if (onSaveNote != null)
-                        _iconAction(
-                          icon: Icons.note_add_outlined,
-                          tooltip: '存入笔记',
-                          onTap: onSaveNote,
-                        ),
-                      if (onSaveToKb != null)
-                        _iconAction(
-                          icon: Icons.menu_book_outlined,
-                          tooltip: '加入知识库',
-                          onTap: onSaveToKb,
-                        ),
-                    ],
-                  ),
-                ],
               ],
             ),
-          ),
+          ],
+          if (!streaming && index >= 0) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                _iconAction(
+                  icon: Icons.copy_rounded,
+                  tooltip: '复制',
+                  onTap: () {
+                    _copy(content);
+                  },
+                ),
+                _iconAction(
+                  icon: Icons.refresh_rounded,
+                  tooltip: '重新生成',
+                  onTap: () => _regenerate(index),
+                ),
+                if (onSaveNote != null)
+                  _iconAction(
+                    icon: Icons.note_add_outlined,
+                    tooltip: '存入笔记',
+                    onTap: onSaveNote,
+                  ),
+                if (onSaveToKb != null)
+                  _iconAction(
+                    icon: Icons.menu_book_outlined,
+                    tooltip: '加入知识库',
+                    onTap: onSaveToKb,
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  /// AI 对话的身份标签（放在气泡上方；头像不占左右宽度）
+  Widget _chatIdentity(
+    BuildContext context,
+    String text,
+    Color color, {
+    IconData? icon,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+        ],
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 
