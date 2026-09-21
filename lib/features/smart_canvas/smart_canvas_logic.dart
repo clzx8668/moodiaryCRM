@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/colloquial/de_colloquial_service.dart';
 import 'package:moodiary/features/ai/extract/ai_extract_meta.dart';
+import 'package:moodiary/features/ai/memory/prompt_context.dart';
+import 'package:moodiary/features/ai/memory/memory_suggestion_service.dart';
 import 'package:moodiary/features/ai/extract/extract_cleanup_service.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_service.dart';
 import 'package:moodiary/features/ai/prompts.dart';
@@ -464,6 +466,22 @@ class SmartCanvasLogic extends GetxController {
     );
   }
 
+  /// 当前笔记的正文（供"针对这条记录"的 AI 交流用）。
+  ///
+  /// 具体取法与截断规则统一在 [PromptContext.readNoteText]——
+  /// 那里排除了 AI 卡片，避免把本轮对话自己塞回上下文。
+  String _currentNoteText() {
+    final blocks = blockList.blocks.value.toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    return PromptContext.readNoteText(
+      projection: canvasState.diary.content,
+      blocks: [
+        for (final b in blocks)
+          (content: b.content, isAi: b.meta.isAi, isDeleted: b.isDeleted),
+      ],
+    );
+  }
+
   /// 若选了知识库上下文：用问题做一次 RAG 检索，把命中片段拼成附加知识。
   Future<List<String>> _withKnowledgeBaseContext(
     String question,
@@ -535,14 +553,17 @@ class SmartCanvasLogic extends GetxController {
         .where((b) => b.meta.isAi && b.meta.role.isNotEmpty)
         .toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-    // System：附加知识注入
-    var system = '你是用户的智能记录助手。请结合上下文，用简洁、结构化的 Markdown 回答。';
-    if (attachments.isNotEmpty) {
-      final parts = [
-        for (var i = 0; i < attachments.length; i++) '[资料 ${i + 1}]\n${attachments[i]}',
-      ];
-      system += '\n\n用户附加了以下参考资料，请优先参考：\n${parts.join('\n\n')}';
-    }
+
+    // ── System 上下文（批次 121）──
+    // 统一走 PromptContext：全局记忆 → 当前笔记正文 → 附加资料。
+    // 越靠后的越近，模型注意力越强；"这条笔记"正是本次对话的主角。
+    var system = PromptContext.buildForNote(
+      memorySection: await PromptContext.loadMemorySection(
+        query: userQuestion,
+      ),
+      noteText: _currentNoteText(),
+      attachments: attachments,
+    );
 
     // M4：工具协商（单轮，失败静默降级普通对话）
     try {
@@ -568,7 +589,8 @@ class SmartCanvasLogic extends GetxController {
             '工具「${call.name}」返回：\n${await executor.execute(call)}',
           );
         }
-        system += '\n\n【已调用工具，请基于工具结果回答并注明来源】\n'
+        // 工具结果追加在最后（比笔记正文更近，优先级最高）
+        system = '$system\n\n【已调用工具，请基于工具结果回答并注明来源】\n'
             '${toolParts.join('\n\n')}';
       }
     } catch (_) {
@@ -632,6 +654,12 @@ class SmartCanvasLogic extends GetxController {
       ..updatedAt = DateTime.now();
     await datasource.saveBlock(assistant);
     blockList.replace(assistant);
+
+    // 建议式自学习：详情页交流同样会提议"要不要记下来"（不落盘，等用户点）
+    MemorySuggestionService.instance.consider(
+      aiOutput: acc.trim(),
+      userAsk: userQuestion,
+    );
   }
 
   /// @ 知识库回调（预留）。

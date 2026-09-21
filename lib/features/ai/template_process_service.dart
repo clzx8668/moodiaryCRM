@@ -1,4 +1,5 @@
 import 'package:moodiary/features/ai/ai_block_writer.dart';
+import 'package:moodiary/features/ai/memory/prompt_context.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/prompts.dart';
 import 'package:moodiary/features/block/models/block.dart';
@@ -17,8 +18,17 @@ class TemplateProcessService {
     final provider = await AiProviderFactory.load();
     if (!provider.isConfigured) return false;
 
+    // 全局分层记忆：模板处理（翻译/摘要/待办/去口语化…）也要遵守用户的
+    // 词库与风格偏好——否则同一个人的两种场景会得到不一致的措辞。
+    // 统一走 PromptContext，保证与对话入口用的是同一份记忆。
+    final system = PromptContext.build(
+      persona: '你是笔记整理助手，用中文输出。',
+      memorySection: await PromptContext.loadMemorySection(
+        query: block.content,
+      ),
+    );
     final completion = await provider.completeChat([
-      const AiChatMessage(role: 'system', content: '你是笔记整理助手，用中文输出。'),
+      AiChatMessage(role: 'system', content: system),
       AiChatMessage(
         role: 'user',
         content: AiTemplates.build(templateId, block.content),

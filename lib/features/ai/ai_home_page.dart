@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/ai/widgets/chat_model_picker_sheet.dart';
 import 'package:moodiary/features/ai/memory/memory_suggestion_service.dart';
+import 'package:moodiary/features/ai/memory/prompt_context.dart';
 import 'package:moodiary/features/ai/memory/widgets/memory_suggestion_card.dart';
 import 'package:moodiary/features/ai/ai_composite_provider.dart';
 import 'package:moodiary/features/ai/ai_note_saver.dart';
@@ -348,13 +349,17 @@ class _AiHomePageState extends State<AiHomePage> {
           toast.info(message: '知识库检索失败，已切换为普通对话：${_shortError(e)}');
         }
       }
-      final system = [
-        '你是用户的个人 AI 助手。回答使用 Markdown，简洁有条理。',
-        if (ragContext != null)
-          '请优先依据「参考内容」回答；若参考内容不足以回答请明确说明。\n\n$ragContext',
-        if (webResult != null)
-          '请优先参考「联网搜索结果」回答，并标注信息来源：\n\n$webResult',
-      ].join('\n\n');
+      // 统一走 PromptContext：全局分层记忆（画像 + 长期记忆 + 命中关键词的技能手册）
+      // 在任何入口都是**同一份**；RAG/联网结果排在记忆之后。
+      final system = PromptContext.build(
+        memorySection: await PromptContext.loadMemorySection(query: text),
+        extraSections: [
+          if (ragContext != null)
+            '请优先依据「参考内容」回答；若参考内容不足以回答请明确说明。\n\n$ragContext',
+          if (webResult != null)
+            '请优先参考「联网搜索结果」回答，并标注信息来源：\n\n$webResult',
+        ],
+      );
 
       final provider = await AiProviderFactory.load();
 

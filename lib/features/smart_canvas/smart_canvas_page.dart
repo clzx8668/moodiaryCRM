@@ -19,6 +19,7 @@ import 'package:moodiary/features/ai/widgets/chat_model_picker_sheet.dart';
 import 'package:moodiary/features/asr/on_device_asr_settings_page.dart';
 import 'package:moodiary/features/ai/triage/ai_triage_service.dart';
 import 'package:moodiary/features/ai/triage/signal_scorer.dart';
+import 'package:moodiary/features/ai/memory/widgets/memory_suggestion_card.dart';
 import 'package:moodiary/features/smart_canvas/widgets/relative_time.dart';
 import 'package:moodiary/features/smart_canvas/widgets/canvas_skeleton.dart';
 import 'package:moodiary/features/collection/kb_collection_service.dart';
@@ -1322,6 +1323,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
               ),
             ),
           _buildSuggestionBar(context),
+          // 「要不要记下来？」建议卡（详情页交流后同样提示，点了才落盘）
+          const MemorySuggestionCard(),
           if (_appendMode) _buildAppendModeBar(context),
           Obx(() {
             // 桌面端与内容区同宽对齐（720 阅读宽度），移动端全宽
