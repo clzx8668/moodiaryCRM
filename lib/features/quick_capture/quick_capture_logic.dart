@@ -105,20 +105,38 @@ class QuickCaptureLogic extends GetxController {
     }
   }
 
-  /// 进入语音输入页（点按麦克风）：切页并**直接开始录音**。
+  /// 进入语音输入页（点按麦克风）：**只切页，不自动开始录音**。
   ///
-  /// 与旧的「按住说话」不同：这里只负责录音，是否入库由用户在停止后决定——
-  /// 避免「说完就自动落库」产生垃圾记录、白耗转写额度（用户反馈，批次 94）。
+  /// 为什么要取消"自动开录"（批次 112，用户反馈）：
+  /// 以前点话筒后先闪一下"开始录音"界面、等一会才自动开录，再跳到暂停/停止，
+  /// 画面跳动且节奏不受控。现在进来就是稳定的一屏（播放/暂停 + 停止），
+  /// **由用户按播放键决定真正开始**。
   Future<void> enterVoiceInput() async {
     if (state.voiceMode.value) return;
     state.voiceMode.value = true;
-    // 优先走端侧实时转写（边说边出字）；模型没装/引擎不可用则退回云端路径
+    // 不启动录音；顺手清掉上一次的残留（音频文件/状态）
+    await voiceCapture.discard();
+  }
+
+  /// 开始 / 继续录音（面板上的播放键）。
+  ///
+  /// 优先走端侧实时转写（边说边出字）；模型没装/引擎不可用则退回云端路径。
+  /// 返回 null 表示成功，否则返回可展示的错误文案。
+  Future<String?> startVoiceRecording() async {
+    if (voiceCapture.phase.value == VoiceCapturePhase.recording) return null;
+    if (voiceCapture.phase.value == VoiceCapturePhase.paused) {
+      await voiceCapture.resume();
+      return null;
+    }
     var error = await voiceCapture.startStreaming();
     if (error != null) error = await voiceCapture.start();
-    if (error != null) {
-      state.voiceMode.value = false;
-      toast.error(message: error);
-    }
+    return error;
+  }
+
+  /// 面板调用：开始录音并把失败原因提示出来。
+  Future<void> startVoiceRecordingFromPanel() async {
+    final error = await startVoiceRecording();
+    if (error != null) toast.error(message: error);
   }
 
   /// 取消：丢弃录音并回到键盘输入（不留记录）。
@@ -127,15 +145,9 @@ class QuickCaptureLogic extends GetxController {
     state.voiceMode.value = false;
   }
 
-  /// 重录：丢弃当前音频后重新开始。
+  /// 重录：丢弃当前音频，回到"待开始"状态（仍然不自动开录）。
   Future<void> retakeVoiceInput() async {
     await voiceCapture.discard();
-    var error = await voiceCapture.startStreaming();
-    if (error != null) error = await voiceCapture.start();
-    if (error != null) {
-      state.voiceMode.value = false;
-      toast.error(message: error);
-    }
   }
 
   /// 保存语音笔记（先落地）：立刻入库（笔记 + 音频附件 + 占位卡），

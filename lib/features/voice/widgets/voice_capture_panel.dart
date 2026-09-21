@@ -30,6 +30,9 @@ class VoiceCapturePanel extends StatelessWidget {
   /// 保存并转写
   final VoidCallback onSave;
 
+  /// 开始 / 继续录音（播放键）：**由用户决定真正开始**，不再自动开录
+  final VoidCallback? onStart;
+
   /// 本地转写未启用时，点「去设置」的回调（可空：不传则不显示入口）
   final VoidCallback? onSetupOnDevice;
 
@@ -43,6 +46,7 @@ class VoiceCapturePanel extends StatelessWidget {
     required this.onCancel,
     required this.onRetake,
     required this.onSave,
+    this.onStart,
     this.onSetupOnDevice,
     this.previewBuilder,
   });
@@ -71,10 +75,11 @@ class VoiceCapturePanel extends StatelessWidget {
         ValueListenableBuilder<VoiceCapturePhase>(
           valueListenable: controller.phase,
           builder: (context, phase, _) => switch (phase) {
-            VoiceCapturePhase.recording => _recordingControls(context),
-            VoiceCapturePhase.paused => _pausedControls(context),
+            // 录音中 / 暂停统一成一组互斥按钮：左播放/暂停，右停止
+            VoiceCapturePhase.recording => _playStopControls(context, phase),
+            VoiceCapturePhase.paused => _playStopControls(context, phase),
             VoiceCapturePhase.stopped => _stoppedControls(context),
-            VoiceCapturePhase.idle => _readyControls(context),
+            VoiceCapturePhase.idle => _playStopControls(context, phase),
           },
         ),
       ],
@@ -310,7 +315,7 @@ class VoiceCapturePanel extends StatelessWidget {
       VoiceCapturePhase.stopped => onDevice
           ? '端侧草稿已在本地：保存即入库（不再联网转写），取消则丢弃不留记录'
           : '音频已存在本地：保存即入库并后台转写，取消则丢弃不留记录',
-      VoiceCapturePhase.idle => '点「开始录音」即可说话',
+      VoiceCapturePhase.idle => '点左边的 ▶ 开始录音；随时可暂停或停止',
     };
     return Text(
       text,
@@ -320,59 +325,49 @@ class VoiceCapturePanel extends StatelessWidget {
     );
   }
 
-  Widget _recordingControls(BuildContext context) {
+  /// 录音相关的**一组互斥按钮**（批次 112）：
+  ///
+  /// - 左键：待开始/暂停时显示 ▶（开始/继续），录音中显示 ⏸（暂停）；
+  /// - 右键：停止（始终可见，待开始/暂停时禁用，避免"没录就停"）；
+  /// - 进入语音页就是这个样子，**不自动开录**——不再有"先闪一下再跳走"的跳动。
+  Widget _playStopControls(BuildContext context, VoiceCapturePhase phase) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final recording = phase == VoiceCapturePhase.recording;
+    final paused = phase == VoiceCapturePhase.paused;
+    final idle = phase == VoiceCapturePhase.idle;
+    // 没有可停止的内容时禁用停止键（未开始、或已空闲）
+    final canStop = recording || paused || controller.hasAudio;
+
     return Row(
       children: [
         Expanded(
-          child: OutlinedButton.icon(
-            onPressed: controller.pause,
-            icon: const Icon(Icons.pause_rounded),
-            label: const Text('暂停'),
+          child: FilledButton.icon(
+            onPressed: recording
+                ? controller.pause
+                : (onStart ?? () => controller.start()),
+            icon: Icon(
+              recording ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            ),
+            label: Text(recording ? '暂停' : (idle ? '开始录音' : '继续')),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: FilledButton.icon(
-            onPressed: controller.stop,
+            onPressed: canStop ? controller.stop : null,
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
+              backgroundColor: canStop
+                  ? colorScheme.error
+                  : colorScheme.surfaceContainerHighest,
+              foregroundColor: canStop
+                  ? colorScheme.onError
+                  : colorScheme.onSurfaceVariant,
             ),
             icon: const Icon(Icons.stop_rounded),
             label: const Text('停止'),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _pausedControls(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: FilledButton.icon(
-            onPressed: controller.resume,
-            icon: const Icon(Icons.mic_rounded),
-            label: const Text('继续'),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: controller.stop,
-            icon: const Icon(Icons.stop_rounded),
-            label: const Text('停止'),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _readyControls(BuildContext context) {
-    return FilledButton.icon(
-      onPressed: () => controller.start(),
-      icon: const Icon(Icons.mic_rounded),
-      label: const Text('开始录音'),
     );
   }
 

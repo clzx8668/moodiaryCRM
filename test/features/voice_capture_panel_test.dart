@@ -86,6 +86,7 @@ void main() {
               onCancel: () => calls.add('cancel'),
               onRetake: () => calls.add('retake'),
               onSave: () => calls.add('save'),
+              onStart: () => calls.add('start'),
               previewBuilder: (_) => const SizedBox(height: 24),
             ),
           ),
@@ -95,6 +96,52 @@ void main() {
     // 注意：录音中控制器每 200ms 刷新时长 → 用 pump 而不是 pumpAndSettle
     await tester.pump();
   }
+
+  testWidgets('待开始（刚进语音页）：显示 ▶ 开始录音 + 停止，且不自动开录', (tester) async {
+    // 不调用任何 givenXxx：默认就是 idle
+    await pumpPanel(tester);
+
+    expect(find.text('开始录音'), findsOneWidget);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(find.text('停止'), findsOneWidget);
+    // 互斥：待开始时不应出现"暂停/继续"
+    expect(find.text('暂停'), findsNothing);
+    expect(find.text('继续'), findsNothing);
+    // 没开始录音，也没有自动启动
+    expect(controller.phase.value, VoiceCapturePhase.idle);
+    expect(calls.contains('start'), isFalse);
+  });
+
+  testWidgets('点 ▶ 触发开始回调（真正开录由用户决定）', (tester) async {
+    await pumpPanel(tester);
+
+    await tester.tap(find.text('开始录音'));
+    await tester.pump();
+    expect(calls.contains('start'), isTrue);
+  });
+
+  testWidgets('暂停态：左键变成「继续」并调 resume，停止仍可见', (tester) async {
+    givenPaused();
+    await pumpPanel(tester);
+
+    expect(find.text('继续'), findsOneWidget);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(find.text('暂停'), findsNothing, reason: '暂停态不该再显示暂停');
+    expect(find.text('停止'), findsOneWidget);
+  });
+
+  testWidgets('停止后：只剩取消/重录/保存，不再显示播放与停止（互斥）', (tester) async {
+    givenStopped();
+    await pumpPanel(tester);
+
+    expect(find.text('取消'), findsOneWidget);
+    expect(find.text('重录'), findsOneWidget);
+    expect(find.text('保存并转写'), findsOneWidget);
+    expect(find.text('停止'), findsNothing);
+    expect(find.text('开始录音'), findsNothing);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+  });
+
 
   testWidgets('录音中：显示暂停 / 停止，时长可见', (tester) async {
     givenRecording();

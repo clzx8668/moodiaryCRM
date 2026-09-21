@@ -159,6 +159,9 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                         onCancel: () => unawaited(logic.exitVoiceInput()),
                         onRetake: () => unawaited(logic.retakeVoiceInput()),
                         onSave: () => _saveVoiceNote(context, logic),
+                        onStart: () => unawaited(
+                          logic.startVoiceRecordingFromPanel(),
+                        ),
                         onSetupOnDevice: () => Get.to(
                           () => const OnDeviceAsrSettingsPage(),
                         ),
