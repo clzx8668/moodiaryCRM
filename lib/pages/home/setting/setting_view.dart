@@ -18,6 +18,7 @@ import 'package:moodiary/components/remove_password/remove_password_view.dart';
 import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
+import 'package:moodiary/features/ai/legacy/tencent_hunyuan_settings_page.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_queue_page.dart';
 import 'package:moodiary/features/ai/digest/digest_scheduler.dart';
 import 'package:moodiary/features/thirdparty/third_party_keys_page.dart';
@@ -62,6 +63,20 @@ class SettingPage extends StatelessWidget {
     final state = Bind.find<SettingLogic>().state;
 
     final size = MediaQuery.sizeOf(context);
+
+    /// 二级小标题（工具区内部再分段的视觉锚点）
+    Widget subTitle(String text) => Padding(
+      padding: const EdgeInsets.fromLTRB(8, 2, 8, 6),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          style: context.textTheme.labelLarge?.copyWith(
+            color: context.theme.colorScheme.primary,
+          ),
+        ),
+      ),
+    );
 
     Widget buildDashboard() {
       return Column(
@@ -657,6 +672,43 @@ class SettingPage extends StatelessWidget {
       return Column(
         children: [
           const AdaptiveTitleTile(title: '工具'),
+          // 子段①：内容源（RSS 订阅与自动刷新、自动回望都归这里）
+          subTitle('内容源'),
+          Card.filled(
+            color: context.theme.colorScheme.surfaceContainerLow,
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                AdaptiveListTile(
+                  title: const Text('内容源（RSS）'),
+                  subtitle: const Text('订阅公开 RSS/Atom，增量入库为笔记'),
+                  leading: const Icon(Icons.rss_feed_rounded),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  isFirst: true,
+                  onTap: () => Get.to(() => const FeedSettingsPage()),
+                ),
+                const _FeedAutoSwitchTile(),
+                const _DigestAutoSwitchTile(isLast: true),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 子段②：桌面与提醒（提醒、快捷键、托盘，多为桌面端特性）
+          subTitle('桌面与提醒'),
+          const Card.filled(
+            margin: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _ReminderSwitchTile(),
+                _GlobalShortcutSwitchTile(),
+                _ShortcutComboTile(),
+                _CloseToTraySwitchTile(isLast: true),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 子段③：入口类（音频/服务凭据）
+          subTitle('其他'),
           Card.filled(
             color: context.theme.colorScheme.surfaceContainerLow,
             margin: EdgeInsets.zero,
@@ -671,25 +723,21 @@ class SettingPage extends StatelessWidget {
                   onTap: () => Get.toNamed(AppRoutes.voiceRecordPage),
                 ),
                 AdaptiveListTile(
-                  title: const Text('内容源（RSS）'),
-                  subtitle: const Text('订阅公开 RSS/Atom，增量入库为笔记'),
-                  leading: const Icon(Icons.rss_feed_rounded),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => Get.to(() => const FeedSettingsPage()),
-                ),
-                const _FeedAutoSwitchTile(),
-                const _DigestAutoSwitchTile(),
-                AdaptiveListTile(
                   title: const Text('第三方服务'),
                   subtitle: const Text('和风天气 / 天地图的 Key（天气与足迹地图）'),
                   leading: const Icon(Icons.vpn_key_outlined),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => Get.to(() => const ThirdPartyKeysPage()),
                 ),
-                const _ReminderSwitchTile(),
-                const _GlobalShortcutSwitchTile(),
-                const _ShortcutComboTile(),
-                const _CloseToTraySwitchTile(isLast: true),
+                AdaptiveListTile(
+                  title: const Text('智能助手（旧版）凭据'),
+                  subtitle: const Text('腾讯云混元：仅旧版助手与分析统计需要'),
+                  leading: const Icon(Icons.cloud_outlined),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  isLast: true,
+                  onTap: () =>
+                      Get.to(() => const TencentHunyuanSettingsPage()),
+                ),
               ],
             ),
           ),
@@ -789,7 +837,9 @@ class SettingPage extends StatelessWidget {
 
 /// 自动回望开关（每天 21:00 后自动生成每日回望；周一另生成每周回望）。
 class _DigestAutoSwitchTile extends StatefulWidget {
-  const _DigestAutoSwitchTile();
+  const _DigestAutoSwitchTile({this.isLast = false});
+
+  final bool isLast;
 
   @override
   State<_DigestAutoSwitchTile> createState() => _DigestAutoSwitchTileState();
@@ -820,6 +870,7 @@ class _DigestAutoSwitchTileState extends State<_DigestAutoSwitchTile> {
       title: const Text('自动生成回望'),
       subtitle: const Text('每日 21:00 后自动生成；周一含周报'),
       secondary: const Icon(Icons.auto_mode_rounded),
+      isLast: widget.isLast,
     );
   }
 }
