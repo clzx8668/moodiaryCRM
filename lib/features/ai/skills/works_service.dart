@@ -1,5 +1,5 @@
 import 'package:moodiary/features/ai/ai_provider.dart';
-import 'package:moodiary/features/ai/profile/user_profile.dart';
+import 'package:moodiary/features/ai/memory/memory_store.dart';
 
 /// 作品输出格式（对标得到大脑「小步」：记录变成可发布内容）。
 enum WorksFormat {
@@ -72,7 +72,9 @@ class WorksService {
           sourceTexts: sourceTexts,
           format: format,
           topic: topic,
-          profileSection: UserProfileStore.load().toPromptSection(),
+          profileSection: await MemoryStore.buildPromptSection(
+            query: '$topic ${sourceTexts.join(' ')}',
+          ),
         ),
       ),
     ]);
@@ -80,3 +82,4 @@ class WorksService {
     return text.isEmpty ? null : text;
   }
 }
+

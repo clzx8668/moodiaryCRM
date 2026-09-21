@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/ai/ai_capability_store.dart';
@@ -6,6 +9,9 @@ import 'package:moodiary/features/ai/ai_provider_edit_page.dart';
 import 'package:moodiary/features/ai/ai_provider_store.dart';
 import 'package:moodiary/features/ai/models/ai_capability_config.dart';
 import 'package:moodiary/features/ai/models/ai_provider_config.dart';
+import 'package:moodiary/features/ai/memory/memory_files.dart';
+import 'package:moodiary/features/ai/memory/memory_settings_page.dart';
+import 'package:moodiary/features/ai/memory/memory_store.dart';
 import 'package:moodiary/features/ai/profile/user_profile.dart';
 import 'package:moodiary/features/ai/search/search_service.dart';
 import 'package:moodiary/features/ai/search/search_skill.dart';
@@ -13,7 +19,6 @@ import 'package:moodiary/features/ai/widgets/ai_model_field.dart';
 import 'package:moodiary/features/asr/asr_model_store.dart';
 import 'package:moodiary/features/asr/on_device_asr_settings_page.dart';
 import 'package:moodiary/persistence/pref.dart';
-import 'package:moodiary/utils/notice_util.dart';
 
 /// AI 模型管理页：服务商（账号）+ 功能模型（对话/向量/多模态/语音）独立配置。
 class AiSettingsPage extends StatefulWidget {
@@ -40,6 +45,13 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   void initState() {
     super.initState();
     _load();
+    // 顺手把记忆自留地建好（目录 + memory.md 模板），
+    // 这样用户进设置就能看到这几个文件，而不是等第一次 AI 处理才出现
+    unawaited(
+      MemoryStore.ensureReady().then((_) {
+        if (mounted) setState(() {});
+      }),
+    );
   }
 
   Future<void> _load() async {
@@ -222,9 +234,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                 _buildSearchSection(context),
                 const SizedBox(height: 18),
                 const _SectionTitle(
-                  icon: Icons.person_outline_rounded,
-                  title: '个性化画像',
-                  subtitle: '专业词库 / 常用表达 / 风格偏好，注入 AI 技能与作品生成',
+                  icon: Icons.layers_outlined,
+                  title: '记忆与画像',
+                  subtitle: '三层记忆：画像/长期记忆（常驻）+ 技能手册（按需）+ 笔记检索',
                 ),
                 _buildProfileTile(context),
               ],
@@ -256,104 +268,43 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
 
   Widget _buildProfileTile(BuildContext context) {
     final profile = UserProfileStore.load();
-    final summary = profile.isEmpty
-        ? '未设置'
+    final memoryKb = _memorySummary();
+    final summary = profile.isEmpty && memoryKb.isEmpty
+        ? '还没写；这里能直接编辑 Markdown 文件'
         : [
             if (profile.vocabulary.isNotEmpty) '词库 ${profile.vocabulary.length}',
             if (profile.phrases.isNotEmpty) '表达 ${profile.phrases.length}',
             if (profile.preference.trim().isNotEmpty) '含风格偏好',
+            if (memoryKb.isNotEmpty) memoryKb,
           ].join(' · ');
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         leading: const Icon(Icons.auto_awesome_rounded),
-        title: const Text('编辑画像'),
+        title: const Text('记忆与画像'),
         subtitle: Text(summary),
         trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => _editProfile(context),
+        onTap: () async {
+          await Get.to(() => const MemorySettingsPage());
+          if (mounted) setState(() {});
+        },
       ),
     );
   }
 
-  Future<void> _editProfile(BuildContext context) async {
-    final profile = UserProfileStore.load();
-    final vocabCtrl = TextEditingController(text: profile.vocabulary.join('，'));
-    final phraseCtrl = TextEditingController(text: profile.phrases.join('，'));
-    final prefCtrl = TextEditingController(text: profile.preference);
-    List<String> split(String raw) => raw
-        .split(RegExp(r'[,，、;；\n]'))
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('个性化画像'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: vocabCtrl,
-                decoration: const InputDecoration(
-                  labelText: '专业词库（逗号分隔）',
-                  hintText: '如：膜池，MBR，回款周期',
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: phraseCtrl,
-                decoration: const InputDecoration(
-                  labelText: '常用表达（逗号分隔）',
-                  hintText: '如：落地方案，闭环',
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: prefCtrl,
-                decoration: const InputDecoration(
-                  labelText: '风格偏好',
-                  hintText: '如：简洁、少形容词、先结论后论据',
-                ),
-                maxLines: 2,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-    if (saved == true) {
-      await UserProfileStore.save(
-        UserProfile(
-          vocabulary: split(vocabCtrl.text),
-          phrases: split(phraseCtrl.text),
-          preference: prefCtrl.text.trim(),
-        ),
-      );
-      if (mounted) {
-        setState(() {});
-        toast.success(message: '已保存个性化画像');
-      }
+  /// 记忆文件的体量摘要（让用户知道"上面到底写了多少"）
+  String _memorySummary() {
+    try {
+      final mem = File(MemoryFiles.memoryPath());
+      if (!mem.existsSync()) return '';
+      final bytes = mem.lengthSync();
+      if (bytes <= 0) return '';
+      return '长期记忆 ${(bytes / 1024).toStringAsFixed(1)}KB';
+    } catch (_) {
+      return '';
     }
-    // 对话框退场动画结束后再释放控制器：避免退场期间仍被 TextField 依赖而触发断言
-    Future<void>.delayed(const Duration(milliseconds: 500), () {
-      vocabCtrl.dispose();
-      phraseCtrl.dispose();
-      prefCtrl.dispose();
-    });
   }
+
 
   Widget _buildSearchSection(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

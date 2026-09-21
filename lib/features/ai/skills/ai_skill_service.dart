@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:moodiary/features/ai/ai_provider.dart';
-import 'package:moodiary/features/ai/profile/user_profile.dart';
+import 'package:moodiary/features/ai/memory/memory_store.dart';
 import 'package:moodiary/features/ai/skills/ai_skill.dart';
 
 /// AI 技能结果（技能执行的可回看文本）。
@@ -31,7 +31,8 @@ class AiSkillService {
         content: AiSkillPrompts.build(
           type,
           t,
-          profileSection: UserProfileStore.load().toPromptSection(),
+          // 分层记忆：画像 + 稳定事实（+ 命中关键词时按需带上技能手册）
+          profileSection: await MemoryStore.buildPromptSection(query: t),
         ),
       ),
     ]);
@@ -69,3 +70,4 @@ class AiSkillService {
     return s;
   }
 }
+

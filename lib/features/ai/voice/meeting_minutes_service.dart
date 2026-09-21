@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:moodiary/features/ai/ai_provider.dart';
-import 'package:moodiary/features/ai/profile/user_profile.dart';
+import 'package:moodiary/features/ai/memory/memory_store.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:uuid/uuid.dart';
@@ -208,7 +208,7 @@ class MeetingMinutesService {
         role: 'user',
         content: MeetingMinutesPrompts.build(
           text,
-          profileSection: UserProfileStore.load().toPromptSection(),
+          profileSection: await MemoryStore.buildPromptSection(),
         ),
       ),
     ]);
@@ -259,3 +259,4 @@ class MeetingMinutesService {
     return block;
   }
 }
+
