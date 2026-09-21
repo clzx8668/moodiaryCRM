@@ -9,8 +9,6 @@ import 'package:moodiary/pages/about/about_view.dart';
 import 'package:moodiary/pages/agreement/agreement_view.dart';
 import 'package:moodiary/pages/analyse/analyse_logic.dart';
 import 'package:moodiary/pages/analyse/analyse_view.dart';
-import 'package:moodiary/pages/assistant/assistant_logic.dart';
-import 'package:moodiary/pages/assistant/assistant_view.dart';
 import 'package:moodiary/pages/backup_sync/backup_sync_logic.dart';
 import 'package:moodiary/pages/backup_sync/backup_sync_view.dart';
 import 'package:moodiary/pages/category_manager/category_manager_logic.dart';
@@ -167,11 +165,6 @@ class AppPages {
       name: AppRoutes.backupSyncPage,
       page: () => const BackupSyncPage(),
       binds: [Bind.lazyPut(fenix: true, () => BackupSyncLogic())],
-    ),
-    MoodiaryGetPage(
-      name: AppRoutes.assistantPage,
-      page: () => const AssistantPage(),
-      binds: [Bind.lazyPut(fenix: true, () => AssistantLogic())],
     ),
     MoodiaryGetPage(
       name: AppRoutes.healthPage,

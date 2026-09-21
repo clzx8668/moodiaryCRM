@@ -28,6 +28,12 @@ class MobileNavConfig {
 
   static const String prefKey = 'mobileNavItems';
 
+  /// 「AI」页在底部导航里的固定下标（新版 AI 助手页）。
+  ///
+  /// 注意：这是**页面下标**（对应 [NavDestination.pageIndex]），
+  /// 不是"当前显示的第几个 tab"——用户可能隐藏了某些 tab。
+  static const int aiIndex = 4;
+
   /// 全部可选目的地（顺序即设置页展示顺序）。
   static const List<NavDestination> all = [
     NavDestination(

@@ -355,9 +355,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeNavigatorSetting => 'Setting';
 
   @override
-  String get homeNavigatorAssistant => 'Assistant';
-
-  @override
   String get homeNavigatorCrm => 'CRM';
 
   @override

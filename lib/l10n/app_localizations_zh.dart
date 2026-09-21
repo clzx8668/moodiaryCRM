@@ -349,9 +349,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeNavigatorSetting => '设置';
 
   @override
-  String get homeNavigatorAssistant => '助手';
-
-  @override
   String get homeNavigatorCrm => 'CRM';
 
   @override

@@ -72,7 +72,4 @@
 //     Get.toNamed(AppRoutes.privacyPage);
 //   }
 //
-//   void toAssistant() {
-//     Get.toNamed(AppRoutes.assistantPage);
-//   }
 // }

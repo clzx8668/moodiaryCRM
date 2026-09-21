@@ -770,12 +770,6 @@ abstract class AppLocalizations {
   /// **'设置'**
   String get homeNavigatorSetting;
 
-  /// No description provided for @homeNavigatorAssistant.
-  ///
-  /// In zh, this message translates to:
-  /// **'助手'**
-  String get homeNavigatorAssistant;
-
   /// No description provided for @homeNavigatorCrm.
   ///
   /// In zh, this message translates to:

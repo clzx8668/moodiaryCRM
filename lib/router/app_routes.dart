@@ -32,9 +32,6 @@ abstract class AppRoutes {
   //画画路由
   static const drawPage = '/draw';
 
-  //助手路由
-  static const assistantPage = '/assistant';
-
   //启动页路由
   static const startPage = '/start';
 
