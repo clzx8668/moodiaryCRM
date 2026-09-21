@@ -423,11 +423,6 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     }
   }
 
-  void _cycleZoom() => setState(() {
-    const levels = CalendarZoom.values;
-    _zoom = levels[(levels.indexOf(_zoom) + 1) % levels.length];
-  });
-
   // ------------------------------------------------ 月格：单指上下滑动切月/周
 
   void _swipeDown(PointerDownEvent e) {
@@ -681,12 +676,6 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     setState(() => _hourHeight = value);
     PrefUtil.setValue<double>('calendarHourHeight', value);
   }
-
-  String _zoomLabel() => switch (_zoom) {
-    CalendarZoom.dots => '圆点',
-    CalendarZoom.bars => '事件条',
-    CalendarZoom.titles => '标题时间',
-  };
 
   Widget _dayBody() {
     final grid = (_tab == CalendarBottomTab.today || _weekMode)
