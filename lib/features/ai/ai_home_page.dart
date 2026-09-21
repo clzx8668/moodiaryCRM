@@ -624,33 +624,29 @@ class _AiHomePageState extends State<AiHomePage> {
       ),
       body: Column(
         children: [
+          // 对话流**左右不留空间**：去掉 760 宽度上限与 16 内外边距，
+          // 只用上下内边距；左右留白交给气泡自身的对称 margin。
           Expanded(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                child: _messages.isEmpty && !_streaming
-                    ? _buildEmptyState(context)
-                    : ListView.builder(
-                        controller: _scroll,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _messages.length + (_streaming ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index >= _messages.length) {
-                            return _buildAssistant(
-                              content: _streamBuffer,
-                              streaming: true,
-                              sources: const [],
-                              index: -1,
-                              onSaveNote: null,
-                              onSaveToKb: null,
-                            );
-                          }
-                          return _buildCachedMessage(index);
-                        },
-                      ),
-              ),
-            ),
+            child: _messages.isEmpty && !_streaming
+                ? _buildEmptyState(context)
+                : ListView.builder(
+                    controller: _scroll,
+                    padding: const EdgeInsets.only(top: 12, bottom: 12),
+                    itemCount: _messages.length + (_streaming ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index >= _messages.length) {
+                        return _buildAssistant(
+                          content: _streamBuffer,
+                          streaming: true,
+                          sources: const [],
+                          index: -1,
+                          onSaveNote: null,
+                          onSaveToKb: null,
+                        );
+                      }
+                      return _buildCachedMessage(index);
+                    },
+                  ),
           ),
           _buildContextBar(context),
           // 「要不要记下来？」建议卡（建议式自学习：用户点了才落盘）
@@ -710,13 +706,16 @@ class _AiHomePageState extends State<AiHomePage> {
 
   Widget _buildUser(String content) {
     final colorScheme = Theme.of(context).colorScheme;
+    // 与助手气泡对称：左侧留白（≥12、随宽度自适应）+ 右侧固定 12，
+    // 气泡本体最宽 78% 宽，保证窄屏也能用满而不是被挤扁。
+    final available = MediaQuery.sizeOf(context).width;
+    final bubbleMax = available * 0.78;
+    final leftGap = (available - bubbleMax - 12.0).clamp(12.0, 48.0);
     return Align(
       alignment: Alignment.centerRight,
       child: Container(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.sizeOf(context).width * 0.78,
-        ),
-        margin: const EdgeInsets.only(bottom: 12),
+        constraints: BoxConstraints(maxWidth: bubbleMax),
+        margin: EdgeInsets.only(left: leftGap, right: 12, bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: colorScheme.primaryContainer,
@@ -768,8 +767,11 @@ class _AiHomePageState extends State<AiHomePage> {
     required VoidCallback? onSaveToKb,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
+    // 助手气泡左右对称留白：左 12 + 右 12（气泡左对齐在头像右侧）
+    final available = MediaQuery.sizeOf(context).width;
+    final rightGap = (available * 0.22 - 12).clamp(12.0, 24.0);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(left: 12, right: rightGap, bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

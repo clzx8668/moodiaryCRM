@@ -1017,8 +1017,10 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
           final chatAis = ais.where((b) => b.meta.role.isNotEmpty).toList();
           if (chatAis.isNotEmpty) {
             slivers.add(
+              // 对话流**左右不留空间**：气泡直接贴两侧边缘（对称），
+              // 只靠气泡自身的 margin 做留白——这样窄屏也能把内容用满。
               SliverPadding(
-                padding: EdgeInsets.symmetric(horizontal: padX),
+                padding: EdgeInsets.zero,
                 sliver: SliverList.separated(
                   itemBuilder: (context, index) {
                     final block = chatAis[index];

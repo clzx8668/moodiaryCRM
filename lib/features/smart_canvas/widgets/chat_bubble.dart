@@ -23,12 +23,31 @@ class ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isUser = block.meta.role == 'user';
+    // 气泡两侧的安全边距固定为 12，保证"左右对称、不贴死屏幕"；
+    // 可用空间小的时候（窄屏/分栏）自动收窄对侧的空白，
+    // 这样窄屏也能把内容用满，而不是被固定的 48/24 挤扁。
+    const sidePad = 12.0;
+    const bubbleMaxFraction = 0.78;
+    final available = MediaQuery.sizeOf(context).width;
+    final bubbleMax = available * bubbleMaxFraction;
+    // 对侧最小留白：让气泡看起来是"靠边但没贴死"
+    const oppositeMin = 12.0;
+    final oppositeMax = isUser ? 48.0 : 24.0;
+    final opposite = (available - bubbleMax - sidePad).clamp(
+      oppositeMin,
+      oppositeMax,
+    );
 
     if (isUser) {
       return Align(
         alignment: Alignment.centerRight,
         child: Container(
-          margin: const EdgeInsets.only(left: 48, bottom: 8),
+          margin: EdgeInsets.only(
+            left: opposite,
+            right: sidePad,
+            bottom: 8,
+          ),
+          constraints: BoxConstraints(maxWidth: bubbleMax),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: colorScheme.primaryContainer,
@@ -43,7 +62,11 @@ class ChatBubble extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.only(right: 24, bottom: 8),
+      margin: EdgeInsets.only(
+        left: sidePad,
+        right: opposite,
+        bottom: 8,
+      ),
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest,
