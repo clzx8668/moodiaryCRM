@@ -174,7 +174,7 @@ class SettingPage extends StatelessWidget {
     Widget buildData() {
       return Column(
         children: [
-          AdaptiveTitleTile(title: context.l10n.settingData),
+          const AdaptiveTitleTile(title: '数据与存储'),
           Card.filled(
             color: context.theme.colorScheme.surfaceContainerLow,
             margin: EdgeInsets.zero,
@@ -215,6 +215,18 @@ class SettingPage extends StatelessWidget {
                   },
                   leading: const Icon(Icons.link_rounded),
                 ),
+                // CRM 数据入口归到"数据与存储"：它是**本地数据**，
+                // 不是 AI 功能；按 CRM 模块开关显隐（不显示时不留空洞）。
+                if (state.moduleCrm.value)
+                  AdaptiveListTile(
+                    title: const Text('本地 CRM 数据'),
+                    subtitle: const Text('客户/联系人/机会/合同 · 自定义对象 · 无需联网'),
+                    leading: const Icon(Icons.storage_rounded),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {
+                      Get.to(() => const CrmSettingsPage());
+                    },
+                  ),
                 AdaptiveListTile(
                   title: Text(context.l10n.settingClean),
                   leading: const Icon(Icons.cleaning_services_rounded),
@@ -260,27 +272,23 @@ class SettingPage extends StatelessWidget {
     }
 
     Widget buildCrm() {
-      if (!state.moduleCrm.value) {
-        return const SizedBox.shrink();
-      }
+      // 「本地 CRM 数据」入口已归到「数据与存储」分区（按模块开关显隐），
+      // 这里只保留 CRM 模块的开关本身，避免同一个入口出现两次。
       return Column(
         children: [
-          const AdaptiveTitleTile(title: 'CRM（本地）'),
           Card.filled(
             color: context.theme.colorScheme.surfaceContainerLow,
             margin: EdgeInsets.zero,
             child: Column(
               children: [
-                AdaptiveListTile(
-                  title: const Text('本地 CRM 数据'),
-                  subtitle: const Text('客户/联系人/机会/合同 · 自定义对象 · 无需联网'),
-                  leading: const Icon(Icons.storage_rounded),
-                  trailing: const Icon(Icons.chevron_right_rounded),
+                AdaptiveSwitchListTile(
+                  value: state.moduleKnowledgeBase.value,
+                  onChanged: logic.changeModuleCrm,
+                  title: const Text('CRM 模块'),
+                  subtitle: const Text('客户/联系人/机会/合同 · 本地存储，无需联网'),
+                  secondary: const Icon(Icons.business_rounded),
                   isFirst: true,
                   isLast: true,
-                  onTap: () {
-                    Get.to(() => const CrmSettingsPage());
-                  },
                 ),
               ],
             ),
@@ -292,7 +300,7 @@ class SettingPage extends StatelessWidget {
     Widget buildAi() {
       return Column(
         children: [
-          const AdaptiveTitleTile(title: 'AI 助手'),
+          const AdaptiveTitleTile(title: 'AI 与笔记处理'),
           Card.filled(
             color: context.theme.colorScheme.surfaceContainerLow,
             margin: EdgeInsets.zero,
@@ -333,7 +341,7 @@ class SettingPage extends StatelessWidget {
                         value: state.aiAutoSummary.value,
                         onChanged: logic.changeAiAutoSummary,
                         title: const Text('AI 自动摘要'),
-                        subtitle: const Text('预留：生成一句话摘要'),
+                        subtitle: const Text('为笔记生成一句话摘要（默认关）'),
                         secondary: const Icon(Icons.summarize_outlined),
                         isLast: true,
                       ),
@@ -350,7 +358,7 @@ class SettingPage extends StatelessWidget {
     Widget buildModuleSwitches() {
       return Column(
         children: [
-          const AdaptiveTitleTile(title: '模块开关'),
+          const AdaptiveTitleTile(title: '功能开关'),
           Card.filled(
             color: context.theme.colorScheme.surfaceContainerLow,
             margin: EdgeInsets.zero,
@@ -358,18 +366,11 @@ class SettingPage extends StatelessWidget {
               children: [
                 AdaptiveSwitchListTile(
                   value: state.moduleCrm.value,
-                  onChanged: logic.changeModuleCrm,
-                  title: const Text('CRM 模块'),
-                  subtitle: const Text('关闭后隐藏 CRM 同步入口'),
-                  secondary: const Icon(Icons.business_rounded),
-                  isFirst: true,
-                ),
-                AdaptiveSwitchListTile(
-                  value: state.moduleKnowledgeBase.value,
                   onChanged: logic.changeModuleKnowledgeBase,
                   title: const Text('知识库模块'),
                   subtitle: const Text('关闭后隐藏知识库选择与索引（AI 对话仍可用）'),
                   secondary: const Icon(Icons.menu_book_rounded),
+                  isFirst: true,
                 ),
                 AdaptiveSwitchListTile(
                   value: state.moduleCalendar.value,
@@ -389,7 +390,7 @@ class SettingPage extends StatelessWidget {
     Widget buildDisplay() {
       return Column(
         children: [
-          AdaptiveTitleTile(title: context.l10n.settingDisplay),
+          const AdaptiveTitleTile(title: '外观与交互'),
           Card.filled(
             color: context.theme.colorScheme.surfaceContainerLow,
             margin: EdgeInsets.zero,
@@ -491,23 +492,12 @@ class SettingPage extends StatelessWidget {
     Widget buildPrivacy() {
       return Column(
         children: [
-          AdaptiveTitleTile(title: context.l10n.settingPrivacy),
+          const AdaptiveTitleTile(title: '隐私与安全'),
           Card.filled(
             color: context.theme.colorScheme.surfaceContainerLow,
             margin: EdgeInsets.zero,
             child: Column(
               children: [
-                // GetBuilder<SettingLogic>(
-                //     id: 'Local',
-                //     builder: (_) {
-                //       return AdaptiveSwitchListTile(
-                //         value: state.local,
-                //         onChanged: null,
-                //         title: Text(context.l10n.settingLocal),
-                //         subtitle: Text(context.l10n.settingLocalDes),
-                //         secondary: const Icon(Icons.cloud_off_rounded),
-                //       );
-                //     }),
                 GetBuilder<SettingLogic>(
                   id: 'Lock',
                   builder: (_) {
@@ -786,17 +776,20 @@ class SettingPage extends StatelessWidget {
             children: [
               buildDashboard(),
               buildFeature(),
+              // 分区顺序（批次 113 整理）：
+              // ① 日常四入口 ② 数据与存储 ③ AI 与笔记处理 ④ 功能开关
+              // ⑤ 外观与交互 ⑥ 底部导航 ⑦ 工具 ⑧ 隐私与安全 ⑨ 关于
+              GetBuilder<SettingLogic>(
+                id: 'ModuleSwitch',
+                builder: (_) => buildData(),
+              ),
+              buildAi(),
               GetBuilder<SettingLogic>(
                 id: 'ModuleSwitch',
                 builder: (_) => Column(
-                  children: [
-                    buildModuleSwitches(),
-                    buildCrm(),
-                    buildAi(),
-                  ],
+                  children: [buildModuleSwitches(), buildCrm()],
                 ),
               ),
-              buildData(),
               buildDisplay(),
               buildMobileNav(),
               buildTools(),

@@ -765,6 +765,30 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     });
   }
 
+  /// 人为触发的"云端精修转写"（批次 113）。
+  ///
+  /// 产品原则：**端侧草稿先用着，精修由人决定**——不做自动云端精修，
+  /// 需要更准的标点/措辞时在三点菜单里点这一项。
+  Future<void> _refineCurrentTranscript() async {
+    final diary = logic.canvasState.diary;
+    final audio = diary.audioName.isNotEmpty ? diary.audioName.first : '';
+    if (audio.trim().isEmpty) {
+      toast.info(message: '这条记录没有录音，无需精修');
+      return;
+    }
+    final info = VoiceNoteInfo.from(
+      diary: diary,
+      blocks: logic.blockList.blocks.value,
+    );
+    await _refineVoiceTranscription(
+      info ??
+          VoiceNoteInfo(
+            audioFile: audio,
+            status: VoiceNoteStatus.done,
+          ),
+    );
+  }
+
   /// 分流说明（批次 111）：为什么这条内容送/没送 AI —— 一行小字讲清楚。
   ///
   /// 数据来自 `AiTriageService` 最近一次对该笔记的分流结果；没有记录（例如
@@ -1171,6 +1195,13 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           value: 'voice',
                           child: Text('语音记录'),
                         ),
+                        // 有录音才给"云端精修"：端侧草稿先用着，
+                        // 想要更准的标点/措辞时由用户主动点（批次 113）
+                        if (logic.canvasState.diary.audioName.isNotEmpty)
+                          const PopupMenuItem(
+                            value: 'refine_transcript',
+                            child: Text('云端精修转写（消耗额度）'),
+                          ),
                         const PopupMenuDivider(),
                         // ③ AI 产出（抽取/技能在底部动作条，这里不重复）
                         const PopupMenuItem(
@@ -1212,6 +1243,8 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                           Get.toNamed(AppRoutes.voiceRecordPage);
                         } else if (v == 'plan') {
                           _showPlanSettings(context);
+                        } else if (v == 'refine_transcript') {
+                          unawaited(_refineCurrentTranscript());
                         } else if (v == 'works') {
                           _showWorksSheet(context);
                         } else if (v == 'kb') {
