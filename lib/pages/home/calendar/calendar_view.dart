@@ -4,6 +4,9 @@ import 'package:get/get.dart';
 import 'package:moodiary/common/values/colors.dart';
 import 'package:moodiary/components/diary_card/calendar_diary_card_view.dart';
 import 'package:moodiary/components/time_line/time_line_view.dart';
+import 'package:moodiary/features/crm/crm_entity_detail_page.dart';
+import 'package:moodiary/features/crm/local/crm_entity_loader.dart';
+import 'package:moodiary/features/crm/local/crm_field_defs.dart';
 import 'package:moodiary/features/crm/models/crm_entity_cache.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
 import 'package:moodiary/features/schedule/schedule_repository.dart';
@@ -90,7 +93,10 @@ class _CalendarPageState extends State<CalendarPage> {
               child: FloatingActionButton(
                 backgroundColor: kCalAccent,
                 foregroundColor: Colors.white,
-                onPressed: () => _quickAdd(context),
+                onPressed: () => _quickAdd(
+                  context,
+                  initial: logic.state.selectedDay.value,
+                ),
                 child: const Icon(Icons.add_rounded),
               ),
             ),
@@ -490,10 +496,16 @@ class _CalendarPageState extends State<CalendarPage> {
           actionColor = item.schedule!.bgColor == null
               ? kCalAccent
               : Color(item.schedule!.bgColor!);
-          child = _ScheduleTimelineCard(schedule: item.schedule!);
+          child = _ScheduleTimelineCard(
+            schedule: item.schedule!,
+            onTap: () => _openSchedule(context, item.schedule!),
+          );
         } else {
           actionColor = _crmColor(item.crm!.entityType);
-          child = _CrmTimelineCard(crm: item.crm!);
+          child = _CrmTimelineCard(
+            crm: item.crm!,
+            onTap: () => _openCrmRecord(context, item.crm!),
+          );
         }
         return TimeLineComponent(
           actionColor: actionColor,
@@ -542,6 +554,34 @@ class _CalendarPageState extends State<CalendarPage> {
     if (created != null && mounted) {
       await logic.reload();
     }
+  }
+
+  /// 时间轴上的日程卡 → 日程详情（与待办列表里的日程卡一致）。
+  Future<void> _openSchedule(BuildContext context, Schedule schedule) async {
+    final fresh = await ScheduleRepository().getById(schedule.id) ?? schedule;
+    if (!mounted) return;
+    final changed = await Get.to<bool>(
+      () => ScheduleDetailPage(editable: fresh),
+    );
+    if (changed == true && mounted) await logic.reload();
+  }
+
+  /// 时间轴上的 CRM 卡 → 该记录的详情页。
+  Future<void> _openCrmRecord(BuildContext context, CrmEntityCache crm) async {
+    final item = await loadCrmEntityCache(type: crm.entityType, id: crm.id);
+    if (!mounted) return;
+    if (item == null) {
+      toast.info(message: '记录不存在');
+      return;
+    }
+    await Get.to(
+      () => CrmEntityDetailPage(
+        objectType: crm.entityType,
+        item: item,
+        fields: kBaseObjectFields[crm.entityType] ?? const [],
+      ),
+    );
+    if (mounted) await logic.reload();
   }
 
   Future<void> _openTodo(BuildContext context, TodoItem item) async {
@@ -594,8 +634,12 @@ List<DateTime> _monthDays(int year, int month, int weekStart) {
 }
 
 List<DateTime> _weekDays(DateTime day, int weekStart) {
-  final offset = (day.weekday - weekStart + 7) % 7;
-  final start = day.subtract(Duration(days: offset));
+  // 归一到零点：selectedDay 可能是 DateTime.now()（带时分秒），
+  // 若直接用它做日期键，会与「按天归一」的日程/日记集合匹配不上，
+  // 导致周视图丢失活跃度圆点。
+  final normalized = DateTime(day.year, day.month, day.day);
+  final offset = (normalized.weekday - weekStart + 7) % 7;
+  final start = normalized.subtract(Duration(days: offset));
   return [for (var i = 0; i < 7; i++) start.add(Duration(days: i))];
 }
 
@@ -733,7 +777,8 @@ class _TodoCard extends StatelessWidget {
 
 class _ScheduleTimelineCard extends StatelessWidget {
   final Schedule schedule;
-  const _ScheduleTimelineCard({required this.schedule});
+  final VoidCallback onTap;
+  const _ScheduleTimelineCard({required this.schedule, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -749,7 +794,7 @@ class _ScheduleTimelineCard extends StatelessWidget {
         trailing: schedule.done
             ? const Icon(Icons.check_circle_rounded, color: Colors.green)
             : null,
-        onTap: () {},
+        onTap: onTap,
       ),
     );
   }
@@ -757,7 +802,8 @@ class _ScheduleTimelineCard extends StatelessWidget {
 
 class _CrmTimelineCard extends StatelessWidget {
   final CrmEntityCache crm;
-  const _CrmTimelineCard({required this.crm});
+  final VoidCallback onTap;
+  const _CrmTimelineCard({required this.crm, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -768,6 +814,7 @@ class _CrmTimelineCard extends StatelessWidget {
         title: Text(crm.name, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(_crmTypeLabel(crm.entityType)),
         dense: true,
+        onTap: onTap,
       ),
     );
   }

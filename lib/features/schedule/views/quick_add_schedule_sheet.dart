@@ -41,11 +41,13 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
   @override
   void initState() {
     super.initState();
-    final now = widget.initial ?? DateTime.now();
-    // 默认取下一个整点
-    final next = DateTime(now.year, now.month, now.day, now.hour + 1);
-    _date = next;
-    _time = TimeOfDay(hour: next.hour, minute: next.minute);
+    final now = DateTime.now();
+    final base = widget.initial ?? now;
+    _date = DateTime(base.year, base.month, base.day);
+    // 今天：默认下一个整点；其它日期：默认上午 9:00
+    _time = _isSameDay(_date, now)
+        ? TimeOfDay(hour: (now.hour + 1) % 24, minute: 0)
+        : const TimeOfDay(hour: 9, minute: 0);
   }
 
   @override
@@ -120,16 +122,26 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
           Row(
             spacing: 8,
             children: [
-              _quickDayChip('今天', () => setState(() => _date = DateTime.now())),
+              _quickDayChip(
+                '今天',
+                selected: _isSameDay(_date, DateTime.now()),
+                onTap: () => setState(() => _date = DateTime.now()),
+              ),
               _quickDayChip(
                 '明天',
-                () => setState(
+                selected: _isSameDay(
+                  _date,
+                  DateTime.now().add(const Duration(days: 1)),
+                ),
+                onTap: () => setState(
                   () => _date = DateTime.now().add(const Duration(days: 1)),
                 ),
               ),
               _quickDayChip(
-                _fmtDate(_date),
-                () async {
+                _isTodayOrTomorrow ? '自定义' : _fmtDate(_date),
+                selected: !_isTodayOrTomorrow,
+                icon: Icons.event_rounded,
+                onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
                     initialDate: _date,
@@ -209,13 +221,30 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
     );
   }
 
-  Widget _quickDayChip(String label, VoidCallback onTap) {
-    return ActionChip(
+  Widget _quickDayChip(
+    String label, {
+    required bool selected,
+    required VoidCallback onTap,
+    IconData? icon,
+  }) {
+    return ChoiceChip(
       label: Text(label),
-      onPressed: onTap,
+      avatar: icon == null ? null : Icon(icon, size: 16),
+      selected: selected,
+      showCheckmark: false,
+      onSelected: (_) => onTap(),
     );
   }
+
+  bool get _isTodayOrTomorrow {
+    final now = DateTime.now();
+    return _isSameDay(_date, now) ||
+        _isSameDay(_date, now.add(const Duration(days: 1)));
+  }
 }
+
+bool _isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
 
 String _fmtDate(DateTime d) =>
     '${d.month}月${d.day}日';
