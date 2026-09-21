@@ -12,6 +12,9 @@ class AiTaskStatus {
   static const waitingConfig = 'waiting_config';
   static const done = 'done';
   static const failed = 'failed';
+
+  /// 被本地分流拦下、没有上云（**不是失败**）：内容已在本地保存
+  static const skippedLocal = 'skipped_local';
 }
 
 /// AI 任务类型

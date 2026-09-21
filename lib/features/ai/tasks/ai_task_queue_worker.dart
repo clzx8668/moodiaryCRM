@@ -8,7 +8,9 @@ import 'package:moodiary/features/ai/tagging_service.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_retry_policy.dart';
 import 'package:moodiary/features/ai/tasks/pending_content_service.dart';
+import 'package:moodiary/features/ai/triage/triage_task_gate.dart';
 import 'package:moodiary/persistence/app_database.dart';
+import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/log_util.dart';
 import 'package:moodiary/utils/network_util.dart';
 
@@ -121,9 +123,58 @@ class AiTaskQueueWorker {
     }
   }
 
+  /// 分流闸门：判断这个任务是否允许真正调用 AI。
+  ///
+  /// 规则：
+  /// - 未知任务类型 → 放行（保持既有行为）；
+  /// - "内容还没落地"的补全任务（OCR/抓取/转写）→ 放行（拦下等于丢内容）；
+  /// - 用户手动触发（重试/选模板）→ 放行"值不值得"的判断，但仍受隐私与额度约束；
+  /// - 其余 → 走本地分流（规则 + 分类器 + 隐私 + 额度）。
+  Future<bool> _passesTriage(AiTaskRow task) async {
+    if (TriageTaskGate.operationOf(task.type) == null) return true;
+    if (TriageTaskGate.mustAlwaysRun(task.type)) return true;
+    try {
+      final text = await _textForTask(task);
+      return TriageTaskGate.allow(
+        taskType: task.type,
+        text: text,
+        explicitUserIntent: task.retryCount > 0,
+      );
+    } catch (e) {
+      // 分流本身出错时**放行**：宁可多花一点额度，也不要因为分流 bug 丢功能
+      logger.e('分流判断异常，按放行处理：${task.type}', error: e);
+      return true;
+    }
+  }
+
+  /// 取这条任务对应的文本视图（供分流判断）。
+  ///
+  /// 优先用日记投影文本（统一、已包含各来源），取不到再拼块内容。
+  Future<String> _textForTask(AiTaskRow task) async {
+    final diary = await IsarUtil.getDiaryById(task.refId);
+    final fromDiary = diary?.contentText.trim() ?? '';
+    if (!fromDiary.startsWith('⏳') && fromDiary.isNotEmpty) return fromDiary;
+    final blocks = await IsarUtil.getBlocksByDiary(task.refId);
+    final buf = StringBuffer();
+    for (final b in blocks) {
+      if (b.isDeleted) continue;
+      if (b.meta.isAi) continue; // AI 产出的卡片不再回流
+      if (b.content.trim().isEmpty) continue;
+      buf.writeln(b.content);
+    }
+    return buf.toString().trim();
+  }
+
   Future<void> _process(AiTaskRow task) async {
     await _repo.updateStatus(task, AiTaskStatus.processing);
     try {
+      // ── 边缘预筛选：真正要上云之前，先过一遍本地分流（批次 109）──
+      // 被拦下的任务标记为 skipped_local（不是失败），内容保持在本地。
+      if (!await _passesTriage(task)) {
+        await _repo.updateStatus(task, AiTaskStatus.skippedLocal);
+        logger.i('分流拦截：${task.type} 未上云（内容已本地保存）');
+        return;
+      }
       switch (task.type) {
         case AiTaskType.autoTag:
         case AiTaskType.autoClassify:

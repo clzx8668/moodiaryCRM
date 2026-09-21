@@ -5,6 +5,9 @@ enum AiTaskGroup {
   /// 失败（重试次数用尽，需要人处理）
   failed,
 
+  /// 被本地分流拦下（内容已本地保存，未上云）——不是错误
+  localOnly,
+
   /// 等待配置 AI（缺 API Key / 模型）
   waitingConfig,
 
@@ -36,6 +39,7 @@ class AiTaskQueueModel {
     AiTaskGroup.retrying,
     AiTaskGroup.queued,
     AiTaskGroup.processing,
+    AiTaskGroup.localOnly,
     AiTaskGroup.done,
   ];
 
@@ -54,6 +58,8 @@ class AiTaskQueueModel {
         return AiTaskGroup.processing;
       case AiTaskStatus.done:
         return AiTaskGroup.done;
+      case AiTaskStatus.skippedLocal:
+        return AiTaskGroup.localOnly;
       case AiTaskStatus.pending:
         return retryCount > 0 ? AiTaskGroup.retrying : AiTaskGroup.queued;
       default:
@@ -77,6 +83,8 @@ class AiTaskQueueModel {
         return '执行中';
       case AiTaskGroup.done:
         return '已完成';
+      case AiTaskGroup.localOnly:
+        return '已在本地处理';
     }
   }
 
@@ -97,6 +105,8 @@ class AiTaskQueueModel {
         return '正在执行，请稍候';
       case AiTaskGroup.done:
         return '已处理完成，可清理';
+      case AiTaskGroup.localOnly:
+        return '分流判定无需上云（内容已本地保存），不消耗额度';
     }
   }
 

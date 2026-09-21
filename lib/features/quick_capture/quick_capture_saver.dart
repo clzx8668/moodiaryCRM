@@ -7,8 +7,11 @@ import 'package:moodiary/features/attachments/attachment_manager.dart';
 import 'package:moodiary/features/ai/colloquial/colloquial_detector.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_queue_worker.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
+import 'package:moodiary/features/ai/triage/ai_triage_service.dart';
+import 'package:moodiary/features/ai/triage/triage_types.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_state.dart';
+import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/media_util.dart';
@@ -120,60 +123,60 @@ class QuickCaptureSaver {
       );
     }
 
-    // M1：提交 AI 自动标签/分类任务（异步，不阻塞保存）
-    unawaited(
-      AiTaskQueueWorker.instance.submitTask(
-        type: 'auto_tag',
-        refId: diary.id,
-      ),
-    );
-
-    // P0 去口语化：仅当"口语特征明显"才入队（本地检测 0 token，不阻塞保存）
-    final report = ColloquialDetector.analyze(text);
-    if (report.shouldClean) {
-      unawaited(
-        AiTaskQueueWorker.instance.submitTask(
-          type: 'de_colloquial',
-          refId: diary.id,
-        ),
-      );
-    }
-
-    // P1 extract_plan：仅当命中待办/日程/CRM 信号词时触发（避免每条都跑大抽取）
-    if (_looksExtractable(text)) {
-      unawaited(
-        AiTaskQueueWorker.instance.submitTask(
-          type: 'extract_plan',
-          refId: diary.id,
-        ),
-      );
-    }
+    // ── 边缘预筛选（批次 109）：本地先决定"哪些操作值得上云" ──
+    // 三级分流：① 本地规则 ② 本地轻量分类器 ③ 云端只处理被选中的。
+    await _enqueueByTriage(diary: diary, text: text);
 
     return diary;
   }
 
-  static bool _looksExtractable(String text) {
-    const signals = [
-      '待办',
-      '提醒',
-      '记得',
-      '明天',
-      '后天',
-      '下周',
-      '开会',
-      '联系',
-      '客户',
-      '合同',
-      '报价',
-      '跟进',
-      '拜访',
-      '预约',
-      '回款',
-      '发票',
-      '方案',
-    ];
-    return signals.any(text.contains);
+  /// 按分流结果入队 AI 任务（只入队"该上云"的那些）。
+  static Future<void> _enqueueByTriage({
+    required Diary diary,
+    required String text,
+  }) async {
+    // 候选操作：由各能力的开关决定（关掉的根本不进候选）
+    final candidates = <TriageOperation>[];
+    if (PrefUtil.getValue<bool>('aiAutoTag') ?? true) {
+      candidates.add(TriageOperation.autoTag);
+    }
+    if (PrefUtil.getValue<bool>('aiAutoClassify') ?? true) {
+      candidates.add(TriageOperation.autoClassify);
+    }
+    if (PrefUtil.getValue<bool>('aiAutoSummary') ?? false) {
+      candidates.add(TriageOperation.autoSummary);
+    }
+    // 去口语化：保留原有的"口语特征明显才考虑"前置过滤（零成本本地检测）
+    final colloquial = ColloquialDetector.analyze(text);
+    if (colloquial.shouldClean) {
+      candidates.add(TriageOperation.deColloquial);
+    }
+    // 抽取：交给规则引擎判断（替换原先的 _looksExtractable 词表）
+    candidates.add(TriageOperation.extractPlan);
+
+    final result = await AiTriageService.instance.route(
+      text: text,
+      operations: candidates,
+      refId: diary.id,
+    );
+    for (final op in result.sendOperations) {
+      final type = _taskTypeOf(op);
+      if (type == null) continue;
+      unawaited(
+        AiTaskQueueWorker.instance.submitTask(type: type, refId: diary.id),
+      );
+    }
   }
+
+  /// 分流操作 → 队列任务类型
+  static String? _taskTypeOf(TriageOperation op) => switch (op) {
+    TriageOperation.autoTag => AiTaskType.autoTag,
+    TriageOperation.autoClassify => AiTaskType.autoClassify,
+    TriageOperation.autoSummary => AiTaskType.autoSummary,
+    TriageOperation.deColloquial => AiTaskType.deColloquial,
+    TriageOperation.extractPlan => AiTaskType.extractPlan,
+    _ => null,
+  };
 
   static String _deriveTitle(String text) {
     final trimmed = text.trim();

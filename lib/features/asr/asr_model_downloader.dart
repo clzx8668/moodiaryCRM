@@ -72,7 +72,7 @@ class AsrModelDownloader {
   /// 那个 227MB 版本在部分设备上会让进程静默退出），所以不用它。
   static final Map<String, List<String>> sources = {
     AsrModelFiles.vad: [
-      '${_ghMirror}$_ghRelease/silero_vad.onnx',
+      '$_ghMirror$_ghRelease/silero_vad.onnx',
       'https://hf-mirror.com/csukuangfj/vad/resolve/main/silero_vad.onnx',
     ],
     AsrModelFiles.asr: [

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:moodiary/components/base/tile/setting_tile.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_queue_model.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
+import 'package:moodiary/features/ai/triage/ai_triage_settings_page.dart';
 import 'package:moodiary/features/smart_canvas/widgets/relative_time.dart';
 import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/persistence/isar.dart';
@@ -47,6 +48,7 @@ class _AiTaskQueuePageState extends State<AiTaskQueuePage> {
   Future<void> _load() async {
     try {
       final tasks = await _repo.listAll();
+      debugPrint('[AiTaskQueue] 载入 ${tasks.length} 条任务');
       final titles = await _loadNoteTitles(tasks);
       if (!mounted) return;
       setState(() {
@@ -54,9 +56,17 @@ class _AiTaskQueuePageState extends State<AiTaskQueuePage> {
         _noteTitles = titles;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      // 分流卡片/标题查询失败不该让整页空白；打出原因便于排查
+      debugPrint('[AiTaskQueue] 加载失败：$e\n$st');
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _openTriageSettings() async {
+    await Get.to(() => const AiTriageSettingsPage());
+    // 策略可能改过（例如解禁某些操作/额度），回来重新统计
+    if (mounted) await _load();
   }
 
   /// 批量取笔记标题（一次查询，任务行里只存 id）。
@@ -230,6 +240,8 @@ class _AiTaskQueuePageState extends State<AiTaskQueuePage> {
                           waitingConfig: _countOf(AiTaskGroup.waitingConfig),
                           waitingNetwork: _countOf(AiTaskGroup.waitingNetwork),
                         ),
+                        const SizedBox(height: 12),
+                        _buildTriageCard(colorScheme),
                         for (final group in visibleGroups) ...[
                           const SizedBox(height: 18),
                           _buildGroupHeader(
@@ -246,6 +258,54 @@ class _AiTaskQueuePageState extends State<AiTaskQueuePage> {
             ),
     );
   }
+
+	  /// 分流概览：让"哪些内容没上云、为什么"可见。
+	  ///
+	  /// 刻意做得**紧凑**：队列页的主角是任务列表，这块只是说明，
+	  /// 太高会把"排队中"那一组挤出首屏（首屏可见性对用户判断很重要）。
+	  Widget _buildTriageCard(ColorScheme colorScheme) {
+	    final localOnly = _countOf(AiTaskGroup.localOnly);
+	    final done = _countOf(AiTaskGroup.done);
+	    final total = done + localOnly;
+	    final ratio = total == 0 ? 0.0 : localOnly / total;
+	    return Card(
+	      margin: EdgeInsets.zero,
+	      child: Padding(
+	        padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+	        child: Row(
+	          children: [
+	            Icon(
+	              Icons.shield_moon_outlined,
+	              size: 16,
+	              color: colorScheme.primary,
+	            ),
+	            const SizedBox(width: 6),
+	            Expanded(
+	              child: Text(
+	                total == 0
+	                    ? '本地分流已开启：只有需要的才联网'
+	                    : '本地分流：$total 条中 $localOnly 条本地完成'
+	                          '（${(ratio * 100).toStringAsFixed(0)}%，未上云）',
+	                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+	                  color: colorScheme.onSurfaceVariant,
+	                ),
+	                maxLines: 1,
+	                overflow: TextOverflow.ellipsis,
+	              ),
+	            ),
+	            TextButton(
+	              onPressed: _openTriageSettings,
+	              style: TextButton.styleFrom(
+	                visualDensity: VisualDensity.compact,
+	                padding: const EdgeInsets.symmetric(horizontal: 8),
+	              ),
+	              child: const Text('策略'),
+	            ),
+	          ],
+	        ),
+	      ),
+	    );
+	  }
 
   Widget _buildEmpty(ColorScheme colorScheme) {
     // 空态也要能下拉刷新，故用可滚动容器
@@ -461,6 +521,8 @@ class _AiTaskQueuePageState extends State<AiTaskQueuePage> {
         return Icons.schedule_rounded;
       case AiTaskGroup.processing:
         return Icons.autorenew_rounded;
+      case AiTaskGroup.localOnly:
+        return Icons.shield_moon_outlined;
       case AiTaskGroup.done:
         return Icons.check_circle_outline_rounded;
     }
@@ -480,6 +542,8 @@ class _AiTaskQueuePageState extends State<AiTaskQueuePage> {
         return colorScheme.onSurfaceVariant;
       case AiTaskGroup.processing:
         return colorScheme.primary;
+      case AiTaskGroup.localOnly:
+        return colorScheme.onSurfaceVariant;
       case AiTaskGroup.done:
         return colorScheme.onSurfaceVariant;
     }
