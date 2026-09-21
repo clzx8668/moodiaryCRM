@@ -8,60 +8,14 @@ import 'package:latlong2/latlong.dart';
 import 'package:moodiary/common/models/geo.dart';
 import 'package:moodiary/common/models/github.dart';
 import 'package:moodiary/common/models/hitokoto.dart';
-import 'package:moodiary/common/models/hunyuan.dart';
 import 'package:moodiary/common/models/image.dart';
 import 'package:moodiary/common/models/weather.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/pref.dart';
 import 'package:moodiary/utils/http_util.dart';
 import 'package:moodiary/utils/notice_util.dart';
-import 'package:moodiary/utils/signature_util.dart';
 
 class Api {
-  static Future<Stream<String>?> getHunYuan(
-    String id,
-    String key,
-    List<Message> messages,
-    int model,
-  ) async {
-    //获取时间戳
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final hunyuanModel = switch (model) {
-      0 => 'hunyuan-lite',
-      1 => 'hunyuan-standard',
-      2 => 'hunyuan-pro',
-      3 => 'hunyuan-turbo',
-      _ => 'hunyuan-lite',
-    };
-    //请求正文
-    final body = {
-      'Model': hunyuanModel,
-      'Messages': messages.map((value) => value.toJson()).toList(),
-      'Stream': true,
-    };
-
-    //获取签名
-    final authorization = SignatureUtil.generateSignature(
-      id,
-      key,
-      timestamp,
-      body,
-    );
-    //构造请求头
-    final header = PublicHeader(
-      action: 'ChatCompletions',
-      timestamp: timestamp ~/ 1000,
-      version: '2023-09-01',
-      authorization: authorization,
-    );
-    //发起请求
-    return await HttpUtil().postStream(
-      'https://hunyuan.tencentcloudapi.com',
-      header: header.toJson(),
-      data: body,
-    );
-  }
-
   static Future<Uint8List?> getImageData(String url) async {
     return (await HttpUtil().get(url, type: ResponseType.bytes)).data;
   }

@@ -8,12 +8,13 @@ import 'package:moodiary/features/ai/multi_provider.dart';
 ///
 /// 这是"能力按功能分开配置"的运行时落地：DeepSeek 做对话、
 /// OpenAI 做向量互不干扰。
-class AiCompositeProvider implements AiProvider {
+class AiCompositeProvider implements AiProvider, AiCompositeProviderLike {
   final MultiProvider _chat;
   final OpenAiCompatibleProvider? _embedding;
   final String? _embeddingName;
 
   /// 当前对话模型展示（如「DeepSeek · deepseek-chat」）
+  @override
   final String? chatLabel;
 
   /// 可用对话模型列表（服务商 × 勾选模型），供界面切换

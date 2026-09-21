@@ -1,13 +1,10 @@
-import 'dart:convert';
-
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:moodiary/api/api.dart';
-import 'package:moodiary/common/models/hunyuan.dart';
+import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/array_util.dart';
-import 'package:moodiary/utils/signature_util.dart';
+import 'package:moodiary/utils/notice_util.dart';
 
 import 'analyse_state.dart';
 
@@ -76,27 +73,37 @@ class AnalyseLogic extends GetxController {
   }
 
   Future<void> getAi() async {
-    final check = SignatureUtil.checkTencent();
-    if (check != null) {
-      state.reply = '';
+    // 批次 116：从"腾讯云混元专有签名"切到**通用模型**——
+    // 与旧版助手一致，统一走「模型管理」里配置的服务商（OpenAI 兼容），
+    // 不再需要腾讯云 SecretId/SecretKey。
+    final provider = await AiProviderFactory.load();
+    if (!provider.isConfigured) {
+      toast.info(message: '请先在「AI 设置 → 模型管理」配置一个服务商');
+      return;
+    }
+    state.reply = '';
+    update();
+    await for (final chunk in provider.streamChat([
+      const AiChatMessage(
+        role: 'system',
+        content:
+            '我会给你一组来自一款日记APP的数据，其中包含了在某一段时间内，'
+            '日记所记录的心情情况，根据这些数据，分析用户最近的心情状况，'
+            '并给出合理的建议，心情的值是一个从0.0到1.0的浮点数，'
+            '从小到大表示心情从坏到好，给你的值是一个Map，'
+            '其中的Key是心情指数，Value是对应心情指数出现的次数。'
+            '给出的输出应当是结论，不需要给出分析过程，不需要其他反馈。',
+      ),
+      AiChatMessage(role: 'user', content: '心情：${state.moodMap.toString()}'),
+    ])) {
+      if (chunk.error != null && chunk.error!.isNotEmpty) {
+        state.reply = '（出错了）${chunk.error}';
+        update();
+        return;
+      }
+      if (chunk.text.isEmpty) continue;
+      state.reply += chunk.text;
       update();
-      final stream = await Api.getHunYuan(check['id']!, check['key']!, [
-        const Message(
-          role: 'system',
-          content:
-              '我会给你一组来自一款日记APP的数据，其中包含了在某一段时间内，日记所记录的心情情况，根据这些数据，分析用户最近的心情状况，并给出合理的建议，心情的值是一个从0.0到1.0的浮点数，从小到大表示心情从坏到好，给你的值是一个Map，其中的Key是心情指数，Value是对应心情指数出现的次数。给出的输出应当是结论，不需要给出分析过程，不需要其他反馈。',
-        ),
-        Message(role: 'user', content: '心情：${state.moodMap.toString()}'),
-      ], 0);
-      stream?.listen((content) {
-        if (content != '' && content.contains('data')) {
-          final HunyuanResponse result = HunyuanResponse.fromJson(
-            jsonDecode(content.split('data: ')[1]),
-          );
-          state.reply += result.choices!.first.delta!.content!;
-          update();
-        }
-      });
     }
   }
 }

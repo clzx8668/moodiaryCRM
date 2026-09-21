@@ -46,6 +46,25 @@ abstract class AiProvider {
 
   /// 生成文本向量（P3.3）
   Future<List<double>> embed(String text);
+
+}
+
+/// 读取"当前生效的服务商/模型"展示名（如「DeepSeek · deepseek-chat」）。
+///
+/// 做成**顶层帮助函数**而不是接口方法：`AiProvider` 的实现有多个
+/// （含测试里的 fake），往接口加方法会迫使所有实现补一遍；
+/// 这里只关心"能拿到就用"，拿不到返回空串，不影响任何既有实现。
+String describeProvider(AiProvider provider) {
+  if (provider is AiCompositeProviderLike) {
+    final like = provider as AiCompositeProviderLike;
+    return like.chatLabel?.trim() ?? '';
+  }
+  return '';
+}
+
+/// 能描述自己模型来源的 Provider 的最小契约。
+abstract class AiCompositeProviderLike {
+  String? get chatLabel;
 }
 
 /// 对话消息

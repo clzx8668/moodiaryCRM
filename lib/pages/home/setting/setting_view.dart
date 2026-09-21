@@ -18,7 +18,6 @@ import 'package:moodiary/components/remove_password/remove_password_view.dart';
 import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
-import 'package:moodiary/features/ai/legacy/tencent_hunyuan_settings_page.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_queue_page.dart';
 import 'package:moodiary/features/ai/digest/digest_scheduler.dart';
 import 'package:moodiary/features/thirdparty/third_party_keys_page.dart';
@@ -728,15 +727,6 @@ class SettingPage extends StatelessWidget {
                   leading: const Icon(Icons.vpn_key_outlined),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => Get.to(() => const ThirdPartyKeysPage()),
-                ),
-                AdaptiveListTile(
-                  title: const Text('智能助手（旧版）凭据'),
-                  subtitle: const Text('腾讯云混元：仅旧版助手与分析统计需要'),
-                  leading: const Icon(Icons.cloud_outlined),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  isLast: true,
-                  onTap: () =>
-                      Get.to(() => const TencentHunyuanSettingsPage()),
                 ),
               ],
             ),

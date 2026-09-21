@@ -6,6 +6,7 @@ import 'package:markdown_widget/markdown_widget.dart';
 import 'package:moodiary/common/values/border.dart';
 import 'package:moodiary/components/base/button.dart';
 import 'package:moodiary/components/base/text.dart';
+import 'package:moodiary/features/ai/ai_settings_page.dart';
 import 'package:moodiary/l10n/l10n.dart';
 
 import 'assistant_logic.dart';
@@ -17,13 +18,6 @@ class AssistantPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final logic = Bind.find<AssistantLogic>();
     final state = Bind.find<AssistantLogic>().state;
-
-    final modelMap = {
-      0: 'hunyuan-lite',
-      1: 'hunyuan-standard',
-      2: 'hunyuan-pro',
-      3: 'hunyuan-turbo',
-    };
 
     Widget buildInput() {
       return Container(
@@ -158,48 +152,31 @@ class AssistantPage extends StatelessWidget {
                             pinned: true,
                             leading: const PageBackButton(),
                             actions: [
-                              GestureDetector(
-                                onTap: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      return SimpleDialog(
-                                        title: const Text('选择模型'),
-                                        children: List.generate(
-                                          modelMap.length,
-                                          (index) {
-                                            return Obx(() {
-                                              return SimpleDialogOption(
-                                                child: Row(
-                                                  spacing: 4.0,
-                                                  children: [
-                                                    Text(modelMap[index]!),
-                                                    if (state
-                                                            .modelVersion
-                                                            .value ==
-                                                        index) ...[
-                                                      const Icon(
-                                                        Icons.check_rounded,
-                                                      ),
-                                                    ],
-                                                  ],
-                                                ),
-                                                onPressed: () {
-                                                  logic.changeModel(index);
-                                                },
-                                              );
-                                            });
-                                          },
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
-                                child: Obx(() {
-                                  return Text(
-                                    modelMap[state.modelVersion.value]!,
-                                  );
-                                }),
+                              // 批次 116：模型不再在本页切换，统一由「模型管理」决定；
+                              // 这里只显示**当前实际生效**的服务商·模型，点一下可去配置。
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      Get.to(() => const AiSettingsPage()),
+                                  child: Obx(
+                                    () => ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 150,
+                                      ),
+                                      child: Text(
+                                        state.modelLabel.value.isEmpty
+                                            ? '未配置模型'
+                                            : state.modelLabel.value,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                               IconButton(
                                 onPressed: () {
