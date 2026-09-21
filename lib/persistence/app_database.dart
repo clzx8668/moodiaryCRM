@@ -777,6 +777,22 @@ class Schedules extends Table {
   /// 浮动待办（无固定日期）：只在"今日"收件箱聚合展示，不随具体日期出现
   BoolColumn get floating => boolean().withDefault(const Constant(false))();
 
+  /// 归属日历（多日历 + 颜色；null = 默认日历）
+  TextColumn get calendarId => text().nullable()();
+
+  /// 地点（事件卡上的定位图标）
+  TextColumn get location => text().nullable()();
+
+  /// 附件元信息（JSON 数组：{name, size, path, mime}）
+  TextColumn get attachments =>
+      text().map(const JsonListConverter()).withDefault(const Constant('[]'))();
+
+  /// 时区（IANA，如 Asia/Shanghai；null = 跟随设备）
+  TextColumn get timeZoneId => text().nullable()();
+
+  /// 日程建议草案（收件箱待确认，不直接进日历）
+  BoolColumn get draft => boolean().withDefault(const Constant(false))();
+
   /// 重复规则：none / daily / weekly / monthly / yearly
   TextColumn get repeatType => text().withDefault(const Constant('none'))();
 
@@ -809,6 +825,42 @@ class Schedules extends Table {
 
   /// 软删除
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 日历（iOS 18 风多日历：工作/生活/家庭…，颜色 + 显示开关）。
+@DataClassName('CalendarRow')
+class Calendars extends Table {
+  TextColumn get id => text()();
+
+  /// 日历名（工作 / 生活 / 家庭 …）
+  TextColumn get name => text()();
+
+  /// 颜色（ARGB）
+  IntColumn get color => integer()();
+
+  /// 显示开关（false = 月格与时间轴都不显示该日历的事件）
+  BoolColumn get visible => boolean().withDefault(const Constant(true))();
+
+  /// 新建事件的默认落点（全局恰一个 true）
+  BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
+
+  /// 来源：local / hermes / icloud（订阅源只读）
+  TextColumn get source => text().withDefault(const Constant('local'))();
+
+  /// 共享人数（0 = 未共享；只读展示，真正的共享走 Hermes）
+  IntColumn get sharedCount => integer().withDefault(const Constant(0))();
+
+  /// 展示顺序
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// 软删除
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -855,13 +907,14 @@ class Schedules extends Table {
     AiChatMessages,
     AiTasks,
     Schedules,
+    Calendars,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 23;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -989,9 +1042,21 @@ class AppDatabase extends _$AppDatabase {
         final db = m.database as AppDatabase;
         await _addColumnIfMissing(m, db.schedules, db.schedules.floating);
       }
+      // v22 → v23：多日历（calendars 表）+ Schedules 增列（日历归属/地点/附件/时区/草案）
+      if (from < 23) {
+        final db = m.database as AppDatabase;
+        await m.createTable(db.calendars);
+        await _addColumnIfMissing(m, db.schedules, db.schedules.calendarId);
+        await _addColumnIfMissing(m, db.schedules, db.schedules.location);
+        await _addColumnIfMissing(m, db.schedules, db.schedules.attachments);
+        await _addColumnIfMissing(m, db.schedules, db.schedules.timeZoneId);
+        await _addColumnIfMissing(m, db.schedules, db.schedules.draft);
+      }
     },
     beforeOpen: (details) async {
       // 数据级迁移（v1→v2→v3）由 MigrationService 在打开后执行
+      // 多日历播种（幂等：已有日历则不动；历史日程回填到默认日历）
+      await _ensureDefaultCalendars(this);
     },
   );
 
@@ -1015,4 +1080,61 @@ Future<void> _addColumnIfMissing(
   if (!hasColumn) {
     await m.addColumn(table, column);
   }
+}
+
+/// 多日历播种（v23，幂等）。
+///
+/// - 库里没有任何日历 → 建「工作 / 生活 / 家庭」三个（工作为默认）；
+/// - 历史日程 `calendar_id` 为空 → 回填默认日历，避免旧数据在月格里"没颜色"；
+/// - 全过程写 `app_metadata.calendar_migration_v23` 日志（幂等标记 + 影响行数）。
+Future<void> _ensureDefaultCalendars(AppDatabase db) async {
+  const logKey = 'calendar_migration_v23';
+  const seeds = <(String id, String name, int color, int sortOrder)>[
+    ('work', '工作', 0xFF0A84FF, 0),
+    ('life', '生活', 0xFF30D158, 1),
+    ('family', '家庭', 0xFFFF9F0A, 2),
+  ];
+
+  final existing = await db.select(db.calendars).get();
+  final hasDefault = existing.any((c) => c.isDefault && !c.deleted);
+  final now = DateTime.now();
+
+  if (existing.isEmpty) {
+    await db.transaction(() async {
+      for (final seed in seeds) {
+        await db.into(db.calendars).insert(
+          CalendarsCompanion.insert(
+            id: seed.$1,
+            name: seed.$2,
+            color: seed.$3,
+            isDefault: Value(seed.$1 == 'work'),
+            sortOrder: Value(seed.$4),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+      }
+      await db.customStatement(
+        "UPDATE schedules SET calendar_id = 'work' "
+        'WHERE calendar_id IS NULL',
+      );
+    });
+  } else if (!hasDefault) {
+    // 灾后修复：用户把默认日历删空了 → 抬升排序最靠前的那个
+    final alive = existing.where((c) => !c.deleted).toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    if (alive.isNotEmpty) {
+      await (db.update(db.calendars)..where((t) => t.id.equals(alive.first.id)))
+          .write(const CalendarsCompanion(isDefault: Value(true)));
+    }
+  }
+
+  await db.into(db.appMetadata).insertOnConflictUpdate(
+    AppMetadataCompanion.insert(
+      key: logKey,
+      value:
+          '{"at":"${now.toIso8601String()}","calendars":${existing.length},'
+          '"seeded":${existing.isEmpty}}',
+    ),
+  );
 }

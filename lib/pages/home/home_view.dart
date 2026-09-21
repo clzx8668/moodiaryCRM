@@ -13,7 +13,7 @@ import 'package:moodiary/features/crm/crm_home_page.dart';
 import 'package:moodiary/features/quick_capture/fab_gesture.dart';
 import 'package:moodiary/features/quick_capture/quick_capture_view.dart';
 import 'package:moodiary/l10n/l10n.dart';
-import 'package:moodiary/pages/home/calendar/calendar_view.dart';
+import 'package:moodiary/features/calendar/views/ios_calendar_page.dart';
 import 'package:moodiary/pages/home/diary/diary_view.dart';
 import 'package:moodiary/pages/home/media/media_view.dart';
 import 'package:moodiary/pages/home/setting/setting_view.dart';
@@ -157,7 +157,7 @@ class HomePage extends StatelessWidget {
                         physics: const NeverScrollableScrollPhysics(),
                         children: const [
                           DiaryPage(),
-                          CalendarPage(),
+                          IosCalendarPage(),
                           MediaPage(),
                           CrmHomePage(),
                           AiHomePage(),

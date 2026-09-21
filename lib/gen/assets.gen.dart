@@ -18,6 +18,16 @@ class $ResGen {
   $ResSponsorGen get sponsor => const $ResSponsorGen();
 }
 
+class $AssetsAsrGen {
+  const $AssetsAsrGen();
+
+  /// File path: assets/asr/asr_selftest.wav
+  String get asrSelftest => 'assets/asr/asr_selftest.wav';
+
+  /// List of all assets
+  List<String> get values => [asrSelftest];
+}
+
 class $AssetsIconGen {
   const $AssetsIconGen();
 
@@ -133,6 +143,7 @@ class $AssetsIconLightGen {
 }
 
 abstract final class Assets {
+  static const $AssetsAsrGen asr = $AssetsAsrGen();
   static const $AssetsIconGen icon = $AssetsIconGen();
   static const $AssetsLottieGen lottie = $AssetsLottieGen();
   static const $AssetsTfliteGen tflite = $AssetsTfliteGen();

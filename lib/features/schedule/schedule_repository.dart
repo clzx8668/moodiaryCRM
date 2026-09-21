@@ -4,6 +4,7 @@ import 'package:moodiary/persistence/isar.dart';
 import 'package:uuid/uuid.dart';
 
 import 'models/schedule.dart';
+import 'models/schedule_attachment.dart';
 import 'schedule_recurrence.dart';
 
 /// 待办/日程仓储层（唯一读写入口，批次 B）。
@@ -103,6 +104,13 @@ class ScheduleRepository {
     ..endTime = row.endTime
     ..allDay = row.allDay
     ..floating = row.floating
+    ..calendarId = row.calendarId
+    ..location = row.location
+    ..attachments = [
+      for (final a in row.attachments) ScheduleAttachment.fromJson(a),
+    ]
+    ..timeZoneId = row.timeZoneId
+    ..draft = row.draft
     ..repeatType = RepeatType.fromValue(row.repeatType)
     ..remindOffsetMin = row.remindOffsetMin
     ..priority = SchedulePriority.fromValue(row.priority)
@@ -127,6 +135,11 @@ class ScheduleRepository {
     endTime: Value(s.endTime),
     allDay: Value(s.allDay),
     floating: Value(s.floating),
+    calendarId: Value(s.calendarId),
+    location: Value(s.location),
+    attachments: Value([for (final a in s.attachments) a.toJson()]),
+    timeZoneId: Value(s.timeZoneId),
+    draft: Value(s.draft),
     repeatType: Value(s.repeatType.value),
     remindOffsetMin: Value(s.remindOffsetMin),
     priority: Value(s.priority.value),

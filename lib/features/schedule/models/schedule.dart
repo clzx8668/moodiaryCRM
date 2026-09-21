@@ -1,5 +1,7 @@
 import 'package:uuid/uuid.dart';
 
+import 'schedule_attachment.dart';
+
 /// 重复规则（参考主流日历应用的重复选项）。
 enum RepeatType {
   none('none', '不重复'),
@@ -75,6 +77,21 @@ class Schedule {
   /// 浮动待办（无固定日期）：只在"今日"收件箱聚合展示
   bool floating = false;
 
+  /// 归属日历（多日历 + 颜色；null = 默认日历）
+  String? calendarId;
+
+  /// 地点（事件卡上的定位图标；空 = 不显示）
+  String? location;
+
+  /// 附件元信息（iOS 18 风「事件加附件」）
+  List<ScheduleAttachment> attachments = [];
+
+  /// 时区（IANA，如 Asia/Shanghai；null = 跟随设备）
+  String? timeZoneId;
+
+  /// 日程建议草案：true = 停留在「收件箱」待用户确认，不进日历
+  bool draft = false;
+
   RepeatType repeatType = RepeatType.none;
 
   /// 提前提醒分钟数（null=不提醒）
@@ -119,6 +136,11 @@ class Schedule {
               )
     ..allDay = allDay
     ..floating = floating
+    ..calendarId = calendarId
+    ..location = location
+    ..attachments = [for (final a in attachments) a.clone()]
+    ..timeZoneId = timeZoneId
+    ..draft = draft
     ..repeatType = repeatType
     ..remindOffsetMin = remindOffsetMin
     ..priority = priority
@@ -175,6 +197,11 @@ class Schedule {
     'endTime': endTime?.toIso8601String(),
     'allDay': allDay,
     'floating': floating,
+    'calendarId': calendarId,
+    'location': location,
+    'attachments': [for (final a in attachments) a.toJson()],
+    'timeZoneId': timeZoneId,
+    'draft': draft,
     'repeatType': repeatType.value,
     'remindOffsetMin': remindOffsetMin,
     'priority': priority.value,
@@ -200,6 +227,14 @@ class Schedule {
         : DateTime.parse(json['endTime'] as String)
     ..allDay = json['allDay'] as bool? ?? false
     ..floating = json['floating'] as bool? ?? false
+    ..calendarId = json['calendarId'] as String?
+    ..location = json['location'] as String?
+    ..attachments = [
+      for (final a in (json['attachments'] as List? ?? []))
+        ScheduleAttachment.fromJson(a),
+    ]
+    ..timeZoneId = json['timeZoneId'] as String?
+    ..draft = json['draft'] as bool? ?? false
     ..repeatType = RepeatType.fromValue(json['repeatType'] as String?)
     ..remindOffsetMin = (json['remindOffsetMin'] as num?)?.toInt()
     ..priority = SchedulePriority.fromValue(

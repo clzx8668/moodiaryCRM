@@ -20884,6 +20884,62 @@ class $SchedulesTable extends Schedules
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _calendarIdMeta = const VerificationMeta(
+    'calendarId',
+  );
+  @override
+  late final GeneratedColumn<String> calendarId = GeneratedColumn<String>(
+    'calendar_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _locationMeta = const VerificationMeta(
+    'location',
+  );
+  @override
+  late final GeneratedColumn<String> location = GeneratedColumn<String>(
+    'location',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<List<dynamic>, String>
+  attachments = GeneratedColumn<String>(
+    'attachments',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  ).withConverter<List<dynamic>>($SchedulesTable.$converterattachments);
+  static const VerificationMeta _timeZoneIdMeta = const VerificationMeta(
+    'timeZoneId',
+  );
+  @override
+  late final GeneratedColumn<String> timeZoneId = GeneratedColumn<String>(
+    'time_zone_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _draftMeta = const VerificationMeta('draft');
+  @override
+  late final GeneratedColumn<bool> draft = GeneratedColumn<bool>(
+    'draft',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("draft" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _repeatTypeMeta = const VerificationMeta(
     'repeatType',
   );
@@ -21040,6 +21096,11 @@ class $SchedulesTable extends Schedules
     endTime,
     allDay,
     floating,
+    calendarId,
+    location,
+    attachments,
+    timeZoneId,
+    draft,
     repeatType,
     remindOffsetMin,
     priority,
@@ -21109,6 +21170,33 @@ class $SchedulesTable extends Schedules
       context.handle(
         _floatingMeta,
         floating.isAcceptableOrUnknown(data['floating']!, _floatingMeta),
+      );
+    }
+    if (data.containsKey('calendar_id')) {
+      context.handle(
+        _calendarIdMeta,
+        calendarId.isAcceptableOrUnknown(data['calendar_id']!, _calendarIdMeta),
+      );
+    }
+    if (data.containsKey('location')) {
+      context.handle(
+        _locationMeta,
+        location.isAcceptableOrUnknown(data['location']!, _locationMeta),
+      );
+    }
+    if (data.containsKey('time_zone_id')) {
+      context.handle(
+        _timeZoneIdMeta,
+        timeZoneId.isAcceptableOrUnknown(
+          data['time_zone_id']!,
+          _timeZoneIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('draft')) {
+      context.handle(
+        _draftMeta,
+        draft.isAcceptableOrUnknown(data['draft']!, _draftMeta),
       );
     }
     if (data.containsKey('repeat_type')) {
@@ -21227,6 +21315,28 @@ class $SchedulesTable extends Schedules
         DriftSqlType.bool,
         data['${effectivePrefix}floating'],
       )!,
+      calendarId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calendar_id'],
+      ),
+      location: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location'],
+      ),
+      attachments: $SchedulesTable.$converterattachments.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}attachments'],
+        )!,
+      ),
+      timeZoneId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}time_zone_id'],
+      ),
+      draft: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}draft'],
+      )!,
       repeatType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}repeat_type'],
@@ -21291,6 +21401,8 @@ class $SchedulesTable extends Schedules
     return $SchedulesTable(attachedDatabase, alias);
   }
 
+  static TypeConverter<List<dynamic>, String> $converterattachments =
+      const JsonListConverter();
   static TypeConverter<List<dynamic>, String> $convertersubtasks =
       const JsonListConverter();
   static TypeConverter<List<String>, String> $converterimageNames =
@@ -21317,6 +21429,21 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
 
   /// 浮动待办（无固定日期）：只在"今日"收件箱聚合展示，不随具体日期出现
   final bool floating;
+
+  /// 归属日历（多日历 + 颜色；null = 默认日历）
+  final String? calendarId;
+
+  /// 地点（事件卡上的定位图标）
+  final String? location;
+
+  /// 附件元信息（JSON 数组：{name, size, path, mime}）
+  final List<dynamic> attachments;
+
+  /// 时区（IANA，如 Asia/Shanghai；null = 跟随设备）
+  final String? timeZoneId;
+
+  /// 日程建议草案（收件箱待确认，不直接进日历）
+  final bool draft;
 
   /// 重复规则：none / daily / weekly / monthly / yearly
   final String repeatType;
@@ -21358,6 +21485,11 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
     this.endTime,
     required this.allDay,
     required this.floating,
+    this.calendarId,
+    this.location,
+    required this.attachments,
+    this.timeZoneId,
+    required this.draft,
     required this.repeatType,
     this.remindOffsetMin,
     required this.priority,
@@ -21384,6 +21516,21 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
     }
     map['all_day'] = Variable<bool>(allDay);
     map['floating'] = Variable<bool>(floating);
+    if (!nullToAbsent || calendarId != null) {
+      map['calendar_id'] = Variable<String>(calendarId);
+    }
+    if (!nullToAbsent || location != null) {
+      map['location'] = Variable<String>(location);
+    }
+    {
+      map['attachments'] = Variable<String>(
+        $SchedulesTable.$converterattachments.toSql(attachments),
+      );
+    }
+    if (!nullToAbsent || timeZoneId != null) {
+      map['time_zone_id'] = Variable<String>(timeZoneId);
+    }
+    map['draft'] = Variable<bool>(draft);
     map['repeat_type'] = Variable<String>(repeatType);
     if (!nullToAbsent || remindOffsetMin != null) {
       map['remind_offset_min'] = Variable<int>(remindOffsetMin);
@@ -21429,6 +21576,17 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
           : Value(endTime),
       allDay: Value(allDay),
       floating: Value(floating),
+      calendarId: calendarId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calendarId),
+      location: location == null && nullToAbsent
+          ? const Value.absent()
+          : Value(location),
+      attachments: Value(attachments),
+      timeZoneId: timeZoneId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(timeZoneId),
+      draft: Value(draft),
       repeatType: Value(repeatType),
       remindOffsetMin: remindOffsetMin == null && nullToAbsent
           ? const Value.absent()
@@ -21466,6 +21624,11 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
       endTime: serializer.fromJson<DateTime?>(json['endTime']),
       allDay: serializer.fromJson<bool>(json['allDay']),
       floating: serializer.fromJson<bool>(json['floating']),
+      calendarId: serializer.fromJson<String?>(json['calendarId']),
+      location: serializer.fromJson<String?>(json['location']),
+      attachments: serializer.fromJson<List<dynamic>>(json['attachments']),
+      timeZoneId: serializer.fromJson<String?>(json['timeZoneId']),
+      draft: serializer.fromJson<bool>(json['draft']),
       repeatType: serializer.fromJson<String>(json['repeatType']),
       remindOffsetMin: serializer.fromJson<int?>(json['remindOffsetMin']),
       priority: serializer.fromJson<int>(json['priority']),
@@ -21492,6 +21655,11 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
       'endTime': serializer.toJson<DateTime?>(endTime),
       'allDay': serializer.toJson<bool>(allDay),
       'floating': serializer.toJson<bool>(floating),
+      'calendarId': serializer.toJson<String?>(calendarId),
+      'location': serializer.toJson<String?>(location),
+      'attachments': serializer.toJson<List<dynamic>>(attachments),
+      'timeZoneId': serializer.toJson<String?>(timeZoneId),
+      'draft': serializer.toJson<bool>(draft),
       'repeatType': serializer.toJson<String>(repeatType),
       'remindOffsetMin': serializer.toJson<int?>(remindOffsetMin),
       'priority': serializer.toJson<int>(priority),
@@ -21516,6 +21684,11 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
     Value<DateTime?> endTime = const Value.absent(),
     bool? allDay,
     bool? floating,
+    Value<String?> calendarId = const Value.absent(),
+    Value<String?> location = const Value.absent(),
+    List<dynamic>? attachments,
+    Value<String?> timeZoneId = const Value.absent(),
+    bool? draft,
     String? repeatType,
     Value<int?> remindOffsetMin = const Value.absent(),
     int? priority,
@@ -21537,6 +21710,11 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
     endTime: endTime.present ? endTime.value : this.endTime,
     allDay: allDay ?? this.allDay,
     floating: floating ?? this.floating,
+    calendarId: calendarId.present ? calendarId.value : this.calendarId,
+    location: location.present ? location.value : this.location,
+    attachments: attachments ?? this.attachments,
+    timeZoneId: timeZoneId.present ? timeZoneId.value : this.timeZoneId,
+    draft: draft ?? this.draft,
     repeatType: repeatType ?? this.repeatType,
     remindOffsetMin: remindOffsetMin.present
         ? remindOffsetMin.value
@@ -21566,6 +21744,17 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
       endTime: data.endTime.present ? data.endTime.value : this.endTime,
       allDay: data.allDay.present ? data.allDay.value : this.allDay,
       floating: data.floating.present ? data.floating.value : this.floating,
+      calendarId: data.calendarId.present
+          ? data.calendarId.value
+          : this.calendarId,
+      location: data.location.present ? data.location.value : this.location,
+      attachments: data.attachments.present
+          ? data.attachments.value
+          : this.attachments,
+      timeZoneId: data.timeZoneId.present
+          ? data.timeZoneId.value
+          : this.timeZoneId,
+      draft: data.draft.present ? data.draft.value : this.draft,
       repeatType: data.repeatType.present
           ? data.repeatType.value
           : this.repeatType,
@@ -21602,6 +21791,11 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
           ..write('endTime: $endTime, ')
           ..write('allDay: $allDay, ')
           ..write('floating: $floating, ')
+          ..write('calendarId: $calendarId, ')
+          ..write('location: $location, ')
+          ..write('attachments: $attachments, ')
+          ..write('timeZoneId: $timeZoneId, ')
+          ..write('draft: $draft, ')
           ..write('repeatType: $repeatType, ')
           ..write('remindOffsetMin: $remindOffsetMin, ')
           ..write('priority: $priority, ')
@@ -21620,7 +21814,7 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     title,
     notes,
@@ -21628,6 +21822,11 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
     endTime,
     allDay,
     floating,
+    calendarId,
+    location,
+    attachments,
+    timeZoneId,
+    draft,
     repeatType,
     remindOffsetMin,
     priority,
@@ -21641,7 +21840,7 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
     deleted,
     createdAt,
     updatedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -21653,6 +21852,11 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
           other.endTime == this.endTime &&
           other.allDay == this.allDay &&
           other.floating == this.floating &&
+          other.calendarId == this.calendarId &&
+          other.location == this.location &&
+          other.attachments == this.attachments &&
+          other.timeZoneId == this.timeZoneId &&
+          other.draft == this.draft &&
           other.repeatType == this.repeatType &&
           other.remindOffsetMin == this.remindOffsetMin &&
           other.priority == this.priority &&
@@ -21676,6 +21880,11 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
   final Value<DateTime?> endTime;
   final Value<bool> allDay;
   final Value<bool> floating;
+  final Value<String?> calendarId;
+  final Value<String?> location;
+  final Value<List<dynamic>> attachments;
+  final Value<String?> timeZoneId;
+  final Value<bool> draft;
   final Value<String> repeatType;
   final Value<int?> remindOffsetMin;
   final Value<int> priority;
@@ -21698,6 +21907,11 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
     this.endTime = const Value.absent(),
     this.allDay = const Value.absent(),
     this.floating = const Value.absent(),
+    this.calendarId = const Value.absent(),
+    this.location = const Value.absent(),
+    this.attachments = const Value.absent(),
+    this.timeZoneId = const Value.absent(),
+    this.draft = const Value.absent(),
     this.repeatType = const Value.absent(),
     this.remindOffsetMin = const Value.absent(),
     this.priority = const Value.absent(),
@@ -21721,6 +21935,11 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
     this.endTime = const Value.absent(),
     this.allDay = const Value.absent(),
     this.floating = const Value.absent(),
+    this.calendarId = const Value.absent(),
+    this.location = const Value.absent(),
+    this.attachments = const Value.absent(),
+    this.timeZoneId = const Value.absent(),
+    this.draft = const Value.absent(),
     this.repeatType = const Value.absent(),
     this.remindOffsetMin = const Value.absent(),
     this.priority = const Value.absent(),
@@ -21748,6 +21967,11 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
     Expression<DateTime>? endTime,
     Expression<bool>? allDay,
     Expression<bool>? floating,
+    Expression<String>? calendarId,
+    Expression<String>? location,
+    Expression<String>? attachments,
+    Expression<String>? timeZoneId,
+    Expression<bool>? draft,
     Expression<String>? repeatType,
     Expression<int>? remindOffsetMin,
     Expression<int>? priority,
@@ -21771,6 +21995,11 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
       if (endTime != null) 'end_time': endTime,
       if (allDay != null) 'all_day': allDay,
       if (floating != null) 'floating': floating,
+      if (calendarId != null) 'calendar_id': calendarId,
+      if (location != null) 'location': location,
+      if (attachments != null) 'attachments': attachments,
+      if (timeZoneId != null) 'time_zone_id': timeZoneId,
+      if (draft != null) 'draft': draft,
       if (repeatType != null) 'repeat_type': repeatType,
       if (remindOffsetMin != null) 'remind_offset_min': remindOffsetMin,
       if (priority != null) 'priority': priority,
@@ -21796,6 +22025,11 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
     Value<DateTime?>? endTime,
     Value<bool>? allDay,
     Value<bool>? floating,
+    Value<String?>? calendarId,
+    Value<String?>? location,
+    Value<List<dynamic>>? attachments,
+    Value<String?>? timeZoneId,
+    Value<bool>? draft,
     Value<String>? repeatType,
     Value<int?>? remindOffsetMin,
     Value<int>? priority,
@@ -21819,6 +22053,11 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
       endTime: endTime ?? this.endTime,
       allDay: allDay ?? this.allDay,
       floating: floating ?? this.floating,
+      calendarId: calendarId ?? this.calendarId,
+      location: location ?? this.location,
+      attachments: attachments ?? this.attachments,
+      timeZoneId: timeZoneId ?? this.timeZoneId,
+      draft: draft ?? this.draft,
       repeatType: repeatType ?? this.repeatType,
       remindOffsetMin: remindOffsetMin ?? this.remindOffsetMin,
       priority: priority ?? this.priority,
@@ -21859,6 +22098,23 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
     }
     if (floating.present) {
       map['floating'] = Variable<bool>(floating.value);
+    }
+    if (calendarId.present) {
+      map['calendar_id'] = Variable<String>(calendarId.value);
+    }
+    if (location.present) {
+      map['location'] = Variable<String>(location.value);
+    }
+    if (attachments.present) {
+      map['attachments'] = Variable<String>(
+        $SchedulesTable.$converterattachments.toSql(attachments.value),
+      );
+    }
+    if (timeZoneId.present) {
+      map['time_zone_id'] = Variable<String>(timeZoneId.value);
+    }
+    if (draft.present) {
+      map['draft'] = Variable<bool>(draft.value);
     }
     if (repeatType.present) {
       map['repeat_type'] = Variable<String>(repeatType.value);
@@ -21919,6 +22175,11 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
           ..write('endTime: $endTime, ')
           ..write('allDay: $allDay, ')
           ..write('floating: $floating, ')
+          ..write('calendarId: $calendarId, ')
+          ..write('location: $location, ')
+          ..write('attachments: $attachments, ')
+          ..write('timeZoneId: $timeZoneId, ')
+          ..write('draft: $draft, ')
           ..write('repeatType: $repeatType, ')
           ..write('remindOffsetMin: $remindOffsetMin, ')
           ..write('priority: $priority, ')
@@ -21929,6 +22190,674 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
           ..write('imageNames: $imageNames, ')
           ..write('linkedDiaryId: $linkedDiaryId, ')
           ..write('linkedBlockId: $linkedBlockId, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CalendarsTable extends Calendars
+    with TableInfo<$CalendarsTable, CalendarRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CalendarsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _visibleMeta = const VerificationMeta(
+    'visible',
+  );
+  @override
+  late final GeneratedColumn<bool> visible = GeneratedColumn<bool>(
+    'visible',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("visible" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _isDefaultMeta = const VerificationMeta(
+    'isDefault',
+  );
+  @override
+  late final GeneratedColumn<bool> isDefault = GeneratedColumn<bool>(
+    'is_default',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_default" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('local'),
+  );
+  static const VerificationMeta _sharedCountMeta = const VerificationMeta(
+    'sharedCount',
+  );
+  @override
+  late final GeneratedColumn<int> sharedCount = GeneratedColumn<int>(
+    'shared_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    color,
+    visible,
+    isDefault,
+    source,
+    sharedCount,
+    sortOrder,
+    deleted,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'calendars';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CalendarRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorMeta);
+    }
+    if (data.containsKey('visible')) {
+      context.handle(
+        _visibleMeta,
+        visible.isAcceptableOrUnknown(data['visible']!, _visibleMeta),
+      );
+    }
+    if (data.containsKey('is_default')) {
+      context.handle(
+        _isDefaultMeta,
+        isDefault.isAcceptableOrUnknown(data['is_default']!, _isDefaultMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('shared_count')) {
+      context.handle(
+        _sharedCountMeta,
+        sharedCount.isAcceptableOrUnknown(
+          data['shared_count']!,
+          _sharedCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CalendarRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CalendarRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      )!,
+      visible: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}visible'],
+      )!,
+      isDefault: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_default'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      sharedCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}shared_count'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CalendarsTable createAlias(String alias) {
+    return $CalendarsTable(attachedDatabase, alias);
+  }
+}
+
+class CalendarRow extends DataClass implements Insertable<CalendarRow> {
+  final String id;
+
+  /// 日历名（工作 / 生活 / 家庭 …）
+  final String name;
+
+  /// 颜色（ARGB）
+  final int color;
+
+  /// 显示开关（false = 月格与时间轴都不显示该日历的事件）
+  final bool visible;
+
+  /// 新建事件的默认落点（全局恰一个 true）
+  final bool isDefault;
+
+  /// 来源：local / hermes / icloud（订阅源只读）
+  final String source;
+
+  /// 共享人数（0 = 未共享；只读展示，真正的共享走 Hermes）
+  final int sharedCount;
+
+  /// 展示顺序
+  final int sortOrder;
+
+  /// 软删除
+  final bool deleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const CalendarRow({
+    required this.id,
+    required this.name,
+    required this.color,
+    required this.visible,
+    required this.isDefault,
+    required this.source,
+    required this.sharedCount,
+    required this.sortOrder,
+    required this.deleted,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['color'] = Variable<int>(color);
+    map['visible'] = Variable<bool>(visible);
+    map['is_default'] = Variable<bool>(isDefault);
+    map['source'] = Variable<String>(source);
+    map['shared_count'] = Variable<int>(sharedCount);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['deleted'] = Variable<bool>(deleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CalendarsCompanion toCompanion(bool nullToAbsent) {
+    return CalendarsCompanion(
+      id: Value(id),
+      name: Value(name),
+      color: Value(color),
+      visible: Value(visible),
+      isDefault: Value(isDefault),
+      source: Value(source),
+      sharedCount: Value(sharedCount),
+      sortOrder: Value(sortOrder),
+      deleted: Value(deleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CalendarRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CalendarRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      color: serializer.fromJson<int>(json['color']),
+      visible: serializer.fromJson<bool>(json['visible']),
+      isDefault: serializer.fromJson<bool>(json['isDefault']),
+      source: serializer.fromJson<String>(json['source']),
+      sharedCount: serializer.fromJson<int>(json['sharedCount']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'color': serializer.toJson<int>(color),
+      'visible': serializer.toJson<bool>(visible),
+      'isDefault': serializer.toJson<bool>(isDefault),
+      'source': serializer.toJson<String>(source),
+      'sharedCount': serializer.toJson<int>(sharedCount),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'deleted': serializer.toJson<bool>(deleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CalendarRow copyWith({
+    String? id,
+    String? name,
+    int? color,
+    bool? visible,
+    bool? isDefault,
+    String? source,
+    int? sharedCount,
+    int? sortOrder,
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => CalendarRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    color: color ?? this.color,
+    visible: visible ?? this.visible,
+    isDefault: isDefault ?? this.isDefault,
+    source: source ?? this.source,
+    sharedCount: sharedCount ?? this.sharedCount,
+    sortOrder: sortOrder ?? this.sortOrder,
+    deleted: deleted ?? this.deleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CalendarRow copyWithCompanion(CalendarsCompanion data) {
+    return CalendarRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      color: data.color.present ? data.color.value : this.color,
+      visible: data.visible.present ? data.visible.value : this.visible,
+      isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
+      source: data.source.present ? data.source.value : this.source,
+      sharedCount: data.sharedCount.present
+          ? data.sharedCount.value
+          : this.sharedCount,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('visible: $visible, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('source: $source, ')
+          ..write('sharedCount: $sharedCount, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('deleted: $deleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    color,
+    visible,
+    isDefault,
+    source,
+    sharedCount,
+    sortOrder,
+    deleted,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CalendarRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.color == this.color &&
+          other.visible == this.visible &&
+          other.isDefault == this.isDefault &&
+          other.source == this.source &&
+          other.sharedCount == this.sharedCount &&
+          other.sortOrder == this.sortOrder &&
+          other.deleted == this.deleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CalendarsCompanion extends UpdateCompanion<CalendarRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<int> color;
+  final Value<bool> visible;
+  final Value<bool> isDefault;
+  final Value<String> source;
+  final Value<int> sharedCount;
+  final Value<int> sortOrder;
+  final Value<bool> deleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const CalendarsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.color = const Value.absent(),
+    this.visible = const Value.absent(),
+    this.isDefault = const Value.absent(),
+    this.source = const Value.absent(),
+    this.sharedCount = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CalendarsCompanion.insert({
+    required String id,
+    required String name,
+    required int color,
+    this.visible = const Value.absent(),
+    this.isDefault = const Value.absent(),
+    this.source = const Value.absent(),
+    this.sharedCount = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.deleted = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       color = Value(color),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CalendarRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<int>? color,
+    Expression<bool>? visible,
+    Expression<bool>? isDefault,
+    Expression<String>? source,
+    Expression<int>? sharedCount,
+    Expression<int>? sortOrder,
+    Expression<bool>? deleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (color != null) 'color': color,
+      if (visible != null) 'visible': visible,
+      if (isDefault != null) 'is_default': isDefault,
+      if (source != null) 'source': source,
+      if (sharedCount != null) 'shared_count': sharedCount,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (deleted != null) 'deleted': deleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CalendarsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<int>? color,
+    Value<bool>? visible,
+    Value<bool>? isDefault,
+    Value<String>? source,
+    Value<int>? sharedCount,
+    Value<int>? sortOrder,
+    Value<bool>? deleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CalendarsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      color: color ?? this.color,
+      visible: visible ?? this.visible,
+      isDefault: isDefault ?? this.isDefault,
+      source: source ?? this.source,
+      sharedCount: sharedCount ?? this.sharedCount,
+      sortOrder: sortOrder ?? this.sortOrder,
+      deleted: deleted ?? this.deleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
+    if (visible.present) {
+      map['visible'] = Variable<bool>(visible.value);
+    }
+    if (isDefault.present) {
+      map['is_default'] = Variable<bool>(isDefault.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (sharedCount.present) {
+      map['shared_count'] = Variable<int>(sharedCount.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('visible: $visible, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('source: $source, ')
+          ..write('sharedCount: $sharedCount, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('deleted: $deleted, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -21995,6 +22924,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AiChatMessagesTable aiChatMessages = $AiChatMessagesTable(this);
   late final $AiTasksTable aiTasks = $AiTasksTable(this);
   late final $SchedulesTable schedules = $SchedulesTable(this);
+  late final $CalendarsTable calendars = $CalendarsTable(this);
   late final Index idxAiTasksStatus = Index(
     'idx_ai_tasks_status',
     'CREATE INDEX idx_ai_tasks_status ON ai_tasks (status)',
@@ -22049,6 +22979,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     aiChatMessages,
     aiTasks,
     schedules,
+    calendars,
     idxAiTasksStatus,
     idxSchedulesStart,
     idxSchedulesDone,
@@ -32511,6 +33442,11 @@ typedef $$SchedulesTableCreateCompanionBuilder =
       Value<DateTime?> endTime,
       Value<bool> allDay,
       Value<bool> floating,
+      Value<String?> calendarId,
+      Value<String?> location,
+      Value<List<dynamic>> attachments,
+      Value<String?> timeZoneId,
+      Value<bool> draft,
       Value<String> repeatType,
       Value<int?> remindOffsetMin,
       Value<int> priority,
@@ -32535,6 +33471,11 @@ typedef $$SchedulesTableUpdateCompanionBuilder =
       Value<DateTime?> endTime,
       Value<bool> allDay,
       Value<bool> floating,
+      Value<String?> calendarId,
+      Value<String?> location,
+      Value<List<dynamic>> attachments,
+      Value<String?> timeZoneId,
+      Value<bool> draft,
       Value<String> repeatType,
       Value<int?> remindOffsetMin,
       Value<int> priority,
@@ -32592,6 +33533,32 @@ class $$SchedulesTableFilterComposer
 
   ColumnFilters<bool> get floating => $composableBuilder(
     column: $table.floating,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get calendarId => $composableBuilder(
+    column: $table.calendarId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<List<dynamic>, List<dynamic>, String>
+  get attachments => $composableBuilder(
+    column: $table.attachments,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get timeZoneId => $composableBuilder(
+    column: $table.timeZoneId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get draft => $composableBuilder(
+    column: $table.draft,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -32707,6 +33674,31 @@ class $$SchedulesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get calendarId => $composableBuilder(
+    column: $table.calendarId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get attachments => $composableBuilder(
+    column: $table.attachments,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get timeZoneId => $composableBuilder(
+    column: $table.timeZoneId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get draft => $composableBuilder(
+    column: $table.draft,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get repeatType => $composableBuilder(
     column: $table.repeatType,
     builder: (column) => ColumnOrderings(column),
@@ -32803,6 +33795,28 @@ class $$SchedulesTableAnnotationComposer
   GeneratedColumn<bool> get floating =>
       $composableBuilder(column: $table.floating, builder: (column) => column);
 
+  GeneratedColumn<String> get calendarId => $composableBuilder(
+    column: $table.calendarId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get location =>
+      $composableBuilder(column: $table.location, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<dynamic>, String> get attachments =>
+      $composableBuilder(
+        column: $table.attachments,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get timeZoneId => $composableBuilder(
+    column: $table.timeZoneId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get draft =>
+      $composableBuilder(column: $table.draft, builder: (column) => column);
+
   GeneratedColumn<String> get repeatType => $composableBuilder(
     column: $table.repeatType,
     builder: (column) => column,
@@ -32892,6 +33906,11 @@ class $$SchedulesTableTableManager
                 Value<DateTime?> endTime = const Value.absent(),
                 Value<bool> allDay = const Value.absent(),
                 Value<bool> floating = const Value.absent(),
+                Value<String?> calendarId = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                Value<List<dynamic>> attachments = const Value.absent(),
+                Value<String?> timeZoneId = const Value.absent(),
+                Value<bool> draft = const Value.absent(),
                 Value<String> repeatType = const Value.absent(),
                 Value<int?> remindOffsetMin = const Value.absent(),
                 Value<int> priority = const Value.absent(),
@@ -32914,6 +33933,11 @@ class $$SchedulesTableTableManager
                 endTime: endTime,
                 allDay: allDay,
                 floating: floating,
+                calendarId: calendarId,
+                location: location,
+                attachments: attachments,
+                timeZoneId: timeZoneId,
+                draft: draft,
                 repeatType: repeatType,
                 remindOffsetMin: remindOffsetMin,
                 priority: priority,
@@ -32938,6 +33962,11 @@ class $$SchedulesTableTableManager
                 Value<DateTime?> endTime = const Value.absent(),
                 Value<bool> allDay = const Value.absent(),
                 Value<bool> floating = const Value.absent(),
+                Value<String?> calendarId = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                Value<List<dynamic>> attachments = const Value.absent(),
+                Value<String?> timeZoneId = const Value.absent(),
+                Value<bool> draft = const Value.absent(),
                 Value<String> repeatType = const Value.absent(),
                 Value<int?> remindOffsetMin = const Value.absent(),
                 Value<int> priority = const Value.absent(),
@@ -32960,6 +33989,11 @@ class $$SchedulesTableTableManager
                 endTime: endTime,
                 allDay: allDay,
                 floating: floating,
+                calendarId: calendarId,
+                location: location,
+                attachments: attachments,
+                timeZoneId: timeZoneId,
+                draft: draft,
                 repeatType: repeatType,
                 remindOffsetMin: remindOffsetMin,
                 priority: priority,
@@ -32998,6 +34032,322 @@ typedef $$SchedulesTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $SchedulesTable, ScheduleRow>,
       ),
       ScheduleRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CalendarsTableCreateCompanionBuilder =
+    CalendarsCompanion Function({
+      required String id,
+      required String name,
+      required int color,
+      Value<bool> visible,
+      Value<bool> isDefault,
+      Value<String> source,
+      Value<int> sharedCount,
+      Value<int> sortOrder,
+      Value<bool> deleted,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CalendarsTableUpdateCompanionBuilder =
+    CalendarsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<int> color,
+      Value<bool> visible,
+      Value<bool> isDefault,
+      Value<String> source,
+      Value<int> sharedCount,
+      Value<int> sortOrder,
+      Value<bool> deleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CalendarsTableFilterComposer
+    extends Composer<_$AppDatabase, $CalendarsTable> {
+  $$CalendarsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get visible => $composableBuilder(
+    column: $table.visible,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sharedCount => $composableBuilder(
+    column: $table.sharedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CalendarsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CalendarsTable> {
+  $$CalendarsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get visible => $composableBuilder(
+    column: $table.visible,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDefault => $composableBuilder(
+    column: $table.isDefault,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sharedCount => $composableBuilder(
+    column: $table.sharedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CalendarsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CalendarsTable> {
+  $$CalendarsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<bool> get visible =>
+      $composableBuilder(column: $table.visible, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDefault =>
+      $composableBuilder(column: $table.isDefault, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<int> get sharedCount => $composableBuilder(
+    column: $table.sharedCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CalendarsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CalendarsTable,
+          CalendarRow,
+          $$CalendarsTableFilterComposer,
+          $$CalendarsTableOrderingComposer,
+          $$CalendarsTableAnnotationComposer,
+          $$CalendarsTableCreateCompanionBuilder,
+          $$CalendarsTableUpdateCompanionBuilder,
+          (
+            CalendarRow,
+            BaseReferences<_$AppDatabase, $CalendarsTable, CalendarRow>,
+          ),
+          CalendarRow,
+          PrefetchHooks Function()
+        > {
+  $$CalendarsTableTableManager(_$AppDatabase db, $CalendarsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CalendarsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CalendarsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CalendarsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> color = const Value.absent(),
+                Value<bool> visible = const Value.absent(),
+                Value<bool> isDefault = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<int> sharedCount = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CalendarsCompanion(
+                id: id,
+                name: name,
+                color: color,
+                visible: visible,
+                isDefault: isDefault,
+                source: source,
+                sharedCount: sharedCount,
+                sortOrder: sortOrder,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required int color,
+                Value<bool> visible = const Value.absent(),
+                Value<bool> isDefault = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<int> sharedCount = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CalendarsCompanion.insert(
+                id: id,
+                name: name,
+                color: color,
+                visible: visible,
+                isDefault: isDefault,
+                source: source,
+                sharedCount: sharedCount,
+                sortOrder: sortOrder,
+                deleted: deleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CalendarsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CalendarsTable,
+      CalendarRow,
+      $$CalendarsTableFilterComposer,
+      $$CalendarsTableOrderingComposer,
+      $$CalendarsTableAnnotationComposer,
+      $$CalendarsTableCreateCompanionBuilder,
+      $$CalendarsTableUpdateCompanionBuilder,
+      (
+        CalendarRow,
+        BaseReferences<_$AppDatabase, $CalendarsTable, CalendarRow>,
+      ),
+      CalendarRow,
       PrefetchHooks Function()
     >;
 
@@ -33078,4 +34428,6 @@ class $AppDatabaseManager {
       $$AiTasksTableTableManager(_db, _db.aiTasks);
   $$SchedulesTableTableManager get schedules =>
       $$SchedulesTableTableManager(_db, _db.schedules);
+  $$CalendarsTableTableManager get calendars =>
+      $$CalendarsTableTableManager(_db, _db.calendars);
 }
