@@ -79,6 +79,9 @@ class AsrChannel(
                 worker.execute {
                     segmentIndex = 0
                     sessionResults.clear()
+                    feedCount = 0
+                    fedSamples = 0L
+                    sessionStart = System.currentTimeMillis()
                     vad?.reset()
                     main.post { result.success(true) }
                 }
@@ -349,11 +352,35 @@ class AsrChannel(
         vad = null
     }
 
+    /**
+     * 音频到达 / 出句节奏埋点（仅 debug 构建）。
+     * 用途：确认"是模型慢"还是"音频块来得太晚"——这是"说了半天不出字"的关键诊断。
+     */
+    private val trace = runCatching {
+        // 反射读取 applicationId 无关的调试标记（BuildConfig 在 debug 变体才生成）
+        val cls = Class.forName("cn.yooss.moodiary.BuildConfig")
+        cls.getField("DEBUG").getBoolean(null)
+    }.getOrDefault(false)
+    private var feedCount = 0
+    private var fedSamples = 0L
+    private var sessionStart = System.currentTimeMillis()
+
     private fun feed(bytes: ByteArray) {
         val engine = vad ?: return
         val samples = pcm16ToFloat(bytes)
         try {
             engine.acceptWaveform(samples)
+            if (trace) {
+                feedCount++
+                fedSamples += samples.size
+                if (feedCount % 25 == 0) {
+                    android.util.Log.i(
+                        "AsrTrace",
+                        "feed#$feedCount 累计 ${fedSamples / 16000.0}s " +
+                            "(块=${samples.size} 采样, 距开始 ${System.currentTimeMillis() - sessionStart}ms)"
+                    )
+                }
+            }
             drain()
         } catch (e: Throwable) {
             emitError("端侧识别异常：${e.message}")
@@ -387,6 +414,13 @@ class AsrChannel(
                 if (text.isNotEmpty()) {
                     sessionResults.add(text)
                     val index = segmentIndex++
+                    if (trace) {
+                        android.util.Log.i(
+                            "AsrTrace",
+                            "出句#$index 用时 ${System.currentTimeMillis() - sessionStart}ms：" +
+                                "「${text.take(20)}」（段长 ${samples.size / 16000.0}s）"
+                        )
+                    }
                     main.post {
                         channel.invokeMethod(
                             "onResult",

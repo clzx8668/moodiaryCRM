@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:moodiary/features/asr/asr_model_store.dart';
@@ -147,6 +148,10 @@ class VoiceCaptureController {
   static OnDeviceAsrEngine defaultAsrEngine() =>
       Platform.isWindows ? FfiAsrEngine() : MethodChannelAsrEngine();
 
+  /// 喂给端侧引擎的单块字节数：512 采样(int16) = 1024 字节 = 32ms @16k。
+  /// 与 Kotlin 侧 VAD 的 `windowSize=512` 对齐，保证"块一到就能推进一帧"。
+  static const int _pcmFeedBlockBytes = 1024;
+
   /// 当前阶段
   final ValueNotifier<VoiceCapturePhase> phase = ValueNotifier(
     VoiceCapturePhase.idle,
@@ -180,6 +185,10 @@ class VoiceCaptureController {
   StreamSubscription<Uint8List>? _pcmSub;
   WavWriter? _wavWriter;
   PcmGate? _gate;
+
+  /// WAV 写入串行化：一块 PCM 会被拆成多个 32ms 小块，若并发写同一个文件句柄
+  /// 会抛 "async operation is currently pending"。这里把所有写操作串成一条链。
+  Future<void> _writeChain = Future<void>.value();
 
   Timer? _ticker;
   StreamSubscription<double>? _ampSub;
@@ -349,20 +358,38 @@ class VoiceCaptureController {
     if (writer == null) return;
     // 暂停期间不写入（流一般也停了，这里兜一层防止把暂停段录进去）
     if (phase.value != VoiceCapturePhase.recording) return;
-    unawaited(writer.add(chunk));
+
+    // 关键：录音插件给过来的块**可能很大**（有的平台一次给 1 秒甚至更多），
+    // 那样端侧引擎只能在"块到齐"时才推进 VAD，用户就会感觉"说完很久才出字"。
+    // 这里统一拆成 32ms 的小块（512 采样 = 1024 字节）顺序喂，恢复"边说边出"。
+    var offset = 0;
+    while (offset < chunk.length) {
+      final end = math.min(offset + _pcmFeedBlockBytes, chunk.length);
+      final block = Uint8List.sublistView(chunk, offset, end);
+      offset = end;
+      _feedPcmBlock(block);
+    }
+  }
+
+  void _feedPcmBlock(Uint8List block) {
+    final writer = _wavWriter;
+    if (writer != null) {
+      // 串行写入：小块的写入排队执行，避免同一个文件句柄并发写
+      _writeChain = _writeChain.then((_) => writer.add(block)).catchError((_) {});
+    }
 
     // 用 PCM 真实响度驱动电平与包络（比插件的 amplitude 更贴端侧链路）
-    final rms = PcmGate.rms(chunk);
+    final rms = PcmGate.rms(block);
     envelope.add(rms);
     level.value = rms.clamp(0.0, 1.0);
 
     final gate = _gate;
     final engine = _asrEngine;
     if (gate == null || engine == null) return;
-    final pass = gate.accept(chunk);
+    final pass = gate.accept(block);
     speaking.value = gate.isSpeaking;
     // 门卫不过（纯静音/底噪）时不喂模型：省电、也减少无效句
-    if (pass) unawaited(engine.acceptPcm(chunk));
+    if (pass) unawaited(engine.acceptPcm(block));
   }
 
   Future<void> pause() async {
@@ -530,6 +557,10 @@ class VoiceCaptureController {
     final writer = _wavWriter;
     _wavWriter = null;
     if (writer != null) {
+      try {
+        // 先把排队中的小块写完，再回填 WAV 头
+        await _writeChain;
+      } catch (_) {}
       try {
         await writer.close(); // 回填真实的 data 长度
       } catch (_) {}

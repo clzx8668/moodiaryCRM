@@ -372,6 +372,31 @@ void main() {
     });
 
     test('引擎不可用 → 返回错误文案，调用方据此回退云端', () async {
+      // 先验"大块会被拆成小块"：录音插件在某些平台一次给 1 秒，
+      // 不拆的话端侧只能在"整块到齐"时才推进，用户会觉得"半天不出字"。
+      await controller.startStreaming();
+      // 1 秒 16k/mono/int16 的"有声"信号（否则会被 PcmGate 当静音挡掉，测不到拆块）
+      final oneSecond = Uint8List(16000 * 2);
+      final view = ByteData.sublistView(oneSecond);
+      for (var i = 0; i < 16000; i++) {
+        view.setInt16(i * 2, i.isEven ? 12000 : -12000, Endian.little);
+      }
+      recorder.pcmController!.add(oneSecond);
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      expect(
+        engine.received.length,
+        greaterThan(1),
+        reason: '1 秒的大块应被拆成多个 32ms 小块再喂引擎',
+      );
+      expect(
+        engine.received.every((b) => b.length <= 1024),
+        isTrue,
+        reason: '每块不应超过 512 采样(1024 字节)',
+      );
+      await controller.stop();
+    });
+
+    test('引擎 isReady=false → 返回错误文案，调用方据此回退云端', () async {
       final error = await controller.startStreaming();
       // 上面这条正常；这里单独验"引擎 isReady=false"的分支
       expect(error, isNull);
