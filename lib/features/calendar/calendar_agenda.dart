@@ -191,3 +191,166 @@ List<DateTime> weekDays(DateTime day, {int weekStart = 1}) {
   final start = d.subtract(Duration(days: offset));
   return [for (var i = 0; i < 7; i++) start.add(Duration(days: i))];
 }
+
+// ---------------------------------------------------------------- 时间轴布局
+
+/// 一天里的第几分钟（0..1439）。
+int minutesOfDay(DateTime t) => t.hour * 60 + t.minute;
+
+/// 按 [step] 分钟吸附（就近取整，iOS 日历默认 15 分钟一档）。
+int snapMinutes(int minutes, int step) {
+  if (step <= 0) return minutes;
+  // 用 double.round() 保证负数也对称（-30 → -30，而不是 -15）
+  return (minutes / step).round() * step;
+}
+
+/// 把分钟数还原成当天的时刻（超出 0..1440 会自动进位/退位）。
+DateTime dayAtMinutes(DateTime day, int minutes) => DateTime(
+  day.year,
+  day.month,
+  day.day,
+).add(Duration(minutes: minutes));
+
+/// 时间轴里一个事件的位置（比例值，由视图乘以自身宽高）。
+class TimelineEventLayout {
+  final Schedule event;
+
+  /// 距当天 0 点的比例（0..1）
+  final double topRatio;
+
+  /// 高度比例（0..1）
+  final double heightRatio;
+
+  /// 横向占比（重叠事件并排分栏）
+  final int columnIndex;
+  final int columnCount;
+
+  const TimelineEventLayout({
+    required this.event,
+    required this.topRatio,
+    required this.heightRatio,
+    required this.columnIndex,
+    required this.columnCount,
+  });
+
+  double get leftFactor => columnCount == 0 ? 0 : columnIndex / columnCount;
+
+  double get widthFactor => columnCount == 0 ? 1 : 1 / columnCount;
+}
+
+/// 一天时间轴的布局：算出每个事件的上边距/高度/横向分栏。
+///
+/// - 全天与跨天事件不进时间轴（走「全天」行）；
+/// - 同一时段重叠的事件按「贪心分栏」并排，宽度均分（对齐 iOS 观感）；
+/// - 最小时长 [minMinutes]（默认 15 分钟），避免 1 分钟事件看不见。
+List<TimelineEventLayout> layoutDayTimeline(
+  List<Schedule> events, {
+  int minMinutes = 15,
+}) {
+  final timed = events
+      .where((e) => !e.draft && !e.deleted && !e.floating)
+      .where((e) => !e.allDay && !e.isMultiDay)
+      .toList()
+    ..sort((a, b) {
+      final byStart = minutesOfDay(a.startTime).compareTo(
+        minutesOfDay(b.startTime),
+      );
+      if (byStart != 0) return byStart;
+      // 长的先排，短的后叠，观感更稳
+      return _endMinutes(b).compareTo(_endMinutes(a));
+    });
+
+  final result = <TimelineEventLayout>[];
+  var cluster = <Schedule>[];
+  var clusterEnd = -1;
+
+  void flush() {
+    if (cluster.isEmpty) return;
+    // 贪心分栏
+    final columnEnds = <int>[];
+    final columnOf = <Schedule, int>{};
+    for (final e in cluster) {
+      final start = minutesOfDay(e.startTime);
+      var placed = -1;
+      for (var i = 0; i < columnEnds.length; i++) {
+        if (columnEnds[i] <= start) {
+          placed = i;
+          break;
+        }
+      }
+      if (placed == -1) {
+        columnEnds.add(_endMinutes(e));
+        placed = columnEnds.length - 1;
+      } else {
+        columnEnds[placed] = _endMinutes(e);
+      }
+      columnOf[e] = placed;
+    }
+    final columnCount = columnEnds.length;
+    for (final e in cluster) {
+      final start = minutesOfDay(e.startTime);
+      final end = _endMinutes(e);
+      final duration = (end - start).clamp(minMinutes, 24 * 60);
+      result.add(
+        TimelineEventLayout(
+          event: e,
+          topRatio: (start / (24 * 60)).clamp(0.0, 1.0),
+          heightRatio: (duration / (24 * 60)).clamp(0.0, 1.0),
+          columnIndex: columnOf[e] ?? 0,
+          columnCount: columnCount,
+        ),
+      );
+    }
+    cluster = <Schedule>[];
+    clusterEnd = -1;
+  }
+
+  for (final e in timed) {
+    final start = minutesOfDay(e.startTime);
+    if (cluster.isEmpty || start < clusterEnd) {
+      cluster.add(e);
+      clusterEnd = clusterEnd < _endMinutes(e) ? _endMinutes(e) : clusterEnd;
+    } else {
+      flush();
+      cluster.add(e);
+      clusterEnd = _endMinutes(e);
+    }
+  }
+  flush();
+  return result;
+}
+
+int _endMinutes(Schedule e) {
+  final start = minutesOfDay(e.startTime);
+  final end = e.endTime == null ? start + 60 : minutesOfDay(e.endTime!);
+  return end > start ? end : start + 30;
+}
+
+/// 拖动创建：把「纵向像素区间」换算成吸附后的时间区间。
+///
+/// [startY]/[endY] 是相对时间轴顶部的像素值；[hourHeight] 是每小时的像素高度。
+/// 结果保证 `end - start >= snapMin`。
+(DateTime start, DateTime end) dragRangeToTimes({
+  required DateTime day,
+  required double startY,
+  required double endY,
+  required double hourHeight,
+  int snapMin = 15,
+}) {
+  double toMinutes(double y) => y / hourHeight * 60;
+  var a = snapMinutes(toMinutes(startY).round(), snapMin);
+  var b = snapMinutes(toMinutes(endY).round(), snapMin);
+  if (b < a) {
+    final t = a;
+    a = b;
+    b = t;
+  }
+  if (b - a < snapMin) b = a + snapMin;
+  a = a.clamp(0, 24 * 60);
+  b = b.clamp(0, 24 * 60);
+  return (dayAtMinutes(day, a), dayAtMinutes(day, b));
+}
+
+/// 拖动移动/改时长：把像素位移换算成吸附后的分钟增量。
+int dragDeltaMinutes(double dy, double hourHeight, {int snapMin = 15}) =>
+    snapMinutes((dy / hourHeight * 60).round(), snapMin);

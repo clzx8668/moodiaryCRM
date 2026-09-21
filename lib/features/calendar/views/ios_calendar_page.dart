@@ -17,6 +17,8 @@ import '../models/calendar_list.dart';
 import '../widgets/event_card.dart';
 import '../widgets/frosted_panel.dart';
 import 'calendar_manager_sheet.dart';
+import 'day_timeline.dart';
+import 'event_detail_sheet.dart';
 import 'event_editor_page.dart';
 
 /// 底部三档（iOS 18）：今天 / 日历 / 收件箱。
@@ -43,7 +45,6 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   final _toggleService = TodoToggleService();
 
   final ScrollController _scroll = ScrollController();
-  final GlobalKey _nowAnchor = GlobalKey();
 
   late DateTime _month; // 显示中的月份（1 号）
   late DateTime _selected; // 选中的一天（零点）
@@ -60,6 +61,9 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   bool _loading = true;
   int _weekStart = 1;
 
+  /// 时间轴行高（每小时的像素高度）：拖动几何与视觉密度都依赖它
+  double _hourHeight = 52;
+
   double _lastScale = 1.0;
 
   CalendarAgenda get _agenda => buildAgenda(
@@ -75,6 +79,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     _month = DateTime(now.year, now.month, 1);
     _selected = DateTime(now.year, now.month, now.day);
     _weekStart = PrefUtil.getValue<int>('calendarWeekStart') ?? 1;
+    _hourHeight = PrefUtil.getValue<double>('calendarHourHeight') ?? 52;
     _reload();
   }
 
@@ -137,26 +142,52 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     _scheduleAnchor();
   }
 
-  /// 每天/每月切换：只刷新当日待办与事件（月数据已缓存）。
+  /// 切日 / 拖动落库后刷新：**必须回库重读当天的日程**
+  /// （曾经只读 `_eventsByDay` 缓存，导致"已移到 05:00"但卡片不动）。
   Future<void> _reloadDay() async {
     final todos = await TodoAggregator.load(date: _selected, includeDone: true);
+    final events = await _visibleEventsOfDay(_selected);
     if (!mounted) return;
     setState(() {
-      _dayEvents = _eventsByDay[_selected] ?? const [];
+      _dayEvents = events;
+      _eventsByDay[_selected] = events; // 同步月格上的圆点/事件条
       _todos = todos;
     });
     _scheduleAnchor();
   }
 
-  /// 定位到"现在"或第一个有内容的时段。
+  Future<List<Schedule>> _visibleEventsOfDay(DateTime day) async {
+    final visible = _calendars.where((c) => c.visible).map((c) => c.id).toSet();
+    final events = await _scheduleRepo.byDay(day);
+    return events
+        .where(
+          (e) =>
+              !e.deleted &&
+              !e.draft &&
+              !e.floating &&
+              (e.calendarId == null || visible.contains(e.calendarId)),
+        )
+        .toList();
+  }
+
+  /// 定位到"现在"或第一个有内容的时段（估计偏移，时间轴是等高的绝对画布）。
   void _scheduleAnchor() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final ctx = _nowAnchor.currentContext;
-      if (ctx == null) return;
-      Scrollable.ensureVisible(
-        ctx,
-        alignment: 0.28,
+      if (!mounted || !_scroll.hasClients) return;
+      final agenda = _agenda;
+      final now = DateTime.now();
+      final anchorHour = agenda.busyHours.isNotEmpty
+          ? agenda.busyHours.reduce((a, b) => a < b ? a : b)
+          : (isSameDay(_selected, now) ? now.hour : 8);
+      const headerHeight = 46.0;
+      final allDayHeight = agenda.allDay.isEmpty
+          ? 0.0
+          : 26 + agenda.allDay.length * 54;
+      final target =
+          // 上方留 1.5 小时上下文，避免首个日程贴在吸顶日期头底下
+          headerHeight + allDayHeight + (anchorHour - 1.5) * _hourHeight;
+      _scroll.animateTo(
+        target.clamp(0.0, _scroll.position.maxScrollExtent),
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
       );
@@ -212,6 +243,98 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       ),
     );
     if (created == true) await _reload();
+  }
+
+  /// 拖动出的时间段 → 直接进编辑器（预填起止 + 自动聚焦标题）。
+  Future<void> _createFromRange(DateTime start, DateTime end) async {
+    final created = await Get.to<bool>(
+      () => EventEditorPage(
+        initialStart: start,
+        initialEnd: end,
+        autofocusTitle: true,
+        calendars: _calendars,
+      ),
+    );
+    if (created == true) await _reload();
+  }
+
+  /// 点事件卡 → 详情面板（可编辑/复制/删除）。
+  Future<void> _openDetail(Schedule event) async {
+    final color = _colorOf(event);
+    final result = await showEventDetailSheet(
+      context,
+      event: event,
+      color: color,
+      calendarName: _calendarNameOf(event),
+    );
+    if (!mounted || result == null) return;
+    if (result == EventDetailResult.edit) {
+      await _openEditor(event: event);
+    } else {
+      await _reload();
+    }
+  }
+
+  String _calendarNameOf(Schedule e) {
+    final id = e.calendarId;
+    for (final c in _calendars) {
+      if (c.id == id) return c.name;
+    }
+    return _calendars.isEmpty ? '默认日历' : _calendars.first.name;
+  }
+
+  /// 长按拖动移动事件：保持时长，只改起始时间（15 分钟吸附，已由时间轴算好）。
+  Future<void> _moveEvent(Schedule event, DateTime newStart) async {
+    final duration = event.endTime == null
+        ? const Duration(hours: 1)
+        : event.endTime!.difference(event.startTime);
+    final oldStart = event.startTime;
+    final oldEnd = event.endTime;
+    final moved = event.clone()
+      ..startTime = newStart
+      ..endTime = oldEnd == null ? null : newStart.add(duration);
+    await _scheduleRepo.update(moved);
+    if (mounted) await _reloadDay();
+    _toastUndo(
+      '已移到 ${fmtClock(moved.startTime)}',
+      () async {
+        final back = moved.clone()
+          ..startTime = oldStart
+          ..endTime = oldEnd;
+        await _scheduleRepo.update(back);
+        if (mounted) await _reloadDay();
+      },
+    );
+  }
+
+  /// 长按拖底部手柄改结束时间。
+  Future<void> _resizeEvent(Schedule event, DateTime newEnd) async {
+    final oldEnd = event.endTime;
+    final resized = event.clone()..endTime = newEnd;
+    await _scheduleRepo.update(resized);
+    if (mounted) await _reloadDay();
+    _toastUndo(
+      '${event.title} 改为 ${eventTimeLabel(resized)}',
+      () async {
+        final back = resized.clone()..endTime = oldEnd;
+        await _scheduleRepo.update(back);
+        if (mounted) await _reloadDay();
+      },
+    );
+  }
+
+  void _toastUndo(String message, Future<void> Function() undo) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(label: '撤销', onPressed: () => undo()),
+        ),
+      );
   }
 
   Future<void> _openManager() async {
@@ -303,9 +426,9 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     return FrostedTopBar(
       child: Row(
         children: [
-          IconButton(
+          _barIcon(
             tooltip: '上一月',
-            icon: const Icon(Icons.chevron_left_rounded),
+            icon: Icons.chevron_left_rounded,
             onPressed: () => _shiftMonth(-1),
           ),
           InkWell(
@@ -333,38 +456,65 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
               ),
             ),
           ),
-          IconButton(
+          _barIcon(
             tooltip: '下一月',
-            icon: const Icon(Icons.chevron_right_rounded),
+            icon: Icons.chevron_right_rounded,
             onPressed: () => _shiftMonth(1),
           ),
           const Spacer(),
-          IconButton(
+          _barIcon(
             tooltip: '缩放档位：${_zoomLabel()}（可双指捏合）',
-            icon: Icon(
-              switch (_zoom) {
-                CalendarZoom.dots => Icons.more_horiz_rounded,
-                CalendarZoom.bars => Icons.drag_handle_rounded,
-                CalendarZoom.titles => Icons.view_agenda_rounded,
-              },
-            ),
+            icon: switch (_zoom) {
+              CalendarZoom.dots => Icons.more_horiz_rounded,
+              CalendarZoom.bars => Icons.drag_handle_rounded,
+              CalendarZoom.titles => Icons.view_agenda_rounded,
+            },
             onPressed: _cycleZoom,
           ),
-          IconButton(
+          PopupMenuButton<double>(
+            tooltip: '时间轴行高',
+            icon: const Icon(Icons.height_rounded),
+            initialValue: _hourHeight,
+            onSelected: (v) {
+              setState(() => _hourHeight = v);
+              PrefUtil.setValue<double>('calendarHourHeight', v);
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 40.0, child: Text('紧凑（每小时 40）')),
+              PopupMenuItem(value: 52.0, child: Text('标准（每小时 52）')),
+              PopupMenuItem(value: 84.0, child: Text('宽松（每小时 84）')),
+            ],
+          ),
+          _barIcon(
             tooltip: '日历管理',
-            icon: const Icon(Icons.calendar_month_rounded),
+            icon: Icons.calendar_month_rounded,
             onPressed: _openManager,
           ),
-          IconButton(
+          _barIcon(
             tooltip: '新建事件',
-            icon: Icon(
-              Icons.add_circle_outline_rounded,
-              color: scheme.primary,
-            ),
+            icon: Icons.add_circle_outline_rounded,
+            color: scheme.primary,
             onPressed: () => _openEditor(day: _selected),
           ),
         ],
       ),
+    );
+  }
+
+  /// 顶栏图标按钮：紧凑密度（手机上要放下 6 个按钮 + 月份标题）。
+  Widget _barIcon({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onPressed,
+    Color? color,
+  }) {
+    return IconButton(
+      tooltip: tooltip,
+      icon: Icon(icon, color: color),
+      onPressed: onPressed,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 44),
     );
   }
 
@@ -388,7 +538,6 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
           behavior: HitTestBehavior.deferToChild,
           onScaleStart: _onScaleStart,
           onScaleUpdate: _onScaleUpdate,
-          onDoubleTap: _cycleZoom,
           child: AnimatedSize(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
@@ -458,24 +607,31 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     final now = DateTime.now();
     final isToday = isSameDay(_selected, now);
 
+    // 24 小时时间轴：绝对定位画布（长按拖动新建/移动/改时长都在这里）
     slivers.add(
-      SliverList.builder(
-        itemCount: 24,
-        itemBuilder: (context, hour) {
-          final events = agenda.byHour[hour] ?? const <Schedule>[];
-          final todos = agenda.todosByHour[hour] ?? const <TodoItem>[];
-          final showsNow = isToday && now.hour == hour;
-          return _HourSlot(
-            hour: hour,
-            events: events,
-            todos: todos,
-            colorOf: _colorOf,
-            onTapEvent: (e) => _openEditor(event: e),
-            onToggleTodo: _toggleTodo,
-            nowAnchorKey: showsNow ? _nowAnchor : null,
-            nowLabel: showsNow ? fmtClock(now) : null,
-          );
-        },
+      SliverToBoxAdapter(
+        child: DayTimeline(
+          key: ValueKey('timeline-${_selected.toIso8601String()}'),
+          day: _selected,
+          events: _dayEvents,
+          colorOf: _colorOf,
+          hourHeight: _hourHeight,
+          showNowLine: isToday,
+          markers: [
+            for (final entry in agenda.todosByHour.entries)
+              for (final t in entry.value)
+                TimelineMarker(
+                  at: t.dueDate ?? t.time,
+                  text: t.text,
+                  done: t.done,
+                  onToggle: () => _toggleTodo(t),
+                ),
+          ],
+          onTapEvent: _openDetail,
+          onCreateRange: _createFromRange,
+          onMoveEvent: _moveEvent,
+          onResizeEvent: _resizeEvent,
+        ),
       ),
     );
 
@@ -878,120 +1034,6 @@ class _DayCell extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// 24 小时时间轴的一行。
-class _HourSlot extends StatelessWidget {
-  final int hour;
-  final List<Schedule> events;
-  final List<TodoItem> todos;
-  final Color Function(Schedule) colorOf;
-  final void Function(Schedule) onTapEvent;
-  final void Function(TodoItem) onToggleTodo;
-  final Key? nowAnchorKey;
-  final String? nowLabel;
-
-  const _HourSlot({
-    required this.hour,
-    required this.events,
-    required this.todos,
-    required this.colorOf,
-    required this.onTapEvent,
-    required this.onToggleTodo,
-    this.nowAnchorKey,
-    this.nowLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final busy = events.isNotEmpty || todos.isNotEmpty;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 52,
-          child: Padding(
-            padding: const EdgeInsets.only(right: 6, top: 2),
-            child: Text(
-              '${hour.toString().padLeft(2, '0')}:00',
-              textAlign: TextAlign.right,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          child: Container(
-            key: nowAnchorKey,
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: scheme.outlineVariant.withValues(alpha: 0.35),
-                  width: 0.6,
-                ),
-              ),
-            ),
-            padding: EdgeInsets.fromLTRB(8, busy ? 4 : 6, 12, busy ? 6 : 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final e in events)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: CalendarEventCard(
-                      event: e,
-                      color: colorOf(e),
-                      onTap: () => onTapEvent(e),
-                    ),
-                  ),
-                for (final t in todos)
-                  ReminderRow(
-                    text:
-                        '${fmtClock(t.dueDate ?? t.time)} ${t.text}',
-                    done: t.done,
-                    color: scheme.primary,
-                    onToggle: () => onToggleTodo(t),
-                  ),
-                if (nowLabel != null)
-                  Row(
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: IosCalendarTheme.today,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        nowLabel!,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: IosCalendarTheme.today,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Expanded(
-                        child: Divider(
-                          height: 1,
-                          thickness: 1,
-                          color: IosCalendarTheme.today,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

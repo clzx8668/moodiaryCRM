@@ -20,11 +20,21 @@ class EventEditorPage extends StatefulWidget {
   final DateTime? initialDay;
   final List<CalendarList> calendars;
 
+  /// 拖动新建时预填的时间区间（优先于 [initialDay] 的默认整点）
+  final DateTime? initialStart;
+  final DateTime? initialEnd;
+
+  /// 新建时是否自动聚焦标题（拖动新建后直接用键盘起标题）
+  final bool autofocusTitle;
+
   const EventEditorPage({
     super.key,
     this.event,
     this.initialDay,
     this.calendars = const [],
+    this.initialStart,
+    this.initialEnd,
+    this.autofocusTitle = false,
   });
 
   @override
@@ -49,16 +59,22 @@ class _EventEditorPageState extends State<EventEditorPage> {
     super.initState();
     final base = widget.event?.clone() ?? Schedule();
     if (_isNew) {
-      final day = widget.initialDay ?? DateTime.now();
-      final now = DateTime.now();
-      final sameDay = isSameDay(day, now);
-      base.startTime = DateTime(
-        day.year,
-        day.month,
-        day.day,
-        sameDay ? (now.hour + 1) % 24 : 9,
-      );
-      base.endTime = base.startTime.add(const Duration(hours: 1));
+      if (widget.initialStart != null) {
+        base.startTime = widget.initialStart!;
+        base.endTime =
+            widget.initialEnd ?? widget.initialStart!.add(const Duration(hours: 1));
+      } else {
+        final day = widget.initialDay ?? DateTime.now();
+        final now = DateTime.now();
+        final sameDay = isSameDay(day, now);
+        base.startTime = DateTime(
+          day.year,
+          day.month,
+          day.day,
+          sameDay ? (now.hour + 1) % 24 : 9,
+        );
+        base.endTime = base.startTime.add(const Duration(hours: 1));
+      }
     }
     _draft = base;
     _calendars = List.of(widget.calendars);
@@ -278,6 +294,7 @@ class _EventEditorPageState extends State<EventEditorPage> {
             children: [
               TextField(
                 controller: _titleCtrl,
+                autofocus: widget.autofocusTitle,
                 textInputAction: TextInputAction.done,
                 style: theme.textTheme.titleMedium,
                 decoration: const InputDecoration(

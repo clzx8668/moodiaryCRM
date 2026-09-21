@@ -135,7 +135,7 @@ void main() {
     );
   });
 
-  testWidgets('事件卡 → 编辑页 → 删除：日程确实被软删且日历上消失', (tester) async {
+  testWidgets('事件卡 → 详情面板 → 编辑 → 删除：日程软删且日历上消失', (tester) async {
     final now = DateTime.now();
     final repo = ScheduleRepository();
     final event = await repo.create(
@@ -148,8 +148,10 @@ void main() {
     await pumpPage(tester);
     expect(find.text('待删除事件'), findsOneWidget);
 
-    // 点卡片进编辑页
+    // 点卡片进详情面板，再进编辑页
     await tester.tap(find.text('待删除事件'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '编辑'));
     await tester.pumpAndSettle();
     expect(find.text('编辑事件'), findsOneWidget);
 
@@ -164,5 +166,80 @@ void main() {
     final saved = await repo.getById(event.id);
     expect(saved!.deleted, isTrue, reason: '确认后应写入软删墓碑');
     expect(find.text('待删除事件'), findsNothing, reason: '日历上不该再显示');
+  });
+
+  testWidgets('详情面板信息齐全，可直接删除（iOS 交互）', (tester) async {
+    final now = DateTime.now();
+    final repo = ScheduleRepository();
+    final event = await repo.create(
+      Schedule()
+        ..title = '详情面板用例'
+        ..location = '会议室 A'
+        ..startTime = DateTime(now.year, now.month, now.day, 14)
+        ..endTime = DateTime(now.year, now.month, now.day, 15),
+    );
+
+    await pumpPage(tester);
+    await tester.tap(find.text('详情面板用例'));
+    await tester.pumpAndSettle();
+
+    // 详情面板信息齐全
+    expect(find.text('会议室 A'), findsOneWidget);
+    expect(find.text('复制'), findsOneWidget);
+    expect(find.text('删除'), findsOneWidget);
+
+    // 面板里删除 → 落库 + 刷新
+    await tester.tap(find.text('删除'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '删除'));
+    await tester.pumpAndSettle();
+
+    expect((await repo.getById(event.id))!.deleted, isTrue);
+    expect(find.text('详情面板用例'), findsNothing);
+  });
+
+  testWidgets('拖动/编辑落库后，切日再回来能看到新时间（不吃旧缓存）', (tester) async {
+    final now = DateTime.now();
+    final repo = ScheduleRepository();
+    final event = await repo.create(
+      Schedule()
+        ..title = '缓存用例'
+        ..startTime = DateTime(now.year, now.month, now.day, 10)
+        ..endTime = DateTime(now.year, now.month, now.day, 11),
+    );
+
+    await pumpPage(tester);
+    expect(find.text('10:00 – 11:00'), findsOneWidget);
+
+    // 模拟"拖动移动"落库
+    await repo.update(
+      event.clone()
+        ..startTime = DateTime(now.year, now.month, now.day, 12)
+        ..endTime = DateTime(now.year, now.month, now.day, 13),
+    );
+
+    // 切到别的日子再切回来（触发当日重载）
+    final otherDay = now.day == 1 ? 2 : 1;
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('calendar-grid')),
+            matching: find.text('$otherDay'),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('calendar-grid')),
+            matching: find.text('${now.day}'),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('12:00 – 13:00'), findsOneWidget, reason: '应显示拖动后的新时间');
+    expect(find.text('10:00 – 11:00'), findsNothing);
   });
 }

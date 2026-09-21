@@ -170,4 +170,142 @@ void main() {
       expect(days.last, DateTime(2026, 9, 27));
     });
   });
+
+  group('时间轴布局（拖动交互的几何）', () {
+    test('单个事件：上边距/高度按当天比例', () {
+      final layouts = layoutDayTimeline([
+        event(
+          title: '周会',
+          start: DateTime(2026, 9, 22, 9),
+          end: DateTime(2026, 9, 22, 10, 30),
+        ),
+      ]);
+      expect(layouts, hasLength(1));
+      expect(layouts.single.topRatio, closeTo(9 * 60 / 1440, 0.0001));
+      expect(layouts.single.heightRatio, closeTo(90 / 1440, 0.0001));
+      expect(layouts.single.columnCount, 1);
+      expect(layouts.single.leftFactor, 0);
+      expect(layouts.single.widthFactor, 1);
+    });
+
+    test('重叠事件并排分栏，错开的不分栏', () {
+      final layouts = layoutDayTimeline([
+        event(
+          title: 'A',
+          start: DateTime(2026, 9, 22, 9),
+          end: DateTime(2026, 9, 22, 10),
+        ),
+        event(
+          title: 'B',
+          start: DateTime(2026, 9, 22, 9, 30),
+          end: DateTime(2026, 9, 22, 10, 30),
+        ),
+        event(
+          title: 'C',
+          start: DateTime(2026, 9, 22, 14),
+          end: DateTime(2026, 9, 22, 15),
+        ),
+      ]);
+      final a = layouts.firstWhere((l) => l.event.title == 'A');
+      final b = layouts.firstWhere((l) => l.event.title == 'B');
+      final c = layouts.firstWhere((l) => l.event.title == 'C');
+      expect(a.columnCount, 2);
+      expect(b.columnCount, 2);
+      expect([a.columnIndex, b.columnIndex], containsAll([0, 1]));
+      expect(c.columnCount, 1, reason: '14:00 与上午的簇不重叠');
+    });
+
+    test('全天/跨天/浮动/草案不进时间轴', () {
+      final layouts = layoutDayTimeline([
+        event(title: '全天', allDay: true),
+        event(
+          title: '跨天',
+          start: DateTime(2026, 9, 21, 8),
+          end: DateTime(2026, 9, 23, 8),
+        ),
+        event(title: '浮动', floating: true),
+        event(title: '草案', draft: true),
+        event(title: '正常', start: DateTime(2026, 9, 22, 9)),
+      ]);
+      expect(layouts.map((l) => l.event.title), ['正常']);
+    });
+
+    test('极短事件保底 15 分钟高度', () {
+      final layouts = layoutDayTimeline([
+        event(
+          title: '快闪',
+          start: DateTime(2026, 9, 22, 9),
+          end: DateTime(2026, 9, 22, 9, 2),
+        ),
+      ]);
+      expect(layouts.single.heightRatio, closeTo(15 / 1440, 0.0001));
+    });
+  });
+
+  group('拖动几何换算', () {
+    test('吸附到 15 分钟档', () {
+      expect(snapMinutes(0, 15), 0);
+      expect(snapMinutes(7, 15), 0);
+      expect(snapMinutes(8, 15), 15);
+      expect(snapMinutes(52, 15), 45);
+      expect(snapMinutes(53, 15), 60);
+      expect(snapMinutes(1439, 15), 1440);
+    });
+
+    test('拖动创建：像素区间 → 吸附后的时间区间', () {
+      // hourHeight = 60px → 1px = 1分钟，读数最直观
+      final day = DateTime(2026, 9, 22);
+      final (start, end) = dragRangeToTimes(
+        day: day,
+        startY: 9 * 60 + 7, // 09:07 → 09:00
+        endY: 10 * 60 + 38, // 10:38 → 10:45
+        hourHeight: 60,
+      );
+      expect(start, DateTime(2026, 9, 22, 9));
+      expect(end, DateTime(2026, 9, 22, 10, 45));
+    });
+
+    test('向上拖也成立，只有一次点击也至少 15 分钟', () {
+      final day = DateTime(2026, 9, 22);
+      final up = dragRangeToTimes(
+        day: day,
+        startY: 14 * 60 + 50,
+        endY: 14 * 60 + 20,
+        hourHeight: 60,
+      );
+      expect(up.$1.isBefore(up.$2), isTrue);
+      expect(up.$1, DateTime(2026, 9, 22, 14, 15));
+      expect(up.$2, DateTime(2026, 9, 22, 14, 45));
+
+      final tiny = dragRangeToTimes(
+        day: day,
+        startY: 8 * 60,
+        endY: 8 * 60 + 2,
+        hourHeight: 60,
+      );
+      expect(tiny.$2.difference(tiny.$1), const Duration(minutes: 15));
+    });
+
+    test('越界自动夹紧到当天 0:00–24:00', () {
+      final day = DateTime(2026, 9, 22);
+      final (start, end) = dragRangeToTimes(
+        day: day,
+        startY: -50,
+        endY: 24 * 60 + 90,
+        hourHeight: 60,
+      );
+      expect(start, DateTime(2026, 9, 22, 0));
+      expect(end, DateTime(2026, 9, 23, 0));
+    });
+
+    test('拖动位移 → 吸附分钟数', () {
+      // 52px 一小时：拖 26px ≈ 30 分钟
+      expect(dragDeltaMinutes(26, 52), 30);
+      expect(dragDeltaMinutes(-26, 52), -30);
+      // 拖 8px ≈ 9 分钟 → 吸附到 15
+      expect(dragDeltaMinutes(8, 52), 15);
+      // 微动不吸附成 0 以外的抖动
+      expect(dragDeltaMinutes(1, 52), 0);
+    });
+  });
 }

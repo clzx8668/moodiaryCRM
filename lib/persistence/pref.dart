@@ -157,6 +157,8 @@ class PrefUtil {
     'crmQuoteTemplates',
     // 日历周起始日（1=周一 … 7=周日）
     'calendarWeekStart',
+    // 日历时间轴行高（每小时像素高度）
+    'calendarHourHeight',
     // AI 抽取计划配置（JSON：todo/schedule/crm/summary 开关）
     'extractPlanConfig',
   };
