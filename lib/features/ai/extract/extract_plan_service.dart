@@ -76,10 +76,31 @@ class ExtractPlanService {
         _writeMeta(block, 'failed', 'AI 未返回可用结果（可能未配置或格式不符）');
         return null;
       }
+      await applyResult(
+        diaryId: diaryId,
+        block: block,
+        result: result,
+        config: config,
+      );
+      return result;
+    } catch (e) {
+      _writeMeta(block, 'failed', '抽取异常：$e');
+      rethrow;
+    }
+  }
 
-      // 去重：同标题的待办/日程合并（模型可能把同一件事同时放进 actions 与 events）
-      final deduped = dedupe(result);
-      final plan = deduped.result;
+  /// 把**已经拿到的**抽取结果落成待确认卡片（批次 111 抽出，供批量复用）。
+  ///
+  /// 单条路径与批量路径共用这段逻辑，保证两种入口的落库结果完全一致。
+  static Future<void> applyResult({
+    required String diaryId,
+    required Block block,
+    required ExtractPlanResult result,
+    required ExtractPlanConfig config,
+  }) async {
+    // 去重：同标题的待办/日程合并（模型可能把同一件事同时放进 actions 与 events）
+    final deduped = dedupe(result);
+    final plan = deduped.result;
 
       // 待确认清单（不落库）
       final pending = <ExtractPendingItem>[
@@ -119,14 +140,9 @@ class ExtractPlanService {
         );
         if (aiBlock == null) {
           _writeMeta(block, 'failed', '无法创建 AI 提取块');
-          return null;
+          return;
         }
       }
-      return plan;
-    } catch (e) {
-      _writeMeta(block, 'failed', '抽取异常：$e');
-      rethrow;
-    }
   }
 
   /// 抽取使用的源文本：优先「去口语化」保留的原文。
@@ -322,6 +338,97 @@ class ExtractPlanService {
     await IsarUtil.updateBlock(block);
   }
 
+  /// 批量抽取的 system 提示（与单条同源，强调"按 id 返回"）
+  static const String _batchSystem =
+      '你是信息抽取助手。会对多段内容分别抽取行动项、日程和 CRM 信息，'
+      '只抽取真实出现的信息，不得编造，也不要把某段的内容放进别的段。'
+      '只输出 JSON，不要输出其它内容。';
+
+  /// 批量抽取的 user 提示：`{id: 内容}` 的形式给出，要求原样按 id 回结果
+  static String _batchPrompt(
+    List<({String id, String text})> items,
+    ExtractPlanConfig config,
+  ) {
+    final parts = <String>[];
+    if (config.todo) {
+      parts.add('- actions：待办（title、dueAt、priority、note）；');
+    }
+    if (config.schedule) {
+      parts.add('- events：日程（title、start、end、allDay、remind）；');
+    }
+    if (config.crm) {
+      parts.add('- crm：CRM 信息（type、name、fields）；');
+    }
+    if (config.summary) parts.add('- summary：一句话概括。');
+
+    final schema = <String>[
+      if (config.todo) '"actions":[{"title":"","dueAt":null,"priority":"","note":""}]',
+      if (config.schedule)
+        '"events":[{"title":"","start":null,"end":null,"allDay":false,"remind":null}]',
+      if (config.crm) '"crm":[{"type":"","name":"","fields":{}}]',
+      if (config.summary) '"summary":""',
+    ];
+
+    final body = StringBuffer();
+    for (final it in items) {
+      body.writeln('### ${it.id}');
+      body.writeln('"""${it.text}"""');
+    }
+
+    return '''
+下面有 ${items.length} 段内容，每段前面有它的 id。
+对**每一段分别**抽取：
+${parts.map((p) => '- $p').join('\n')}
+
+内容：
+$body
+返回 JSON：一个对象，key 是每段的 id（原样照抄），value 是该段的抽取结果。
+某段没有可抽取内容时，value 用空数组/空串，例如：
+{"第一段id":{${schema.join(',')}},"第二段id":{${schema.join(',')}}}
+''';
+  }
+
+  /// 解析批量返回：兼容模型把 JSON 包在代码块或多余文字里的情况
+  @visibleForTesting
+  static Map<String, ExtractPlanResult> parseBatchResponse(
+    String raw,
+    Iterable<String> expectedIds,
+  ) => _parseBatch(raw, expectedIds: expectedIds);
+
+  static Map<String, ExtractPlanResult> _parseBatch(
+    String raw, {
+    Iterable<String>? expectedIds,
+  }) {
+    final out = <String, ExtractPlanResult>{};
+    var s = raw.trim();
+    // 去掉 ```json fence
+    final fence = RegExp(r'^```[a-zA-Z]*\s*([\s\S]*?)\s*```$').firstMatch(s);
+    if (fence != null) s = fence.group(1)!.trim();
+    // 截取最外层大括号
+    final start = s.indexOf('{');
+    final end = s.lastIndexOf('}');
+    if (start < 0 || end <= start) return out;
+    Object? decoded;
+    try {
+      decoded = jsonDecode(s.substring(start, end + 1));
+    } catch (_) {
+      return out;
+    }
+    if (decoded is! Map) return out;
+
+    final ids = expectedIds?.toSet();
+    decoded.forEach((k, v) {
+      final id = k.toString();
+      if (ids != null && !ids.contains(id)) return; // 只认我们发出去的 id
+      if (v is! Map) return;
+      // 注意：这里**不能用** tryParse —— 它对"合法但没有可抽取内容"
+      // 会返回 null（单条路径下那是"失败"）。批量里空结果是正常结果，
+      // 必须照样建立条目，否则同批其它笔记会被误判。
+      out[id] = ExtractPlanResult.fromMap(v);
+    });
+    return out;
+  }
+
   static String _prompt(String text, ExtractPlanConfig config) {
     final parts = <String>[];
     if (config.todo) {
@@ -388,5 +495,62 @@ ${parts.map((p) => '- $p').join('\n')}
     if (s == '今天') return DateTime.now();
     if (s == '明天') return DateTime.now().add(const Duration(days: 1));
     return DateTime.tryParse(s);
+  }
+
+  /// **批量抽取：多条笔记合并成一次 API 调用**（批次 111）。
+  ///
+  /// 为什么值得做：短时间内保存多条含待办的笔记时，逐条调用会重复付出
+  /// "同一条 system prompt + 配置说明"的 token，并且串行等待更久。
+  /// 合并成一次调用后：token 显著下降、总耗时接近单条。
+  ///
+  /// 关键约束：
+  /// - 结果按 `id` **逐条对应**回写，哪条没抽到就哪条为空，不影响其它条；
+  /// - 单条内容为空/超短的跳过（不浪费 token）；
+  /// - 缓存按"每条内容"分别命中，已算过的条目不会重复进入请求体。
+  static Future<Map<String, ExtractPlanResult>> extractBatch(
+    List<({String id, String text})> items, {
+    ExtractPlanConfig? config,
+  }) async {
+    final out = <String, ExtractPlanResult>{};
+    if (items.isEmpty) return out;
+
+    // 1) 先吃缓存，能命中的不必进请求体
+    final pending = <({String id, String text})>[];
+    for (final it in items) {
+      final t = it.text.trim();
+      if (t.isEmpty) continue;
+      final key = AiResultCache.keyFor('extract_plan', t);
+      final cached = AiResultCache.get(key);
+      if (cached != null) {
+        final parsed = ExtractPlanResult.tryParse(cached);
+        if (parsed != null) {
+          out[it.id] = parsed;
+          continue;
+        }
+      }
+      pending.add((id: it.id, text: t));
+    }
+    if (pending.isEmpty) return out;
+
+    config ??= ExtractPlanConfig.load();
+    final provider = await AiProviderFactory.load();
+    if (!provider.isConfigured) return out;
+
+    final completion = await provider.completeChat([
+      const AiChatMessage(role: 'system', content: _batchSystem),
+      AiChatMessage(role: 'user', content: _batchPrompt(pending, config)),
+    ]);
+    final parsed = _parseBatch(completion.content);
+
+    for (final it in pending) {
+      final result = parsed[it.id];
+      if (result == null) continue;
+      out[it.id] = result;
+      AiResultCache.put(
+        AiResultCache.keyFor('extract_plan', it.text),
+        jsonEncode(result.toJson()),
+      );
+    }
+    return out;
   }
 }

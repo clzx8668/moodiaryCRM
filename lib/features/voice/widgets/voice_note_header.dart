@@ -25,6 +25,9 @@ class VoiceNoteHeader extends StatelessWidget {
   /// 去设置本地转写模型（失败态里给一条"能立刻修好"的路）
   final VoidCallback? onSetupOnDevice;
 
+  /// 分流说明（批次 111）：为什么送/没送 AI。null = 不展示。
+  final String? triageNote;
+
   /// 播放器（单测注入占位，避免依赖音频插件）
   final Widget Function(String path)? playerBuilder;
 
@@ -37,6 +40,7 @@ class VoiceNoteHeader extends StatelessWidget {
     required this.onRetry,
     this.onRefine,
     this.onSetupOnDevice,
+    this.triageNote,
     this.playerBuilder,
   });
 
@@ -80,7 +84,37 @@ class VoiceNoteHeader extends StatelessWidget {
           VoiceNoteStatus.onDeviceDone => _onDeviceDone(context, colorScheme),
           VoiceNoteStatus.done => _tabs(context, colorScheme),
         },
+        _triageNote(context, colorScheme),
       ],
+    );
+  }
+
+  /// 分流说明：一行小字，讲清"这条为什么送/没送 AI"。
+  Widget _triageNote(BuildContext context, ColorScheme colorScheme) {
+    final note = triageNote?.trim() ?? '';
+    if (note.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.shield_moon_outlined,
+            size: 13,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(
+              note,
+              style: context.textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -123,19 +123,25 @@ class ExtractPlanResult {
     try {
       final decoded = jsonDecode(s);
       if (decoded is! Map<String, dynamic>) return null;
-      final actions = _list(decoded['actions'], ExtractAction.fromJson);
-      final events = _list(decoded['events'], ExtractEvent.fromJson);
-      final crm = _list(decoded['crm'], ExtractCrm.fromJson);
-      final result = ExtractPlanResult(
-        actions: actions,
-        events: events,
-        crm: crm,
-        summary: decoded['summary']?.toString() ?? '',
-      );
+      final result = fromMap(decoded);
       return result.isEmpty ? null : result;
     } catch (_) {
       return null;
     }
+  }
+
+  /// 从已解码的 Map 构造结果（**允许为空**）。
+  ///
+  /// 与 [tryParse] 的区别：批量抽取里"某条没有可抽取内容"是**正常结果**，
+  /// 需要照样建立条目，否则同批其它笔记会被误判。
+  static ExtractPlanResult fromMap(Map<dynamic, dynamic> decoded) {
+    final map = decoded.map((k, v) => MapEntry(k.toString(), v));
+    return ExtractPlanResult(
+      actions: _list(map['actions'], ExtractAction.fromJson),
+      events: _list(map['events'], ExtractEvent.fromJson),
+      crm: _list(map['crm'], ExtractCrm.fromJson),
+      summary: map['summary']?.toString() ?? '',
+    );
   }
 
   static List<T> _list<T>(Object? raw, T Function(Map<String, dynamic>) fromJson) {

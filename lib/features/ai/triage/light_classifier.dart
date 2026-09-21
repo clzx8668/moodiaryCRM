@@ -1,3 +1,4 @@
+import 'package:moodiary/features/ai/triage/naive_bayes_model.dart';
 import 'package:moodiary/features/ai/triage/triage_rules.dart';
 import 'package:moodiary/features/ai/triage/triage_types.dart';
 
@@ -21,6 +22,12 @@ import 'package:moodiary/features/ai/triage/triage_types.dart';
 class LightTextClassifier {
   const LightTextClassifier();
 
+  /// 朴素贝叶斯（字符二元/三元组 + 关键词特征）：
+  /// - 纯 Dart、无依赖、微秒级；
+  /// - 训练数据在 `ClassifierTrainingData`（可测试、可逐步补充）；
+  /// - 输出的不仅是分数，还有**贡献最大的特征**，所以依然可解释。
+  static final NaiveBayesModel _bayes = NaiveBayesModel.train();
+
   /// 特征权重（和为 1.0，便于把总分当概率看）
   static const double wInformation = 0.30;
   static const double wStructure = 0.25;
@@ -36,12 +43,24 @@ class LightTextClassifier {
     if (t.isEmpty) {
       return const ClassifierScore(0, []);
     }
+    // 主判：朴素贝叶斯（字符 n-gram + 关键词特征）
+    final bayes = _bayes.classify(t);
     final reasons = <String>[];
+
+    // 贝叶斯给的解释（贡献最大的几个特征）
+    for (final c in bayes.topContributors) {
+      reasons.add('特征「${c.feature}」→ ${c.label}（+${c.weight.toStringAsFixed(2)}）');
+    }
+
+    // ── 以下为可解释的**规则特征**，与贝叶斯结果取加权，
+    //    保证短样本上不比原来的线性打分差，也便于人工核对
+    var linear = 0.0;
+    final linearReasons = <String>[];
 
     // 1) 信息量：4 字→0，120 字→1
     final len = TriageRules.meaningfulLength(t);
     final information = ((len - 4) / 116).clamp(0.0, 1.0);
-    if (information >= 0.4) reasons.add('内容成篇（$len 字）');
+    if (information >= 0.4) linearReasons.add('内容成篇（$len 字）');
 
     // 2) 结构度：标点、分点、换行
     var structure = 0.0;
@@ -52,17 +71,17 @@ class LightTextClassifier {
       structure += 0.2;
     }
     structure = structure.clamp(0.0, 1.0);
-    if (structure >= 0.5) reasons.add('表达有结构（标点/分点）');
+    if (structure >= 0.5) linearReasons.add('表达有结构（标点/分点）');
 
     // 3) 主题度
     final topic = TriageRules.hasTopicSignal(t) ? 1.0 : 0.0;
-    if (topic > 0) reasons.add('含主题词，适合打标签/归类');
+    if (topic > 0) linearReasons.add('含主题词，适合打标签/归类');
 
     // 4) 行动度
     final action = TriageRules.hasExtractableSignal(t) ? 1.0 : 0.0;
-    if (action > 0) reasons.add('含行动线索（时间/待办）');
+    if (action > 0) linearReasons.add('含行动线索（时间/待办）');
 
-    var total =
+    linear =
         information * wInformation +
         structure * wStructure +
         topic * wTopic +
@@ -70,14 +89,19 @@ class LightTextClassifier {
 
     // 5) 噪声惩罚：像测试占位内容
     if (TriageRules.looksPlaceholder(t)) {
-      total *= 0.4;
-      reasons.add('疑似测试/占位内容（降权）');
+      linear *= 0.4;
+      linearReasons.add('疑似测试/占位内容（降权）');
     }
     if (TriageRules.looksPrivateJournal(t)) {
-      reasons.add('私人情绪记录（本地优先）');
+      linearReasons.add('私人情绪记录（本地优先）');
     }
 
-    return ClassifierScore(total.clamp(0.0, 1.0), reasons);
+    // 融合：贝叶斯为主（学到标注经验），线性特征兜底（规则可核对）
+    final blended = bayes.probability * 0.65 + linear.clamp(0.0, 1.0) * 0.35;
+
+    // 解释里只保留最有信息量的几条，避免刷屏
+    final merged = <String>[...reasons.take(2), ...linearReasons.take(2)];
+    return ClassifierScore(blended.clamp(0.0, 1.0), merged);
   }
 
   /// 是否达到"值得送 AI"的门槛

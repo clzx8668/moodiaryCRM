@@ -17,6 +17,8 @@ import 'package:moodiary/features/ai/widgets/smart_input_bar.dart';
 import 'package:moodiary/features/ai/chat_model_selector.dart';
 import 'package:moodiary/features/ai/widgets/chat_model_picker_sheet.dart';
 import 'package:moodiary/features/asr/on_device_asr_settings_page.dart';
+import 'package:moodiary/features/ai/triage/ai_triage_service.dart';
+import 'package:moodiary/features/ai/triage/signal_scorer.dart';
 import 'package:moodiary/features/smart_canvas/widgets/relative_time.dart';
 import 'package:moodiary/features/smart_canvas/widgets/canvas_skeleton.dart';
 import 'package:moodiary/features/collection/kb_collection_service.dart';
@@ -742,6 +744,7 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
                   : null,
               onSetupOnDevice: () =>
                   Get.to(() => const OnDeviceAsrSettingsPage()),
+              triageNote: _triageNoteFor(logic.canvasState.diary.id),
             ),
           ),
         );
@@ -760,6 +763,29 @@ class _SmartCanvasPageState extends State<SmartCanvasPage> {
     _transcribePoll ??= Timer.periodic(const Duration(seconds: 3), (_) async {
       await logic.reloadBlocks();
     });
+  }
+
+  /// 分流说明（批次 111）：为什么这条内容送/没送 AI —— 一行小字讲清楚。
+  ///
+  /// 数据来自 `AiTriageService` 最近一次对该笔记的分流结果；没有记录（例如
+  /// 进程重启后再打开）就返回 null，不展示。
+  String? _triageNoteFor(String diaryId) {
+    final r = AiTriageService.instance.recentFor(diaryId);
+    if (r == null) return null;
+    if (r.hasSensitive) {
+      return '隐私保护：检测到${r.sensitiveKinds.join('、')}，仅在本地保存';
+    }
+    if (r.fullyLocal) {
+      return r.score > 0
+          ? '本地处理：打分 ${r.score} 分（未达 ${SignalScorer.threshold} 分阈值），未联网'
+          : '本地处理：无需 AI 深度加工，未联网';
+    }
+    final sent = r.sendOperations.length;
+    final kept = r.localOperations.length;
+    final score = r.score > 0 ? '（打分 ${r.score} 分）' : '';
+    return kept == 0
+        ? '已送 AI 处理 $sent 项$score'
+        : '本地处理 $kept 项 · 送 AI $sent 项$score';
   }
 
   /// 重试转写：占位卡改回「处理中」并重新入队（原始录音一直在本地）。

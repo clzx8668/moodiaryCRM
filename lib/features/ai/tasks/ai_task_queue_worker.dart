@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:moodiary/features/ai/colloquial/de_colloquial_service.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/extract/extract_plan_service.dart';
+import 'package:moodiary/features/ai/extract/extract_plan_config.dart';
 import 'package:moodiary/features/ai/template_process_service.dart';
 import 'package:moodiary/features/ai/tagging_service.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_retry_policy.dart';
 import 'package:moodiary/features/ai/tasks/pending_content_service.dart';
 import 'package:moodiary/features/ai/triage/triage_task_gate.dart';
+import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/persistence/app_database.dart';
 import 'package:moodiary/persistence/isar.dart';
 import 'package:moodiary/utils/log_util.dart';
@@ -100,10 +102,16 @@ class AiTaskQueueWorker {
       }
       final tasks = await _repo.listByStatus(AiTaskStatus.pending);
       final now = DateTime.now();
-      for (final task in tasks) {
+      // 批量参数：同一条笔记内的多个待办本来就一次调用；这里再把
+      // **同一轮里多条笔记的抽取任务**合并成一次 API 调用（批次 111）。
+      const maxBatch = 8;
+      var i = 0;
+      while (i < tasks.length) {
+        final task = tasks[i];
         if (!_running) return;
         if (!online) {
           await _repo.updateStatus(task, AiTaskStatus.waitingNetwork);
+          i++;
           continue;
         }
         // 退避：上次失败后等够间隔再试，避免持续打网络
@@ -112,9 +120,27 @@ class AiTaskQueueWorker {
           lastUpdated: task.updatedAt,
           now: now,
         )) {
+          i++;
           continue;
         }
+        // 连续的可批量任务（extract_plan 且未重试过）合并处理
+        if (task.type == AiTaskType.extractPlan && task.retryCount == 0) {
+          final batch = <AiTaskRow>[];
+          var j = i;
+          while (j < tasks.length && batch.length < maxBatch) {
+            final t = tasks[j];
+            if (t.type != AiTaskType.extractPlan || t.retryCount != 0) break;
+            batch.add(t);
+            j++;
+          }
+          if (batch.length > 1) {
+            await _processExtractBatch(batch);
+            i = j;
+            continue;
+          }
+        }
         await _process(task);
+        i++;
       }
     } catch (e) {
       logger.e('AI 任务轮询异常', error: e);
@@ -163,6 +189,79 @@ class AiTaskQueueWorker {
       buf.writeln(b.content);
     }
     return buf.toString().trim();
+  }
+
+  /// **批量抽取**：把同一轮里的多条 extract_plan 合并成一次 API 调用。
+  ///
+  /// 逐条对应回写：哪条没抽到就只标记那一条，不影响同批其它笔记。
+  /// 被分流拦下的条目照常标 `skipped_local`（不是失败）。
+  Future<void> _processExtractBatch(List<AiTaskRow> batch) async {
+    for (final t in batch) {
+      await _repo.updateStatus(t, AiTaskStatus.processing);
+    }
+    try {
+      // 1) 逐条过闸门（隐私/额度/值不值得），并取出要发送的片段
+      final allowed = <AiTaskRow>[];
+      final items = <({String id, String text})>[];
+      for (final t in batch) {
+        if (!await _passesTriage(t)) {
+          await _repo.updateStatus(t, AiTaskStatus.skippedLocal);
+          continue;
+        }
+        final text = TriageTaskGate.relevantTextFor(
+          t.type,
+          await _textForTask(t),
+        );
+        if (text.trim().isEmpty) {
+          await _repo.updateStatus(t, AiTaskStatus.skippedLocal);
+          continue;
+        }
+        allowed.add(t);
+        items.add((id: t.refId, text: text));
+      }
+      if (items.isEmpty) return;
+
+      // 2) 一次调用拿回全部结果
+      final results = await ExtractPlanService.extractBatch(items);
+      final config = ExtractPlanConfig.load();
+
+      // 3) 逐条回写
+      for (final t in allowed) {
+        final plan = results[t.refId];
+        if (plan == null) {
+          await _repo.updateStatus(t, AiTaskStatus.done);
+          continue;
+        }
+        try {
+          final block = await IsarUtil.getBlocksByDiary(t.refId);
+          final primary = block
+              .where((b) => b.blockType == BlockType.text && !b.isDeleted)
+              .toList()
+            ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+          if (primary.isEmpty) {
+            await _repo.updateStatus(t, AiTaskStatus.done);
+            continue;
+          }
+          await ExtractPlanService.applyResult(
+            diaryId: t.refId,
+            block: primary.first,
+            result: plan,
+            config: config,
+          );
+          await _repo.updateStatus(t, AiTaskStatus.done);
+        } catch (e, st) {
+          logger.e('批量抽取回写失败：${t.refId}', error: e, stackTrace: st);
+          await _repo.updateStatus(t, AiTaskStatus.failed, error: '$e');
+        }
+      }
+      logger.i('批量抽取完成：一次调用处理 ${items.length} 条笔记');
+    } catch (e) {
+      // 整批失败：按各自的退避策略退回 pending（与单条失败语义一致）
+      for (final t in batch) {
+        await _repo.updateStatus(t, AiTaskStatus.pending, error: '$e');
+      }
+      logger.e('批量抽取失败，整批退回队列', error: e);
+    }
   }
 
   Future<void> _process(AiTaskRow task) async {
