@@ -1,4 +1,6 @@
 import 'package:moodiary/features/ai/triage/light_classifier.dart';
+import 'package:moodiary/features/ai/triage/segment_extractor.dart';
+import 'package:moodiary/features/ai/triage/signal_scorer.dart';
 import 'package:moodiary/features/ai/triage/triage_config.dart';
 import 'package:moodiary/features/ai/triage/triage_rules.dart';
 import 'package:moodiary/features/ai/triage/triage_types.dart';
@@ -46,6 +48,11 @@ class AiTriageRouter {
     var usedClassifier = false;
     var confSum = 0.0;
 
+    // 第一级打分（点数制）：同时用于判定与"为什么"展示
+    final score = SignalScorer.score(text);
+    // 只送相关片段：命中后截取含信号的句子（前后各留一句上下文）
+    final segment = SegmentExtractor.extract(text);
+
     for (final op in operations) {
       final d = _decideOperation(
         op: op,
@@ -54,6 +61,7 @@ class AiTriageRouter {
         hasSensitive: hasSensitive,
         sensitiveKinds: sensitiveKinds,
         explicitUserIntent: explicitUserIntent.contains(op),
+        score: score,
       );
       decisions[op] = d;
       confSum += d.confidence;
@@ -69,6 +77,9 @@ class AiTriageRouter {
       signals: _dedupe(signals),
       confidence: operations.isEmpty ? 0 : confSum / operations.length,
       usedClassifier: usedClassifier,
+      score: score.total,
+      scoreDetail: score.hits.map((h) => h.toString()).toList(),
+      relevantSegment: segment.relevant,
     );
   }
 
@@ -79,6 +90,7 @@ class AiTriageRouter {
     required bool hasSensitive,
     required List<String> sensitiveKinds,
     required bool explicitUserIntent,
+    required SignalScore score,
   }) {
     // 0) 操作被用户关掉 → 本地
     if (!config.isEnabled(op)) {
@@ -149,7 +161,7 @@ class AiTriageRouter {
     }
 
     // 6) 第一级：规则命中判定
-    final rule = _ruleVerdict(op, text);
+    final rule = _ruleVerdict(op, text, score);
     if (rule != null) return rule;
 
     // 7) 第二级：本地轻量分类器兜底（保守档不走这级）
@@ -177,26 +189,51 @@ class AiTriageRouter {
   }
 
   /// 第一级规则：返回 null 表示"规则拿不准"，交给第二级。
-  TriageDecision? _ruleVerdict(TriageOperation op, String text) {
+  TriageDecision? _ruleVerdict(
+    TriageOperation op,
+    String text,
+    SignalScore score,
+  ) {
     switch (op) {
       case TriageOperation.extractPlan:
-        if (TriageRules.hasTodoSignal(text) || TriageRules.hasCrmSignal(text)) {
+        // 打分制：累加命中信号，≥ 阈值(3) 才认为"值得抽取"
+        if (score.shouldEscalate) {
           final kinds = <String>[
-            if (TriageRules.hasTodoSignal(text)) '待办/时间',
-            if (TriageRules.hasCrmSignal(text)) '客户/商机',
+            if (_hasKind(score, SignalKind.time)) '时间',
+            if (_hasKind(score, SignalKind.todo)) '待办',
+            if (_hasKind(score, SignalKind.schedule)) '日程',
+            if (_hasKind(score, SignalKind.crm)) '商机',
           ];
           return TriageDecision(
             operation: op,
             action: TriageAction.sendToAI,
-            confidence: 0.95,
-            reason: '命中结构化信号（${kinds.join('、')}），值得抽取',
+            confidence: (0.6 + score.total * 0.1).clamp(0.0, 0.98),
+            reason:
+                '规则打分 ${score.total} 分（${score.explanation}）≥ 阈值 ${SignalScorer.threshold}，值得抽取',
             signals: [
-              for (final k in kinds)
+              for (final k in (kinds.isEmpty ? ['结构化信号'] : kinds))
                 TriageSignal(
-                  ruleId: 'extract_signal',
-                  label: k,
+                  ruleId: 'score',
+                  label: '$k（合计 ${score.total} 分）',
                   bias: TriageAction.sendToAI,
                 ),
+            ],
+          );
+        }
+        // 分数不够：把"差多少分"讲清楚，便于用户理解为什么没上云
+        if (score.total > 0) {
+          return TriageDecision(
+            operation: op,
+            action: TriageAction.keepLocal,
+            confidence: 0.7,
+            reason:
+                '规则打分 ${score.total} 分 < 阈值 ${SignalScorer.threshold}（${score.explanation}），本地保存',
+            signals: [
+              TriageSignal(
+                ruleId: 'score',
+                label: '${score.total} 分（需 ${SignalScorer.threshold} 分）',
+                bias: TriageAction.keepLocal,
+              ),
             ],
           );
         }
@@ -309,6 +346,10 @@ class AiTriageRouter {
     TriageOperation.embedding => false,
     _ => true,
   };
+
+  /// 打分明细里是否包含某类信号
+  static bool _hasKind(SignalScore score, SignalKind kind) =>
+      score.hits.any((h) => h.kind == kind);
 
   static List<TriageSignal> _dedupe(List<TriageSignal> signals) {
     final seen = <String>{};

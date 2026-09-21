@@ -48,6 +48,8 @@ class _AiTriageSettingsPageState extends State<AiTriageSettingsPage> {
               children: [
                 _intro(context),
                 const SizedBox(height: 14),
+                _scoreRules(context),
+                const SizedBox(height: 14),
                 _section(context, '策略档位'),
                 for (final level in TriageLevel.values)
                   _levelTile(context, cfg, level),
@@ -84,6 +86,79 @@ class _AiTriageSettingsPageState extends State<AiTriageSettingsPage> {
     TriageOperation.deColloquial,
     TriageOperation.extractPlan,
   ];
+
+  /// 打分规则（可折叠）：把"多少分才送 AI"讲清楚，用户就不觉得是黑盒。
+  Widget _scoreRules(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      child: ExpansionTile(
+        leading: Icon(Icons.rule_rounded, color: colorScheme.primary),
+        title: const Text('打分规则（怎么判断值不值得）'),
+        subtitle: const Text('累加命中信号，≥ 3 分才联网处理'),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        children: [
+          _ruleRow(context, '+3', '命中时间表达', '明天／下周三／3月5日／15:30／三天内'),
+          _ruleRow(context, '+2', '命中待办关键词', '记得／别忘／要交／提交／截止'),
+          _ruleRow(context, '+2', '命中日程关键词', '开会／见面／约／拜访／闹钟'),
+          _ruleRow(context, '+1', '只有"今天/昨天"这类', '只是时间框架，不是有事要办'),
+          _ruleRow(context, '−1', '句尾是"吗/呢/？"', '更像闲聊提问，不是要记的事'),
+          _ruleRow(context, '−1', '文本少于 6 字', '太短，多半是随手记'),
+          _ruleRow(context, '−3', '疑似测试/占位内容', '避免开发和试写内容占用额度'),
+          const Divider(height: 18),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '总分 ≥ 3 → 送 AI 深度处理（并只发送相关片段）\n'
+              '总分 < 3 → 本地保存，不联网、不花额度',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ruleRow(BuildContext context, String score, String title, String hint) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 34,
+            child: Text(
+              score,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: score.startsWith('+')
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.bodySmall),
+                if (hint.isNotEmpty)
+                  Text(
+                    hint,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _intro(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

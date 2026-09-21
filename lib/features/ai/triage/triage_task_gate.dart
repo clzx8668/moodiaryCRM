@@ -1,5 +1,7 @@
 import 'package:moodiary/features/ai/tasks/ai_task_repository.dart';
 import 'package:moodiary/features/ai/triage/ai_triage_service.dart';
+import 'package:moodiary/features/ai/triage/segment_extractor.dart';
+import 'package:moodiary/features/ai/triage/signal_scorer.dart';
 import 'package:moodiary/features/ai/triage/triage_types.dart';
 
 /// 队列任务与分流之间的**唯一映射点**。
@@ -55,4 +57,21 @@ class TriageTaskGate {
       explicitUserIntent: explicitUserIntent,
     );
   }
+
+  /// 返回**实际要送给 AI 的文本**。
+  ///
+  /// 只有"提取待办/日程"这一项做片段截取：抽取只关心含时间/待办/商机信号的句子，
+  /// 用片段能显著省 token、也让无关的私人内容留在本地。
+  /// 其余操作（标签/摘要/去口语化）需要全文语境，原样返回。
+  static String relevantTextFor(String taskType, String fullText) {
+    if (taskType != AiTaskType.extractPlan) return fullText;
+    final seg = SegmentExtractor.extract(fullText);
+    return seg.trimmed && seg.relevant.trim().isNotEmpty
+        ? seg.relevant
+        : fullText;
+  }
+
+  /// 打分摘要（供 UI/日志展示："+3 时间：明天 · +2 待办词：记得"）
+  static String scoreExplanationOf(String text) =>
+      SignalScorer.score(text).explanation;
 }

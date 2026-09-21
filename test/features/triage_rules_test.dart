@@ -42,7 +42,9 @@ void main() {
       expect(TriageRules.hasTodoSignal('明天记得交报告'), isTrue);
       expect(TriageRules.hasTodoSignal('会议定在 15:30'), isTrue);
       expect(TriageRules.hasTodoSignal('下午6点前发出去'), isTrue);
-      expect(TriageRules.hasTodoSignal('今天天气不错'), isFalse);
+      expect(TriageRules.hasTodoSignal('楼下那只猫又来了'), isFalse);
+      // "今天"属于低特异性时间词：算时间线索，但打分权重低（见 signal_scorer_test）
+      expect(TriageRules.hasTodoSignal('今天天气不错'), isTrue);
     });
 
     test('CRM 信号能命中', () {

@@ -87,27 +87,46 @@ class TriageRules {
 
   /// 待办 / 日程 / 提醒信号
   static const List<String> todoSignals = [
-    '待办',
-    '提醒',
+    ...todoKeywords,
+    ...scheduleKeywords,
+  ];
+
+  /// **待办类**关键词（"要做的某件事"）
+  static const List<String> todoKeywords = [
     '记得',
-    '别忘了',
+    '别忘',
     '要交',
+    '提交',
+    '完成',
     '截止',
     'deadline',
+    '待办',
+    '要做',
+    '需要做',
+    '得去',
+    '处理一下',
+    '跟进',
     '安排',
-    '预约',
-    '会议',
+    '提醒我',
+    '提醒',
+  ];
+
+  /// **日程类**关键词（"约好的某个时间"）
+  static const List<String> scheduleKeywords = [
     '开会',
-    '明天',
-    '后天',
-    '下周',
-    '下个月',
-    '几点',
-    '上午',
-    '下午',
-    '晚上',
-    '点前',
+    '会议',
+    '见面',
+    '约',
+    '预约',
+    '拜访',
+    '面试',
+    '电话',
+    '通话',
+    '叫我',
+    '通知我',
     '闹钟',
+    '日程',
+    '安排个',
   ];
 
   /// CRM / 商业信息信号（客户、报价、合同…）
@@ -161,7 +180,12 @@ class TriageRules {
     for (final s in todoSignals) {
       if (text.contains(s)) return true;
     }
-    return RegExp(r'\d{1,2}\s*[:：]\s*\d{2}').hasMatch(text);
+    // 纯时间（数字/星期）也算：日程类内容不一定含关键词
+    if (RegExp(r'\d{1,2}\s*[:：]\s*\d{2}').hasMatch(text)) return true;
+    if (RegExp(r'\d{1,2}\s*[点时]').hasMatch(text)) return true;
+    if (RegExp(r'(周|星期|礼拜)[一二三四五六日天末]').hasMatch(text)) return true;
+    if (RegExp(r'(明天|后天|大后天|今天|今晚|明晚)').hasMatch(text)) return true;
+    return false;
   }
 
   /// 是否含 CRM 信号

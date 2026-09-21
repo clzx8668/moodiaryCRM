@@ -187,7 +187,14 @@ class AiTaskQueueWorker {
           break;
         case AiTaskType.extractPlan:
           // extract_plan：抽取待办/CRM/日程；待办与日程落库，CRM 生成提案待审核
-          await ExtractPlanService.processDiary(task.refId);
+          // 只送相关片段（含时间/待办/商机信号的句子 + 前后各一句上下文）
+          await ExtractPlanService.processDiary(
+            task.refId,
+            sourceTextOverride: TriageTaskGate.relevantTextFor(
+              task.type,
+              await _textForTask(task),
+            ),
+          );
           break;
         case AiTaskType.aiTemplate:
           // 快速收集模板：按 payload 指定的模板处理并落 AI 生成区

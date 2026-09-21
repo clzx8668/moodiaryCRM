@@ -24,7 +24,10 @@ void main() {
     test('含待办/时间线索 → extractPlan 送 AI', () {
       final r = route('明天下午3点前把报价发给客户', [TriageOperation.extractPlan]);
       expect(r.decisions[TriageOperation.extractPlan]!.shouldSendToAI, isTrue);
-      expect(r.decisions[TriageOperation.extractPlan]!.reason, contains('结构化信号'));
+      // 走后是打分制：理由里要能看到分数与命中的信号
+      expect(r.decisions[TriageOperation.extractPlan]!.reason, contains('打分'));
+      expect(r.score, greaterThanOrEqualTo(3));
+      expect(r.scoreDetail, isNotEmpty);
     });
 
     test('含主题词 → 打标签送 AI', () {
@@ -227,6 +230,74 @@ void main() {
       final r = route('明天开会', const []);
       expect(r.decisions, isEmpty);
       expect(r.summary, '无需 AI 处理');
+    });
+  });
+
+  group('打分制（批次 110 细化）', () {
+    test('打分达到阈值 → 抽取走 AI，且带上可展示的分值与明细', () {
+      final r = route('明天下午三点跟客户开会讨论报价', [
+        TriageOperation.extractPlan,
+      ]);
+      final d = r.decisions[TriageOperation.extractPlan]!;
+      expect(d.shouldSendToAI, isTrue);
+      expect(r.score, greaterThanOrEqualTo(3));
+      expect(r.scoreDetail, isNotEmpty, reason: '要有可展示的分项明细');
+      expect(d.reason, contains('${r.score} 分'));
+    });
+
+    test('只有"记得"（+2，不到 3 分）→ 本地保存，并说明差多少分', () {
+      final r = route('记得买牛奶回来', [TriageOperation.extractPlan]);
+      final d = r.decisions[TriageOperation.extractPlan]!;
+      expect(d.staysLocal, isTrue);
+      expect(r.score, 2);
+      expect(d.reason, contains('2 分'));
+      expect(d.reason, contains('阈值'));
+    });
+
+    test('闲聊句式被扣分，即使含时间也不放行', () {
+      final r = route('今天心情不错，看了会儿书', [
+        TriageOperation.extractPlan,
+      ]);
+      expect(r.decisions[TriageOperation.extractPlan]!.staysLocal, isTrue);
+      expect(r.score, lessThan(3));
+    });
+
+    test('只送相关片段：长笔记的 relevantSegment 明显短于原文', () {
+      const text =
+          '第一句是无关的背景铺垫，写了不少字但没什么信息量。'
+          '第二句也是无关内容，继续啰嗦一些描述性的东西。'
+          '明天下午三点要跟客户开会对报价。'
+          '第四句仍然无关，只是把话题拖长而已。'
+          '第五句同样无关，纯粹占位。'
+          '记得把合同扫描件发给法务。'
+          '第七句无关。';
+      final r = route(text, [TriageOperation.extractPlan]);
+      expect(r.relevantSegment.trim(), isNotEmpty);
+      expect(r.relevantSegment.length, lessThan(text.length));
+      expect(r.relevantSegment, contains('明天下午三点'));
+      expect(r.relevantSegment, contains('合同扫描件'));
+    });
+
+    test('短文本不做片段截取（截了也不省）', () {
+      final r = route('明天开会', [TriageOperation.extractPlan]);
+      expect(r.relevantSegment, '明天开会');
+    });
+
+    test('阈值边界：恰好 3 分放行，2 分不放行', () {
+      // 时间 +3（长句无扣分）
+      expect(
+        route('明天上午十点过去', [
+          TriageOperation.extractPlan,
+        ]).decisions[TriageOperation.extractPlan]!.shouldSendToAI,
+        isTrue,
+      );
+      // 待办 +2 → 不放行
+      expect(
+        route('记得交报告', [
+          TriageOperation.extractPlan,
+        ]).decisions[TriageOperation.extractPlan]!.shouldSendToAI,
+        isFalse,
+      );
     });
   });
 }

@@ -142,6 +142,15 @@ class TriageResult {
   /// 是否由第二级分类器参与
   final bool usedClassifier;
 
+  /// 第一级规则引擎的**总分**（点数制；见 `SignalScorer`）
+  final int score;
+
+  /// 打分明细（可展示给用户："+3 时间：明天 · +2 待办词：记得"）
+  final List<String> scoreDetail;
+
+  /// **只送相关片段**：命中后建议发送的片段（未截取时等于原文）
+  final String relevantSegment;
+
   const TriageResult({
     required this.contentType,
     required this.decisions,
@@ -150,6 +159,9 @@ class TriageResult {
     this.signals = const [],
     this.confidence = 0,
     this.usedClassifier = false,
+    this.score = 0,
+    this.scoreDetail = const [],
+    this.relevantSegment = '',
   });
 
   /// 需要送 AI 的操作
@@ -166,6 +178,9 @@ class TriageResult {
 
   /// 是否整条内容都不需要上云
   bool get fullyLocal => sendOperations.isEmpty;
+
+  /// 是否有可用的相关片段（未截取时也等于原文，仅作"取文本"的入口）
+  bool get hasSegment => relevantSegment.trim().isNotEmpty;
 
   /// 一行摘要（列表/详情页展示用）
   String get summary {

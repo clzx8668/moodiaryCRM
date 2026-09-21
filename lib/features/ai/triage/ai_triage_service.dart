@@ -71,6 +71,7 @@ class AiTriageService {
       debugPrint(
         '[Triage] ${contentType.name} → 送AI[${sent.isEmpty ? '-' : sent}] '
         '本地[${kept.isEmpty ? '-' : kept}]'
+        ' 打分=${result.score}'
         '${result.hasSensitive ? ' 敏感:${result.sensitiveKinds.join('/')}' : ''}'
         '${refId == null ? '' : ' ref=$refId'}',
       );

@@ -1,7 +1,10 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_block_writer.dart';
 import 'package:moodiary/features/ai/colloquial/de_colloquial_meta.dart';
-import 'package:flutter/foundation.dart';
+import 'package:moodiary/features/ai/triage/ai_result_cache.dart';
 import 'package:moodiary/features/block/models/block.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
 import 'package:moodiary/persistence/isar.dart';
@@ -25,6 +28,16 @@ class ExtractPlanService {
   }) async {
     final t = text.trim();
     if (t.isEmpty) return null;
+
+    // ── 本地结果缓存：相同内容不重复调用（省钱、省时间、离线也能命中）──
+    final cacheKey = AiResultCache.keyFor('extract_plan', t);
+    final cached = AiResultCache.get(cacheKey);
+    if (cached != null) {
+      final parsed = ExtractPlanResult.tryParse(cached);
+      if (parsed != null) return parsed;
+      // 缓存内容不可解析就当作未命中，继续走真实调用
+    }
+
     config ??= ExtractPlanConfig.load();
     final provider = await AiProviderFactory.load();
     if (!provider.isConfigured) return null;
@@ -32,7 +45,11 @@ class ExtractPlanService {
       const AiChatMessage(role: 'system', content: _system),
       AiChatMessage(role: 'user', content: _prompt(t, config)),
     ]);
-    return ExtractPlanResult.tryParse(completion.content);
+    final result = ExtractPlanResult.tryParse(completion.content);
+    if (result != null) {
+      AiResultCache.put(cacheKey, jsonEncode(result.toJson()));
+    }
+    return result;
   }
 
   /// 对日记主文本块执行：抽取 → **只生成「待确认」清单，不写日程表** →
@@ -40,12 +57,21 @@ class ExtractPlanService {
   ///
   /// 落库原则（用户要求）：AI 只负责提取，**必须由用户在预填创建页确认**后
   /// 才写入日程/CRM 表，保证数据严谨、与详情页展示一致。
-  static Future<ExtractPlanResult?> processDiary(String diaryId) async {
+  /// [sourceTextOverride]：**只送相关片段**（批次 110）。
+  /// 分流命中后由 `SegmentExtractor` 截出含时间/待办/商机信号的句子，
+  /// 这里直接用它做抽取输入 —— token 更少、无关私人内容不出本地、
+  /// 模型也不会被无关段落干扰。
+  static Future<ExtractPlanResult?> processDiary(
+    String diaryId, {
+    String? sourceTextOverride,
+  }) async {
     final block = await _primaryTextBlock(diaryId);
     if (block == null) return null;
     final config = ExtractPlanConfig.load();
     try {
-      final result = await extract(sourceTextOf(block), config: config);
+      final override = sourceTextOverride?.trim() ?? '';
+      final source = override.isNotEmpty ? override : sourceTextOf(block);
+      final result = await extract(source, config: config);
       if (result == null) {
         _writeMeta(block, 'failed', 'AI 未返回可用结果（可能未配置或格式不符）');
         return null;
