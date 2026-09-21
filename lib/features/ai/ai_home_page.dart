@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/ai/widgets/chat_model_picker_sheet.dart';
+import 'package:moodiary/features/ai/memory/memory_suggestion_service.dart';
+import 'package:moodiary/features/ai/memory/widgets/memory_suggestion_card.dart';
 import 'package:moodiary/features/ai/ai_composite_provider.dart';
 import 'package:moodiary/features/ai/ai_note_saver.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
@@ -431,6 +433,11 @@ class _AiHomePageState extends State<AiHomePage> {
         _streaming = false;
       });
       await _persistMessage('assistant', assistantText, sources: sourcesCopy);
+      // 建议式自学习：本地判断这次产出值不值得记，挂成待确认建议（不落盘）
+      MemorySuggestionService.instance.consider(
+        aiOutput: assistantText,
+        userAsk: text,
+      );
       _scrollToBottom();
     }
   }
@@ -641,6 +648,8 @@ class _AiHomePageState extends State<AiHomePage> {
             ),
           ),
           _buildContextBar(context),
+          // 「要不要记下来？」建议卡（建议式自学习：用户点了才落盘）
+          const MemorySuggestionCard(),
           _buildInputBar(context),
         ],
       ),

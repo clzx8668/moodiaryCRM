@@ -108,6 +108,8 @@ class PrefUtil {
     'aiAutoSummary',
     // AI 个性化画像（专业词库/常用表达/风格偏好）
     'aiUserProfile',
+    // 建议式自学习：是否让 AI 提议"值得记下来"的内容（点了才落盘）
+    'memorySuggestionEnabled',
     // 自动生成每日/每周回望
     'digestAutoEnabled',
     // 到点提醒（应用内）
@@ -331,6 +333,11 @@ class PrefUtil {
     );
     // AI 处理设置（自动标签/分类默认开，摘要默认关预留）
     await _prefs.setBool('aiAutoTag', _prefs.getBool('aiAutoTag') ?? true);
+    // 建议式自学习（默认开：AI 只提议，不自动写）
+    await _prefs.setBool(
+      'memorySuggestionEnabled',
+      _prefs.getBool('memorySuggestionEnabled') ?? true,
+    );
     await _prefs.setBool(
       'aiAutoClassify',
       _prefs.getBool('aiAutoClassify') ?? true,

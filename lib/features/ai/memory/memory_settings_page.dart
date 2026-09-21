@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:moodiary/features/ai/memory/markdown_file_editor_page.dart';
 import 'package:moodiary/features/ai/memory/memory_files.dart';
 import 'package:moodiary/features/ai/memory/memory_store.dart';
+import 'package:moodiary/features/ai/memory/memory_suggestion_service.dart';
 import 'package:moodiary/utils/notice_util.dart';
 import 'package:path/path.dart' as p;
 
@@ -27,6 +28,7 @@ class _MemorySettingsPageState extends State<MemorySettingsPage> {
   String _memoryPreview = '';
   List<({String title, String preview})> _skills = const [];
   int _snapshotCount = 0;
+  bool _suggestEnabled = true;
 
   @override
   void initState() {
@@ -47,6 +49,7 @@ class _MemorySettingsPageState extends State<MemorySettingsPage> {
           .map((e) => (title: e.key, preview: _firstLines(e.value)))
           .toList();
       _snapshotCount = MemoryStore.listSnapshots().length;
+      _suggestEnabled = MemorySuggestionService.enabled;
       _loading = false;
     });
   }
@@ -160,6 +163,22 @@ class _MemorySettingsPageState extends State<MemorySettingsPage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           _intro(context),
+          const SizedBox(height: 12),
+          // 自学习方式（用户选定的"建议式"）：AI 只提议，你点了才落盘
+          SwitchListTile(
+            value: _suggestEnabled,
+            onChanged: (v) async {
+              setState(() => _suggestEnabled = v);
+              await MemorySuggestionService.setEnabled(v);
+            },
+            title: const Text('让 AI 建议值得记的内容'),
+            subtitle: Text(
+              _suggestEnabled
+                  ? '任务结束时本地判断一次，弹一张卡片问你要不要记（不会自动写入）'
+                  : '已关闭：AI 不会主动提议，只能你自己维护这些文件',
+            ),
+            secondary: const Icon(Icons.lightbulb_outline_rounded),
+          ),
           const SizedBox(height: 14),
           _tierTitle(context, '第一层 · 永远参与 AI 处理'),
           _fileCard(
