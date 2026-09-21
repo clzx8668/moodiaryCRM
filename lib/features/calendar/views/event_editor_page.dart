@@ -27,6 +27,10 @@ class EventEditorPage extends StatefulWidget {
   /// 新建时是否自动聚焦标题（拖动新建后直接用键盘起标题）
   final bool autofocusTitle;
 
+  /// 智能新建解析出的标题/地点（新建时预填）
+  final String? initialTitle;
+  final String? initialLocation;
+
   const EventEditorPage({
     super.key,
     this.event,
@@ -35,6 +39,8 @@ class EventEditorPage extends StatefulWidget {
     this.initialStart,
     this.initialEnd,
     this.autofocusTitle = false,
+    this.initialTitle,
+    this.initialLocation,
   });
 
   @override
@@ -80,6 +86,12 @@ class _EventEditorPageState extends State<EventEditorPage> {
     _calendars = List.of(widget.calendars);
     _titleCtrl.text = base.title;
     _locationCtrl.text = base.location ?? '';
+    if (_isNew) {
+      if (widget.initialTitle != null) _titleCtrl.text = widget.initialTitle!;
+      if (widget.initialLocation != null) {
+        _locationCtrl.text = widget.initialLocation!;
+      }
+    }
     _notesCtrl.text = base.notes;
     if (_calendars.isEmpty) _loadCalendars();
   }

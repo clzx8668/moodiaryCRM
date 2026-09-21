@@ -308,4 +308,157 @@ void main() {
       expect(dragDeltaMinutes(1, 52), 0);
     });
   });
+
+  group('月视图几何（跨天连续条 / 命中判定 / 改期）', () {
+    List<DateTime> weekOf(DateTime d) => weekDays(d);
+
+    test('跨天事件裁到本周并分配泳道，互不重叠的可以共泳道', () {
+      final bars = layoutWeekSpans(
+        week: weekOf(DateTime(2026, 9, 23)),
+        events: [
+          event(
+            title: '出差',
+            start: DateTime(2026, 9, 21, 8),
+            end: DateTime(2026, 9, 25, 18),
+          ),
+          event(
+            title: '展会',
+            start: DateTime(2026, 9, 24, 9),
+            end: DateTime(2026, 9, 27, 18),
+          ),
+          event(title: '单天会议', start: DateTime(2026, 9, 23, 10)),
+        ],
+      );
+      expect(bars, hasLength(2), reason: '单天事件不算连续条');
+      final trip = bars.firstWhere((b) => b.event.title == '出差');
+      final expo = bars.firstWhere((b) => b.event.title == '展会');
+      expect(trip.startCol, 0);
+      expect(trip.endCol, 4); // 周一~周五
+      expect(expo.startCol, 3);
+      expect(expo.endCol, 6); // 周四~周日
+      expect(expo.lane, 1, reason: '与出差重叠 → 下一条泳道');
+    });
+
+    test('跨周事件每周各裁一段', () {
+      final across = event(
+        title: '长假',
+        start: DateTime(2026, 9, 25, 8),
+        end: DateTime(2026, 10, 2, 18),
+      );
+      final first = layoutWeekSpans(
+        week: weekOf(DateTime(2026, 9, 25)),
+        events: [across],
+      ).single;
+      final second = layoutWeekSpans(
+        week: weekOf(DateTime(2026, 9, 30)),
+        events: [across],
+      ).single;
+      expect((first.startCol, first.endCol), (4, 6));
+      expect((second.startCol, second.endCol), (0, 4));
+    });
+
+    test('泳道满了之后不再画（留给 +N 提示）', () {
+      final bars = layoutWeekSpans(
+        week: weekOf(DateTime(2026, 9, 23)),
+        maxLanes: 1,
+        events: [
+          event(
+            title: 'A',
+            start: DateTime(2026, 9, 21, 8),
+            end: DateTime(2026, 9, 27, 18),
+          ),
+          event(
+            title: 'B',
+            start: DateTime(2026, 9, 22, 8),
+            end: DateTime(2026, 9, 26, 18),
+          ),
+        ],
+      );
+      expect(bars.map((b) => b.event.title), ['A']);
+    });
+
+    test('指针坐标 → 行列', () {
+      expect(
+        gridCellAt(
+          dx: 10,
+          dy: 10,
+          cellWidth: 50,
+          cellHeight: 60,
+          rows: 5,
+        ),
+        (0, 0),
+      );
+      expect(
+        gridCellAt(
+          dx: 260,
+          dy: 130,
+          cellWidth: 50,
+          cellHeight: 60,
+          rows: 5,
+        ),
+        (2, 5),
+      );
+      // 越界
+      expect(
+        gridCellAt(
+          dx: 400,
+          dy: 10,
+          cellWidth: 50,
+          cellHeight: 60,
+          rows: 5,
+        ),
+        isNull,
+      );
+      expect(
+        gridCellAt(
+          dx: 10,
+          dy: 400,
+          cellWidth: 50,
+          cellHeight: 60,
+          rows: 5,
+        ),
+        isNull,
+      );
+    });
+
+    test('日格内按 y 命中第几条事件条', () {
+      // 事件条从 30px 开始，每条 17px
+      expect(
+        eventBarIndexAt(dyInCell: 20, barsTop: 30, barHeight: 17, barCount: 3),
+        -1,
+      );
+      expect(
+        eventBarIndexAt(dyInCell: 32, barsTop: 30, barHeight: 17, barCount: 3),
+        0,
+      );
+      expect(
+        eventBarIndexAt(dyInCell: 50, barsTop: 30, barHeight: 17, barCount: 3),
+        1,
+      );
+      expect(
+        eventBarIndexAt(dyInCell: 90, barsTop: 30, barHeight: 17, barCount: 3),
+        -1,
+      );
+    });
+
+    test('拖到别的日子：保持时刻与时长；全天事件不带时刻', () {
+      final timed = event(
+        title: '会议',
+        start: DateTime(2026, 9, 22, 14, 30),
+        end: DateTime(2026, 9, 22, 16),
+      );
+      final moved = moveScheduleToDay(timed, DateTime(2026, 9, 26));
+      expect(moved.startTime, DateTime(2026, 9, 26, 14, 30));
+      expect(moved.endTime, DateTime(2026, 9, 26, 16));
+
+      final allDay = event(
+        title: '假期',
+        start: DateTime(2026, 9, 22),
+        allDay: true,
+      );
+      final movedAllDay = moveScheduleToDay(allDay, DateTime(2026, 9, 27));
+      expect(movedAllDay.startTime, DateTime(2026, 9, 27, 0, 0));
+      expect(movedAllDay.endTime, isNull);
+    });
+  });
 }

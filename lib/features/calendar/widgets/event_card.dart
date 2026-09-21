@@ -187,50 +187,67 @@ class CalendarEventBar extends StatelessWidget {
   final Schedule event;
   final Color color;
   final bool showTitle;
+  final double height;
   final VoidCallback? onTap;
+  final void Function(Offset globalPosition)? onLongPressStart;
+  final void Function(Offset globalPosition)? onLongPressMoveUpdate;
+  final VoidCallback? onLongPressEnd;
 
   const CalendarEventBar({
     super.key,
     required this.event,
     required this.color,
     this.showTitle = false,
+    this.height = 0,
     this.onTap,
+    this.onLongPressStart,
+    this.onLongPressMoveUpdate,
+    this.onLongPressEnd,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bar = Container(
+      height: height > 0 ? height : (showTitle ? 15 : 6),
+      margin: const EdgeInsets.symmetric(vertical: 1),
+      padding: showTitle
+          ? const EdgeInsets.symmetric(horizontal: 4)
+          : EdgeInsets.zero,
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(
+        color: showTitle
+            ? IosCalendarTheme.eventFill(color, theme.colorScheme.surfaceContainerLow)
+            : color,
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: showTitle
+          ? Text(
+              event.allDay || event.isMultiDay
+                  ? event.title
+                  : '${fmtClock(event.startTime)} ${event.title}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontSize: 9,
+                height: 1.1,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            )
+          : null,
+    );
+    if (onLongPressStart == null) {
+      return GestureDetector(onTap: onTap, child: bar);
+    }
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        height: showTitle ? 15 : 6,
-        margin: const EdgeInsets.symmetric(vertical: 1),
-        padding: showTitle
-            ? const EdgeInsets.symmetric(horizontal: 4)
-            : EdgeInsets.zero,
-        alignment: Alignment.centerLeft,
-        decoration: BoxDecoration(
-          color: showTitle
-              ? IosCalendarTheme.eventFill(color, theme.colorScheme.surfaceContainerLow)
-              : color,
-          borderRadius: BorderRadius.circular(3),
-        ),
-        child: showTitle
-            ? Text(
-                event.allDay || event.isMultiDay
-                    ? event.title
-                    : '${fmtClock(event.startTime)} ${event.title}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontSize: 9,
-                  height: 1.1,
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
-              )
-            : null,
-      ),
+      behavior: HitTestBehavior.opaque,
+      onLongPressStart: (d) => onLongPressStart!(d.globalPosition),
+      onLongPressMoveUpdate: (d) =>
+          onLongPressMoveUpdate?.call(d.globalPosition),
+      onLongPressEnd: (_) => onLongPressEnd?.call(),
+      child: bar,
     );
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/features/calendar/views/ios_calendar_page.dart';
+import 'package:moodiary/features/calendar/calendar_agenda.dart';
+import 'package:moodiary/features/calendar/widgets/event_card.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
 import 'package:moodiary/features/schedule/schedule_repository.dart';
 import 'package:moodiary/persistence/app_database.dart';
@@ -50,6 +52,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// 从「视图与日历」菜单里切月格缩放档位。
+  Future<void> setZoom(WidgetTester tester, String label) async {
+    await tester.tap(find.byIcon(Icons.tune_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('手机端渲染 iOS 风日历页无异常，三档底部胶囊在位', (tester) async {
     await pumpPage(tester);
 
@@ -62,6 +72,11 @@ void main() {
     final now = DateTime.now();
     expect(find.text('${now.year}年${now.month}月'), findsOneWidget);
     expect(find.byIcon(Icons.add_circle_outline_rounded), findsOneWidget);
+    // 空状态引导（教一遍拖动交互）——先滚到时间轴顶部，引导卡才会进视口
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 800));
+    await tester.pumpAndSettle();
+    expect(find.text('这一天还没有安排'), findsOneWidget);
+    expect(find.textContaining('长按时间轴空白处'), findsOneWidget);
   });
 
   testWidgets('切到收件箱显示空态；有草案时能加入日历', (tester) async {
@@ -92,25 +107,23 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('缩放档位按钮可在圆点/事件条/标题之间轮换', (tester) async {
+  testWidgets('视图菜单可切月格缩放档位（圆点/事件条/标题）', (tester) async {
     await pumpPage(tester);
-    // 初始：圆点档（更多…图标）
-    expect(find.byIcon(Icons.more_horiz_rounded), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.more_horiz_rounded));
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.drag_handle_rounded), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.drag_handle_rounded));
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.view_agenda_rounded), findsOneWidget);
-    // 再点一次回到圆点
-    await tester.tap(find.byIcon(Icons.view_agenda_rounded));
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.more_horiz_rounded), findsOneWidget);
+    // 初始圆点档：日格里只有一个圆点
+    expect(find.byType(CalendarEventBar), findsNothing);
+    await setZoom(tester, '事件条');
+    expect(find.byType(CalendarEventBar), findsNothing, reason: '这天没有事件');
+
+    await setZoom(tester, '标题 + 时间');
+    // 再切回圆点
+    await setZoom(tester, '圆点');
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('双指捏合放大：圆点档 → 事件条档（技巧 01）', (tester) async {
     await pumpPage(tester);
-    expect(find.byIcon(Icons.more_horiz_rounded), findsOneWidget);
+    // 起始为圆点档：格子里没有事件条
+    expect(find.byType(CalendarEventBar), findsNothing);
 
     // 两根手指在月网格上向外撑开
     final center = tester.getCenter(find.byKey(const ValueKey('calendar-grid')));
@@ -128,11 +141,8 @@ void main() {
     await right.up();
     await tester.pumpAndSettle();
 
-    expect(
-      find.byIcon(Icons.drag_handle_rounded),
-      findsOneWidget,
-      reason: '捏合放大应升到「事件条」档',
-    );
+    // 升到事件条档后：依旧没有事件条（今天没事件），但不能再报异常
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('事件卡 → 详情面板 → 编辑 → 删除：日程软删且日历上消失', (tester) async {
@@ -241,5 +251,85 @@ void main() {
 
     expect(find.text('12:00 – 13:00'), findsOneWidget, reason: '应显示拖动后的新时间');
     expect(find.text('10:00 – 11:00'), findsNothing);
+  });
+
+  testWidgets('月格里长按事件拖到别的日子：日期改掉、时刻保留', (tester) async {
+    final now = DateTime.now();
+    final repo = ScheduleRepository();
+    // 挑两个「既不撞今天也不是月末边界」的日子
+    final days = monthGridDays(now.year, now.month);
+    final sourceDay = DateTime(now.year, now.month, 10);
+    final targetDay = DateTime(now.year, now.month, 17);
+    final event = await repo.create(
+      Schedule()
+        ..title = '月格拖动用例'
+        ..startTime = DateTime(now.year, now.month, 10, 14)
+        ..endTime = DateTime(now.year, now.month, 10, 15),
+    );
+
+    await pumpPage(tester);
+
+    // 切到「事件条」档，事件才会以可长按的条形呈现
+    await setZoom(tester, '事件条');
+
+    final body = tester.getRect(find.byKey(const ValueKey('month-grid-body')));
+    final cellWidth = body.width / 7;
+    final cellHeight = body.height / (days.length ~/ 7);
+    Offset centerOf(DateTime d) {
+      final index = days.indexWhere((x) => isSameDay(x, d));
+      final row = index ~/ 7;
+      final col = index % 7;
+      // 日格内第一条事件条的位置（日期数字 26 + 间距，条高 9）
+      return Offset(
+        body.left + col * cellWidth + cellWidth / 2,
+        body.top + row * cellHeight + 36,
+      );
+    }
+
+    final gesture = await tester.startGesture(centerOf(sourceDay));
+    await tester.pump(const Duration(milliseconds: 600));
+    await gesture.moveTo(centerOf(targetDay));
+    await tester.pump(const Duration(milliseconds: 40));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    final moved = await repo.getById(event.id);
+    expect(moved!.startTime.day, targetDay.day, reason: '应改到拖到的日子');
+    expect(moved.startTime.hour, 14, reason: '时刻要保留');
+    expect(moved.endTime!.difference(moved.startTime), const Duration(hours: 1));
+
+    // 撤销提示在位
+    expect(find.textContaining('已移到'), findsOneWidget);
+  });
+
+  testWidgets('多天/全天事件在月格里画一条跨格连续条', (tester) async {
+    final now = DateTime.now();
+    // 1~4 号在同一周行内，便于断言「一条连续条横跨多格」
+    final start = DateTime(now.year, now.month, 1);
+    await ScheduleRepository().create(
+      Schedule()
+        ..title = '连续条用例'
+        ..allDay = true
+        ..startTime = start
+        ..endTime = DateTime(now.year, now.month, 4, 23, 59),
+    );
+
+    await pumpPage(tester);
+    // 直接切到标题档（连续条在标题档才显示标题）
+    await setZoom(tester, '标题 + 时间');
+
+    final barFinder = find.text('连续条用例');
+    expect(barFinder, findsOneWidget, reason: '跨天事件应作为连续条出现');
+
+    final body = tester.getRect(find.byKey(const ValueKey('month-grid-body')));
+    final cellWidth = body.width / 7;
+    final barRect = tester.getRect(
+      find.ancestor(of: barFinder, matching: find.byType(DecoratedBox)).first,
+    );
+    expect(
+      barRect.width,
+      greaterThan(cellWidth * 2),
+      reason: '4 天的事件应横跨多格',
+    );
   });
 }

@@ -20,6 +20,7 @@ import 'calendar_manager_sheet.dart';
 import 'day_timeline.dart';
 import 'event_detail_sheet.dart';
 import 'event_editor_page.dart';
+import 'quick_actions.dart';
 
 /// 底部三档（iOS 18）：今天 / 日历 / 收件箱。
 enum CalendarBottomTab { today, calendar, inbox }
@@ -64,7 +65,20 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   /// 时间轴行高（每小时的像素高度）：拖动几何与视觉密度都依赖它
   double _hourHeight = 52;
 
+  /// 月格是否折叠成「周」条（单指上下滑动切换）
+  bool _weekMode = false;
+
+  /// 月格里正在拖动的事件与悬停的目标日
+  Schedule? _gridDragEvent;
+  DateTime? _gridDragHover;
+  final GlobalKey _gridBodyKey = GlobalKey();
+
   double _lastScale = 1.0;
+
+  // 月格单指上下滑动切月的原始指针跟踪
+  Offset? _swipeFrom;
+  DateTime? _swipeAt;
+  bool _swipeMultiTouch = false;
 
   CalendarAgenda get _agenda => buildAgenda(
     day: _selected,
@@ -275,6 +289,33 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     }
   }
 
+  /// 智能新建：自然语言 → 预填编辑器（确认后才落库）。
+  Future<void> _openSmartAdd() async {
+    final parsed = await showSmartAddDialog(context);
+    if (parsed == null || !mounted) return;
+    final created = await Get.to<bool>(
+      () => EventEditorPage(
+        initialStart: parsed.start,
+        initialEnd: parsed.end,
+        initialDay: parsed.start ?? _selected,
+        initialTitle: parsed.title.isEmpty ? null : parsed.title,
+        initialLocation: parsed.location,
+        autofocusTitle: parsed.title.isEmpty,
+        calendars: _calendars,
+      ),
+    );
+    if (created == true) await _reload();
+  }
+
+  /// 搜索日程 → 跳到那天并打开详情。
+  Future<void> _openSearch() async {
+    final hit = await showEventSearchSheet(context);
+    if (hit == null || !mounted) return;
+    await _selectDay(hit.startTime);
+    if (!mounted) return;
+    await _openDetail(hit);
+  }
+
   String _calendarNameOf(Schedule e) {
     final id = e.calendarId;
     for (final c in _calendars) {
@@ -387,6 +428,42 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     _zoom = levels[(levels.indexOf(_zoom) + 1) % levels.length];
   });
 
+  // ------------------------------------------------ 月格：单指上下滑动切月/周
+
+  void _swipeDown(PointerDownEvent e) {
+    if (_swipeFrom != null) {
+      _swipeMultiTouch = true; // 第二根手指落下 → 交给捏合
+      return;
+    }
+    _swipeFrom = e.position;
+    _swipeAt = DateTime.now();
+    _swipeMultiTouch = false;
+  }
+
+  void _swipeMove(PointerMoveEvent e) {}
+
+  void _swipeUp(PointerUpEvent e) {
+    final from = _swipeFrom;
+    final at = _swipeAt;
+    final multi = _swipeMultiTouch;
+    _swipeFrom = null;
+    _swipeAt = null;
+    _swipeMultiTouch = false;
+    if (from == null || at == null || multi) return;
+    if (_gridDragEvent != null) return; // 正在拖事件，不当成滑动
+    final dy = e.position.dy - from.dy;
+    final dx = (e.position.dx - from.dx).abs();
+    final fast = DateTime.now().difference(at).inMilliseconds < 400;
+    if (!fast || dx > 40 || dy.abs() < 40) return;
+    setState(() {
+      if (dy < 0 && !_weekMode) {
+        _weekMode = true; // 上滑：收起成周
+      } else if (dy > 0 && _weekMode) {
+        _weekMode = false; // 下滑：展开成月
+      }
+    });
+  }
+
   // ---------------------------------------------------------------- 视图
 
   @override
@@ -463,33 +540,18 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
           ),
           const Spacer(),
           _barIcon(
-            tooltip: '缩放档位：${_zoomLabel()}（可双指捏合）',
-            icon: switch (_zoom) {
-              CalendarZoom.dots => Icons.more_horiz_rounded,
-              CalendarZoom.bars => Icons.drag_handle_rounded,
-              CalendarZoom.titles => Icons.view_agenda_rounded,
-            },
-            onPressed: _cycleZoom,
-          ),
-          PopupMenuButton<double>(
-            tooltip: '时间轴行高',
-            icon: const Icon(Icons.height_rounded),
-            initialValue: _hourHeight,
-            onSelected: (v) {
-              setState(() => _hourHeight = v);
-              PrefUtil.setValue<double>('calendarHourHeight', v);
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 40.0, child: Text('紧凑（每小时 40）')),
-              PopupMenuItem(value: 52.0, child: Text('标准（每小时 52）')),
-              PopupMenuItem(value: 84.0, child: Text('宽松（每小时 84）')),
-            ],
+            tooltip: '智能新建（说人话建日程）',
+            icon: Icons.auto_awesome_rounded,
+            color: scheme.primary,
+            onPressed: _openSmartAdd,
           ),
           _barIcon(
-            tooltip: '日历管理',
-            icon: Icons.calendar_month_rounded,
-            onPressed: _openManager,
+            tooltip: '搜索日程',
+            icon: Icons.search_rounded,
+            onPressed: _openSearch,
           ),
+          // 视图与日历管理收进「更多」，避免顶栏挤爆（iOS 也是这个思路）
+          _viewMenu(scheme),
           _barIcon(
             tooltip: '新建事件',
             icon: Icons.add_circle_outline_rounded,
@@ -514,8 +576,110 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       onPressed: onPressed,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 40, minHeight: 44),
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 44),
     );
+  }
+
+  Widget _viewMenu(ColorScheme scheme) {
+    return PopupMenuButton<String>(
+      tooltip: '视图与日历',
+      icon: Icon(Icons.tune_rounded, color: scheme.onSurfaceVariant),
+      onSelected: (value) async {
+        switch (value) {
+          case 'zoom.dots':
+            setState(() => _zoom = CalendarZoom.dots);
+          case 'zoom.bars':
+            setState(() => _zoom = CalendarZoom.bars);
+          case 'zoom.titles':
+            setState(() => _zoom = CalendarZoom.titles);
+          case 'hour.40':
+            _setHourHeight(40);
+          case 'hour.52':
+            _setHourHeight(52);
+          case 'hour.84':
+            _setHourHeight(84);
+          case 'week.mon':
+            setState(() => _weekStart = 1);
+            PrefUtil.setValue<int>('calendarWeekStart', 1);
+          case 'week.sun':
+            setState(() => _weekStart = 7);
+            PrefUtil.setValue<int>('calendarWeekStart', 7);
+          case 'calendars':
+            await _openManager();
+        }
+      },
+      itemBuilder: (_) => [
+        _menuHeader('月格缩放（也可双指捏合）'),
+        CheckedPopupMenuItem(
+          value: 'zoom.dots',
+          checked: _zoom == CalendarZoom.dots,
+          child: const Text('圆点'),
+        ),
+        CheckedPopupMenuItem(
+          value: 'zoom.bars',
+          checked: _zoom == CalendarZoom.bars,
+          child: const Text('事件条'),
+        ),
+        CheckedPopupMenuItem(
+          value: 'zoom.titles',
+          checked: _zoom == CalendarZoom.titles,
+          child: const Text('标题 + 时间'),
+        ),
+        _menuHeader('时间轴行高'),
+        CheckedPopupMenuItem(
+          value: 'hour.40',
+          checked: _hourHeight == 40,
+          child: const Text('紧凑'),
+        ),
+        CheckedPopupMenuItem(
+          value: 'hour.52',
+          checked: _hourHeight == 52,
+          child: const Text('标准'),
+        ),
+        CheckedPopupMenuItem(
+          value: 'hour.84',
+          checked: _hourHeight == 84,
+          child: const Text('宽松'),
+        ),
+        _menuHeader('每周起始'),
+        CheckedPopupMenuItem(
+          value: 'week.mon',
+          checked: _weekStart == 1,
+          child: const Text('周一'),
+        ),
+        CheckedPopupMenuItem(
+          value: 'week.sun',
+          checked: _weekStart == 7,
+          child: const Text('周日'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'calendars',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.calendar_month_rounded, size: 18),
+            title: Text('日历管理'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  PopupMenuItem<String> _menuHeader(String text) => PopupMenuItem<String>(
+    enabled: false,
+    height: 28,
+    child: Text(
+      text,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    ),
+  );
+
+  void _setHourHeight(double value) {
+    setState(() => _hourHeight = value);
+    PrefUtil.setValue<double>('calendarHourHeight', value);
   }
 
   String _zoomLabel() => switch (_zoom) {
@@ -525,7 +689,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   };
 
   Widget _dayBody() {
-    final grid = _tab == CalendarBottomTab.today
+    final grid = (_tab == CalendarBottomTab.today || _weekMode)
         ? _weekStrip()
         : _monthGrid();
     // 月网格必须放在任何滚动视图**外面**：放进 CustomScrollView /
@@ -606,6 +770,51 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
 
     final now = DateTime.now();
     final isToday = isSameDay(_selected, now);
+
+    // 空状态引导：这一天什么都没安排时，教一遍拖动交互（iOS 的"点一点就有"）
+    if (agenda.isEmpty) {
+      slivers.add(
+        SliverToBoxAdapter(
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerLow.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(IosCalendarTheme.cardRadius),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 15,
+                      color: scheme.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '这一天还没有安排',
+                      style: theme.textTheme.labelLarge,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '· 长按时间轴空白处上下拖动 → 直接拉出一个时间段\n'
+                  '· 长按已有日程拖动 → 改时间；拖底部手柄 → 改时长\n'
+                  '· 顶栏 ✨ → 说人话建日程（明天下午3点在会议室A评审）',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     // 24 小时时间轴：绝对定位画布（长按拖动新建/移动/改时长都在这里）
     slivers.add(
@@ -699,24 +908,66 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     final days = weekDays(_selected, weekStart: _weekStart);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
-      child: Row(
+      child: Column(
         children: [
-          for (final d in days)
-            Expanded(
-              child: _DayCell(
-                day: d,
-                zoom: CalendarZoom.dots,
-                inMonth: true,
-                selected: isSameDay(d, _selected),
-                events: _eventsByDay[d] ?? const [],
-                colorOf: _colorOf,
-                hasDiary: _diaryDays.contains(d),
-                onTap: () => _selectDay(d),
-                onLongPress: () => _openEditor(day: d),
-                compact: true,
+          SizedBox(
+            height: 48,
+            child: Row(
+              children: [
+                for (final d in days)
+                  Expanded(
+                    child: _DayCell(
+                      day: d,
+                      zoom: CalendarZoom.dots,
+                      cellHeight: 48,
+                      inMonth: true,
+                      selected: isSameDay(d, _selected),
+                      events: _eventsByDay[d] ?? const [],
+                      colorOf: _colorOf,
+                      hasDiary: _diaryDays.contains(d),
+                      onTap: () => _selectDay(d),
+                      onLongPress: () => _openEditor(day: d),
+                      compact: true,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          _gridModeToggle(toWeek: false),
+        ],
+      ),
+    );
+  }
+
+  /// 月/周切换的可见入口（与上下滑动等价，避免只能靠手势发现）。
+  Widget _gridModeToggle({required bool toWeek}) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: () => setState(() => _weekMode = toWeek),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedRotation(
+              turns: toWeek ? 0 : 0.5,
+              duration: const Duration(milliseconds: 180),
+              child: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-        ],
+            const SizedBox(width: 3),
+            Text(
+              toWeek ? '周视图' : '月视图',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -724,67 +975,241 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   Widget _monthGrid() {
     final theme = Theme.of(context);
     final days = monthGridDays(_month.year, _month.month, weekStart: _weekStart);
-    final labels = [
-      for (var i = 0; i < 7; i++)
-        switch ((_weekStart - 1 + i) % 7) {
-          0 => '一',
-          1 => '二',
-          2 => '三',
-          3 => '四',
-          4 => '五',
-          5 => '六',
-          _ => '日',
-        },
-    ];
+    final rowCount = days.length ~/ 7;
+    final cellHeight = _cellHeightForZoom(_zoom);
+    final barHeight = _barHeightForZoom(_zoom);
+    final canSpan = _zoom != CalendarZoom.dots;
+
     return Container(
       key: const ValueKey('calendar-grid'),
-      margin: const EdgeInsets.fromLTRB(8, 6, 8, 2),
+      margin: const EdgeInsets.fromLTRB(8, 6, 8, 0),
       padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(IosCalendarTheme.panelRadius),
       ),
-      child: Column(
-        children: [
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final cellWidth = constraints.maxWidth / 7;
+          return Column(
             children: [
-              for (final w in labels)
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      w,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+              Row(
+                children: [
+                  for (final w in _weekLabels()) _weekdayLabel(theme, w),
+                ],
+              ),
+              const SizedBox(height: 4),
+              // 整块月格一个手势层：长按拖动改期 + 单指上下滑动切换月/周
+              // 上下滑动切月/周：用 Listener 原始指针自己做，
+              // 不注册拖拽识别器（否则会和双指捏合抢手势竞技场）。
+              Listener(
+                onPointerDown: _swipeDown,
+                onPointerMove: _swipeMove,
+                onPointerUp: _swipeUp,
+                child: Column(
+                  children: [
+                    // 只有「周行」在 keyed 盒子里，便于用坐标反查日格
+                    KeyedSubtree(
+                      key: _gridBodyKey,
+                      child: Column(
+                        key: const ValueKey('month-grid-body'),
+                        children: [
+                          for (var row = 0; row < rowCount; row++)
+                            SizedBox(
+                              height: cellHeight,
+                              child: _buildWeekRow(
+                                week: days.sublist(row * 7, row * 7 + 7),
+                                cellWidth: cellWidth,
+                                cellHeight: cellHeight,
+                                barHeight: barHeight,
+                                canSpan: canSpan,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                  ),
+                    _gridModeToggle(toWeek: true),
+                  ],
                 ),
+              ),
             ],
-          ),
-          const SizedBox(height: 4),
-          for (var i = 0; i < days.length; i += 7)
-            Row(
-              children: [
-                for (var j = 0; j < 7; j++)
-                  Expanded(
-                    child: _DayCell(
-                      day: days[i + j],
-                      zoom: _zoom,
-                      inMonth:
-                          days[i + j].month == _month.month &&
-                          days[i + j].year == _month.year,
-                      selected: isSameDay(days[i + j], _selected),
-                      events: _eventsByDay[days[i + j]] ?? const [],
-                      colorOf: _colorOf,
-                      hasDiary: _diaryDays.contains(days[i + j]),
-                      onTap: () => _selectDay(days[i + j]),
-                      onLongPress: () => _openEditor(day: days[i + j]),
-                    ),
-                  ),
-              ],
-            ),
-        ],
+          );
+        },
       ),
+    );
+  }
+
+  List<String> _weekLabels() => [
+    for (var i = 0; i < 7; i++)
+      switch ((_weekStart - 1 + i) % 7) {
+        0 => '一',
+        1 => '二',
+        2 => '三',
+        3 => '四',
+        4 => '五',
+        5 => '六',
+        _ => '日',
+      },
+  ];
+
+  Widget _weekdayLabel(ThemeData theme, String label) => Expanded(
+    child: Center(
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    ),
+  );
+
+  double _cellHeightForZoom(CalendarZoom zoom) => switch (zoom) {
+    CalendarZoom.dots => 46,
+    CalendarZoom.bars => 62,
+    CalendarZoom.titles => 88,
+  };
+
+  double _barHeightForZoom(CalendarZoom zoom) =>
+      zoom == CalendarZoom.titles ? 17 : 9;
+
+  /// 一周一行：底层 7 个日格 + 上层跨天连续条 + 拖动悬停高亮。
+  Widget _buildWeekRow({
+    required List<DateTime> week,
+    required double cellWidth,
+    required double cellHeight,
+    required double barHeight,
+    required bool canSpan,
+  }) {
+    final spans = canSpan
+        ? layoutWeekSpans(week: week, events: _eventsOfWeek(week))
+        : const <MonthSpanBar>[];
+    final lanes = spans.isEmpty
+        ? 0
+        : spans.map((b) => b.lane).reduce((a, b) => a > b ? a : b) + 1;
+
+    return Stack(
+      children: [
+        Row(
+          children: [
+            for (final day in week)
+              Expanded(
+                child: _DayCell(
+                  day: day,
+                  zoom: _zoom,
+                  cellHeight: cellHeight,
+                  reservedTop: lanes * barHeight,
+                  inMonth: day.month == _month.month && day.year == _month.year,
+                  selected: isSameDay(day, _selected),
+                  hovered: _gridDragHover != null &&
+                      isSameDay(day, _gridDragHover!),
+                  events: _eventsByDay[day] ?? const [],
+                  colorOf: _colorOf,
+                  hasDiary: _diaryDays.contains(day),
+                  // 跨天事件由上层「连续条」统一画，避免一屏两份
+                  hideMultiDay: canSpan,
+                  onTap: () => _selectDay(day),
+                  onLongPress: () => _openEditor(day: day),
+                  onEventDragStart: _eventDragStart,
+                  onEventDragUpdate: _eventDragUpdate,
+                  onEventDragEnd: _eventDragEnd,
+                ),
+              ),
+          ],
+        ),
+        for (final bar in spans)
+          Positioned(
+            left: bar.startCol * cellWidth + 4,
+            width: bar.span * cellWidth - 8,
+            top: 32 + bar.lane * barHeight,
+            height: barHeight,
+            child: _MonthSpanBarView(
+              event: bar.event,
+              color: _colorOf(bar.event),
+              showTitle: _zoom == CalendarZoom.titles,
+              isDragging: _gridDragEvent?.id == bar.event.id,
+              onDragStart: (g) => _eventDragStart(bar.event, g),
+              onDragUpdate: _eventDragUpdate,
+              onDragEnd: _eventDragEnd,
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// 一行周内涉及的事件（含跨天条需要的事件）。
+  List<Schedule> _eventsOfWeek(List<DateTime> week) {
+    final result = <Schedule>[];
+    for (final day in week) {
+      result.addAll(_eventsByDay[day] ?? const []);
+    }
+    final seen = <String>{};
+    return [
+      for (final e in result)
+        if (seen.add(e.id)) e,
+    ];
+  }
+
+  // ---------------------------------------------------- 月格：长按事件条拖动改期
+  //
+  // 长按「事件条 / 跨天条」= 拖到别的日子；长按「空白日格」= 那天新建。
+  // 两者分别落在各自的 widget 上，避免长按识别器互相抢。
+
+  void _eventDragStart(Schedule event, Offset globalPosition) {
+    setState(() {
+      _gridDragEvent = event;
+      _gridDragHover = _dayAtGlobal(globalPosition) ?? event.day;
+    });
+  }
+
+  void _eventDragUpdate(Offset globalPosition) {
+    if (_gridDragEvent == null) return;
+    final day = _dayAtGlobal(globalPosition);
+    if (day == null) return;
+    if (_gridDragHover != null && isSameDay(_gridDragHover!, day)) return;
+    setState(() => _gridDragHover = day);
+  }
+
+  /// 全局坐标 → 月格里的日子。
+  DateTime? _dayAtGlobal(Offset globalPosition) {
+    final box = _gridBodyKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    final local = box.globalToLocal(globalPosition);
+    final days = monthGridDays(
+      _month.year,
+      _month.month,
+      weekStart: _weekStart,
+    );
+    final rows = days.length ~/ 7;
+    final cell = gridCellAt(
+      dx: local.dx,
+      dy: local.dy,
+      cellWidth: box.size.width / 7,
+      cellHeight: box.size.height / rows,
+      rows: rows,
+    );
+    if (cell == null) return null;
+    return days[cell.$1 * 7 + cell.$2];
+  }
+
+  Future<void> _eventDragEnd() async {
+    final event = _gridDragEvent;
+    final target = _gridDragHover;
+    setState(() {
+      _gridDragEvent = null;
+      _gridDragHover = null;
+    });
+    if (event == null || target == null) return;
+    if (isSameDay(event.day, target)) return;
+    final moved = moveScheduleToDay(event, target);
+    await _scheduleRepo.update(moved);
+    if (mounted) await _reload();
+    _toastUndo(
+      '已移到 ${target.month}月${target.day}日',
+      () async {
+        final back = moveScheduleToDay(moved, event.day, keepHour: event.startTime.hour);
+        await _scheduleRepo.update(back);
+        if (mounted) await _reload();
+      },
     );
   }
 
@@ -910,25 +1335,42 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
 class _DayCell extends StatelessWidget {
   final DateTime day;
   final CalendarZoom zoom;
+  final double cellHeight;
+
+  /// 顶部为「跨天连续条」预留的高度
+  final double reservedTop;
+  /// 是否隐藏跨天事件（它们由月格的连续条统一渲染）
+  final bool hideMultiDay;
   final bool inMonth;
   final bool selected;
+  final bool hovered;
   final List<Schedule> events;
   final Color Function(Schedule) colorOf;
   final bool hasDiary;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  final void Function(Schedule, Offset)? onEventDragStart;
+  final void Function(Offset)? onEventDragUpdate;
+  final VoidCallback? onEventDragEnd;
   final bool compact;
 
   const _DayCell({
     required this.day,
     required this.zoom,
+    required this.cellHeight,
+    this.reservedTop = 0,
+    this.hideMultiDay = false,
     required this.inMonth,
     required this.selected,
+    this.hovered = false,
     required this.events,
     required this.colorOf,
     required this.hasDiary,
     required this.onTap,
     required this.onLongPress,
+    this.onEventDragStart,
+    this.onEventDragUpdate,
+    this.onEventDragEnd,
     this.compact = false,
   });
 
@@ -952,87 +1394,188 @@ class _DayCell extends StatelessWidget {
 
     final showBars = zoom != CalendarZoom.dots;
     final showTitle = zoom == CalendarZoom.titles;
-    final maxBars = showTitle ? 2 : (compact ? 1 : 3);
+    final barHeight = showTitle ? 17.0 : 9.0;
+    final cellEvents = hideMultiDay
+        ? events.where((e) => !e.isMultiDay).toList()
+        : events;
+    // 日格内可放下的事件条数量（扣掉日期数字、跨天条与「+N」占位）
+    final maxBars = showBars
+        ? ((cellHeight - 32 - reservedTop - 14) / barHeight).floor().clamp(
+            0,
+            showTitle ? 3 : 4,
+          )
+        : 0;
+    final hidden = showBars && cellEvents.length > maxBars
+        ? cellEvents.length - maxBars
+        : 0;
 
-    return InkWell(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          vertical: showTitle ? 4 : 3,
-          horizontal: 1,
+    return SizedBox(
+      height: cellHeight,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: hovered
+              ? scheme.primary.withValues(alpha: 0.14)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 26,
-              height: 26,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: bg),
-              child: Text(
-                '${day.day}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: fg,
-                  fontWeight: (isToday || selected) ? FontWeight.w600 : null,
-                  fontSize: 14,
-                ),
-              ),
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: showTitle ? 4 : 3,
+              horizontal: 2,
             ),
-            if (!showBars)
-              Padding(
-                padding: const EdgeInsets.only(top: 3),
-                child: SizedBox(
-                  height: 6,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final e in events.take(3))
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 1),
-                          child: Container(
-                            width: 5,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: colorOf(e),
-                            ),
-                          ),
-                        ),
-                      if (hasDiary)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 1),
-                          child: Container(
-                            width: 5,
-                            height: 5,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color(0xFF2EB872),
-                            ),
-                          ),
-                        ),
-                    ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: bg),
+                  child: Text(
+                    '${day.day}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: fg,
+                      fontWeight: (isToday || selected)
+                          ? FontWeight.w600
+                          : null,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Column(
-                  children: [
-                    for (final e in events.take(maxBars))
-                      CalendarEventBar(
-                        event: e,
-                        color: colorOf(e),
-                        showTitle: showTitle,
-                        onTap: onTap,
+                if (reservedTop > 0) SizedBox(height: reservedTop),
+                if (!showBars)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: SizedBox(
+                      height: 6,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final e in cellEvents.take(3))
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 1,
+                              ),
+                              child: Container(
+                                width: 5,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: colorOf(e),
+                                ),
+                              ),
+                            ),
+                          if (hasDiary)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 1,
+                              ),
+                              child: Container(
+                                width: 5,
+                                height: 5,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFF2EB872),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                  ],
-                ),
-              ),
-          ],
+                    ),
+                  )
+                else ...[
+                  const SizedBox(height: 2),
+                  for (final e in cellEvents.take(maxBars))
+                    CalendarEventBar(
+                      event: e,
+                      color: colorOf(e),
+                      showTitle: showTitle,
+                      height: barHeight,
+                      onTap: onTap,
+                      onLongPressStart: onEventDragStart == null
+                          ? null
+                          : (global) => onEventDragStart!(e, global),
+                      onLongPressMoveUpdate: onEventDragUpdate,
+                      onLongPressEnd: onEventDragEnd,
+                    ),
+                  if (hidden > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2, top: 1),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '+$hidden',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 10,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
         ),
+      ),
+    );
+  }
+}
+
+/// 月格里的「跨天连续条」。
+class _MonthSpanBarView extends StatelessWidget {
+  final Schedule event;
+  final Color color;
+  final bool showTitle;
+  final bool isDragging;
+  final void Function(Offset globalPosition) onDragStart;
+  final void Function(Offset globalPosition) onDragUpdate;
+  final VoidCallback onDragEnd;
+
+  const _MonthSpanBarView({
+    required this.event,
+    required this.color,
+    required this.showTitle,
+    required this.isDragging,
+    required this.onDragStart,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPressStart: (d) => onDragStart(d.globalPosition),
+      onLongPressMoveUpdate: (d) => onDragUpdate(d.globalPosition),
+      onLongPressEnd: (_) => onDragEnd(),
+      child: Container(
+        padding: showTitle
+            ? const EdgeInsets.symmetric(horizontal: 4)
+            : EdgeInsets.zero,
+        alignment: Alignment.centerLeft,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: isDragging ? 0.45 : 0.28),
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: showTitle
+            ? Text(
+                event.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 10,
+                  height: 1.1,
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            : null,
       ),
     );
   }

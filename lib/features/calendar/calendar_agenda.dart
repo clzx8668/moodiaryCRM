@@ -354,3 +354,141 @@ int _endMinutes(Schedule e) {
 /// 拖动移动/改时长：把像素位移换算成吸附后的分钟增量。
 int dragDeltaMinutes(double dy, double hourHeight, {int snapMin = 15}) =>
     snapMinutes((dy / hourHeight * 60).round(), snapMin);
+
+// ---------------------------------------------------------------- 月视图几何
+
+/// 月格里一个事件占的格子范围（行内 0..6 列）。
+class MonthSpanBar {
+  final Schedule event;
+
+  /// 在本周内的起始/结束列（含端点）
+  final int startCol;
+  final int endCol;
+
+  /// 第几条泳道（0 在最上面）
+  final int lane;
+
+  const MonthSpanBar({
+    required this.event,
+    required this.startCol,
+    required this.endCol,
+    required this.lane,
+  });
+
+  int get span => endCol - startCol + 1;
+}
+
+/// 计算某一周里「跨天/全天事件」的连续条：裁到本周范围 + 泳道分配。
+///
+/// - 只处理覆盖 ≥2 天的事件（单天事件仍画在日格内）；
+/// - 事件跨周时，每周各裁一段（iOS 也是这么处理的）；
+/// - [maxLanes] 满了两条之外的就不再画（调用方显示「+N」）。
+List<MonthSpanBar> layoutWeekSpans({
+  required List<DateTime> week,
+  required List<Schedule> events,
+  int maxLanes = 2,
+}) {
+  if (week.isEmpty) return const [];
+  final weekStart = DateTime(week.first.year, week.first.month, week.first.day);
+  final weekEnd = DateTime(week.last.year, week.last.month, week.last.day);
+
+  final candidates = <Schedule>[];
+  for (final e in events) {
+    if (e.deleted || e.draft || e.floating) continue;
+    if (!(e.allDay || e.isMultiDay)) continue;
+    final start = e.day;
+    final end = e.endDay;
+    if (end.isBefore(weekStart) || start.isAfter(weekEnd)) continue;
+    candidates.add(e);
+  }
+  candidates.sort((a, b) {
+    final byStart = a.startTime.compareTo(b.startTime);
+    if (byStart != 0) return byStart;
+    return b.endDay.compareTo(a.endDay); // 长的优先占上面泳道
+  });
+
+  final laneEnds = <DateTime>[]; // 每条泳道已占用的最后一天
+  final bars = <MonthSpanBar>[];
+  for (final e in candidates) {
+    final start = e.day.isBefore(weekStart) ? weekStart : e.day;
+    final end = e.endDay.isAfter(weekEnd) ? weekEnd : e.endDay;
+    final startCol = start.difference(weekStart).inDays;
+    final endCol = end.difference(weekStart).inDays;
+
+    var lane = -1;
+    for (var i = 0; i < laneEnds.length; i++) {
+      // 复用泳道的前提：上一条在这条开始之前就结束了（互不重叠）
+      if (laneEnds[i].isBefore(start)) {
+        lane = i;
+        break;
+      }
+    }
+    if (lane == -1) {
+      if (laneEnds.length >= maxLanes) continue; // 泳道满了，交给「+N」
+      laneEnds.add(end);
+      lane = laneEnds.length - 1;
+    } else {
+      laneEnds[lane] = end;
+    }
+    bars.add(
+      MonthSpanBar(
+        event: e,
+        startCol: startCol,
+        endCol: endCol,
+        lane: lane,
+      ),
+    );
+  }
+  return bars;
+}
+
+/// 指针落在月格的第几行第几列（0 起；越界返回 null）。
+/// [gridTop] 是网格内容的顶部（已去掉星期表头）。
+(int row, int col)? gridCellAt({
+  required double dx,
+  required double dy,
+  required double cellWidth,
+  required double cellHeight,
+  required int rows,
+  int cols = 7,
+}) {
+  if (cellWidth <= 0 || cellHeight <= 0) return null;
+  final col = (dx / cellWidth).floor();
+  final row = (dy / cellHeight).floor();
+  if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
+  return (row, col);
+}
+
+/// 月格里「日格内第几条事件条」被按住（用于拖动时挑事件）。
+/// [dyInCell] 是相对日格顶部的偏移；barsTop 是事件条起始 y；barHeight 单条高度。
+int eventBarIndexAt({
+  required double dyInCell,
+  required double barsTop,
+  required double barHeight,
+  required int barCount,
+}) {
+  if (barCount <= 0) return -1;
+  final index = ((dyInCell - barsTop) / barHeight).floor();
+  if (index < 0 || index >= barCount) return -1;
+  return index;
+}
+
+/// 跨天事件移动日期：保持时长与「当天时刻」。
+Schedule moveScheduleToDay(Schedule e, DateTime targetDay, {int? keepHour}) {
+  final target = DateTime(targetDay.year, targetDay.month, targetDay.day);
+  final hour = keepHour ?? e.startTime.hour;
+  final minute = e.startTime.minute;
+  final newStart = DateTime(
+    target.year,
+    target.month,
+    target.day,
+    e.allDay ? 0 : hour,
+    e.allDay ? 0 : minute,
+  );
+  final duration = e.endTime == null
+      ? const Duration(hours: 1)
+      : e.endTime!.difference(e.startTime);
+  return e.clone()
+    ..startTime = newStart
+    ..endTime = e.allDay ? null : newStart.add(duration);
+}
