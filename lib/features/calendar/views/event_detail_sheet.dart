@@ -40,10 +40,80 @@ class _EventDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return SafeArea(
+      child: EventDetailContent(
+        event: event,
+        color: color,
+        calendarName: calendarName,
+        onEdit: () => Navigator.of(context).pop(EventDetailResult.edit),
+        onCopy: () async {
+          final copied = event.clone()
+            ..id = ''
+            ..title = '${event.title}（副本）'
+            ..done = false;
+          await ScheduleRepository().create(copied);
+          if (context.mounted) {
+            Navigator.of(context).pop(EventDetailResult.changed);
+          }
+        },
+        onDelete: () async {
+          final ok = await _confirmDelete(context);
+          if (ok != true) return;
+          await ScheduleRepository().softDelete(event.id);
+          if (context.mounted) {
+            Navigator.of(context).pop(EventDetailResult.changed);
+          }
+        },
+      ),
+    );
+  }
+
+  Future<bool?> _confirmDelete(BuildContext context) => showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('删除事件'),
+      content: Text('确定删除「${event.title}」吗？'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('删除'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// 事件详情内容（底部面板与 PC 右侧检查器共用）。
+class EventDetailContent extends StatelessWidget {
+  final Schedule event;
+  final Color color;
+  final String calendarName;
+  final VoidCallback onEdit;
+  final VoidCallback onCopy;
+  final VoidCallback onDelete;
+  final bool showHint;
+
+  const EventDetailContent({
+    super.key,
+    required this.event,
+    required this.color,
+    required this.calendarName,
+    required this.onEdit,
+    required this.onCopy,
+    required this.onDelete,
+    this.showHint = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final hasLocation = (event.location ?? '').trim().isNotEmpty;
-    return SafeArea(
+    return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
         child: Column(
@@ -138,8 +208,7 @@ class _EventDetailSheet extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: () =>
-                    Navigator.of(context).pop(EventDetailResult.edit),
+                onPressed: onEdit,
                 icon: const Icon(Icons.edit_rounded, size: 18),
                 label: const Text('编辑'),
               ),
@@ -149,16 +218,7 @@ class _EventDetailSheet extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final copied = event.clone()
-                        ..id = ''
-                        ..title = '${event.title}（副本）'
-                        ..done = false;
-                      await ScheduleRepository().create(copied);
-                      if (context.mounted) {
-                        Navigator.of(context).pop(EventDetailResult.changed);
-                      }
-                    },
+                    onPressed: onCopy,
                     icon: const Icon(Icons.copy_rounded, size: 18),
                     label: const Text('复制'),
                   ),
@@ -166,50 +226,27 @@ class _EventDetailSheet extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final ok = await _confirmDelete(context);
-                      if (ok != true) return;
-                      await ScheduleRepository().softDelete(event.id);
-                      if (context.mounted) {
-                        Navigator.of(context).pop(EventDetailResult.changed);
-                      }
-                    },
+                    onPressed: onDelete,
                     icon: const Icon(Icons.delete_outline_rounded, size: 18),
                     label: const Text('删除'),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              '长按时间轴空白处可拖动新建；长按事件卡可拖动改时间，拖底部手柄改时长。',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
+            if (showHint) ...[
+              const SizedBox(height: 4),
+              Text(
+                '长按时间轴空白处可拖动新建；长按事件卡可拖动改时间，拖底部手柄改时长。',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
     );
   }
-
-  Future<bool?> _confirmDelete(BuildContext context) => showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('删除事件'),
-      content: Text('确定删除「${event.title}」吗？'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('删除'),
-        ),
-      ],
-    ),
-  );
 }
 
 class _InfoRow extends StatelessWidget {

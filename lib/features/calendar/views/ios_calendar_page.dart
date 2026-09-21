@@ -18,12 +18,17 @@ import '../widgets/event_card.dart';
 import '../widgets/frosted_panel.dart';
 import 'calendar_manager_sheet.dart';
 import 'day_timeline.dart';
+import 'agenda_list_view.dart';
 import 'event_detail_sheet.dart';
 import 'event_editor_page.dart';
 import 'quick_actions.dart';
+import 'week_view.dart';
 
 /// 底部三档（iOS 18）：今天 / 日历 / 收件箱。
 enum CalendarBottomTab { today, calendar, inbox }
+
+/// 视图模式（对齐 iPhone/iPad/macOS 日历）：日 / 多日（周）/ 月 / 列表。
+enum CalendarViewMode { day, multiDay, month, list }
 
 /// iOS 18 风日历页。
 ///
@@ -51,6 +56,10 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   late DateTime _selected; // 选中的一天（零点）
   CalendarZoom _zoom = CalendarZoom.dots;
   CalendarBottomTab _tab = CalendarBottomTab.calendar;
+  CalendarViewMode _viewMode = CalendarViewMode.month;
+
+  /// PC 端右侧检查器当前展示的事件（空 = 不显示检查器）
+  Schedule? _inspected;
 
   List<CalendarList> _calendars = [];
   Map<String, int> _colors = {};
@@ -94,6 +103,10 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     _selected = DateTime(now.year, now.month, now.day);
     _weekStart = PrefUtil.getValue<int>('calendarWeekStart') ?? 1;
     _hourHeight = PrefUtil.getValue<double>('calendarHourHeight') ?? 52;
+    _viewMode = CalendarViewMode.values.firstWhere(
+      (m) => m.name == PrefUtil.getValue<String>('calendarViewMode'),
+      orElse: () => CalendarViewMode.month,
+    );
     _reload();
   }
 
@@ -112,10 +125,24 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     final colors = {for (final c in calendars) c.id: c.color};
     final visible = calendars.where((c) => c.visible).map((c) => c.id).toSet();
 
-    // 月网格覆盖的范围（含前后补位日）
+    // 一次把「月格 + 当前周 + 列表滚动窗口(前 7 天 ~ 后 60 天)」都装进来
     final gridDays = monthGridDays(_month.year, _month.month, weekStart: _weekStart);
-    final from = gridDays.first;
-    final to = gridDays.last.add(const Duration(days: 1));
+    final week = weekDays(_selected, weekStart: _weekStart);
+    final today = DateTime.now();
+    final candidates = <DateTime>[
+      gridDays.first,
+      week.first,
+      today.subtract(const Duration(days: 7)),
+    ];
+    final ends = <DateTime>[
+      gridDays.last,
+      week.last,
+      today.add(const Duration(days: 60)),
+    ];
+    final from = candidates.reduce((a, b) => a.isBefore(b) ? a : b);
+    final to = ends
+        .reduce((a, b) => a.isAfter(b) ? a : b)
+        .add(const Duration(days: 1));
     final events = (await _scheduleRepo.byRange(from, to))
         .where((e) => !e.deleted && !e.draft && !e.floating)
         .where((e) => e.calendarId == null || visible.contains(e.calendarId))
@@ -274,6 +301,11 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
 
   /// 点事件卡 → 详情面板（可编辑/复制/删除）。
   Future<void> _openDetail(Schedule event) async {
+    // PC：走右侧检查器（像 Mac 日历），不弹底部面板
+    if (_isDesktop) {
+      setState(() => _inspected = event);
+      return;
+    }
     final color = _colorOf(event);
     final result = await showEventDetailSheet(
       context,
@@ -463,21 +495,18 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 900;
+    if (isDesktop) return _desktopLayout();
     return SafeArea(
       bottom: false,
       child: Column(
         children: [
           _topBar(),
+          _modeBar(),
           Expanded(
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: _loading && _calendars.isEmpty
-                      ? const Center(child: CircularProgressIndicator())
-                      : _tab == CalendarBottomTab.inbox
-                      ? _inboxBody()
-                      : _dayBody(),
-                ),
+                Positioned.fill(child: _bodyForMode()),
                 Positioned(
                   left: 0,
                   right: 0,
@@ -489,6 +518,411 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
           ),
         ],
       ),
+    );
+  }
+
+  bool get _isDesktop => MediaQuery.sizeOf(context).width >= 900;
+
+  // ------------------------------------------------------------ PC 三栏布局
+
+  /// PC（宽屏）：侧边栏（迷你月 + 日历勾选） + 主区 + 右侧检查器。
+  Widget _desktopLayout() {
+    final inspected = _inspected;
+    return SafeArea(
+      child: Row(
+        children: [
+          SizedBox(width: 236, child: _sidebar()),
+          const VerticalDivider(width: 1),
+          Expanded(
+            child: Column(
+              children: [
+                _topBar(),
+                _modeBar(),
+                Expanded(child: _bodyForMode()),
+              ],
+            ),
+          ),
+          if (inspected != null) ...[
+            const VerticalDivider(width: 1),
+            SizedBox(width: 304, child: _inspector(inspected)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _sidebar() {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      color: scheme.surfaceContainerLow.withValues(alpha: 0.5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 迷你月
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+            child: Row(
+              children: [
+                Text(
+                  '${_month.year}年${_month.month}月',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: '上一月',
+                  iconSize: 16,
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.chevron_left_rounded),
+                  onPressed: () => _shiftMonth(-1),
+                ),
+                IconButton(
+                  tooltip: '下一月',
+                  iconSize: 16,
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.chevron_right_rounded),
+                  onPressed: () => _shiftMonth(1),
+                ),
+              ],
+            ),
+          ),
+          _miniMonth(),
+          const Divider(height: 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 8, 4),
+            child: Row(
+              children: [
+                Text('我的日历', style: theme.textTheme.labelMedium),
+                const Spacer(),
+                IconButton(
+                  tooltip: '新建日历',
+                  iconSize: 16,
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.add_rounded),
+                  onPressed: _openManager,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                for (final c in _calendars)
+                  InkWell(
+                    onTap: () async {
+                      await _calendarRepo.setVisible(c.id, !c.visible);
+                      await _reload();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: c.visible,
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            onChanged: (_) async {
+                              await _calendarRepo.setVisible(c.id, !c.visible);
+                              await _reload();
+                            },
+                          ),
+                          Container(
+                            width: 10,
+                            height: 10,
+                            margin: const EdgeInsets.only(left: 2, right: 8),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(c.color),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              c.name,
+                              style: theme.textTheme.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (c.isShared)
+                            Icon(
+                              Icons.people_alt_outlined,
+                              size: 14,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Text(
+              '提示：点日历改显示/隐藏；「列表」视图会把这些日历的日程按天排好。',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniMonth() {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final days = monthGridDays(_month.year, _month.month, weekStart: _weekStart);
+    final labels = ['一', '二', '三', '四', '五', '六', '日'];
+    final orderedLabels = [
+      for (var i = 0; i < 7; i++) labels[(_weekStart - 1 + i) % 7],
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              for (final l in orderedLabels)
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      l,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 9,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          for (var i = 0; i < days.length; i += 7)
+            Row(
+              children: [
+                for (var j = 0; j < 7; j++)
+                  Expanded(
+                    child: _MiniDay(
+                      day: days[i + j],
+                      inMonth: days[i + j].month == _month.month,
+                      selected: isSameDay(days[i + j], _selected),
+                      hasEvent: (_eventsByDay[days[i + j]] ?? const []).isNotEmpty,
+                      onTap: () => _selectDay(days[i + j]),
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _inspector(Schedule event) {
+    final theme = Theme.of(context);
+    return Container(
+      color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 6, 0),
+            child: Row(
+              children: [
+                Text('日程详情', style: theme.textTheme.labelLarge),
+                const Spacer(),
+                IconButton(
+                  tooltip: '关闭',
+                  iconSize: 18,
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => setState(() => _inspected = null),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: EventDetailContent(
+              event: event,
+              color: _colorOf(event),
+              calendarName: _calendarNameOf(event),
+              showHint: false,
+              onEdit: () => _openEditor(event: event),
+              onCopy: () async {
+                final copied = event.clone()
+                  ..id = ''
+                  ..title = '${event.title}（副本）';
+                await _scheduleRepo.create(copied);
+                if (mounted) await _reload();
+              },
+              onDelete: () async {
+                await _scheduleRepo.softDelete(event.id);
+                if (!mounted) return;
+                setState(() => _inspected = null);
+                await _reload();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 手机端：顶栏 + 模式条 + 内容（底部胶囊悬浮）。
+  Widget _bodyForMode() {
+    if (_loading && _calendars.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_tab == CalendarBottomTab.inbox) return _inboxBody();
+    return switch (_viewMode) {
+      CalendarViewMode.day => _dayBody(showMonthGrid: false),
+      CalendarViewMode.month => _dayBody(showMonthGrid: true),
+      CalendarViewMode.multiDay => _weekBody(),
+      CalendarViewMode.list => _listBody(),
+    };
+  }
+
+  /// 视图模式条（日 / 周 / 月 / 列表）——手机与 PC 共用。
+  Widget _modeBar() {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    const items = <(CalendarViewMode, String, IconData)>[
+      (CalendarViewMode.day, '日', Icons.view_day_rounded),
+      (CalendarViewMode.multiDay, '周', Icons.view_week_rounded),
+      (CalendarViewMode.month, '月', Icons.calendar_view_month_rounded),
+      (CalendarViewMode.list, '列表', Icons.format_list_bulleted_rounded),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 4),
+      child: Row(
+        children: [
+          for (final (mode, label, icon) in items)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: InkWell(
+                  onTap: () {
+                    setState(() => _viewMode = mode);
+                    PrefUtil.setValue<String>('calendarViewMode', mode.name);
+                  },
+                  borderRadius: BorderRadius.circular(9),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    decoration: BoxDecoration(
+                      color: _viewMode == mode
+                          ? scheme.primary.withValues(alpha: 0.16)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          icon,
+                          size: 14,
+                          color: _viewMode == mode
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          label,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: _viewMode == mode
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant,
+                            fontWeight: _viewMode == mode
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 多日（周）视图。
+  Widget _weekBody() {
+    final days = weekDays(_selected, weekStart: _weekStart);
+    final visibleIds = _calendars
+        .where((c) => c.visible)
+        .map((c) => c.id)
+        .toSet();
+    final byDay = <DateTime, List<Schedule>>{
+      for (final day in days)
+        day:
+            (_eventsByDay[day] ?? const <Schedule>[])
+                .where(
+                  (e) =>
+                      !e.deleted &&
+                      !e.draft &&
+                      (e.calendarId == null || visibleIds.contains(e.calendarId)),
+                )
+                .toList()
+              ..sort((a, b) => a.startTime.compareTo(b.startTime)),
+    };
+    return WeekView(
+      days: days,
+      eventsByDay: byDay,
+      colorOf: _colorOf,
+      selectedDay: _selected,
+      hourHeight: _hourHeight,
+      onTapEvent: _openDetail,
+      onSelectDay: (day) => _selectDay(day),
+      onCreateRange: (day, start, end) async {
+        await _selectDay(day);
+        if (mounted) await _createFromRange(start, end);
+      },
+    );
+  }
+
+  /// 列表视图：往后 60 天的日程清单。
+  Widget _listBody() {
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day)
+        .subtract(const Duration(days: 7));
+    final visibleIds = _calendars
+        .where((c) => c.visible)
+        .map((c) => c.id)
+        .toSet();
+    final days = [
+      for (var i = 0; i < 68; i++) start.add(Duration(days: i)),
+    ];
+    final byDay = <DateTime, List<Schedule>>{};
+    for (final entry in _eventsByDay.entries) {
+      final events = entry.value
+          .where(
+            (e) =>
+                !e.deleted &&
+                !e.draft &&
+                !e.floating &&
+                (e.calendarId == null || visibleIds.contains(e.calendarId)),
+          )
+          .toList();
+      if (events.isEmpty) continue;
+      byDay[DateTime(entry.key.year, entry.key.month, entry.key.day)] = events
+        ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    }
+    return AgendaListView(
+      days: days,
+      eventsByDay: byDay,
+      colorOf: _colorOf,
+      onTapEvent: _openDetail,
+      onTapDay: (day) => _selectDay(day),
     );
   }
 
@@ -677,8 +1111,10 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     PrefUtil.setValue<double>('calendarHourHeight', value);
   }
 
-  Widget _dayBody() {
-    final grid = (_tab == CalendarBottomTab.today || _weekMode)
+  Widget _dayBody({bool showMonthGrid = true}) {
+    final grid = (!showMonthGrid ||
+            _tab == CalendarBottomTab.today ||
+            _weekMode)
         ? _weekStrip()
         : _monthGrid();
     // 月网格必须放在任何滚动视图**外面**：放进 CustomScrollView /
@@ -1321,6 +1757,76 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
 // ------------------------------------------------------------------ 子组件
 
 /// 月格单元：日期数字 + 活跃度/事件（按缩放档位变化）。
+class _MiniDay extends StatelessWidget {
+  final DateTime day;
+  final bool inMonth;
+  final bool selected;
+  final bool hasEvent;
+  final VoidCallback onTap;
+
+  const _MiniDay({
+    required this.day,
+    required this.inMonth,
+    required this.selected,
+    required this.hasEvent,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isToday = isSameDay(day, DateTime.now());
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: SizedBox(
+        height: 26,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 18,
+              height: 18,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isToday
+                    ? IosCalendarTheme.today
+                    : selected
+                    ? scheme.primaryContainer
+                    : null,
+              ),
+              child: Text(
+                '${day.day}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 10,
+                  color: isToday
+                      ? Colors.white
+                      : inMonth
+                      ? scheme.onSurface
+                      : scheme.outline,
+                  fontWeight: (isToday || selected) ? FontWeight.w600 : null,
+                ),
+              ),
+            ),
+            if (hasEvent)
+              Container(
+                width: 4,
+                height: 4,
+                margin: const EdgeInsets.only(top: 1),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: scheme.primary,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DayCell extends StatelessWidget {
   final DateTime day;
   final CalendarZoom zoom;

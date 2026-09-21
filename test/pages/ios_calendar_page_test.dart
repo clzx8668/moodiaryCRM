@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import 'package:moodiary/features/calendar/views/ios_calendar_page.dart';
 import 'package:moodiary/features/calendar/calendar_agenda.dart';
 import 'package:moodiary/features/calendar/widgets/event_card.dart';
+import 'package:moodiary/features/calendar/views/agenda_list_view.dart';
+import 'package:moodiary/features/calendar/views/week_view.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
 import 'package:moodiary/features/schedule/schedule_repository.dart';
 import 'package:moodiary/persistence/app_database.dart';
@@ -331,5 +333,63 @@ void main() {
       greaterThan(cellWidth * 2),
       reason: '4 天的事件应横跨多格',
     );
+  });
+
+  testWidgets('视图模式：日 / 周 / 月 / 列表 都能切换并渲染', (tester) async {
+    final now = DateTime.now();
+    await ScheduleRepository().create(
+      Schedule()
+        ..title = '模式用例'
+        ..startTime = DateTime(now.year, now.month, now.day, 11)
+        ..endTime = DateTime(now.year, now.month, now.day, 12),
+    );
+    await pumpPage(tester);
+
+    // 默认月视图：月格在
+    expect(find.byKey(const ValueKey('calendar-grid')), findsOneWidget);
+
+    await tester.tap(find.text('周'));
+    await tester.pumpAndSettle();
+    expect(find.byType(WeekView), findsOneWidget, reason: '周视图 = 多日显示');
+    expect(find.text('模式用例'), findsOneWidget);
+
+    await tester.tap(find.text('列表'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AgendaListView), findsOneWidget);
+    expect(find.text('模式用例'), findsOneWidget);
+
+    await tester.tap(find.text('日'));
+    await tester.pumpAndSettle();
+    expect(find.byType(WeekView), findsNothing);
+    expect(find.byType(AgendaListView), findsNothing);
+
+    await tester.tap(find.text('月'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('calendar-grid')), findsOneWidget);
+  });
+
+  testWidgets('PC 宽屏：侧边栏日历勾选 + 右侧检查器（点事件不弹底部面板）', (tester) async {
+    final now = DateTime.now();
+    await ScheduleRepository().create(
+      Schedule()
+        ..title = 'PC 用例'
+        ..location = '会议室 B'
+        ..startTime = DateTime(now.year, now.month, now.day, 15)
+        ..endTime = DateTime(now.year, now.month, now.day, 16),
+    );
+
+    await pumpPage(tester, size: const Size(1280, 900));
+
+    // 侧边栏
+    expect(find.text('我的日历'), findsOneWidget);
+    expect(find.byType(Checkbox), findsWidgets);
+    expect(find.text('工作'), findsWidgets);
+
+    // 点事件 → 右侧检查器
+    await tester.tap(find.text('PC 用例').first);
+    await tester.pumpAndSettle();
+    expect(find.text('日程详情'), findsOneWidget);
+    expect(find.text('会议室 B'), findsWidgets);
+    expect(find.byType(BottomSheet), findsNothing, reason: 'PC 上不弹底部面板');
   });
 }

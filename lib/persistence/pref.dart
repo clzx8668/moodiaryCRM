@@ -159,6 +159,8 @@ class PrefUtil {
     'calendarWeekStart',
     // 日历时间轴行高（每小时像素高度）
     'calendarHourHeight',
+    // 日历视图模式（day / multiDay / month / list）
+    'calendarViewMode',
     // AI 抽取计划配置（JSON：todo/schedule/crm/summary 开关）
     'extractPlanConfig',
   };
