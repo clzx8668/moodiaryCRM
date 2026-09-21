@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:moodiary/features/asr/asr_model_store.dart';
 import 'package:moodiary/features/asr/asr_types.dart';
+import 'package:moodiary/features/asr/audio_leveler.dart';
 import 'package:moodiary/features/asr/ffi_asr_engine.dart';
 import 'package:moodiary/features/asr/method_channel_asr_engine.dart';
 import 'package:moodiary/features/asr/pcm_gate.dart';
@@ -95,6 +96,12 @@ class RecordVoiceCaptureRecorder implements VoiceCaptureRecorder {
         encoder: AudioEncoder.pcm16bits,
         sampleRate: sampleRate,
         numChannels: 1,
+        // 音源选择：voiceRecognition 是系统为"语音识别"预留的通路，
+        // 比 defaultSource/DEFAULT 更干净（少了通话/音乐场景的额外处理），
+        // 真机上录音电平与清晰度都更好。
+        androidConfig: const AndroidRecordConfig(
+          audioSource: AndroidAudioSource.voiceRecognition,
+        ),
       ),
     );
   }
@@ -185,6 +192,9 @@ class VoiceCaptureController {
   StreamSubscription<Uint8List>? _pcmSub;
   WavWriter? _wavWriter;
   PcmGate? _gate;
+
+  /// 录音电平自适应（把偏小的信号抬到可用电平；落盘与识别共用同一份数据）
+  final AudioLeveler _leveler = AudioLeveler();
 
   /// WAV 写入串行化：一块 PCM 会被拆成多个 32ms 小块，若并发写同一个文件句柄
   /// 会抛 "async operation is currently pending"。这里把所有写操作串成一条链。
@@ -327,6 +337,7 @@ class VoiceCaptureController {
     _gate = PcmGate();
     liveTranscript.value = '';
     speaking.value = false;
+    _leveler.reset();
     audioFileName = name;
     _accumulated = Duration.zero;
     envelope.clear();
@@ -372,24 +383,30 @@ class VoiceCaptureController {
   }
 
   void _feedPcmBlock(Uint8List block) {
+    // 电平归一化：真机录音峰值只有 ~16% 满量程（用户反馈"人都听不清"），
+    // 这里把信号抬到目标电平后再同时用于「落盘」与「识别」——
+    // 落盘的那份也就跟着变得听得清了。
+    final leveled = _leveler.process(block);
     final writer = _wavWriter;
     if (writer != null) {
       // 串行写入：小块的写入排队执行，避免同一个文件句柄并发写
-      _writeChain = _writeChain.then((_) => writer.add(block)).catchError((_) {});
+      _writeChain = _writeChain
+          .then((_) => writer.add(leveled))
+          .catchError((_) {});
     }
 
     // 用 PCM 真实响度驱动电平与包络（比插件的 amplitude 更贴端侧链路）
-    final rms = PcmGate.rms(block);
+    final rms = PcmGate.rms(leveled);
     envelope.add(rms);
     level.value = rms.clamp(0.0, 1.0);
 
     final gate = _gate;
     final engine = _asrEngine;
     if (gate == null || engine == null) return;
-    final pass = gate.accept(block);
+    final pass = gate.accept(leveled);
     speaking.value = gate.isSpeaking;
     // 门卫不过（纯静音/底噪）时不喂模型：省电、也减少无效句
-    if (pass) unawaited(engine.acceptPcm(block));
+    if (pass) unawaited(engine.acceptPcm(leveled));
   }
 
   Future<void> pause() async {

@@ -81,6 +81,7 @@ class AsrChannel(
                     sessionResults.clear()
                     feedCount = 0
                     fedSamples = 0L
+                    maxAbs = 0f
                     sessionStart = System.currentTimeMillis()
                     vad?.reset()
                     main.post { result.success(true) }
@@ -365,19 +366,27 @@ class AsrChannel(
     private var fedSamples = 0L
     private var sessionStart = System.currentTimeMillis()
 
+    /** 最近一段的输入峰值（诊断录音电平用） */
+    private var maxAbs = 0f
+
     private fun feed(bytes: ByteArray) {
         val engine = vad ?: return
         val samples = pcm16ToFloat(bytes)
         try {
             engine.acceptWaveform(samples)
             if (trace) {
+                for (s in samples) {
+                    val a = if (s < 0) -s else s
+                    if (a > maxAbs) maxAbs = a
+                }
                 feedCount++
                 fedSamples += samples.size
                 if (feedCount % 25 == 0) {
                     android.util.Log.i(
                         "AsrTrace",
                         "feed#$feedCount 累计 ${fedSamples / 16000.0}s " +
-                            "(块=${samples.size} 采样, 距开始 ${System.currentTimeMillis() - sessionStart}ms)"
+                            "(块=${samples.size} 采样, 峰值=${(maxAbs * 100).toInt()}%FS, " +
+                            "距开始 ${System.currentTimeMillis() - sessionStart}ms)"
                     )
                 }
             }
