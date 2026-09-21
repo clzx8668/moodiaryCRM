@@ -24,7 +24,7 @@ import 'package:moodiary/features/thirdparty/third_party_keys_page.dart';
 import 'package:moodiary/features/crm/crm_settings_page.dart';
 import 'package:moodiary/features/feed/feed_settings_page.dart';
 import 'package:moodiary/features/feed/feed_scheduler.dart';
-import 'package:moodiary/features/nav/mobile_nav_config.dart';
+import 'package:moodiary/features/nav/mobile_nav_settings_page.dart';
 import 'package:moodiary/features/obsidian/obsidian_settings_page.dart';
 import 'package:moodiary/features/reminder/reminder_scheduler.dart';
 import 'package:moodiary/features/quick_capture/global_capture.dart';
@@ -33,28 +33,12 @@ import 'package:moodiary/features/quick_capture/shortcut_capture_dialog.dart';
 import 'package:moodiary/features/quick_capture/tray_service.dart';
 import 'package:moodiary/l10n/l10n.dart';
 import 'package:moodiary/persistence/pref.dart';
-import 'package:moodiary/router/app_routes.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 import 'setting_logic.dart';
 
 class SettingPage extends StatelessWidget {
   const SettingPage({super.key});
-
-  Future<void> _toggleNavItem(int pageIndex, bool on) async {
-    final next = List<int>.from(MobileNavConfig.items);
-    if (on) {
-      if (!next.contains(pageIndex)) next.add(pageIndex);
-    } else {
-      next.remove(pageIndex);
-    }
-    if (next.length < MobileNavConfig.minItems) {
-      toast.info(message: '至少保留 ${MobileNavConfig.minItems} 个底部按钮');
-      return;
-    }
-    await MobileNavConfig.save(next);
-    toast.success(message: '已更新底部导航');
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -155,14 +139,6 @@ class SettingPage extends StatelessWidget {
                 ),
                 text: context.l10n.settingFunctionTrailMap,
                 onTap: logic.toMap,
-              ),
-              buildAFeatureButton(
-                icon: FaIcon(
-                  FontAwesomeIcons.solidCommentDots,
-                  color: context.theme.colorScheme.secondary,
-                ),
-                text: context.l10n.settingFunctionAIAssistant,
-                onTap: logic.toAi,
               ),
             ],
           ),
@@ -456,7 +432,6 @@ class SettingPage extends StatelessWidget {
                 AdaptiveListTile(
                   title: Text(context.l10n.settingHomepageName),
                   leading: const Icon(Icons.drive_file_rename_outline_rounded),
-                  isLast: true,
                   trailing: GetBuilder<SettingLogic>(
                     id: 'CustomTitle',
                     builder: (_) {
@@ -480,6 +455,15 @@ class SettingPage extends StatelessWidget {
                       logic.setCustomTitle(title: res.first);
                     }
                   },
+                ),
+                // 底部导航（二级页面）：条目多，放首页会挤掉其它设置
+                AdaptiveListTile(
+                  title: const Text('底部导航'),
+                  subtitle: const Text('选择显示哪些入口（日记/日历/媒体/CRM/AI/设置）'),
+                  leading: const Icon(Icons.view_sidebar_rounded),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  isLast: true,
+                  onTap: () => Get.to(() => const MobileNavSettingsPage()),
                 ),
               ],
             ),
@@ -623,44 +607,6 @@ class SettingPage extends StatelessWidget {
       );
     }
 
-    Widget buildMobileNav() {
-      return Column(
-        children: [
-          const AdaptiveTitleTile(title: '底部导航'),
-          Card.filled(
-            color: context.theme.colorScheme.surfaceContainerLow,
-            margin: EdgeInsets.zero,
-            child: Obx(() {
-              final current = MobileNavConfig.items;
-              const all = MobileNavConfig.all;
-              return Column(
-                children: [
-                  for (var i = 0; i < all.length; i++)
-                    AdaptiveSwitchListTile(
-                      value: current.contains(all[i].pageIndex),
-                      onChanged: (v) => _toggleNavItem(all[i].pageIndex, v),
-                      title: Text(all[i].label),
-                      secondary: Icon(all[i].icon),
-                      isFirst: i == 0,
-                      isLast: i == all.length - 1,
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                    child: Text(
-                      '默认：日记 / 日历 / AI / 设置；至少保留 ${MobileNavConfig.minItems} 个',
-                      style: context.textTheme.bodySmall?.copyWith(
-                        color: context.theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }),
-          ),
-        ],
-      );
-    }
-
     /// 工具区（批次 114 收敛）：**只留设置项**，动作类入口已移除。
     ///
     /// - 删掉「每日回望 / 每周回望」手动入口：和「自动生成回望」重叠，
@@ -686,6 +632,14 @@ class SettingPage extends StatelessWidget {
                   isFirst: true,
                   onTap: () => Get.to(() => const FeedSettingsPage()),
                 ),
+                // 第三方凭据也属于"内容源"：天气/地图是**内容的补充来源**
+                AdaptiveListTile(
+                  title: const Text('第三方服务'),
+                  subtitle: const Text('和风天气 / 天地图的 Key（天气与足迹地图）'),
+                  leading: const Icon(Icons.vpn_key_outlined),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Get.to(() => const ThirdPartyKeysPage()),
+                ),
                 const _FeedAutoSwitchTile(),
                 const _DigestAutoSwitchTile(isLast: true),
               ],
@@ -702,32 +656,6 @@ class SettingPage extends StatelessWidget {
                 _GlobalShortcutSwitchTile(),
                 _ShortcutComboTile(),
                 _CloseToTraySwitchTile(isLast: true),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          // 子段③：入口类（音频/服务凭据）
-          subTitle('其他'),
-          Card.filled(
-            color: context.theme.colorScheme.surfaceContainerLow,
-            margin: EdgeInsets.zero,
-            child: Column(
-              children: [
-                AdaptiveListTile(
-                  title: const Text('语音记录'),
-                  subtitle: const Text('录音转写 / 去口语化'),
-                  leading: const Icon(Icons.mic_none_rounded),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  isFirst: true,
-                  onTap: () => Get.toNamed(AppRoutes.voiceRecordPage),
-                ),
-                AdaptiveListTile(
-                  title: const Text('第三方服务'),
-                  subtitle: const Text('和风天气 / 天地图的 Key（天气与足迹地图）'),
-                  leading: const Icon(Icons.vpn_key_outlined),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => Get.to(() => const ThirdPartyKeysPage()),
-                ),
               ],
             ),
           ),
@@ -800,7 +728,7 @@ class SettingPage extends StatelessWidget {
               buildFeature(),
               // 分区顺序（批次 113 整理）：
               // ① 日常四入口 ② 数据与存储 ③ AI 与笔记处理 ④ 功能开关
-              // ⑤ 外观与交互 ⑥ 底部导航 ⑦ 工具 ⑧ 隐私与安全 ⑨ 关于
+              // ⑤ 外观与交互（含「底部导航」二级入口） ⑥ 工具 ⑦ 隐私与安全 ⑧ 关于
               GetBuilder<SettingLogic>(
                 id: 'ModuleSwitch',
                 builder: (_) => buildData(),
@@ -813,7 +741,6 @@ class SettingPage extends StatelessWidget {
                 ),
               ),
               buildDisplay(),
-              buildMobileNav(),
               buildTools(),
               buildPrivacy(),
               buildMore(),

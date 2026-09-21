@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/components/dashboard/dashboard_logic.dart';
 import 'package:moodiary/features/attachments/attachment_manager.dart';
-import 'package:moodiary/features/nav/mobile_nav_config.dart';
 import 'package:moodiary/features/sync_log/sync_log_page.dart';
 import 'package:moodiary/pages/home/diary/diary_logic.dart';
 import 'package:moodiary/pages/home/home_logic.dart';
@@ -94,15 +93,6 @@ class SettingLogic extends GetxController {
     }
   }
 
-  /// 去新版 AI 助手（底部导航的「AI」页）。
-  ///
-  /// 批次 117：旧版助手页已删除。这里先回到首页外壳，再把底部导航切到 AI 页；
-  /// 路由栈是被 `offAllNamed` 清掉后重建的，所以不会在设置页上面叠一层。
-  Future<void> toAi() async {
-    HapticFeedback.selectionClick();
-    await Get.offAllNamed(AppRoutes.homePage);
-    Bind.find<HomeLogic>().changeNavigator(MobileNavConfig.aiIndex);
-  }
 
   Future<void> toCategoryManager() async {
     HapticFeedback.selectionClick();
