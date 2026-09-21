@@ -176,12 +176,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingPrivacy => 'Privacy and Security';
 
   @override
-  String get settingLocal => 'Localization';
-
-  @override
-  String get settingLocalDes => 'Turn off all cloud features when enabled';
-
-  @override
   String get settingLock => 'Password';
 
   @override

@@ -174,12 +174,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingPrivacy => '隐私与安全';
 
   @override
-  String get settingLocal => '本地化';
-
-  @override
-  String get settingLocalDes => '开启后关闭所有云端功能';
-
-  @override
   String get settingLock => '密码';
 
   @override

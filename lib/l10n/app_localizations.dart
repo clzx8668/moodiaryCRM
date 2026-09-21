@@ -422,18 +422,6 @@ abstract class AppLocalizations {
   /// **'隐私与安全'**
   String get settingPrivacy;
 
-  /// No description provided for @settingLocal.
-  ///
-  /// In zh, this message translates to:
-  /// **'本地化'**
-  String get settingLocal;
-
-  /// No description provided for @settingLocalDes.
-  ///
-  /// In zh, this message translates to:
-  /// **'开启后关闭所有云端功能'**
-  String get settingLocalDes;
-
   /// No description provided for @settingLock.
   ///
   /// In zh, this message translates to:

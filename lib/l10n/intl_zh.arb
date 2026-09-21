@@ -54,8 +54,6 @@
   "settingFontStyle": "字体样式",
   "settingWeather": "侧边栏显示天气",
   "settingPrivacy": "隐私与安全",
-  "settingLocal": "本地化",
-  "settingLocalDes": "开启后关闭所有云端功能",
   "settingLock": "密码",
   "settingLockTypeNumber": "数字",
   "settingLockClose": "关闭",

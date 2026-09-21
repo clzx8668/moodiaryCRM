@@ -54,8 +54,6 @@
   "settingFontStyle": "Font Style",
   "settingWeather": "Show Weather on Homepage",
   "settingPrivacy": "Privacy and Security",
-  "settingLocal": "Localization",
-  "settingLocalDes": "Turn off all cloud features when enabled",
   "settingLock": "Password",
   "settingLockTypeNumber": "Number",
   "settingLockClose": "Close",

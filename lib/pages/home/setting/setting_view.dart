@@ -19,9 +19,8 @@ import 'package:moodiary/components/set_password/set_password_view.dart';
 import 'package:moodiary/components/theme_mode_dialog/theme_mode_dialog_view.dart';
 import 'package:moodiary/features/ai/ai_settings_page.dart';
 import 'package:moodiary/features/ai/tasks/ai_task_queue_page.dart';
-import 'package:moodiary/features/ai/digest/digest_prompts.dart';
 import 'package:moodiary/features/ai/digest/digest_scheduler.dart';
-import 'package:moodiary/features/ai/digest/digest_service.dart';
+import 'package:moodiary/features/thirdparty/third_party_keys_page.dart';
 import 'package:moodiary/features/crm/crm_settings_page.dart';
 import 'package:moodiary/features/feed/feed_settings_page.dart';
 import 'package:moodiary/features/feed/feed_scheduler.dart';
@@ -55,20 +54,6 @@ class SettingPage extends StatelessWidget {
     }
     await MobileNavConfig.save(next);
     toast.success(message: '已更新底部导航');
-  }
-
-  Future<void> _runDigest(DigestPeriod period) async {
-    toast.info(message: '正在生成回望…');
-    try {
-      final diary = await DigestService.generateAndSave(period);
-      if (diary == null) {
-        toast.error(message: 'AI 未配置或生成失败，请检查设置');
-      } else {
-        toast.success(message: '已生成「${diary.title}」');
-      }
-    } catch (e) {
-      toast.error(message: '回望失败：$e');
-    }
   }
 
   @override
@@ -662,6 +647,12 @@ class SettingPage extends StatelessWidget {
       );
     }
 
+    /// 工具区（批次 114 收敛）：**只留设置项**，动作类入口已移除。
+    ///
+    /// - 删掉「每日回望 / 每周回望」手动入口：和「自动生成回望」重叠，
+    ///   而且它们是"执行动作"不是"设置"（用户确认删除，保留自动回望）；
+    /// - 订阅与回望的开关**紧挨着它们各自的入口**排在一起，
+    ///   不再是"入口在上、开关散落在下面"的分裂状态。
     Widget buildTools() {
       return Column(
         children: [
@@ -680,20 +671,6 @@ class SettingPage extends StatelessWidget {
                   onTap: () => Get.toNamed(AppRoutes.voiceRecordPage),
                 ),
                 AdaptiveListTile(
-                  title: const Text('每日回望'),
-                  subtitle: const Text('生成今日回顾'),
-                  leading: const Icon(Icons.today_rounded),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => _runDigest(DigestPeriod.daily),
-                ),
-                AdaptiveListTile(
-                  title: const Text('每周回望'),
-                  subtitle: const Text('生成本周总结'),
-                  leading: const Icon(Icons.date_range_rounded),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => _runDigest(DigestPeriod.weekly),
-                ),
-                AdaptiveListTile(
                   title: const Text('内容源（RSS）'),
                   subtitle: const Text('订阅公开 RSS/Atom，增量入库为笔记'),
                   leading: const Icon(Icons.rss_feed_rounded),
@@ -702,6 +679,13 @@ class SettingPage extends StatelessWidget {
                 ),
                 const _FeedAutoSwitchTile(),
                 const _DigestAutoSwitchTile(),
+                AdaptiveListTile(
+                  title: const Text('第三方服务'),
+                  subtitle: const Text('和风天气 / 天地图的 Key（天气与足迹地图）'),
+                  leading: const Icon(Icons.vpn_key_outlined),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Get.to(() => const ThirdPartyKeysPage()),
+                ),
                 const _ReminderSwitchTile(),
                 const _GlobalShortcutSwitchTile(),
                 const _ShortcutComboTile(),

@@ -3,69 +3,16 @@ import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:moodiary/persistence/isar.dart';
-import 'package:moodiary/persistence/pref.dart';
-import 'package:moodiary/utils/aes_util.dart';
-import 'package:moodiary/utils/cache_util.dart';
 import 'package:moodiary/utils/file_util.dart';
 import 'package:moodiary/utils/notice_util.dart';
 import 'package:share_plus/share_plus.dart';
 
+/// 实验室逻辑：**只剩开发者维护工具**。
+///
+/// 批次 114 收敛：第三方 Key 的读写搬到各自的功能页
+/// （和风/天地图 → 第三方服务页；腾讯云 → 模型管理页），
+/// 加密测试与缩略图清理属于重复/开发项，已删除。
 class LaboratoryLogic extends GetxController {
-  Future<bool> setTencentID({required String id}) async {
-    try {
-      await PrefUtil.setValue<String>('tencentId', id);
-      return true;
-    } catch (e) {
-      return false;
-    } finally {
-      update();
-    }
-  }
-
-  Future<bool> setTencentKey({required String key}) async {
-    try {
-      await PrefUtil.setValue<String>('tencentKey', key);
-      return true;
-    } catch (e) {
-      return false;
-    } finally {
-      update();
-    }
-  }
-
-  Future<bool> setQweatherKey({required String key}) async {
-    try {
-      await PrefUtil.setValue<String>('qweatherKey', key);
-      return true;
-    } catch (e) {
-      return false;
-    } finally {
-      update();
-    }
-  }
-
-  Future<bool> setQweatherApiHost({required String host}) async {
-    try {
-      await PrefUtil.setValue<String>('qweatherApiHost', host);
-      return true;
-    } catch (e) {
-      return false;
-    } finally {
-      update();
-    }
-  }
-
-  Future<bool> setTiandituKey({required String key}) async {
-    try {
-      await PrefUtil.setValue<String>('tiandituKey', key);
-      return true;
-    } catch (e) {
-      return false;
-    } finally {
-      update();
-    }
-  }
-
   Future<void> exportErrorLog() async {
     // 如果日志内容存在且内容不为空则导出
     if ((await File(FileUtil.getErrorLogPath()).readAsString()).isNotEmpty) {
@@ -79,22 +26,6 @@ class LaboratoryLogic extends GetxController {
       }
     } else {
       toast.info(message: '暂无日志');
-    }
-  }
-
-  Future<bool> aesTest() async {
-    final key = await AesUtil.deriveKey(salt: 'salt', userKey: 'password');
-    final encrypted = await AesUtil.encrypt(key: key, data: 'Hello World');
-    final decrypted = await AesUtil.decrypt(key: key, encryptedData: encrypted);
-    return decrypted == 'Hello World';
-  }
-
-  Future<bool> clearImageThumbnail() async {
-    try {
-      await ImageCacheUtil().clearImageCache();
-      return true;
-    } catch (e) {
-      return false;
     }
   }
 

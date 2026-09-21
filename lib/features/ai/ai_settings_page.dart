@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:moodiary/components/base/tile/qr_tile.dart';
 import 'package:moodiary/features/ai/ai_capability_store.dart';
 import 'package:moodiary/features/ai/ai_provider.dart';
 import 'package:moodiary/features/ai/ai_provider_edit_page.dart';
@@ -219,6 +220,8 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                 ),
                 _buildOnDeviceAsrTile(context),
                 const SizedBox(height: 18),
+                _buildTencentCredentials(context),
+                const SizedBox(height: 18),
                 _buildSearchSection(context),
                 const SizedBox(height: 18),
                 const _SectionTitle(
@@ -233,6 +236,54 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   }
 
   /// 端侧语音识别（本地实时转写）：模型状态 + 一键进入安装页。
+  /// 腾讯云凭据（批次 114 从"实验室"归位）：混元大模型走腾讯云签名，
+  /// 放在模型管理页，用户配对话模型时能顺手填上。
+  Widget _buildTencentCredentials(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final idSet = (PrefUtil.getValue<String>('tencentId') ?? '').isNotEmpty;
+    final keySet = (PrefUtil.getValue<String>('tencentKey') ?? '').isNotEmpty;
+    return Card(
+      child: ExpansionTile(
+        leading: Icon(Icons.cloud_outlined, color: colorScheme.primary),
+        title: const Text('腾讯云凭据（可选）'),
+        subtitle: Text(
+          idSet && keySet
+              ? '已设置 · 供「混元」服务商使用'
+              : '未设置 · 想用混元大模型时再填',
+        ),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+        childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+        children: [
+          QrInputTile(
+            title: 'SecretId',
+            subtitle: '${
+                idSet ? '已设置' : '未设置'
+              } · 腾讯云控制台可获取（AKID 开头）',
+            value: PrefUtil.getValue<String>('tencentId') ?? '',
+            prefix: 'tencentId',
+            onValue: (v) async {
+              await PrefUtil.setValue<String>('tencentId', v.trim());
+              if (mounted) setState(() {});
+            },
+          ),
+          const SizedBox(height: 8),
+          QrInputTile(
+            title: 'SecretKey',
+            subtitle: '${
+                keySet ? '已设置' : '未设置'
+              } · 与 SecretId 配对，仅存本机',
+            value: PrefUtil.getValue<String>('tencentKey') ?? '',
+            prefix: 'tencentKey',
+            onValue: (v) async {
+              await PrefUtil.setValue<String>('tencentKey', v.trim());
+              if (mounted) setState(() {});
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOnDeviceAsrTile(BuildContext context) {
     final ready = AsrModelStore.isReady;
     final colorScheme = Theme.of(context).colorScheme;
