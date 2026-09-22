@@ -161,6 +161,8 @@ class PrefUtil {
     'calendarHourHeight',
     // 日历视图模式（day / multiDay / month / list）
     'calendarViewMode',
+    // 日视图是否整日概览（一屏看全天）
+    'calendarFitWholeDay',
     // AI 抽取计划配置（JSON：todo/schedule/crm/summary 开关）
     'extractPlanConfig',
   };

@@ -74,6 +74,12 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   /// 时间轴行高（每小时的像素高度）：拖动几何与视觉密度都依赖它
   double _hourHeight = 52;
 
+  /// 日视图「整日概览」：把 24 小时压进一屏，完整看到一整天
+  bool _fitWholeDay = true;
+
+  /// 当前时间轴实际使用的每小时像素（整日概览时会变小，定位要用同一个值）
+  double _timelineHourHeight = 52;
+
   /// 月格是否折叠成「周」条（单指上下滑动切换）
   bool _weekMode = false;
 
@@ -107,6 +113,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       (m) => m.name == PrefUtil.getValue<String>('calendarViewMode'),
       orElse: () => CalendarViewMode.month,
     );
+    _fitWholeDay = PrefUtil.getValue<bool>('calendarFitWholeDay') ?? true;
     _reload();
   }
 
@@ -224,9 +231,23 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       final allDayHeight = agenda.allDay.isEmpty
           ? 0.0
           : 26 + agenda.allDay.length * 54;
+      // 日视图「整日概览」：一整天已经压在一屏里，直接回到 00:00 顶部
+      // （只有当天真有日程时才滚到第一条，方便一眼看到事）
+      if (_compactDayFit) {
+        final target = agenda.busyHours.isEmpty
+            ? 0.0
+            : headerHeight +
+                  allDayHeight +
+                  (anchorHour - 1).clamp(0, 23) * _timelineHourHeight;
+        final clamped = target.clamp(0.0, _scroll.position.maxScrollExtent);
+        if ((_scroll.offset - clamped).abs() > 1) {
+          _scroll.jumpTo(clamped);
+        }
+        return;
+      }
       final target =
           // 上方留 1.5 小时上下文，避免首个日程贴在吸顶日期头底下
-          headerHeight + allDayHeight + (anchorHour - 1.5) * _hourHeight;
+          headerHeight + allDayHeight + (anchorHour - 1.5) * _timelineHourHeight;
       _scroll.animateTo(
         target.clamp(0.0, _scroll.position.maxScrollExtent),
         duration: const Duration(milliseconds: 220),
@@ -522,6 +543,10 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   }
 
   bool get _isDesktop => MediaQuery.sizeOf(context).width >= 900;
+
+  /// 「整日概览」是否正在生效（只有日视图会压屏）
+  bool get _compactDayFit =>
+      _viewMode == CalendarViewMode.day && _fitWholeDay;
 
   // ------------------------------------------------------------ PC 三栏布局
 
@@ -1035,9 +1060,18 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
             PrefUtil.setValue<int>('calendarWeekStart', 7);
           case 'calendars':
             await _openManager();
+          case 'fitWholeDay':
+            setState(() => _fitWholeDay = !_fitWholeDay);
+            PrefUtil.setValue<bool>('calendarFitWholeDay', _fitWholeDay);
         }
       },
       itemBuilder: (_) => [
+        CheckedPopupMenuItem(
+          value: 'fitWholeDay',
+          checked: _fitWholeDay,
+          child: const Text('日视图整日概览（一屏看全天）'),
+        ),
+        const PopupMenuDivider(),
         _menuHeader('月格缩放（也可双指捏合）'),
         CheckedPopupMenuItem(
           value: 'zoom.dots',
@@ -1117,6 +1151,32 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
             _weekMode)
         ? _weekStrip()
         : _monthGrid();
+    // 日视图默认「整日概览」：把 24 小时压进一屏，一整天完整可见（可滚动看细节）
+    if (!showMonthGrid && _compactDayFit) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          // 留出底部悬浮胶囊的高度，保证 23:00 也完整可见
+          final fit = ((constraints.maxHeight - 128) / 24).clamp(20.0, 60.0);
+          return _dayTimelineColumn(grid: grid, hourHeight: fit, scroll: true);
+        },
+      );
+    }
+    return _dayTimelineColumn(
+      grid: grid,
+      hourHeight: _hourHeight,
+      scroll: false,
+    );
+  }
+
+  /// 日/月视图的骨架：网格（可折叠） + 吸顶日期头 + 时间轴（+ 提醒事项）。
+  ///
+  /// [scroll] = true 时用滚动视图包住整块（整日概览压屏后仍可在内容多时滚动）。
+  Widget _dayTimelineColumn({
+    required Widget grid,
+    required double hourHeight,
+    required bool scroll,
+  }) {
+    _timelineHourHeight = hourHeight;
     // 月网格必须放在任何滚动视图**外面**：放进 CustomScrollView /
     // SingleChildScrollView 时，滚动的拖拽识别器会赢下手势竞技场，
     // 双指捏合永远收不到回调（已用最小用例复现）。
@@ -1137,6 +1197,9 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
         Expanded(
           child: CustomScrollView(
             controller: _scroll,
+            physics: scroll
+                ? const ClampingScrollPhysics()
+                : const ClampingScrollPhysics(),
             slivers: [
               SliverPersistentHeader(
                 pinned: true,
@@ -1147,7 +1210,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
                   agenda: _agenda,
                 ),
               ),
-              ..._agendaSlivers(),
+              ..._agendaSlivers(hourHeight: hourHeight),
               const SliverToBoxAdapter(child: SizedBox(height: 96)),
             ],
           ),
@@ -1156,8 +1219,9 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     );
   }
 
-  List<Widget> _agendaSlivers() {
+  List<Widget> _agendaSlivers({double? hourHeight}) {
     final agenda = _agenda;
+    final timelineHourHeight = hourHeight ?? _hourHeight;
     final slivers = <Widget>[];
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -1196,8 +1260,9 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     final now = DateTime.now();
     final isToday = isSameDay(_selected, now);
 
-    // 空状态引导：这一天什么都没安排时，教一遍拖动交互（iOS 的"点一点就有"）
-    if (agenda.isEmpty) {
+    // 空状态引导：这一天什么都没安排时，教一遍拖动交互（iOS 的"点一点就有"）。
+    // 整日概览模式下不占位，保证一整天完整可见。
+    if (agenda.isEmpty && !_compactDayFit) {
       slivers.add(
         SliverToBoxAdapter(
           child: Container(
@@ -1240,6 +1305,22 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
         ),
       );
     }
+    // 整日概览 + 空日程：给一条不占位的提示
+    if (agenda.isEmpty && _compactDayFit) {
+      slivers.add(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(52, 8, 12, 0),
+            child: Text(
+              '长按空白处拖出时间段 · 顶栏 ✨ 可以说人话建日程',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     // 24 小时时间轴：绝对定位画布（长按拖动新建/移动/改时长都在这里）
     slivers.add(
@@ -1249,7 +1330,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
           day: _selected,
           events: _dayEvents,
           colorOf: _colorOf,
-          hourHeight: _hourHeight,
+          hourHeight: timelineHourHeight,
           showNowLine: isToday,
           markers: [
             for (final entry in agenda.todosByHour.entries)

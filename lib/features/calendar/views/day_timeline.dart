@@ -206,34 +206,39 @@ class _DayTimelineState extends State<DayTimeline> {
           // 1) 整点分隔线 + 时间标签
           for (var h = 0; h <= 24; h++)
             Positioned(
-              top: h * widget.hourHeight,
+              // 行高给足 14px：否则 text 会被 1px 的紧约束裁没
+              // （整日概览把每小时压到 ~30px 时就看不见时间标签了）
+              top: h * widget.hourHeight - 7,
               left: 0,
               right: 0,
-              height: 1,
+              height: 14,
               child: Row(
                 children: [
                   SizedBox(
                     width: _gutter - 6,
-                    child: h == 24
-                        ? const SizedBox.shrink()
-                        : Transform.translate(
-                            offset: const Offset(0, -6),
-                            child: Text(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: h == 24
+                          ? const SizedBox.shrink()
+                          : Text(
                               '${h.toString().padLeft(2, '0')}:00',
                               textAlign: TextAlign.right,
                               style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: 10,
                                 color: scheme.onSurfaceVariant,
                                 fontFeatures: const [
                                   FontFeature.tabularFigures(),
                                 ],
                               ),
                             ),
-                          ),
+                    ),
                   ),
                   Expanded(
-                    child: Container(
-                      height: 0.6,
-                      color: scheme.outlineVariant.withValues(alpha: 0.35),
+                    child: Center(
+                      child: Container(
+                        height: 0.6,
+                        color: scheme.outlineVariant.withValues(alpha: 0.35),
+                      ),
                     ),
                   ),
                 ],

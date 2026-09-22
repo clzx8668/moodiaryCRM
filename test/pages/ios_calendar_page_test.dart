@@ -6,6 +6,7 @@ import 'package:moodiary/features/calendar/views/ios_calendar_page.dart';
 import 'package:moodiary/features/calendar/calendar_agenda.dart';
 import 'package:moodiary/features/calendar/widgets/event_card.dart';
 import 'package:moodiary/features/calendar/views/agenda_list_view.dart';
+import 'package:moodiary/features/calendar/views/day_timeline.dart';
 import 'package:moodiary/features/calendar/views/week_view.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
 import 'package:moodiary/features/schedule/schedule_repository.dart';
@@ -348,22 +349,22 @@ void main() {
     // 默认月视图：月格在
     expect(find.byKey(const ValueKey('calendar-grid')), findsOneWidget);
 
-    await tester.tap(find.text('周'));
+    await tester.tap(find.byIcon(Icons.view_week_rounded));
     await tester.pumpAndSettle();
     expect(find.byType(WeekView), findsOneWidget, reason: '周视图 = 多日显示');
     expect(find.text('模式用例'), findsOneWidget);
 
-    await tester.tap(find.text('列表'));
+    await tester.tap(find.byIcon(Icons.format_list_bulleted_rounded));
     await tester.pumpAndSettle();
     expect(find.byType(AgendaListView), findsOneWidget);
     expect(find.text('模式用例'), findsOneWidget);
 
-    await tester.tap(find.text('日'));
+    await tester.tap(find.byIcon(Icons.view_day_rounded));
     await tester.pumpAndSettle();
     expect(find.byType(WeekView), findsNothing);
     expect(find.byType(AgendaListView), findsNothing);
 
-    await tester.tap(find.text('月'));
+    await tester.tap(find.byIcon(Icons.calendar_view_month_rounded));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('calendar-grid')), findsOneWidget);
   });
@@ -391,5 +392,23 @@ void main() {
     expect(find.text('日程详情'), findsOneWidget);
     expect(find.text('会议室 B'), findsWidgets);
     expect(find.byType(BottomSheet), findsNothing, reason: 'PC 上不弹底部面板');
+  });
+
+  testWidgets('日视图「整日概览」：一屏完整看到 00:00–24:00', (tester) async {
+    await pumpPage(tester);
+    await tester.tap(find.byIcon(Icons.view_day_rounded));
+    await tester.pumpAndSettle();
+
+    // 24 小时都在同一块画布里（不是只滚到"当前时间"）
+    expect(find.text('00:00'), findsOneWidget);
+    expect(find.text('23:00'), findsOneWidget);
+
+    final timeline = tester.getRect(find.byType(DayTimeline));
+    final screenHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    expect(
+      timeline.height,
+      lessThan(screenHeight),
+      reason: '整日概览要把 24 小时压进一屏',
+    );
   });
 }
