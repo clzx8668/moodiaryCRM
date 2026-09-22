@@ -18,6 +18,10 @@ class DayTimeline extends StatefulWidget {
   final List<Schedule> events;
   final Color Function(Schedule) colorOf;
   final double hourHeight;
+  /// 拖到边缘时自动滚动（跟随拖动上下滚动）
+  final ScrollController? scrollController;
+  /// 时间轴所在视口（用于算边缘）
+  final GlobalKey? viewportKey;
   final void Function(Schedule event) onTapEvent;
   final void Function(DateTime start, DateTime end) onCreateRange;
   final void Function(Schedule event, DateTime newStart) onMoveEvent;
@@ -37,6 +41,8 @@ class DayTimeline extends StatefulWidget {
     this.markers = const [],
     this.hourHeight = 52,
     this.showNowLine = false,
+    this.scrollController,
+    this.viewportKey,
   });
 
   @override
@@ -69,6 +75,48 @@ class _DayTimelineState extends State<DayTimeline> {
   double _currentY = 0;
   Schedule? _dragged;
 
+  /// 拖动时吸附到的目标时刻（分钟），用于「展开变宽」的吸附槽
+  int? _dragSlotMinutes;
+
+  /// 拖动到视口边缘时自动滚动
+  void _autoScroll(Offset globalPosition) {
+    final controller = widget.scrollController;
+    final viewport = widget.viewportKey?.currentContext?.findRenderObject();
+    if (controller == null ||
+        viewport is! RenderBox ||
+        controller.positions.length != 1) {
+      return;
+    }
+    final top = viewport.localToGlobal(Offset.zero).dy;
+    final bottom = top + viewport.size.height;
+    const edge = 72.0;
+    const maxStep = 14.0;
+    final y = globalPosition.dy;
+    if (y < top + edge) {
+      final f = ((top + edge - y) / edge).clamp(0.0, 1.0);
+      controller.jumpTo(
+        (controller.offset - maxStep * f).clamp(
+          0.0,
+          controller.position.maxScrollExtent,
+        ),
+      );
+    } else if (y > bottom - edge) {
+      final f = ((y - (bottom - edge)) / edge).clamp(0.0, 1.0);
+      controller.jumpTo(
+        (controller.offset + maxStep * f).clamp(
+          0.0,
+          controller.position.maxScrollExtent,
+        ),
+      );
+    }
+  }
+
+  /// 当前拖动落在哪个吸附槽（15 分钟）
+  void _updateDragSlot(double y) {
+    final minutes = (y / widget.hourHeight * 60).round();
+    _dragSlotMinutes = snapMinutes(minutes, _snapMin).clamp(0, 24 * 60);
+  }
+
   double get _totalHeight => 24 * widget.hourHeight;
 
   int get _snapMin => 15;
@@ -81,12 +129,17 @@ class _DayTimelineState extends State<DayTimeline> {
       _kind = _DragKind.create;
       _startY = d.localPosition.dy;
       _currentY = d.localPosition.dy;
+      _updateDragSlot(d.localPosition.dy);
     });
   }
 
   void _createUpdate(LongPressMoveUpdateDetails d) {
     if (_kind != _DragKind.create) return;
-    setState(() => _currentY = d.localPosition.dy);
+    _autoScroll(d.globalPosition);
+    setState(() {
+      _currentY = d.localPosition.dy;
+      _updateDragSlot(d.localPosition.dy);
+    });
   }
 
   void _createEnd(LongPressEndDetails d) {
@@ -94,6 +147,7 @@ class _DayTimelineState extends State<DayTimeline> {
     final startY = _startY;
     final endY = _currentY;
     setState(() => _kind = null);
+    setState(() => _dragSlotMinutes = null);
 
     final dragged = (endY - startY).abs() >= widget.hourHeight / 4; // ≥15 分钟
     final (start, end) = dragRangeToTimes(
@@ -121,12 +175,19 @@ class _DayTimelineState extends State<DayTimeline> {
       _dragged = e;
       _startY = local.dy;
       _currentY = local.dy;
+      _updateDragSlot(
+        (e.startTime.hour * 60 + e.startTime.minute).toDouble(),
+      );
     });
   }
 
-  void _eventUpdate(Offset local) {
+  void _eventUpdate(Offset local, [Offset? global]) {
     if (_kind == null || _dragged == null) return;
-    setState(() => _currentY = local.dy);
+    if (global != null) _autoScroll(global);
+    setState(() {
+      _currentY = local.dy;
+      _updateDragSlot(local.dy);
+    });
   }
 
   void _eventEnd() {
@@ -136,6 +197,7 @@ class _DayTimelineState extends State<DayTimeline> {
     setState(() {
       _kind = null;
       _dragged = null;
+      _dragSlotMinutes = null;
     });
     if (kind == null || e == null) return;
     if (deltaPx.abs() < 6) return; // 手抖不算拖动
@@ -208,6 +270,7 @@ class _DayTimelineState extends State<DayTimeline> {
         children: [
           // 1) 整点分隔线 + 时间标签
           for (var h = 0; h <= 24; h++)
+            if (!_nearNow(h * widget.hourHeight))
             Positioned(
               // 行高给足 14px：否则 text 会被 1px 的紧约束裁没
               // （整日概览把每小时压到 ~30px 时就看不见时间标签了）
@@ -250,6 +313,7 @@ class _DayTimelineState extends State<DayTimeline> {
 
           // 1.5) 半小时虚线（文档 §3.3：整点实线、半点虚线）
           for (var h = 0; h < 24; h++)
+            if (!_nearNow(h * widget.hourHeight + widget.hourHeight / 2))
             Positioned(
               top: h * widget.hourHeight + widget.hourHeight / 2,
               left: _gutter,
@@ -358,16 +422,42 @@ class _DayTimelineState extends State<DayTimeline> {
               left: _gutter + 2,
               right: 8,
               child: IgnorePointer(
-                child: DecoratedBox(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: scheme.primary.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(
-                      IosCalendarTheme.cardRadius,
+                      IosCalendarTheme.radiusEvent,
                     ),
                     border: Border.all(color: scheme.primary, width: 1),
                   ),
+                  // 拖动时把时间写在块里，一眼知道拖到了几点
+                  child: Text(
+                    _ghostLabel(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
+            ),
+
+          // 4.5) 吸附槽：拖动到哪个时间段，哪一段就展开变宽（带整点/半点标识）
+          if (_kind != null && _dragSlotMinutes != null)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 110),
+              curve: Curves.easeOut,
+              top: _dragSlotMinutes! / 60 * widget.hourHeight - 13,
+              left: 0,
+              right: 8,
+              height: 26,
+              child: IgnorePointer(child: _slotBand(theme)),
             ),
 
           // 5) 当前时间红线
@@ -380,20 +470,34 @@ class _DayTimelineState extends State<DayTimeline> {
   Widget _nowLine(ThemeData theme) {
     final now = DateTime.now();
     final top = minutesOfDay(now) / 60 * widget.hourHeight;
+    final scheme = theme.colorScheme;
+    // 「现在」所在区域整体展开成一条带，嵌进固定时间线里；
+    // 与整点/半点重合时固定线会被隐藏（见 _nearNow），不会两条线叠着。
     return Positioned(
-      top: top,
+      top: top - 11,
       left: 0,
       right: 8,
+      height: 22,
       child: Row(
         children: [
           SizedBox(
             width: _gutter - 6,
-            child: Text(
-              fmtClock(now),
-              textAlign: TextAlign.right,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: IosCalendarTheme.today,
-                fontWeight: FontWeight.w600,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: IosCalendarTheme.today.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  fmtClock(now),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 10,
+                    color: IosCalendarTheme.today,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
           ),
@@ -406,16 +510,122 @@ class _DayTimelineState extends State<DayTimeline> {
               color: IosCalendarTheme.today,
             ),
           ),
-          const Expanded(
-            child: Divider(
-              height: 1,
-              thickness: 1,
-              color: IosCalendarTheme.today,
+          Expanded(
+            child: Container(
+              height: 22,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: IosCalendarTheme.today.withValues(
+                  alpha: 0.10,
+                ),
+                border: Border(
+                  top: BorderSide(
+                    color: IosCalendarTheme.today.withValues(alpha: 0.5),
+                    width: 0.6,
+                  ),
+                  bottom: BorderSide(
+                    color: IosCalendarTheme.today.withValues(alpha: 0.5),
+                    width: 0.6,
+                  ),
+                ),
+              ),
+              child: Container(height: 1.6, color: IosCalendarTheme.today),
             ),
           ),
+          // scheme 只为保持主题引用（避免未使用告警）
+          if (scheme.brightness == Brightness.dark) const SizedBox.shrink(),
         ],
       ),
     );
+  }
+
+  /// 现在时间是否紧贴某条固定线（±12px 内则隐藏那条线，避免双线）
+  bool _nearNow(double y) {
+    if (!widget.showNowLine) return false;
+    final nowTop = minutesOfDay(DateTime.now()) / 60 * widget.hourHeight;
+    return (y - nowTop).abs() < 12;
+  }
+
+  /// 拖动吸附槽的说明文案：整点/半点/刻钟一眼可分
+  String _slotLabel() {
+    final minutes = _dragSlotMinutes ?? 0;
+    final h = (minutes ~/ 60) % 24;
+    final m = minutes % 60;
+    final clock = '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+    final kind = switch (m) {
+      0 => '整点',
+      30 => '半点',
+      15 || 45 => '一刻',
+      _ => '',
+    };
+    return kind.isEmpty ? clock : '$clock · $kind';
+  }
+
+  Widget _slotBand(ThemeData theme) {
+    final scheme = theme.colorScheme;
+    final minutes = _dragSlotMinutes ?? 0;
+    final onHour = minutes % 60 == 0;
+    final color = onHour ? scheme.primary : scheme.primary.withValues(alpha: 0.7);
+    return Padding(
+      padding: const EdgeInsets.only(left: _gutter + 2),
+      child: Container(
+        decoration: BoxDecoration(
+          color: scheme.primary.withValues(alpha: onHour ? 0.16 : 0.10),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color, width: onHour ? 1.4 : 1),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: [
+            Text(
+              _slotLabel(),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: onHour ? FontWeight.w800 : FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              onHour ? '整点线' : '半点/刻钟',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontSize: 9,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _ghostLabel() {
+    final kind = _kind;
+    if (kind == _DragKind.create) {
+      final (start, end) = dragRangeToTimes(
+        day: widget.day,
+        startY: _startY,
+        endY: _currentY,
+        hourHeight: widget.hourHeight,
+      );
+      return '${fmtClock(start)} – ${fmtClock(end)}';
+    }
+    final e = _dragged;
+    if (e == null) return '';
+    final deltaMin = dragDeltaMinutes(
+      _currentY - _startY,
+      widget.hourHeight,
+      snapMin: _snapMin,
+    );
+    if (kind == _DragKind.move) {
+      final start = e.startTime.add(Duration(minutes: deltaMin));
+      final end = e.endTime?.add(Duration(minutes: deltaMin));
+      return end == null
+          ? fmtClock(start)
+          : '${fmtClock(start)} – ${fmtClock(end)}';
+    }
+    final base = e.endTime ?? e.startTime.add(const Duration(hours: 1));
+    return '${fmtClock(e.startTime)} – ${fmtClock(base.add(Duration(minutes: deltaMin)))}';
   }
 }
 
@@ -425,7 +635,7 @@ class _TimelineEventCard extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
   final void Function(_DragKind kind, Offset local) onDragStart;
-  final void Function(Offset local) onDragUpdate;
+  final void Function(Offset local, Offset global) onDragUpdate;
   final VoidCallback onDragEnd;
 
   const _TimelineEventCard({
@@ -449,7 +659,8 @@ class _TimelineEventCard extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           onLongPressStart: (d) => onDragStart(_DragKind.move, d.localPosition),
-          onLongPressMoveUpdate: (d) => onDragUpdate(d.localPosition),
+          onLongPressMoveUpdate: (d) =>
+              onDragUpdate(d.localPosition, d.globalPosition),
           onLongPressEnd: (_) => onDragEnd(),
           child: Container(
             decoration: BoxDecoration(
@@ -528,7 +739,8 @@ class _TimelineEventCard extends StatelessWidget {
                     behavior: HitTestBehavior.opaque,
                     onLongPressStart: (d) =>
                         onDragStart(_DragKind.resize, d.localPosition),
-                    onLongPressMoveUpdate: (d) => onDragUpdate(d.localPosition),
+                    onLongPressMoveUpdate: (d) =>
+                        onDragUpdate(d.localPosition, d.globalPosition),
                     onLongPressEnd: (_) => onDragEnd(),
                     child: Center(
                       child: Container(

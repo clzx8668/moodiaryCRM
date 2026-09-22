@@ -81,6 +81,23 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   /// 当前时间轴实际使用的每小时像素（整日概览时会变小，定位要用同一个值）
   double _timelineHourHeight = 52;
 
+  /// 时间轴视口（自动滚动与捏合缩放要用它的矩形）
+  final GlobalKey _timelineViewportKey = GlobalKey();
+
+  /// 双指捏合改时间轴行高（原始指针自己算：不跟滚动视图抢手势竞技场）
+  final Map<int, Offset> _pointers = {};
+  double? _pinchBaseSpan;
+  double _pinchBaseHeight = 52;
+
+  /// 时间轴行高的实时值：捏合时只动这个 notifier，
+  /// 避免在指针派发过程中重建整棵子树（会触发 RenderObject 已释放的断言）。
+  final ValueNotifier<double> _hourHeightLive = ValueNotifier<double>(52);
+
+  /// 「整日概览」开合的实时值：同样用 notifier，捏合时不在指针派发中 setState
+  final ValueNotifier<bool> _fitWholeDayLive = ValueNotifier<bool>(true);
+  double _pendingHourHeight = 52;
+  bool _heightCommitScheduled = false;
+
   /// 月格是否折叠成「周」条（单指上下滑动切换）
   bool _weekMode = false;
 
@@ -110,11 +127,13 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     _selected = DateTime(now.year, now.month, now.day);
     _weekStart = PrefUtil.getValue<int>('calendarWeekStart') ?? 1;
     _hourHeight = PrefUtil.getValue<double>('calendarHourHeight') ?? 52;
+    _hourHeightLive.value = _hourHeight;
     _viewMode = CalendarViewMode.values.firstWhere(
       (m) => m.name == PrefUtil.getValue<String>('calendarViewMode'),
       orElse: () => CalendarViewMode.month,
     );
     _fitWholeDay = PrefUtil.getValue<bool>('calendarFitWholeDay') ?? true;
+    _fitWholeDayLive.value = _fitWholeDay;
     _reload();
   }
 
@@ -222,7 +241,9 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   /// 定位到"现在"或第一个有内容的时段（估计偏移，时间轴是等高的绝对画布）。
   void _scheduleAnchor() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scroll.hasClients) return;
+      // AnimatedSwitcher 过渡期间会同时挂着两个 ScrollView，
+      // 这时用同一个 controller 定位会命中"一控多视图"的断言
+      if (!mounted || _scroll.positions.length != 1) return;
       final agenda = _agenda;
       final now = DateTime.now();
       final anchorHour = agenda.busyHours.isNotEmpty
@@ -511,6 +532,59 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     });
   }
 
+  // ------------------------------------------- 时间轴：双指捏合改行高（40–120）
+
+  double _spanOfPointers() {
+    final pts = _pointers.values.toList();
+    if (pts.length < 2) return 0;
+    return (pts[0] - pts[1]).distance;
+  }
+
+  void _pinchDown(PointerDownEvent e) {
+    _pointers[e.pointer] = e.position;
+    if (_pointers.length == 2) {
+      _pinchBaseSpan = _spanOfPointers();
+      _pinchBaseHeight = _hourHeight;
+    }
+  }
+
+  void _pinchMove(PointerMoveEvent e) {
+    if (!_pointers.containsKey(e.pointer)) return;
+    _pointers[e.pointer] = e.position;
+    final baseSpan = _pinchBaseSpan;
+    if (baseSpan == null || baseSpan <= 0 || _pointers.length < 2) return;
+    final factor = _spanOfPointers() / baseSpan;
+    if (factor.isNaN || factor <= 0) return;
+    final next = (_pinchBaseHeight * factor).clamp(24.0, 120.0);
+    if ((next - _hourHeightLive.value).abs() < 1) return;
+    // 手动捏合 = 用户自己定密度，退出「整日概览」（只改 notifier，避免派发中重建）
+    if (_fitWholeDayLive.value) {
+      _fitWholeDayLive.value = false;
+      _fitWholeDay = false;
+      PrefUtil.setValue<bool>('calendarFitWholeDay', false);
+    }
+    _hourHeight = next;
+    // 关键：不在指针派发过程中重建时间轴（否则命中记录会被释放 → 框架断言），
+    // 延到下一帧再提交。
+    _pendingHourHeight = next;
+    if (!_heightCommitScheduled) {
+      _heightCommitScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _heightCommitScheduled = false;
+        _hourHeightLive.value = _pendingHourHeight;
+        PrefUtil.setValue<double>(
+          'calendarHourHeight',
+          _pendingHourHeight.roundToDouble(),
+        );
+      });
+    }
+  }
+
+  void _pinchUp(PointerEvent e) {
+    _pointers.remove(e.pointer);
+    if (_pointers.length < 2) _pinchBaseSpan = null;
+  }
+
   // ---------------------------------------------------------------- 视图
 
   @override
@@ -534,18 +608,10 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
           Expanded(
             child: Stack(
               children: [
-                // 视图/页签切换加淡入淡出（文档 §5.1：0.3s easeInOutCubic）
-                Positioned.fill(
-                  child: AnimatedSwitcher(
-                    duration: IosCalendarTheme.animDefault,
-                    switchInCurve: Curves.easeInOutCubic,
-                    switchOutCurve: Curves.easeInOutCubic,
-                    child: KeyedSubtree(
-                      key: ValueKey('${_tab.name}-${_viewMode.name}'),
-                      child: _bodyForMode(),
-                    ),
-                  ),
-                ),
+                // 说明：这里刻意不用 AnimatedSwitcher —— 过渡期两棵子树会同时
+                // 持有同一个 ScrollController（时间轴），触发"一控多视图"断言。
+                // 视图切换的淡入交给各视图内部的 AnimatedSize/AnimatedContainer。
+                Positioned.fill(child: _bodyForMode()),
                 Positioned(
                   left: 0,
                   right: 0,
@@ -1098,6 +1164,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
             await _openManager();
           case 'fitWholeDay':
             setState(() => _fitWholeDay = !_fitWholeDay);
+            _fitWholeDayLive.value = _fitWholeDay;
             PrefUtil.setValue<bool>('calendarFitWholeDay', _fitWholeDay);
         }
       },
@@ -1222,14 +1289,25 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
           ),
         ),
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final effective = fitWholeDay
+          child: Listener(
+            onPointerDown: _pinchDown,
+            onPointerMove: _pinchMove,
+            onPointerUp: _pinchUp,
+            onPointerCancel: _pinchUp,
+            child: LayoutBuilder(
+              builder: (context, constraints) => ValueListenableBuilder<double>(
+                valueListenable: _hourHeightLive,
+                builder: (context, liveHeight, _) =>
+                    ValueListenableBuilder<bool>(
+                  valueListenable: _fitWholeDayLive,
+                  builder: (context, liveFit, __) {
+              final effective = (fitWholeDay && liveFit)
                   // 再让出底部悬浮胶囊（约 72dp），保证 23:00 也完整可见
                   ? ((constraints.maxHeight - 80) / 24).clamp(16.0, 60.0)
-                  : hourHeight;
+                  : liveHeight;
               _timelineHourHeight = effective;
               return CustomScrollView(
+                key: _timelineViewportKey,
                 controller: _scroll,
                 physics: const ClampingScrollPhysics(),
                 slivers: [
@@ -1248,7 +1326,10 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
                   ),
                 ],
               );
-            },
+                  },
+                ),
+              ),
+            ),
           ),
         ),
       ],
@@ -1367,6 +1448,8 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
           events: _dayEvents,
           colorOf: _colorOf,
           hourHeight: timelineHourHeight,
+          scrollController: _scroll,
+          viewportKey: _timelineViewportKey,
           showNowLine: isToday,
           markers: [
             for (final entry in agenda.todosByHour.entries)

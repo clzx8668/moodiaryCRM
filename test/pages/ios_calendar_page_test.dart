@@ -411,4 +411,28 @@ void main() {
       reason: '整日概览要把 24 小时压进一屏',
     );
   });
+
+  testWidgets('时间轴上双指捏合（张开）会加大每小时行高', (tester) async {
+    await pumpPage(tester);
+    // 先切回「月」视图的常规密度（整日概览会压屏）
+    await tester.tap(find.byIcon(Icons.calendar_view_month_rounded));
+    await tester.pumpAndSettle();
+
+    final before = tester.getRect(find.byType(DayTimeline)).height;
+    final area = tester.getRect(find.byKey(const ValueKey('month-grid-body')));
+    final center = Offset(area.center.dx, area.bottom + 200);
+
+    final a = await tester.startGesture(center - const Offset(30, 0));
+    final b = await tester.startGesture(center + const Offset(30, 0));
+    await tester.pump(const Duration(milliseconds: 20));
+    await a.moveBy(const Offset(-40, 0));
+    await b.moveBy(const Offset(40, 0));
+    await tester.pump(const Duration(milliseconds: 20));
+    await a.up();
+    await b.up();
+    await tester.pumpAndSettle();
+
+    final after = tester.getRect(find.byType(DayTimeline)).height;
+    expect(after, greaterThan(before), reason: '张开手指应把时间轴放大');
+  });
 }

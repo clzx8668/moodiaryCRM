@@ -109,6 +109,7 @@ void main() {
       Offset(rect.left + 260, rect.top + 305),
     );
     await tester.pump(const Duration(milliseconds: 600));
+    // hourHeight = 30 → 拖 30px = 1 小时
     await gesture.moveBy(const Offset(0, 30));
     await tester.pump(const Duration(milliseconds: 30));
     await gesture.up();
@@ -179,5 +180,26 @@ void main() {
 
     expect(find.text('16:00 提交设计稿'), findsOneWidget);
     expect(find.byIcon(Icons.radio_button_unchecked_rounded), findsOneWidget);
+  });
+
+  testWidgets('长按拖动时：幽灵块显示时间区间 + 吸附槽展开（标出整点/半点）', (tester) async {
+    await pumpTimeline(tester, []);
+    final rect = tester.getRect(find.byType(DayTimeline));
+
+    final gesture = await tester.startGesture(
+      Offset(rect.left + 200, rect.top + 300),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    // 拖 15px = 30 分钟 → 吸附到 10:30（半点）
+    await gesture.moveBy(const Offset(0, 15));
+    await tester.pump(const Duration(milliseconds: 40));
+
+    // 幽灵块里的时间文案（10:00 → 10:30）
+    expect(find.textContaining('10:00'), findsWidgets);
+    // 吸附槽：标明这是整点还是半点
+    expect(find.textContaining('半点'), findsWidgets);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
   });
 }
