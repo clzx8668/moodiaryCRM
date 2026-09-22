@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../schedule/models/schedule.dart';
 import '../calendar_agenda.dart';
@@ -75,6 +76,7 @@ class _DayTimelineState extends State<DayTimeline> {
   // ------------------------------------------------------------ 新建（拖动拉块）
 
   void _createStart(LongPressStartDetails d) {
+    HapticFeedback.mediumImpact(); // 长按进入拖动（文档 §5.2：长按 + 震动反馈）
     setState(() {
       _kind = _DragKind.create;
       _startY = d.localPosition.dy;
@@ -113,6 +115,7 @@ class _DayTimelineState extends State<DayTimeline> {
   // ------------------------------------------------------------ 移动 / 改时长
 
   void _eventStart(Schedule e, _DragKind kind, Offset local) {
+    HapticFeedback.mediumImpact();
     setState(() {
       _kind = kind;
       _dragged = e;
@@ -242,6 +245,20 @@ class _DayTimelineState extends State<DayTimeline> {
                     ),
                   ),
                 ],
+              ),
+            ),
+
+          // 1.5) 半小时虚线（文档 §3.3：整点实线、半点虚线）
+          for (var h = 0; h < 24; h++)
+            Positioned(
+              top: h * widget.hourHeight + widget.hourHeight / 2,
+              left: _gutter,
+              right: 10,
+              height: 1,
+              child: CustomPaint(
+                painter: _DashedLinePainter(
+                  color: scheme.outlineVariant.withValues(alpha: 0.35),
+                ),
               ),
             ),
 
@@ -436,8 +453,14 @@ class _TimelineEventCard extends StatelessWidget {
           onLongPressEnd: (_) => onDragEnd(),
           child: Container(
             decoration: BoxDecoration(
-              color: IosCalendarTheme.eventFill(color, scheme.surfaceContainerLow),
-              borderRadius: BorderRadius.circular(IosCalendarTheme.cardRadius),
+              // 文档 §3.3：事件块圆角 6pt、底色 20% 透明 + 左侧 3pt 实色边
+              color: IosCalendarTheme.eventFill20(
+                color,
+                scheme.surfaceContainerLow,
+              ),
+              borderRadius: BorderRadius.circular(
+                IosCalendarTheme.radiusEvent,
+              ),
               border: Border.all(
                 color: IosCalendarTheme.eventBorder(color),
                 width: 0.8,
@@ -526,4 +549,29 @@ class _TimelineEventCard extends StatelessWidget {
       },
     );
   }
+}
+
+/// 半小时刻度用的虚线。
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  const _DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 0.6;
+    const dash = 3.0;
+    const gap = 4.0;
+    for (var x = 0.0; x < size.width; x += dash + gap) {
+      canvas.drawLine(
+        Offset(x, 0.5),
+        Offset((x + dash).clamp(0, size.width), 0.5),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedLinePainter old) => old.color != color;
 }

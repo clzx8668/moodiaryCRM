@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
@@ -234,11 +235,8 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       // 日视图「整日概览」：一整天已经压在一屏里，直接回到 00:00 顶部
       // （只有当天真有日程时才滚到第一条，方便一眼看到事）
       if (_compactDayFit) {
-        final target = agenda.busyHours.isEmpty
-            ? 0.0
-            : headerHeight +
-                  allDayHeight +
-                  (anchorHour - 1).clamp(0, 23) * _timelineHourHeight;
+        // 一整天已经压进视口 → 直接回到顶部，保证 00:00 可见
+        const target = 0.0;
         final clamped = target.clamp(0.0, _scroll.position.maxScrollExtent);
         if ((_scroll.offset - clamped).abs() > 1) {
           _scroll.jumpTo(clamped);
@@ -472,6 +470,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     final next = zoomAfterPinch(_zoom, ratio);
     if (next != _zoom) {
       _lastScale = details.scale;
+      HapticFeedback.selectionClick(); // 捏合换档给一次触感（文档 §3.2/5.2）
       setState(() => _zoom = next);
     }
   }
@@ -516,8 +515,16 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 日历页套一层 iOS 色系（主色 #007AFF/#0A84FF、次级文字、分隔线按文档 Token）
+    final themed = IosCalendarTheme.scoped(Theme.of(context));
     final isDesktop = MediaQuery.sizeOf(context).width >= 900;
-    if (isDesktop) return _desktopLayout();
+    return Theme(
+      data: themed,
+      child: isDesktop ? _desktopLayout() : _phoneLayout(),
+    );
+  }
+
+  Widget _phoneLayout() {
     return SafeArea(
       bottom: false,
       child: Column(
@@ -527,7 +534,18 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
           Expanded(
             child: Stack(
               children: [
-                Positioned.fill(child: _bodyForMode()),
+                // 视图/页签切换加淡入淡出（文档 §5.1：0.3s easeInOutCubic）
+                Positioned.fill(
+                  child: AnimatedSwitcher(
+                    duration: IosCalendarTheme.animDefault,
+                    switchInCurve: Curves.easeInOutCubic,
+                    switchOutCurve: Curves.easeInOutCubic,
+                    child: KeyedSubtree(
+                      key: ValueKey('${_tab.name}-${_viewMode.name}'),
+                      child: _bodyForMode(),
+                    ),
+                  ),
+                ),
                 Positioned(
                   left: 0,
                   right: 0,
@@ -553,10 +571,23 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   /// PC（宽屏）：侧边栏（迷你月 + 日历勾选） + 主区 + 右侧检查器。
   Widget _desktopLayout() {
     final inspected = _inspected;
-    return SafeArea(
-      child: Row(
+    // ESC 收起右侧检查器（文档 §4.4）
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape &&
+            _inspected != null) {
+          setState(() => _inspected = null);
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: SafeArea(
+        child: Row(
         children: [
-          SizedBox(width: 236, child: _sidebar()),
+          // 侧边栏 240 / 详情 320（对齐需求文档 §4.1）
+          SizedBox(width: IosCalendarTheme.sidebarWidth, child: _sidebar()),
           const VerticalDivider(width: 1),
           Expanded(
             child: Column(
@@ -569,9 +600,13 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
           ),
           if (inspected != null) ...[
             const VerticalDivider(width: 1),
-            SizedBox(width: 304, child: _inspector(inspected)),
+            SizedBox(
+              width: IosCalendarTheme.detailPanelWidth,
+              child: _inspector(inspected),
+            ),
           ],
         ],
+        ),
       ),
     );
   }
@@ -834,6 +869,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: InkWell(
                   onTap: () {
+                    HapticFeedback.selectionClick();
                     setState(() => _viewMode = mode);
                     PrefUtil.setValue<String>('calendarViewMode', mode.name);
                   },
@@ -1151,20 +1187,11 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
             _weekMode)
         ? _weekStrip()
         : _monthGrid();
-    // 日视图默认「整日概览」：把 24 小时压进一屏，一整天完整可见（可滚动看细节）
-    if (!showMonthGrid && _compactDayFit) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          // 留出底部悬浮胶囊的高度，保证 23:00 也完整可见
-          final fit = ((constraints.maxHeight - 128) / 24).clamp(20.0, 60.0);
-          return _dayTimelineColumn(grid: grid, hourHeight: fit, scroll: true);
-        },
-      );
-    }
     return _dayTimelineColumn(
       grid: grid,
       hourHeight: _hourHeight,
-      scroll: false,
+      // 日视图「整日概览」：按时间轴自己的视口高度精确压屏，保证 00:00–24:00 全在屏内
+      fitWholeDay: !showMonthGrid && _compactDayFit,
     );
   }
 
@@ -1174,7 +1201,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   Widget _dayTimelineColumn({
     required Widget grid,
     required double hourHeight,
-    required bool scroll,
+    bool fitWholeDay = false,
   }) {
     _timelineHourHeight = hourHeight;
     // 月网格必须放在任何滚动视图**外面**：放进 CustomScrollView /
@@ -1195,24 +1222,33 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
           ),
         ),
         Expanded(
-          child: CustomScrollView(
-            controller: _scroll,
-            physics: scroll
-                ? const ClampingScrollPhysics()
-                : const ClampingScrollPhysics(),
-            slivers: [
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _DayHeaderDelegate(
-                  day: _selected,
-                  colors: _colors,
-                  calendars: _calendars,
-                  agenda: _agenda,
-                ),
-              ),
-              ..._agendaSlivers(hourHeight: hourHeight),
-              const SliverToBoxAdapter(child: SizedBox(height: 96)),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final effective = fitWholeDay
+                  // 再让出底部悬浮胶囊（约 72dp），保证 23:00 也完整可见
+                  ? ((constraints.maxHeight - 80) / 24).clamp(16.0, 60.0)
+                  : hourHeight;
+              _timelineHourHeight = effective;
+              return CustomScrollView(
+                controller: _scroll,
+                physics: const ClampingScrollPhysics(),
+                slivers: [
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _DayHeaderDelegate(
+                      day: _selected,
+                      colors: _colors,
+                      calendars: _calendars,
+                      agenda: _agenda,
+                    ),
+                  ),
+                  ..._agendaSlivers(hourHeight: effective),
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: fitWholeDay ? 8 : 96),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ],

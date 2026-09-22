@@ -272,9 +272,12 @@ class ReminderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap ?? onToggle,
-      borderRadius: BorderRadius.circular(IosCalendarTheme.cardRadius),
+    // 已完成：弱化到 60%（文档 §3.4），但不隐藏
+    return Opacity(
+      opacity: done ? IosCalendarTheme.completedOpacity : 1,
+      child: InkWell(
+        onTap: onTap ?? onToggle,
+        borderRadius: BorderRadius.circular(IosCalendarTheme.cardRadius),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
         child: Row(
@@ -306,6 +309,7 @@ class ReminderRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

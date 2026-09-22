@@ -266,12 +266,19 @@ class _EventSearchSheetState extends State<_EventSearchSheet> {
                       itemCount: _hits.length,
                       itemBuilder: (context, index) {
                         final e = _hits[index];
+                        final key = _ctrl.text.trim();
                         return ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
                           leading: const Icon(Icons.event_rounded, size: 18),
-                          title: Text(
-                            e.title,
+                          // 关键词高亮（文档 §5.5）
+                          title: Text.rich(
+                            _highlight(
+                              e.title,
+                              key,
+                              theme.textTheme.bodyMedium!,
+                              scheme.primary,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -290,5 +297,37 @@ class _EventSearchSheetState extends State<_EventSearchSheet> {
         ),
       ),
     );
+  }
+
+  /// 把命中的关键词加粗上色。
+  TextSpan _highlight(
+    String text,
+    String key,
+    TextStyle base,
+    Color color,
+  ) {
+    if (key.isEmpty) return TextSpan(text: text, style: base);
+    final lower = text.toLowerCase();
+    final lowerKey = key.toLowerCase();
+    final spans = <TextSpan>[];
+    var start = 0;
+    while (true) {
+      final i = lower.indexOf(lowerKey, start);
+      if (i < 0) {
+        spans.add(TextSpan(text: text.substring(start), style: base));
+        break;
+      }
+      if (i > start) {
+        spans.add(TextSpan(text: text.substring(start, i), style: base));
+      }
+      spans.add(
+        TextSpan(
+          text: text.substring(i, i + key.length),
+          style: base.copyWith(color: color, fontWeight: FontWeight.w700),
+        ),
+      );
+      start = i + key.length;
+    }
+    return TextSpan(children: spans);
   }
 }
