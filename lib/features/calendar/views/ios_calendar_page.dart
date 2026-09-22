@@ -29,8 +29,11 @@ import 'week_view.dart';
 /// 底部三档（iOS 18）：今天 / 日历 / 收件箱。
 enum CalendarBottomTab { today, calendar, inbox }
 
-/// 视图模式（对齐 iPhone/iPad/macOS 日历）：日 / 多日（周）/ 月 / 列表。
-enum CalendarViewMode { day, multiDay, month, list }
+/// 视图模式：**日（两日时间线）/ 月 / 列表**。
+///
+/// 原来的「周」与「日」重复，已合并：日视图一次显示两天，左右滑动换日期，
+/// 顶部日期头随页面一起滑（见 `_twoDayBody`）。
+enum CalendarViewMode { day, month, list }
 
 /// iOS 18 风日历页。
 ///
@@ -99,6 +102,12 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   double _pendingHourHeight = 52;
   bool _heightCommitScheduled = false;
 
+  /// 日视图（两日）分页：以 2020-01-01 为锚，一页两天
+  static final DateTime _pagerEpoch = DateTime(2020, 1, 1);
+  final PageController _pager = PageController(
+    initialPage: (DateTime.now().difference(_pagerEpoch).inDays / 2).floor(),
+  );
+
   /// 切换视图档位时的浮层提示（对齐 iOS：捏合后短暂显示模式名）
   String? _modeHud;
   Timer? _modeHudTimer;
@@ -145,6 +154,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   @override
   void dispose() {
     _modeHudTimer?.cancel();
+    _pager.dispose();
     _scroll.dispose();
     super.dispose();
   }
@@ -303,6 +313,10 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       _selected = d;
       if (monthChanged) _month = DateTime(d.year, d.month, 1);
     });
+    // 日视图（两日）同步翻到对应页
+    if (_viewMode == CalendarViewMode.day && _pager.hasClients) {
+      _syncPagerTo(d);
+    }
     if (monthChanged) {
       await _reload();
     } else {
@@ -323,7 +337,17 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       _selected = DateTime(now.year, now.month, now.day);
       _month = DateTime(now.year, now.month, 1);
     });
+    _syncPagerTo(_selected);
     await _reload();
+  }
+
+  /// 日视图（两日）翻到包含 [day] 的那一页。
+  void _syncPagerTo(DateTime day) {
+    if (_viewMode != CalendarViewMode.day || !_pager.hasClients) return;
+    final target = _pagerPageFor(day);
+    if ((_pager.page ?? target).round() != target) {
+      _pager.jumpToPage(target);
+    }
   }
 
   Future<void> _toggleTodo(TodoItem item) async {
@@ -509,13 +533,34 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       return;
     }
     final ratio = details.scale / _lastScale;
-    final next = zoomAfterPinch(_zoom, ratio);
-    if (next != _zoom) {
-      _lastScale = details.scale;
-      HapticFeedback.selectionClick(); // 捏合换档给一次触感（文档 §3.2/5.2）
-      setState(() => _zoom = next);
-      _showModeHud(_zoomTierLabel(next));
+    // 月格上捏合 = 在 列表 ↔ 月 ↔ 日 之间切换（对齐 iOS 18 连续缩放）
+    if (ratio > 1.15) {
+      final next = _stepMode(1);
+      if (next != null) {
+        _lastScale = details.scale;
+        _setViewMode(next);
+      }
+    } else if (ratio < 0.87) {
+      final next = _stepMode(-1);
+      if (next != null) {
+        _lastScale = details.scale;
+        _setViewMode(next);
+      }
     }
+  }
+
+  /// 视图详细程度阶梯：列表 → 月 → 日
+  static const List<CalendarViewMode> _modeLadder = [
+    CalendarViewMode.list,
+    CalendarViewMode.month,
+    CalendarViewMode.day,
+  ];
+
+  CalendarViewMode? _stepMode(int delta) {
+    final index = _modeLadder.indexOf(_viewMode);
+    final next = index + delta;
+    if (index < 0 || next < 0 || next >= _modeLadder.length) return null;
+    return _modeLadder[next];
   }
 
   // ------------------------------------------------ 月格：单指上下滑动切月/周
@@ -626,7 +671,6 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       child: Column(
         children: [
           _topBar(),
-          _modeBar(),
           Expanded(
             child: Stack(
               children: [
@@ -687,7 +731,6 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
             child: Column(
               children: [
                 _topBar(),
-                _modeBar(),
                 Expanded(
                   child: Stack(
                     children: [
@@ -948,11 +991,95 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     }
     if (_tab == CalendarBottomTab.inbox) return _inboxBody();
     return switch (_viewMode) {
-      CalendarViewMode.day => _dayBody(showMonthGrid: false),
+      CalendarViewMode.day => _twoDayBody(),
       CalendarViewMode.month => _dayBody(showMonthGrid: true),
-      CalendarViewMode.multiDay => _weekBody(),
       CalendarViewMode.list => _listBody(),
     };
+  }
+
+  int _pagerPageFor(DateTime day) {
+    final d = DateTime(day.year, day.month, day.day);
+    return (d.difference(_pagerEpoch).inDays / 2).floor();
+  }
+
+  DateTime _pagerStartFor(int page) =>
+      _pagerEpoch.add(Duration(days: page * 2));
+
+  /// 日视图＝**两天时间线**：左右滑动换日期，顶部日期头随页一起滑。
+  Widget _twoDayBody() {
+    final width = MediaQuery.sizeOf(context).width;
+    final columnWidth = (width - 44) / 2;
+    final visibleIds = _calendars
+        .where((c) => c.visible)
+        .map((c) => c.id)
+        .toSet();
+    return Listener(
+      onPointerDown: _pinchDown,
+      onPointerMove: _pinchMoveToMonth,
+      onPointerUp: _pinchUp,
+      onPointerCancel: _pinchUp,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // 让掉两日视图自己的日期头 + 底部悬浮胶囊，保证 00:00–24:00 一屏可见
+          final fit = ((constraints.maxHeight - 280) / 24).clamp(14.0, 60.0);
+          final hourHeight = _fitWholeDayLive.value ? fit : _hourHeightLive.value;
+          return PageView.builder(
+            controller: _pager,
+            onPageChanged: (page) {
+              final start = _pagerStartFor(page);
+              if (!isSameDay(start, _selected)) {
+                setState(() => _selected = start);
+                _reloadDay();
+              }
+            },
+            itemBuilder: (context, page) {
+              final start = _pagerStartFor(page);
+              final days = [start, start.add(const Duration(days: 1))];
+              return WeekView(
+                days: days,
+                eventsByDay: {
+                  for (final day in days)
+                    day: (_eventsByDay[day] ?? const <Schedule>[])
+                        .where(
+                          (e) =>
+                              !e.deleted &&
+                              !e.draft &&
+                              (e.calendarId == null ||
+                                  visibleIds.contains(e.calendarId)),
+                        )
+                        .toList()
+                      ..sort((a, b) => a.startTime.compareTo(b.startTime)),
+                },
+                colorOf: _colorOf,
+                selectedDay: _selected,
+                hourHeight: hourHeight,
+                columnWidth: columnWidth,
+                onTapEvent: _openDetail,
+                onSelectDay: (day) => _selectDay(day),
+                onCreateRange: (day, s, e) async {
+                  await _selectDay(day);
+                  if (mounted) await _createFromRange(s, e);
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// 日视图里捏合收拢 → 回月视图（展开已是最详细档，保持不动）。
+  void _pinchMoveToMonth(PointerMoveEvent e) {
+    if (!_pointers.containsKey(e.pointer)) return;
+    _pointers[e.pointer] = e.position;
+    final baseSpan = _pinchBaseSpan;
+    if (baseSpan == null || baseSpan <= 0 || _pointers.length < 2) return;
+    final factor = _spanOfPointers() / baseSpan;
+    if (factor.isNaN || factor <= 0) return;
+    if (factor < 0.85) {
+      _pinchBaseSpan = null;
+      _setViewMode(CalendarViewMode.month);
+    }
   }
 
   /// 视图模式条（日 / 周 / 月 / 列表）——手机与 PC 共用。
@@ -983,107 +1110,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
     );
   }
 
-  Widget _modeBar() {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    const items = <(CalendarViewMode, String, IconData)>[
-      (CalendarViewMode.day, '日', Icons.view_day_rounded),
-      (CalendarViewMode.multiDay, '周', Icons.view_week_rounded),
-      (CalendarViewMode.month, '月', Icons.calendar_view_month_rounded),
-      (CalendarViewMode.list, '列表', Icons.format_list_bulleted_rounded),
-    ];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 0, 10, 4),
-      child: Row(
-        children: [
-          for (final (mode, label, icon) in items)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: InkWell(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _viewMode = mode);
-                    PrefUtil.setValue<String>('calendarViewMode', mode.name);
-                  },
-                  borderRadius: BorderRadius.circular(9),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    padding: const EdgeInsets.symmetric(vertical: 5),
-                    decoration: BoxDecoration(
-                      color: _viewMode == mode
-                          ? scheme.primary.withValues(alpha: 0.16)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          icon,
-                          size: 14,
-                          color: _viewMode == mode
-                              ? scheme.primary
-                              : scheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          label,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: _viewMode == mode
-                                ? scheme.primary
-                                : scheme.onSurfaceVariant,
-                            fontWeight: _viewMode == mode
-                                ? FontWeight.w600
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   /// 多日（周）视图。
-  Widget _weekBody() {
-    final days = weekDays(_selected, weekStart: _weekStart);
-    final visibleIds = _calendars
-        .where((c) => c.visible)
-        .map((c) => c.id)
-        .toSet();
-    final byDay = <DateTime, List<Schedule>>{
-      for (final day in days)
-        day:
-            (_eventsByDay[day] ?? const <Schedule>[])
-                .where(
-                  (e) =>
-                      !e.deleted &&
-                      !e.draft &&
-                      (e.calendarId == null || visibleIds.contains(e.calendarId)),
-                )
-                .toList()
-              ..sort((a, b) => a.startTime.compareTo(b.startTime)),
-    };
-    return WeekView(
-      days: days,
-      eventsByDay: byDay,
-      colorOf: _colorOf,
-      selectedDay: _selected,
-      hourHeight: _hourHeight,
-      onTapEvent: _openDetail,
-      onSelectDay: (day) => _selectDay(day),
-      onCreateRange: (day, start, end) async {
-        await _selectDay(day);
-        if (mounted) await _createFromRange(start, end);
-      },
-    );
-  }
-
   /// 列表视图：往后 60 天的日程清单。
   Widget _listBody() {
     final today = DateTime.now();
@@ -1143,14 +1170,14 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
             onTap: _pickMonth,
             borderRadius: BorderRadius.circular(8),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
               child: Row(
                 children: [
                   Text(
                     _tab == CalendarBottomTab.today
                         ? dayLabel(_selected)
                         : '${_month.year}年${_month.month}月',
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1170,6 +1197,8 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
             onPressed: () => _shiftMonth(1),
           ),
           const Spacer(),
+          // 视图模式：一个按钮菜单（日=两日时间线 / 月 / 列表），捏合也能切
+          _modeButton(scheme),
           _barIcon(
             tooltip: '智能新建（说人话建日程）',
             icon: Icons.auto_awesome_rounded,
@@ -1207,8 +1236,65 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       onPressed: onPressed,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 44),
+      constraints: const BoxConstraints(minWidth: 34, minHeight: 44),
     );
+  }
+
+  String get _viewModeLabel => switch (_viewMode) {
+    CalendarViewMode.day => '日',
+    CalendarViewMode.month => '月',
+    CalendarViewMode.list => '列表',
+  };
+
+  /// 顶栏的视图模式按钮：一个按钮搞定日/月/列表（原来整行模式条已移除）。
+  Widget _modeButton(ColorScheme scheme) {
+    final theme = Theme.of(context);
+    return PopupMenuButton<CalendarViewMode>(
+      tooltip: '视图模式（可双指捏合切换）',
+      onSelected: (mode) => _setViewMode(mode),
+      itemBuilder: (_) => [
+        for (final mode in CalendarViewMode.values)
+          CheckedPopupMenuItem(
+            value: mode,
+            checked: _viewMode == mode,
+            child: Text(
+              switch (mode) {
+                CalendarViewMode.day => '日（两天时间线）',
+                CalendarViewMode.month => '月',
+                CalendarViewMode.list => '列表',
+              },
+            ),
+          ),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _viewModeLabel,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: scheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Icon(
+              Icons.expand_more_rounded,
+              size: 14,
+              color: scheme.primary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _setViewMode(CalendarViewMode mode) {
+    if (_viewMode == mode) return;
+    HapticFeedback.selectionClick();
+    setState(() => _viewMode = mode);
+    PrefUtil.setValue<String>('calendarViewMode', mode.name);
+    _showModeHud(_viewModeLabel);
   }
 
   Widget _viewMenu(ColorScheme scheme) {

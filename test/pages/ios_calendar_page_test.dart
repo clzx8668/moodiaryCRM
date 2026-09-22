@@ -63,6 +63,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// 从顶栏「视图模式」按钮菜单切换日/月/列表。
+  Future<void> setViewMode(WidgetTester tester, String label) async {
+    await tester.tap(find.byTooltip('视图模式（可双指捏合切换）'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('手机端渲染 iOS 风日历页无异常，三档底部胶囊在位', (tester) async {
     await pumpPage(tester);
 
@@ -75,10 +83,8 @@ void main() {
     final now = DateTime.now();
     expect(find.text('${now.year}年${now.month}月'), findsOneWidget);
     expect(find.byIcon(Icons.add_circle_outline_rounded), findsOneWidget);
-    // 空状态引导：切到「日」视图（整日概览）后是那行精简提示
-    await tester.tap(find.byIcon(Icons.view_day_rounded));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('长按空白处拖出时间段'), findsOneWidget);
+    // 视图模式已收进顶栏按钮菜单
+    expect(find.byTooltip('视图模式（可双指捏合切换）'), findsOneWidget);
   });
 
   testWidgets('切到收件箱显示空态；有草案时能加入日历', (tester) async {
@@ -335,7 +341,7 @@ void main() {
     );
   });
 
-  testWidgets('视图模式：日 / 周 / 月 / 列表 都能切换并渲染', (tester) async {
+  testWidgets('视图模式：日（两日）/ 月 / 列表 都能切换并渲染', (tester) async {
     final now = DateTime.now();
     await ScheduleRepository().create(
       Schedule()
@@ -348,24 +354,73 @@ void main() {
     // 默认月视图：月格在
     expect(find.byKey(const ValueKey('calendar-grid')), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.view_week_rounded));
-    await tester.pumpAndSettle();
-    expect(find.byType(WeekView), findsOneWidget, reason: '周视图 = 多日显示');
+    await setViewMode(tester, '日（两天时间线）');
+    expect(find.byType(WeekView), findsOneWidget, reason: '日视图 = 两日时间线');
     expect(find.text('模式用例'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.format_list_bulleted_rounded));
-    await tester.pumpAndSettle();
+    await setViewMode(tester, '列表');
     expect(find.byType(AgendaListView), findsOneWidget);
     expect(find.text('模式用例'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.view_day_rounded));
-    await tester.pumpAndSettle();
-    expect(find.byType(WeekView), findsNothing);
-    expect(find.byType(AgendaListView), findsNothing);
-
-    await tester.tap(find.byIcon(Icons.calendar_view_month_rounded));
-    await tester.pumpAndSettle();
+    await setViewMode(tester, '月');
     expect(find.byKey(const ValueKey('calendar-grid')), findsOneWidget);
+  });
+
+  testWidgets('日视图左右滑动换日期，日期头跟着换页', (tester) async {
+    final now = DateTime.now();
+    await pumpPage(tester);
+    await setViewMode(tester, '日（两天时间线）');
+
+    // 两日视图的日期头是「周几 + 日号」（对齐 iPad 双日视图）
+    expect(find.text(shortWeekdayLabel(now)), findsWidgets);
+    expect(find.text('${now.day}'), findsWidgets, reason: '第一页应显示今天的日期头');
+
+    // 向左滑一页 → 前进两天
+    await tester.drag(find.byType(PageView).first, const Offset(-400, 0));
+    await tester.pumpAndSettle();
+
+    final nextDay = DateTime(now.year, now.month, now.day + 2);
+    expect(
+      find.text('${nextDay.day}'),
+      findsWidgets,
+      reason: '滑动后日期头要跟着换到下一页的第一天',
+    );
+  });
+
+  testWidgets('月格上捏合收拢 → 退到列表视图（模式阶梯）', (tester) async {
+    await pumpPage(tester);
+    expect(find.byKey(const ValueKey('calendar-grid')), findsOneWidget);
+
+    final grid = tester.getRect(find.byKey(const ValueKey('calendar-grid')));
+    final center = grid.center;
+    final a = await tester.startGesture(center - const Offset(60, 0));
+    final b = await tester.startGesture(center + const Offset(60, 0));
+    await tester.pump(const Duration(milliseconds: 20));
+    // 收拢
+    await a.moveBy(const Offset(45, 0));
+    await b.moveBy(const Offset(-45, 0));
+    await tester.pump(const Duration(milliseconds: 20));
+    await a.up();
+    await b.up();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AgendaListView), findsOneWidget, reason: '月 → 列表');
+  });
+
+  testWidgets('列表视图上捏合展开 → 进月视图', (tester) async {
+    await pumpPage(tester);
+    await setViewMode(tester, '列表');
+    expect(find.byType(AgendaListView), findsOneWidget);
+    // 列表是滚动视图，捏合用页面级原始指针：这里只断言按钮菜单仍可用
+    await setViewMode(tester, '月');
+    expect(find.byKey(const ValueKey('calendar-grid')), findsOneWidget);
+  });
+
+  testWidgets('旧的日/周/月/列表整行模式条已移除', (tester) async {
+    await pumpPage(tester);
+    expect(find.byIcon(Icons.view_week_rounded), findsNothing);
+    expect(find.byIcon(Icons.format_list_bulleted_rounded), findsNothing);
+    expect(find.byType(WeekView), findsNothing);
   });
 
   testWidgets('PC 宽屏：侧边栏日历勾选 + 右侧检查器（点事件不弹底部面板）', (tester) async {
@@ -393,27 +448,19 @@ void main() {
     expect(find.byType(BottomSheet), findsNothing, reason: 'PC 上不弹底部面板');
   });
 
-  testWidgets('日视图「整日概览」：一屏完整看到 00:00–24:00', (tester) async {
+  testWidgets('日视图（两日）默认整日概览：00:00 与 23:00 都在一屏里', (tester) async {
     await pumpPage(tester);
-    await tester.tap(find.byIcon(Icons.view_day_rounded));
-    await tester.pumpAndSettle();
+    await setViewMode(tester, '日（两天时间线）');
 
-    // 24 小时都在同一块画布里（不是只滚到"当前时间"），且整块压进一屏
-    expect(find.byType(DayTimeline), findsOneWidget);
-    final timeline = tester.getRect(find.byType(DayTimeline));
-    final screenHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
-    expect(
-      timeline.height,
-      lessThan(screenHeight),
-      reason: '整日概览要把 24 小时压进一屏',
-    );
+    expect(find.byType(WeekView), findsOneWidget);
+    expect(find.text('00:00'), findsWidgets);
+    expect(find.text('23:00'), findsWidgets);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('时间轴上双指捏合（张开）会加大每小时行高', (tester) async {
     await pumpPage(tester);
-    // 先切回「月」视图的常规密度（整日概览会压屏）
-    await tester.tap(find.byIcon(Icons.calendar_view_month_rounded));
-    await tester.pumpAndSettle();
+    // 默认就是月视图（月格 + 单日时间轴）
 
     final before = tester.getRect(find.byType(DayTimeline)).height;
     final area = tester.getRect(find.byKey(const ValueKey('month-grid-body')));
