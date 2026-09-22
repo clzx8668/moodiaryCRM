@@ -20963,6 +20963,17 @@ class $SchedulesTable extends Schedules
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _travelMinutesMeta = const VerificationMeta(
+    'travelMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> travelMinutes = GeneratedColumn<int>(
+    'travel_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _priorityMeta = const VerificationMeta(
     'priority',
   );
@@ -21103,6 +21114,7 @@ class $SchedulesTable extends Schedules
     draft,
     repeatType,
     remindOffsetMin,
+    travelMinutes,
     priority,
     tag,
     bgColor,
@@ -21211,6 +21223,15 @@ class $SchedulesTable extends Schedules
         remindOffsetMin.isAcceptableOrUnknown(
           data['remind_offset_min']!,
           _remindOffsetMinMeta,
+        ),
+      );
+    }
+    if (data.containsKey('travel_minutes')) {
+      context.handle(
+        _travelMinutesMeta,
+        travelMinutes.isAcceptableOrUnknown(
+          data['travel_minutes']!,
+          _travelMinutesMeta,
         ),
       );
     }
@@ -21345,6 +21366,10 @@ class $SchedulesTable extends Schedules
         DriftSqlType.int,
         data['${effectivePrefix}remind_offset_min'],
       ),
+      travelMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}travel_minutes'],
+      ),
       priority: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}priority'],
@@ -21451,6 +21476,9 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
   /// 提前提醒分钟数（可空；null=不提醒）
   final int? remindOffsetMin;
 
+  /// 行程时间（分钟）：填了以后「出发时间提醒」= 开始时间 − 行程时间
+  final int? travelMinutes;
+
   /// 优先级（0 无 / 1 低 / 2 中 / 3 高）
   final int priority;
 
@@ -21492,6 +21520,7 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
     required this.draft,
     required this.repeatType,
     this.remindOffsetMin,
+    this.travelMinutes,
     required this.priority,
     this.tag,
     this.bgColor,
@@ -21534,6 +21563,9 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
     map['repeat_type'] = Variable<String>(repeatType);
     if (!nullToAbsent || remindOffsetMin != null) {
       map['remind_offset_min'] = Variable<int>(remindOffsetMin);
+    }
+    if (!nullToAbsent || travelMinutes != null) {
+      map['travel_minutes'] = Variable<int>(travelMinutes);
     }
     map['priority'] = Variable<int>(priority);
     if (!nullToAbsent || tag != null) {
@@ -21591,6 +21623,9 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
       remindOffsetMin: remindOffsetMin == null && nullToAbsent
           ? const Value.absent()
           : Value(remindOffsetMin),
+      travelMinutes: travelMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(travelMinutes),
       priority: Value(priority),
       tag: tag == null && nullToAbsent ? const Value.absent() : Value(tag),
       bgColor: bgColor == null && nullToAbsent
@@ -21631,6 +21666,7 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
       draft: serializer.fromJson<bool>(json['draft']),
       repeatType: serializer.fromJson<String>(json['repeatType']),
       remindOffsetMin: serializer.fromJson<int?>(json['remindOffsetMin']),
+      travelMinutes: serializer.fromJson<int?>(json['travelMinutes']),
       priority: serializer.fromJson<int>(json['priority']),
       tag: serializer.fromJson<String?>(json['tag']),
       bgColor: serializer.fromJson<int?>(json['bgColor']),
@@ -21662,6 +21698,7 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
       'draft': serializer.toJson<bool>(draft),
       'repeatType': serializer.toJson<String>(repeatType),
       'remindOffsetMin': serializer.toJson<int?>(remindOffsetMin),
+      'travelMinutes': serializer.toJson<int?>(travelMinutes),
       'priority': serializer.toJson<int>(priority),
       'tag': serializer.toJson<String?>(tag),
       'bgColor': serializer.toJson<int?>(bgColor),
@@ -21691,6 +21728,7 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
     bool? draft,
     String? repeatType,
     Value<int?> remindOffsetMin = const Value.absent(),
+    Value<int?> travelMinutes = const Value.absent(),
     int? priority,
     Value<String?> tag = const Value.absent(),
     Value<int?> bgColor = const Value.absent(),
@@ -21719,6 +21757,9 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
     remindOffsetMin: remindOffsetMin.present
         ? remindOffsetMin.value
         : this.remindOffsetMin,
+    travelMinutes: travelMinutes.present
+        ? travelMinutes.value
+        : this.travelMinutes,
     priority: priority ?? this.priority,
     tag: tag.present ? tag.value : this.tag,
     bgColor: bgColor.present ? bgColor.value : this.bgColor,
@@ -21761,6 +21802,9 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
       remindOffsetMin: data.remindOffsetMin.present
           ? data.remindOffsetMin.value
           : this.remindOffsetMin,
+      travelMinutes: data.travelMinutes.present
+          ? data.travelMinutes.value
+          : this.travelMinutes,
       priority: data.priority.present ? data.priority.value : this.priority,
       tag: data.tag.present ? data.tag.value : this.tag,
       bgColor: data.bgColor.present ? data.bgColor.value : this.bgColor,
@@ -21798,6 +21842,7 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
           ..write('draft: $draft, ')
           ..write('repeatType: $repeatType, ')
           ..write('remindOffsetMin: $remindOffsetMin, ')
+          ..write('travelMinutes: $travelMinutes, ')
           ..write('priority: $priority, ')
           ..write('tag: $tag, ')
           ..write('bgColor: $bgColor, ')
@@ -21829,6 +21874,7 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
     draft,
     repeatType,
     remindOffsetMin,
+    travelMinutes,
     priority,
     tag,
     bgColor,
@@ -21859,6 +21905,7 @@ class ScheduleRow extends DataClass implements Insertable<ScheduleRow> {
           other.draft == this.draft &&
           other.repeatType == this.repeatType &&
           other.remindOffsetMin == this.remindOffsetMin &&
+          other.travelMinutes == this.travelMinutes &&
           other.priority == this.priority &&
           other.tag == this.tag &&
           other.bgColor == this.bgColor &&
@@ -21887,6 +21934,7 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
   final Value<bool> draft;
   final Value<String> repeatType;
   final Value<int?> remindOffsetMin;
+  final Value<int?> travelMinutes;
   final Value<int> priority;
   final Value<String?> tag;
   final Value<int?> bgColor;
@@ -21914,6 +21962,7 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
     this.draft = const Value.absent(),
     this.repeatType = const Value.absent(),
     this.remindOffsetMin = const Value.absent(),
+    this.travelMinutes = const Value.absent(),
     this.priority = const Value.absent(),
     this.tag = const Value.absent(),
     this.bgColor = const Value.absent(),
@@ -21942,6 +21991,7 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
     this.draft = const Value.absent(),
     this.repeatType = const Value.absent(),
     this.remindOffsetMin = const Value.absent(),
+    this.travelMinutes = const Value.absent(),
     this.priority = const Value.absent(),
     this.tag = const Value.absent(),
     this.bgColor = const Value.absent(),
@@ -21974,6 +22024,7 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
     Expression<bool>? draft,
     Expression<String>? repeatType,
     Expression<int>? remindOffsetMin,
+    Expression<int>? travelMinutes,
     Expression<int>? priority,
     Expression<String>? tag,
     Expression<int>? bgColor,
@@ -22002,6 +22053,7 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
       if (draft != null) 'draft': draft,
       if (repeatType != null) 'repeat_type': repeatType,
       if (remindOffsetMin != null) 'remind_offset_min': remindOffsetMin,
+      if (travelMinutes != null) 'travel_minutes': travelMinutes,
       if (priority != null) 'priority': priority,
       if (tag != null) 'tag': tag,
       if (bgColor != null) 'bg_color': bgColor,
@@ -22032,6 +22084,7 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
     Value<bool>? draft,
     Value<String>? repeatType,
     Value<int?>? remindOffsetMin,
+    Value<int?>? travelMinutes,
     Value<int>? priority,
     Value<String?>? tag,
     Value<int?>? bgColor,
@@ -22060,6 +22113,7 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
       draft: draft ?? this.draft,
       repeatType: repeatType ?? this.repeatType,
       remindOffsetMin: remindOffsetMin ?? this.remindOffsetMin,
+      travelMinutes: travelMinutes ?? this.travelMinutes,
       priority: priority ?? this.priority,
       tag: tag ?? this.tag,
       bgColor: bgColor ?? this.bgColor,
@@ -22122,6 +22176,9 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
     if (remindOffsetMin.present) {
       map['remind_offset_min'] = Variable<int>(remindOffsetMin.value);
     }
+    if (travelMinutes.present) {
+      map['travel_minutes'] = Variable<int>(travelMinutes.value);
+    }
     if (priority.present) {
       map['priority'] = Variable<int>(priority.value);
     }
@@ -22182,6 +22239,7 @@ class SchedulesCompanion extends UpdateCompanion<ScheduleRow> {
           ..write('draft: $draft, ')
           ..write('repeatType: $repeatType, ')
           ..write('remindOffsetMin: $remindOffsetMin, ')
+          ..write('travelMinutes: $travelMinutes, ')
           ..write('priority: $priority, ')
           ..write('tag: $tag, ')
           ..write('bgColor: $bgColor, ')
@@ -33449,6 +33507,7 @@ typedef $$SchedulesTableCreateCompanionBuilder =
       Value<bool> draft,
       Value<String> repeatType,
       Value<int?> remindOffsetMin,
+      Value<int?> travelMinutes,
       Value<int> priority,
       Value<String?> tag,
       Value<int?> bgColor,
@@ -33478,6 +33537,7 @@ typedef $$SchedulesTableUpdateCompanionBuilder =
       Value<bool> draft,
       Value<String> repeatType,
       Value<int?> remindOffsetMin,
+      Value<int?> travelMinutes,
       Value<int> priority,
       Value<String?> tag,
       Value<int?> bgColor,
@@ -33569,6 +33629,11 @@ class $$SchedulesTableFilterComposer
 
   ColumnFilters<int> get remindOffsetMin => $composableBuilder(
     column: $table.remindOffsetMin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get travelMinutes => $composableBuilder(
+    column: $table.travelMinutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -33709,6 +33774,11 @@ class $$SchedulesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get travelMinutes => $composableBuilder(
+    column: $table.travelMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get priority => $composableBuilder(
     column: $table.priority,
     builder: (column) => ColumnOrderings(column),
@@ -33827,6 +33897,11 @@ class $$SchedulesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get travelMinutes => $composableBuilder(
+    column: $table.travelMinutes,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get priority =>
       $composableBuilder(column: $table.priority, builder: (column) => column);
 
@@ -33913,6 +33988,7 @@ class $$SchedulesTableTableManager
                 Value<bool> draft = const Value.absent(),
                 Value<String> repeatType = const Value.absent(),
                 Value<int?> remindOffsetMin = const Value.absent(),
+                Value<int?> travelMinutes = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String?> tag = const Value.absent(),
                 Value<int?> bgColor = const Value.absent(),
@@ -33940,6 +34016,7 @@ class $$SchedulesTableTableManager
                 draft: draft,
                 repeatType: repeatType,
                 remindOffsetMin: remindOffsetMin,
+                travelMinutes: travelMinutes,
                 priority: priority,
                 tag: tag,
                 bgColor: bgColor,
@@ -33969,6 +34046,7 @@ class $$SchedulesTableTableManager
                 Value<bool> draft = const Value.absent(),
                 Value<String> repeatType = const Value.absent(),
                 Value<int?> remindOffsetMin = const Value.absent(),
+                Value<int?> travelMinutes = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String?> tag = const Value.absent(),
                 Value<int?> bgColor = const Value.absent(),
@@ -33996,6 +34074,7 @@ class $$SchedulesTableTableManager
                 draft: draft,
                 repeatType: repeatType,
                 remindOffsetMin: remindOffsetMin,
+                travelMinutes: travelMinutes,
                 priority: priority,
                 tag: tag,
                 bgColor: bgColor,

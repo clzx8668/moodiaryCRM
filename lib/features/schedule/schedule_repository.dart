@@ -113,6 +113,7 @@ class ScheduleRepository {
     ..draft = row.draft
     ..repeatType = RepeatType.fromValue(row.repeatType)
     ..remindOffsetMin = row.remindOffsetMin
+    ..travelMinutes = row.travelMinutes
     ..priority = SchedulePriority.fromValue(row.priority)
     ..tag = row.tag
     ..bgColor = row.bgColor
@@ -142,6 +143,7 @@ class ScheduleRepository {
     draft: Value(s.draft),
     repeatType: Value(s.repeatType.value),
     remindOffsetMin: Value(s.remindOffsetMin),
+    travelMinutes: Value(s.travelMinutes),
     priority: Value(s.priority.value),
     tag: Value(s.tag),
     bgColor: Value(s.bgColor),

@@ -799,6 +799,9 @@ class Schedules extends Table {
   /// 提前提醒分钟数（可空；null=不提醒）
   IntColumn get remindOffsetMin => integer().nullable()();
 
+  /// 行程时间（分钟）：填了以后「出发时间提醒」= 开始时间 − 行程时间
+  IntColumn get travelMinutes => integer().nullable()();
+
   /// 优先级（0 无 / 1 低 / 2 中 / 3 高）
   IntColumn get priority => integer().withDefault(const Constant(0))();
 
@@ -914,7 +917,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1051,6 +1054,11 @@ class AppDatabase extends _$AppDatabase {
         await _addColumnIfMissing(m, db.schedules, db.schedules.attachments);
         await _addColumnIfMissing(m, db.schedules, db.schedules.timeZoneId);
         await _addColumnIfMissing(m, db.schedules, db.schedules.draft);
+      }
+      // v23 → v24：Schedules 增加 travelMinutes（行程时间，供"出发时间提醒"用）
+      if (from < 24) {
+        final db = m.database as AppDatabase;
+        await _addColumnIfMissing(m, db.schedules, db.schedules.travelMinutes);
       }
     },
     beforeOpen: (details) async {

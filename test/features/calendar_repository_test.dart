@@ -166,5 +166,46 @@ void main() {
       expect(loaded.attachments, isEmpty);
       expect(loaded.draft, isFalse);
     });
+
+    test('行程时间：存读一致，且"出发时间提醒"按行程时间提前', () async {
+      final repo = ScheduleRepository(db);
+      final created = await repo.create(
+        Schedule()
+          ..title = '面试'
+          ..location = '望京 SOHO T1'
+          ..startTime = DateTime(2026, 9, 23, 9)
+          ..endTime = DateTime(2026, 9, 23, 10)
+          ..remindOffsetMin = -1
+          ..travelMinutes = 45,
+      );
+
+      final loaded = await repo.getById(created.id);
+      expect(loaded!.travelMinutes, 45);
+      expect(
+        loaded.remindAt,
+        DateTime(2026, 9, 23, 8, 15),
+        reason: '出发 = 开始 − 行程时间（09:00 − 45min）',
+      );
+    });
+
+    test('出发提醒没设行程时间时按 30 分钟兜底', () {
+      final s = Schedule()
+        ..title = '客户拜访'
+        ..startTime = DateTime(2026, 9, 23, 14)
+        ..remindOffsetMin = -1;
+      expect(s.remindAt, DateTime(2026, 9, 23, 13, 30));
+    });
+
+    test('行程时间/出发提醒经 JSON 往返不丢', () {
+      final s = Schedule()
+        ..id = 'x2'
+        ..title = 'T'
+        ..startTime = DateTime(2026, 9, 23, 9)
+        ..remindOffsetMin = -1
+        ..travelMinutes = 30;
+      final round = Schedule.fromJson(s.toJson());
+      expect(round.travelMinutes, 30);
+      expect(round.remindAt, DateTime(2026, 9, 23, 8, 30));
+    });
   });
 }

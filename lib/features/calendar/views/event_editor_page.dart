@@ -446,6 +446,15 @@ class _EventEditorPageState extends State<EventEditorPage> {
                 value: _remindLabel,
                 onTap: _pickRemind,
               ),
+              if ((_draft.location ?? '').trim().isNotEmpty ||
+                  _draft.remindOffsetMin == -1) ...[
+                const Divider(height: 1),
+                _ValueRow(
+                  label: '行程时间',
+                  value: _travelLabel,
+                  onTap: _pickTravel,
+                ),
+              ],
               const Divider(height: 1),
               _ValueRow(
                 label: '日历',
@@ -532,6 +541,32 @@ class _EventEditorPageState extends State<EventEditorPage> {
       1440 => '1 天前',
       _ => '$v 分钟前',
     };
+  }
+
+  /// 行程时间（"该出发了"的手动替代）：填了就能按出发时间提醒
+  String get _travelLabel {
+    final v = _draft.travelMinutes;
+    if (v == null) return _draft.remindOffsetMin == -1 ? '默认 30 分钟' : '未设置';
+    return '$v 分钟';
+  }
+
+  Future<void> _pickTravel() async {
+    const off = -99;
+    const options = <String, int>{
+      '不设置': off,
+      '15 分钟': 15,
+      '30 分钟': 30,
+      '45 分钟': 45,
+      '60 分钟': 60,
+      '90 分钟': 90,
+    };
+    final picked = await _pickFromOptions<int>(
+      title: '行程时间',
+      options: options,
+      current: _travelLabel,
+    );
+    if (picked == null) return;
+    _touch(() => _draft.travelMinutes = picked == off ? null : picked);
   }
 
   /// 新建时的「日程 / 提醒事项」切换（对齐 iOS 18）。

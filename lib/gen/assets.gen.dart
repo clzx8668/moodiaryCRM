@@ -28,6 +28,16 @@ class $AssetsAsrGen {
   List<String> get values => [asrSelftest];
 }
 
+class $AssetsCalendarGen {
+  const $AssetsCalendarGen();
+
+  /// File path: assets/calendar/china_holidays_2026.json
+  String get chinaHolidays2026 => 'assets/calendar/china_holidays_2026.json';
+
+  /// List of all assets
+  List<String> get values => [chinaHolidays2026];
+}
+
 class $AssetsIconGen {
   const $AssetsIconGen();
 
@@ -144,6 +154,7 @@ class $AssetsIconLightGen {
 
 abstract final class Assets {
   static const $AssetsAsrGen asr = $AssetsAsrGen();
+  static const $AssetsCalendarGen calendar = $AssetsCalendarGen();
   static const $AssetsIconGen icon = $AssetsIconGen();
   static const $AssetsLottieGen lottie = $AssetsLottieGen();
   static const $AssetsTfliteGen tflite = $AssetsTfliteGen();

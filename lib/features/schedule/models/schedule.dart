@@ -97,6 +97,9 @@ class Schedule {
   /// 提前提醒分钟数（null=不提醒）
   int? remindOffsetMin;
 
+  /// 行程时间（分钟）：配合「出发时间提醒」，出发时刻 = 开始时间 − 行程时间
+  int? travelMinutes;
+
   SchedulePriority priority = SchedulePriority.none;
 
   String? tag;
@@ -143,6 +146,7 @@ class Schedule {
     ..draft = draft
     ..repeatType = repeatType
     ..remindOffsetMin = remindOffsetMin
+    ..travelMinutes = travelMinutes
     ..priority = priority
     ..tag = tag
     ..bgColor = bgColor
@@ -176,9 +180,15 @@ class Schedule {
   bool get isMultiDay => endDay.isAfter(day);
 
   /// 提醒时间。
-  DateTime? get remindAt => remindOffsetMin == null
-      ? null
-      : startTime.subtract(Duration(minutes: remindOffsetMin!));
+  DateTime? get remindAt {
+    final offset = remindOffsetMin;
+    if (offset == null) return null;
+    // -1 = 出发时间提醒：按行程时间提前（没设行程时间默认 30 分钟）
+    if (offset < 0) {
+      return startTime.subtract(Duration(minutes: travelMinutes ?? 30));
+    }
+    return startTime.subtract(Duration(minutes: offset));
+  }
 
   ScheduleSubtask? get nextPendingSubtask {
     for (final s in subtasks) {
@@ -204,6 +214,7 @@ class Schedule {
     'draft': draft,
     'repeatType': repeatType.value,
     'remindOffsetMin': remindOffsetMin,
+    'travelMinutes': travelMinutes,
     'priority': priority.value,
     'tag': tag,
     'bgColor': bgColor,
@@ -237,6 +248,7 @@ class Schedule {
     ..draft = json['draft'] as bool? ?? false
     ..repeatType = RepeatType.fromValue(json['repeatType'] as String?)
     ..remindOffsetMin = (json['remindOffsetMin'] as num?)?.toInt()
+    ..travelMinutes = (json['travelMinutes'] as num?)?.toInt()
     ..priority = SchedulePriority.fromValue(
       (json['priority'] as num?)?.toInt(),
     )

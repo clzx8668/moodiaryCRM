@@ -182,10 +182,18 @@ class EventDetailContent extends StatelessWidget {
               _InfoRow(
                 icon: Icons.alarm_rounded,
                 text: event.remindOffsetMin == -1
-                    ? '出发时间提醒'
+                    ? '出发时间提醒（提前 ${event.travelMinutes ?? 30} 分钟）'
                     : event.remindOffsetMin == 0
                     ? '准时提醒'
                     : '提前 ${event.remindOffsetMin} 分钟提醒',
+              ),
+            // 「该出发了」：有行程时间就显示预计出发时刻
+            if (event.travelMinutes != null && event.remindAt != null)
+              _InfoRow(
+                icon: Icons.directions_car_rounded,
+                text:
+                    '出发 ${fmtClock(event.remindAt!)} · '
+                    '预计路程 ${event.travelMinutes} 分钟',
               ),
             if (event.attachments.isNotEmpty) ...[
               const SizedBox(height: 6),
