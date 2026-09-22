@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:moodiary/common/models/isar/diary.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
@@ -98,6 +99,10 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   double _pendingHourHeight = 52;
   bool _heightCommitScheduled = false;
 
+  /// 切换视图档位时的浮层提示（对齐 iOS：捏合后短暂显示模式名）
+  String? _modeHud;
+  Timer? _modeHudTimer;
+
   /// 月格是否折叠成「周」条（单指上下滑动切换）
   bool _weekMode = false;
 
@@ -139,9 +144,25 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
 
   @override
   void dispose() {
+    _modeHudTimer?.cancel();
     _scroll.dispose();
     super.dispose();
   }
+
+  void _showModeHud(String label) {
+    _modeHudTimer?.cancel();
+    setState(() => _modeHud = label);
+    _modeHudTimer = Timer(const Duration(milliseconds: 1100), () {
+      if (mounted) setState(() => _modeHud = null);
+    });
+  }
+
+  /// 月格三档的苹果叫法：紧凑（点阵）/ 叠放（色条）/ 详细信息（标题时间）
+  String _zoomTierLabel(CalendarZoom zoom) => switch (zoom) {
+    CalendarZoom.dots => '紧凑',
+    CalendarZoom.bars => '叠放',
+    CalendarZoom.titles => '详细信息',
+  };
 
   // ---------------------------------------------------------------- 数据
 
@@ -493,6 +514,7 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       _lastScale = details.scale;
       HapticFeedback.selectionClick(); // 捏合换档给一次触感（文档 §3.2/5.2）
       setState(() => _zoom = next);
+      _showModeHud(_zoomTierLabel(next));
     }
   }
 
@@ -613,6 +635,12 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
                 // 视图切换的淡入交给各视图内部的 AnimatedSize/AnimatedContainer。
                 Positioned.fill(child: _bodyForMode()),
                 Positioned(
+                  top: 6,
+                  left: 0,
+                  right: 0,
+                  child: Center(child: _modeHudBadge()),
+                ),
+                Positioned(
                   left: 0,
                   right: 0,
                   bottom: 10,
@@ -660,7 +688,19 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
               children: [
                 _topBar(),
                 _modeBar(),
-                Expanded(child: _bodyForMode()),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(child: _bodyForMode()),
+                      Positioned(
+                        top: 6,
+                        left: 0,
+                        right: 0,
+                        child: Center(child: _modeHudBadge()),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -916,6 +956,33 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
   }
 
   /// 视图模式条（日 / 周 / 月 / 列表）——手机与 PC 共用。
+  Widget _modeHudBadge() {
+    final label = _modeHud;
+    if (label == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 180),
+      opacity: 1,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.4),
+          ),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _modeBar() {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -1044,12 +1111,20 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
       byDay[DateTime(entry.key.year, entry.key.month, entry.key.day)] = events
         ..sort((a, b) => a.startTime.compareTo(b.startTime));
     }
-    return AgendaListView(
-      days: days,
-      eventsByDay: byDay,
-      colorOf: _colorOf,
-      onTapEvent: _openDetail,
-      onTapDay: (day) => _selectDay(day),
+    // 列表视图 = 紧凑月格（点阵）+ 日程清单（对齐文档：列表视图 = 点阵 + 清单）
+    return Column(
+      children: [
+        _monthGrid(),
+        Expanded(
+          child: AgendaListView(
+            days: days,
+            eventsByDay: byDay,
+            colorOf: _colorOf,
+            onTapEvent: _openDetail,
+            onTapDay: (day) => _selectDay(day),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1144,10 +1219,13 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
         switch (value) {
           case 'zoom.dots':
             setState(() => _zoom = CalendarZoom.dots);
+            _showModeHud(_zoomTierLabel(CalendarZoom.dots));
           case 'zoom.bars':
             setState(() => _zoom = CalendarZoom.bars);
+            _showModeHud(_zoomTierLabel(CalendarZoom.bars));
           case 'zoom.titles':
             setState(() => _zoom = CalendarZoom.titles);
+            _showModeHud(_zoomTierLabel(CalendarZoom.titles));
           case 'hour.40':
             _setHourHeight(40);
           case 'hour.52':
@@ -1175,21 +1253,21 @@ class _IosCalendarPageState extends State<IosCalendarPage> {
           child: const Text('日视图整日概览（一屏看全天）'),
         ),
         const PopupMenuDivider(),
-        _menuHeader('月格缩放（也可双指捏合）'),
+        _menuHeader('月格显示（也可双指捏合）'),
         CheckedPopupMenuItem(
           value: 'zoom.dots',
           checked: _zoom == CalendarZoom.dots,
-          child: const Text('圆点'),
+          child: const Text('紧凑（横向点阵）'),
         ),
         CheckedPopupMenuItem(
           value: 'zoom.bars',
           checked: _zoom == CalendarZoom.bars,
-          child: const Text('事件条'),
+          child: const Text('叠放（纵向色条）'),
         ),
         CheckedPopupMenuItem(
           value: 'zoom.titles',
           checked: _zoom == CalendarZoom.titles,
-          child: const Text('标题 + 时间'),
+          child: const Text('详细信息（标题 + 时间）'),
         ),
         _menuHeader('时间轴行高'),
         CheckedPopupMenuItem(

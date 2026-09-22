@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../calendar_repository.dart';
+import '../holiday_calendar.dart';
 import '../models/calendar_list.dart';
 
 /// 「日历管理」底部面板（技巧 04/08）：
@@ -277,6 +278,26 @@ class _CalendarManagerSheetState extends State<_CalendarManagerSheet> {
                   onTap: () => _edit(c),
                 ),
             const SizedBox(height: 8),
+            // 信息扩展订阅：中国节假日（含调休），由用户主动订阅
+            if (!_calendars.any((c) => c.source == 'china-holiday'))
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.public_rounded, size: 20),
+                title: const Text('订阅「中国节假日」'),
+                subtitle: const Text('法定节假日 + 调休补班，按全天事件写入日历（可随时隐藏/删除）'),
+                trailing: const Icon(Icons.add_rounded, size: 18),
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final added = await HolidayCalendar.ensure();
+                  if (!mounted) return;
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(added > 0 ? '已订阅，写入 $added 天' : '已订阅过'),
+                    ),
+                  );
+                  await _load();
+                },
+              ),
             Text(
               '共享与同步：本地库是主库；把日历共享给家人/同事需要连上 Hermes（设置 → 日历）。',
               style: theme.textTheme.labelSmall?.copyWith(

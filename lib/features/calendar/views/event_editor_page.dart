@@ -4,12 +4,14 @@ import 'package:get/get.dart';
 import 'package:moodiary/features/schedule/models/schedule.dart';
 import 'package:moodiary/features/schedule/models/schedule_attachment.dart';
 import 'package:moodiary/features/schedule/schedule_repository.dart';
+import 'package:moodiary/features/todo/todo_aggregator.dart';
 import 'package:moodiary/utils/notice_util.dart';
 
 import '../calendar_agenda.dart';
 import '../calendar_repository.dart';
 import '../ios_calendar_theme.dart';
 import '../models/calendar_list.dart';
+import '../quick_parse.dart';
 
 /// iOS 18 风「新建/编辑事件」页。
 ///
@@ -58,6 +60,13 @@ class _EventEditorPageState extends State<EventEditorPage> {
   bool _dirty = false;
   bool _saving = false;
 
+  /// 创建对象：日程 or 提醒事项（对齐 iOS 18「创建时切换提醒事项」）
+  bool _asReminder = false;
+
+  /// 标题里的自然语言识别结果（识别到时间/地点时给一键应用）
+  QuickParseResult? _nlHint;
+  bool _nlApplied = false;
+
   bool get _isNew => widget.event == null;
 
   @override
@@ -94,6 +103,38 @@ class _EventEditorPageState extends State<EventEditorPage> {
     }
     _notesCtrl.text = base.notes;
     if (_calendars.isEmpty) _loadCalendars();
+    // 标题里写「明天下午3点在会议室A评审」也能被认出来
+    _titleCtrl.addListener(_onTitleChanged);
+  }
+
+  void _onTitleChanged() {
+    if (_nlApplied || !_isNew) return;
+    final text = _titleCtrl.text.trim();
+    if (text.length < 3) {
+      if (_nlHint != null) setState(() => _nlHint = null);
+      return;
+    }
+    final parsed = parseQuickAdd(text);
+    final useful = parsed.start != null || parsed.location != null;
+    if (useful == (_nlHint != null)) return;
+    setState(() => _nlHint = useful ? parsed : null);
+  }
+
+  void _applyNlHint() {
+    final hint = _nlHint;
+    if (hint == null) return;
+    _touch(() {
+      if (hint.start != null) {
+        _draft.startTime = hint.start!;
+        _draft.endTime = hint.end;
+      }
+      if (hint.location != null) _locationCtrl.text = hint.location!;
+      if (hint.title.isNotEmpty) _titleCtrl.text = hint.title;
+    });
+    setState(() {
+      _nlApplied = true;
+      _nlHint = null;
+    });
   }
 
   Future<void> _loadCalendars() async {
@@ -104,6 +145,7 @@ class _EventEditorPageState extends State<EventEditorPage> {
 
   @override
   void dispose() {
+    _titleCtrl.removeListener(_onTitleChanged);
     _titleCtrl.dispose();
     _locationCtrl.dispose();
     _notesCtrl.dispose();
@@ -141,6 +183,15 @@ class _EventEditorPageState extends State<EventEditorPage> {
       ..notes = _notesCtrl.text
       ..calendarId = _draft.calendarId ?? _selectedCalendar?.id;
     try {
+      if (_asReminder) {
+        // 提醒事项：落到本地待办（Diary + todo Block），同样会出现在日历时间轴上
+        await TodoAggregator.quickAdd(
+          text: title,
+          dueDate: _draft.startTime,
+        );
+        if (mounted) Get.back(result: true);
+        return;
+      }
       if (_isNew) {
         await _repo.create(_draft);
       } else {
@@ -302,6 +353,7 @@ class _EventEditorPageState extends State<EventEditorPage> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 32),
         children: [
+          if (_isNew) _createKindSwitch(theme, scheme),
           _GroupBox(
             children: [
               TextField(
@@ -310,11 +362,12 @@ class _EventEditorPageState extends State<EventEditorPage> {
                 textInputAction: TextInputAction.done,
                 style: theme.textTheme.titleMedium,
                 decoration: const InputDecoration(
-                  hintText: '添加标题',
+                  hintText: '添加标题（可直接写「明天下午3点在会议室A评审」）',
                   border: InputBorder.none,
                 ),
                 onChanged: (_) => _dirty = true,
               ),
+              if (_nlHint != null) _nlSuggestion(theme, scheme),
               const Divider(height: 1),
               Row(
                 children: [
@@ -479,6 +532,119 @@ class _EventEditorPageState extends State<EventEditorPage> {
       1440 => '1 天前',
       _ => '$v 分钟前',
     };
+  }
+
+  /// 新建时的「日程 / 提醒事项」切换（对齐 iOS 18）。
+  Widget _createKindSwitch(ThemeData theme, ColorScheme scheme) {
+    Widget item(String label, IconData icon, bool value) {
+      final selected = _asReminder == value;
+      return Expanded(
+        child: InkWell(
+          onTap: () => setState(() => _asReminder = value),
+          borderRadius: BorderRadius.circular(9),
+          child: AnimatedContainer(
+            duration: IosCalendarTheme.animFast,
+            padding: const EdgeInsets.symmetric(vertical: 7),
+            decoration: BoxDecoration(
+              color: selected
+                  ? scheme.primary.withValues(alpha: 0.16)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 15,
+                  color: selected ? scheme.primary : scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: selected
+                        ? scheme.primary
+                        : scheme.onSurfaceVariant,
+                    fontWeight: selected ? FontWeight.w600 : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              item('日程', Icons.event_rounded, false),
+              const SizedBox(width: 6),
+              item('提醒事项', Icons.checklist_rounded, true),
+            ],
+          ),
+          if (_asReminder)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                '提醒事项会进「提醒事项」清单，并按时间显示在日历时间轴上',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 标题里识别出时间/地点时的一键应用条。
+  Widget _nlSuggestion(ThemeData theme, ColorScheme scheme) {
+    final hint = _nlHint!;
+    final parts = <String>[
+      if (hint.start != null)
+        '${dayLabel(hint.start!)} ${fmtClock(hint.start!)}'
+            '${hint.end == null ? '' : '–${fmtClock(hint.end!)}'}',
+      if (hint.location != null) hint.location!,
+    ];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
+        decoration: BoxDecoration(
+          color: scheme.primary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.auto_awesome_rounded, size: 14, color: scheme.primary),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                '识别到 ${parts.join(' · ')}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.primary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            TextButton(
+              onPressed: _applyNlHint,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              child: const Text('应用'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _pickRepeat() async {

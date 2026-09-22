@@ -209,6 +209,8 @@ flutter:
     - assets/tflite/
     # 端侧语音识别自检样例（16k/mono/16bit 人声，约 175KB）
     - assets/asr/
+    # 日历订阅数据（中国节假日，含调休）
+    - assets/calendar/
 
   uses-material-design: true
 

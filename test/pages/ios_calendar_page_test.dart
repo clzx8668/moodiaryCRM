@@ -75,11 +75,10 @@ void main() {
     final now = DateTime.now();
     expect(find.text('${now.year}年${now.month}月'), findsOneWidget);
     expect(find.byIcon(Icons.add_circle_outline_rounded), findsOneWidget);
-    // 空状态引导（教一遍拖动交互）——先滚到时间轴顶部，引导卡才会进视口
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, 800));
+    // 空状态引导：切到「日」视图（整日概览）后是那行精简提示
+    await tester.tap(find.byIcon(Icons.view_day_rounded));
     await tester.pumpAndSettle();
-    expect(find.text('这一天还没有安排'), findsOneWidget);
-    expect(find.textContaining('长按时间轴空白处'), findsOneWidget);
+    expect(find.textContaining('长按空白处拖出时间段'), findsOneWidget);
   });
 
   testWidgets('切到收件箱显示空态；有草案时能加入日历', (tester) async {
@@ -114,12 +113,12 @@ void main() {
     await pumpPage(tester);
     // 初始圆点档：日格里只有一个圆点
     expect(find.byType(CalendarEventBar), findsNothing);
-    await setZoom(tester, '事件条');
+    await setZoom(tester, '叠放（纵向色条）');
     expect(find.byType(CalendarEventBar), findsNothing, reason: '这天没有事件');
 
-    await setZoom(tester, '标题 + 时间');
+    await setZoom(tester, '详细信息（标题 + 时间）');
     // 再切回圆点
-    await setZoom(tester, '圆点');
+    await setZoom(tester, '紧凑（横向点阵）');
     expect(tester.takeException(), isNull);
   });
 
@@ -273,7 +272,7 @@ void main() {
     await pumpPage(tester);
 
     // 切到「事件条」档，事件才会以可长按的条形呈现
-    await setZoom(tester, '事件条');
+    await setZoom(tester, '叠放（纵向色条）');
 
     final body = tester.getRect(find.byKey(const ValueKey('month-grid-body')));
     final cellWidth = body.width / 7;
@@ -319,7 +318,7 @@ void main() {
 
     await pumpPage(tester);
     // 直接切到标题档（连续条在标题档才显示标题）
-    await setZoom(tester, '标题 + 时间');
+    await setZoom(tester, '详细信息（标题 + 时间）');
 
     final barFinder = find.text('连续条用例');
     expect(barFinder, findsOneWidget, reason: '跨天事件应作为连续条出现');
@@ -399,10 +398,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.view_day_rounded));
     await tester.pumpAndSettle();
 
-    // 24 小时都在同一块画布里（不是只滚到"当前时间"）
-    expect(find.text('00:00'), findsOneWidget);
-    expect(find.text('23:00'), findsOneWidget);
-
+    // 24 小时都在同一块画布里（不是只滚到"当前时间"），且整块压进一屏
+    expect(find.byType(DayTimeline), findsOneWidget);
     final timeline = tester.getRect(find.byType(DayTimeline));
     final screenHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
     expect(

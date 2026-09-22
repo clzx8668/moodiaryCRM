@@ -54,10 +54,11 @@ class CalendarRepository {
     int? color,
     bool visible = true,
     String source = 'local',
+    String? id,
   }) async {
     final all = await listAll();
     final entity = CalendarList(
-      id: const Uuid().v7(),
+      id: id ?? const Uuid().v7(),
       name: name.trim().isEmpty ? '新日历' : name.trim(),
       color: color ?? CalendarColors.suggestByName(name),
       visible: visible,
